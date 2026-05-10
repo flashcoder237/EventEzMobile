@@ -128,6 +128,9 @@ interface MessageBubbleProps {
   uploadingAttachmentIds?: Set<string>;
   onLongPress: (message: Message) => void;
   onPlayVoice?: (uri: string, messageId: string) => void;
+  /** Forward — appele depuis le menu attachment, reuse le flow message-level
+      du parent (qui ouvre le modal de selection de conversation). */
+  onForward?: (message: Message) => void;
 }
 
 // ============================================================================
@@ -249,6 +252,7 @@ function MessageBubble({
   uploadingAttachmentIds,
   onLongPress,
   onPlayVoice,
+  onForward,
 }: MessageBubbleProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
@@ -352,6 +356,61 @@ function MessageBubble({
     }
   }, [t]);
 
+  // Sauvegarde une image dans la galerie photos via expo-media-library.
+  // Import dynamique pour eviter le hard-fail si le package n'est pas encore
+  // installe (compatibilite ancienne build → fallback sur Sharing.shareAsync).
+  const saveImageToGallery = useCallback(async (attachment: any) => {
+    const url = typeof attachment.file === 'string' ? attachment.file : null;
+    if (!url) return;
+    const attId = String(attachment.id);
+    const filename = attachment.file_name || `image-${attId}.jpg`;
+    const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const targetUri = `${FileSystem.cacheDirectory}${attId}-${safeName}`;
+    try {
+      // 1. DL local
+      const info = await FileSystem.getInfoAsync(targetUri);
+      if (!info.exists) {
+        const result = await FileSystem.downloadAsync(url, targetUri);
+        if (!result.uri) throw new Error('Download failed');
+      }
+      // 2. Save via expo-media-library (require dynamique → no-op si absent)
+      let MediaLibrary: any;
+      try { MediaLibrary = require('expo-media-library'); }
+      catch { MediaLibrary = null; }
+
+      if (MediaLibrary?.saveToLibraryAsync) {
+        const perm = await MediaLibrary.requestPermissionsAsync();
+        if (!perm.granted) {
+          Alert.alert(
+            t('componentsMessages.attachmentMenuPermissionDenied'),
+            t('componentsMessages.attachmentMenuPermissionMessage'),
+          );
+          return;
+        }
+        await MediaLibrary.saveToLibraryAsync(targetUri);
+        Alert.alert(t('componentsMessages.attachmentMenuSavedSuccess'));
+        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { /* ignore */ }
+      } else {
+        // Fallback pour les builds sans expo-media-library : on ouvre la
+        // sheet de partage qui permet "Save to Photos" / "Save to Gallery".
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(targetUri, { dialogTitle: filename });
+        } else {
+          Alert.alert(
+            t('componentsMessages.attachmentErrorTitle'),
+            t('componentsMessages.sharingUnavailable'),
+          );
+        }
+      }
+    } catch (error: any) {
+      if (__DEV__) console.error('[Attachment] saveImageToGallery failed:', error);
+      Alert.alert(
+        t('componentsMessages.attachmentErrorTitle'),
+        error?.message || t('componentsMessages.attachmentDownloadFailed'),
+      );
+    }
+  }, [t]);
+
   const showAttachmentMenu = useCallback((attachment: any) => {
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { /* ignore */ }
     const url = typeof attachment.file === 'string' ? attachment.file : null;
@@ -364,6 +423,22 @@ function MessageBubble({
       text: isImage ? t('componentsMessages.attachmentMenuShare') : t('componentsMessages.attachmentMenuOpenWith'),
       onPress: () => { downloadAndOpen(attachment); },
     });
+
+    // Save-to-gallery — uniquement pour les images
+    if (isImage) {
+      buttons.push({
+        text: t('componentsMessages.attachmentMenuSaveImage'),
+        onPress: () => { saveImageToGallery(attachment); },
+      });
+    }
+
+    // Forward — reuse le flow message-level si le parent l'a fourni
+    if (onForward) {
+      buttons.push({
+        text: t('componentsMessages.attachmentMenuForward'),
+        onPress: () => { onForward(message); },
+      });
+    }
 
     // Copier le lien — utile pour partager via une autre app
     if (url) {
@@ -385,7 +460,7 @@ function MessageBubble({
       buttons,
       { cancelable: true },
     );
-  }, [downloadAndOpen, t]);
+  }, [downloadAndOpen, saveImageToGallery, onForward, message, t]);
 
   // Render Reply Preview
   const renderReplyPreview = () => {

@@ -14,6 +14,7 @@ import {
   Animated,
   ActivityIndicator,
   Keyboard,
+  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,6 +42,7 @@ interface InputToolbarProps {
   // Attachments
   attachedFiles: AttachedFile[];
   onPickImage: () => void;
+  onPickDocument?: () => void;
   onRemoveAttachment: () => void;
 
   // Recording
@@ -64,6 +66,7 @@ function InputToolbar({
   sending,
   attachedFiles,
   onPickImage,
+  onPickDocument,
   onRemoveAttachment,
   isRecording,
   recordingDuration,
@@ -177,6 +180,17 @@ function InputToolbar({
                 </Text>
               </View>
             )}
+            {file.type === 'document' && (
+              <View style={[styles.attachmentVoice, { backgroundColor: colors.gray100, paddingHorizontal: 8 }]}>
+                <Ionicons name="document-text" size={20} color={colors.primary} />
+                <Text
+                  style={[styles.attachmentVoiceDuration, { color: colors.gray600, maxWidth: 80 }]}
+                  numberOfLines={1}
+                >
+                  {file.name}
+                </Text>
+              </View>
+            )}
             <TouchableOpacity
               style={[styles.attachmentRemove, { backgroundColor: colors.surface }]}
               onPress={onRemoveAttachment}
@@ -229,16 +243,42 @@ function InputToolbar({
       {renderAttachmentPreview()}
 
       <View style={styles.inputRow}>
-        {/* Image Button — limites taille rappelées via accessibilityHint */}
+        {/* Attach Button — propose Photo OU Document via une Alert. Sans
+            onPickDocument, fallback direct sur la galerie photo (compat
+            ascendante avec les composants qui ne passent que onPickImage). */}
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={onPickImage}
+          onPress={() => {
+            if (!onPickDocument) {
+              onPickImage();
+              return;
+            }
+            Alert.alert(
+              t('componentsMessages.attachChoiceTitle'),
+              undefined,
+              [
+                {
+                  text: t('componentsMessages.attachChoicePhoto'),
+                  onPress: onPickImage,
+                },
+                {
+                  text: t('componentsMessages.attachChoiceDocument'),
+                  onPress: onPickDocument,
+                },
+                {
+                  text: t('common.cancel'),
+                  style: 'cancel',
+                },
+              ],
+              { cancelable: true },
+            );
+          }}
           activeOpacity={TOUCH_OPACITY}
           accessibilityLabel={t('componentsMessages.inputJoinFile')}
           accessibilityHint={t('componentsMessages.inputJoinFileHint')}
           accessibilityRole="button"
         >
-          <Ionicons name="image-outline" size={22} color={colors.primary} />
+          <Ionicons name="attach" size={24} color={colors.primary} />
         </TouchableOpacity>
 
         {/* Text Input */}

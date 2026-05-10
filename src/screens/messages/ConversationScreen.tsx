@@ -30,6 +30,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import {
   useAudioPlayer,
@@ -686,6 +687,50 @@ export default function ConversationScreen() {
 
   const handleRemoveAttachment = () => {
     actions.clearAttachedFiles();
+  };
+
+  const handlePickDocument = async () => {
+    try {
+      // Garde-fou : pas d'attachement en read-only (groupe a lecture seule, etc.)
+      if (quotaState?.is_read_only) {
+        showError(t('conversation.readOnlyTitle'), t('conversation.readOnlyAttachMessage'));
+        return;
+      }
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+      if (result.canceled || !result.assets?.length) return;
+      const asset = result.assets[0];
+      const sizeBytes = asset.size || 0;
+
+      // Validation taille (10 Mo doc) + quota cumule du groupe
+      const { validateAttachmentSize, formatBytes } = await import('../../constants/messaging');
+      const sizeError = validateAttachmentSize(sizeBytes, 'document');
+      if (sizeError && sizeBytes > 0) {
+        showError(t('conversation.documentTooLargeTitle'), sizeError);
+        return;
+      }
+      if (quotaState && quotaState.max_bytes != null && sizeBytes > 0) {
+        const remaining = Math.max(0, quotaState.max_bytes - quotaState.total_bytes);
+        if (sizeBytes > remaining) {
+          showError(
+            t('conversation.groupFullTitle'),
+            t('conversation.groupFullMessage', { remaining: formatBytes(remaining), max: formatBytes(quotaState.max_bytes) }),
+          );
+          return;
+        }
+      }
+      actions.setAttachedFiles([{
+        uri: asset.uri,
+        name: asset.name,
+        type: 'document',
+      }]);
+    } catch (error) {
+      if (__DEV__) console.error('[ConvScreen] pickDocument failed:', error);
+      showError(t('common.error'), t('conversation.pickDocumentError'));
+    }
   };
 
   // ============================================
@@ -1492,6 +1537,7 @@ export default function ConversationScreen() {
           uploadingAttachmentIds={uploadingIds}
           onLongPress={handleMessageLongPress}
           onPlayVoice={playVoiceMessage}
+          onForward={handleForwardMessage}
         />
       </View>
     );
@@ -1854,6 +1900,7 @@ export default function ConversationScreen() {
               sending={state.sending}
               attachedFiles={state.attachedFiles}
               onPickImage={handlePickImage}
+              onPickDocument={handlePickDocument}
               onRemoveAttachment={handleRemoveAttachment}
               isRecording={state.isRecording}
               recordingDuration={state.recordingDuration}
