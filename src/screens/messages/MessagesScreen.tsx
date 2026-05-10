@@ -543,14 +543,14 @@ export default function MessagesScreen() {
   // `wsConnected` alimente le polling fallback + l'indicateur visuel.
   const { isConnected: wsConnected } = useMessagingWebSocket({
     onNewMessage: (msg) => {
+      // Compat snake_case (WS consumer) / camelCase ou flat (REST)
+      const incomingConvId = String((msg as any).conversation_id ?? msg.conversation);
       if (__DEV__) {
-        // Log diagnostic : permet de verifier que le handler fire bien et
-        // que le lookup map fonctionne. A retirer si verbose.
         console.log('[Inbox] message.new received', {
-          convId: msg.conversation,
+          convId: incomingConvId,
           msgId: msg.id,
           mapSize: conversationIdxMapRef.current.size,
-          mapHasConv: conversationIdxMapRef.current.has(String(msg.conversation)),
+          mapHasConv: conversationIdxMapRef.current.has(incomingConvId),
         });
       }
       // Toast / haptic léger quand un message arrive depuis l'inbox
@@ -583,7 +583,8 @@ export default function MessagesScreen() {
       //  - conv au milieu → bring-to-top en construisant le nouveau tableau en O(n) une seule fois
       let convFound = false;
       setConversations(prev => {
-        const convId = String(msg.conversation);
+        // incomingConvId est calcule plus haut (compat snake_case/flat)
+        const convId = incomingConvId;
         const idx = conversationIdxMapRef.current.get(convId);
         if (idx === undefined || idx < 0 || idx >= prev.length) {
           // Conv inconnue → on signale pour declencher un refetch hors callback

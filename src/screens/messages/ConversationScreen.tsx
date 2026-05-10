@@ -165,7 +165,9 @@ export default function ConversationScreen() {
     getTypingUsersForConversation,
   } = useMessagingWebSocket({
     onNewMessage: (newMessage) => {
-      if (String(newMessage.conversation) === String(state.conversationId)) {
+      // Compat snake_case (WS consumer expose 'conversation_id') / flat (REST 'conversation')
+      const incomingConvId = String((newMessage as any).conversation_id ?? newMessage.conversation);
+      if (incomingConvId === String(state.conversationId)) {
         actions.addMessage(newMessage);
         // FlatList inversé affiche automatiquement les nouveaux messages en bas (index 0)
       }

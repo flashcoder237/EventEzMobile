@@ -204,9 +204,12 @@ export async function displayRichNotification(
               id: 'reply',
               launchActivity: 'default',
             },
+            // input.choices doit etre un array de strings non vide ou OMIS.
+            // Notifee throw "expected an array of string values" si on
+            // passe `choices: []`. On omet completement → quick-reply free
+            // text via le keyboard, pas de suggestions.
             input: {
               placeholder: 'Tapez votre message…',
-              choices: [],
             },
           },
         ];

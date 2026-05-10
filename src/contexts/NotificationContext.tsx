@@ -175,8 +175,24 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Priority 1: explicit screen + params from backend
-      if (data.screen && data.params) {
+      // Priority 1: explicit screen + params from backend.
+      //
+      // ⚠️ FCM/Expo Push n'acceptent que des strings dans `data` → un dict
+      // Python passe par `str(dict)` ce qui donne `"{'conversationId': '157'}"`
+      // (single quotes Python repr, pas du JSON). On detecte les deux formes :
+      //   - object (WS) → utilise direct
+      //   - string (push)→ tente JSON.parse en remplacant les single quotes
+      //                    → fallback : skip le screen, retombe sur priority 2
+      let resolvedParams: any = data.params;
+      if (typeof resolvedParams === 'string') {
+        try {
+          resolvedParams = JSON.parse(resolvedParams.replace(/'/g, '"'));
+        } catch {
+          resolvedParams = null;
+        }
+      }
+
+      if (data.screen && resolvedParams && typeof resolvedParams === 'object') {
         // Validation : si le backend envoie un screen inconnu (typo, ancienne
         // version du client), on log et on retombe sur Notifications. Évite
         // un dispatch qui throw silencieusement.
@@ -188,7 +204,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         navigation.dispatch(
           CommonActions.navigate({
             name: data.screen,
-            params: data.params,
+            params: resolvedParams,
           })
         );
       }
