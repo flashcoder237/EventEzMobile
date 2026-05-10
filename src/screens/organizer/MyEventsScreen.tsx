@@ -47,6 +47,15 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 type FilterStatus = 'all' | 'draft' | 'submitted' | 'validated' | 'rejected' | 'completed' | 'cancelled';
 
+type SortKey =
+  | 'created_desc'
+  | 'created_asc'
+  | 'start_asc'
+  | 'start_desc'
+  | 'registrations_desc'
+  | 'views_desc'
+  | 'title_asc';
+
 const statusColorIcon: Record<string, { color: string; icon: keyof typeof Ionicons.glyphMap }> = {
   draft: { color: '#6B7280', icon: 'document-outline' },
   submitted: { color: '#F59E0B', icon: 'time-outline' },
@@ -92,6 +101,29 @@ export default function MyEventsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  // Tri par défaut : plus récents d'abord (created_at desc). Le backend
+  // /events/my_events/ ne fait pas de .order_by() donc on doit trier client-side
+  // pour avoir un ordre prédictible.
+  const [sortKey, setSortKey] = useState<SortKey>('created_desc');
+  const [sortSheetVisible, setSortSheetVisible] = useState(false);
+  // Modal de confirmation pour l'édition d'un event validé. On veut prévenir
+  // l'organizer qu'une modif critique le repassera en "submitted" (re-validation).
+  const [editValidatedTarget, setEditValidatedTarget] = useState<Event | null>(null);
+
+  const sortOptions: { key: SortKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = useMemo(() => [
+    { key: 'created_desc', label: t('organizer.myEvents.sortRecent'), icon: 'time-outline' },
+    { key: 'created_asc', label: t('organizer.myEvents.sortOldest'), icon: 'hourglass-outline' },
+    { key: 'start_asc', label: t('organizer.myEvents.sortStartSoonest'), icon: 'calendar-outline' },
+    { key: 'start_desc', label: t('organizer.myEvents.sortStartLatest'), icon: 'calendar-clear-outline' },
+    { key: 'registrations_desc', label: t('organizer.myEvents.sortMostRegistrations'), icon: 'people-outline' },
+    { key: 'views_desc', label: t('organizer.myEvents.sortMostViews'), icon: 'eye-outline' },
+    { key: 'title_asc', label: t('organizer.myEvents.sortAlphabetical'), icon: 'text-outline' },
+  ], [t]);
+
+  const activeSortLabel = useMemo(
+    () => sortOptions.find(o => o.key === sortKey)?.label ?? '',
+    [sortOptions, sortKey],
+  );
   // Modal d'annulation : on demande une raison qui apparaîtra aux inscrits
   // (email + notification). Pas obligatoire côté backend mais fortement
   // recommandé pour la transparence — un cancel silencieux est une mauvaise UX.
@@ -190,7 +222,7 @@ export default function MyEventsScreen() {
   };
 
   const filteredEvents = useMemo(() => {
-    return events.filter(event => {
+    const filtered = events.filter(event => {
       const statusMatch = filter === 'all' || event.status === filter;
       const searchMatch = !searchQuery ||
         event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -198,7 +230,26 @@ export default function MyEventsScreen() {
         event.description?.toLowerCase().includes(searchQuery.toLowerCase());
       return statusMatch && searchMatch;
     });
-  }, [events, filter, searchQuery]);
+
+    // Tri appliqué après le filtrage. On copie pour ne pas muter l'array d'origine
+    // (sinon useState ne déclenche pas de re-render des consommateurs externes).
+    const sorted = [...filtered];
+    const time = (s?: string) => (s ? new Date(s).getTime() : 0);
+    sorted.sort((a, b) => {
+      switch (sortKey) {
+        case 'created_desc': return time(b.created_at) - time(a.created_at);
+        case 'created_asc': return time(a.created_at) - time(b.created_at);
+        case 'start_asc': return time(a.start_date) - time(b.start_date);
+        case 'start_desc': return time(b.start_date) - time(a.start_date);
+        case 'registrations_desc':
+          return (b.registration_count ?? b.registrations_count ?? 0) - (a.registration_count ?? a.registrations_count ?? 0);
+        case 'views_desc': return (b.view_count ?? 0) - (a.view_count ?? 0);
+        case 'title_asc': return a.title.localeCompare(b.title);
+        default: return 0;
+      }
+    });
+    return sorted;
+  }, [events, filter, searchQuery, sortKey]);
 
   const stats = useMemo(() => ({
     total: events.length,
@@ -518,11 +569,23 @@ export default function MyEventsScreen() {
 
     // ─── Actions sur l'event ───
     const eventActions: EventAction[] = [];
-    if (event.status === 'draft' || event.status === 'rejected') {
+    if (event.status === 'draft' || event.status === 'rejected' || event.status === 'changes_requested') {
       eventActions.push({
         label: t('common.edit'),
         icon: 'create-outline',
         onPress: () => navigation.navigate('EventEdit', { eventId: event.id }),
+      });
+    }
+    // Sur un event validé, on autorise l'édition mais avec un warning : si
+    // l'organizer touche un champ critique (titre/dates/lieu/type/capacité), le
+    // backend repasse l'event en 'submitted' (cf. EventViewSet.update). Le
+    // modal d'avertissement permet d'éviter la mauvaise surprise.
+    if (event.status === 'validated') {
+      eventActions.push({
+        label: t('organizer.myEvents.actionEditValidated'),
+        icon: 'create-outline',
+        description: t('organizer.myEvents.actionEditValidatedDesc'),
+        onPress: () => setEditValidatedTarget(event),
       });
     }
     if (event.status === 'draft') {
@@ -559,6 +622,26 @@ export default function MyEventsScreen() {
 
     return sections;
   }, [actionsSheetEvent, navigation, t]);
+
+  /** Sections du sheet de tri — réutilise EventActionsSheet pour rester cohérent
+   *  visuellement. L'option active est marquée par checkmark-circle + description "Tri actif". */
+  const sortSections: EventActionSection[] = useMemo(() => {
+    const actions: EventAction[] = sortOptions.map(opt => ({
+      label: opt.label,
+      icon: sortKey === opt.key ? 'checkmark-circle' : opt.icon,
+      description: sortKey === opt.key ? t('organizer.myEvents.sortActive') : undefined,
+      onPress: () => setSortKey(opt.key),
+    }));
+    return [{ title: t('organizer.myEvents.sortEyebrow'), actions }];
+  }, [sortOptions, sortKey, t]);
+
+  const handleEditValidatedConfirm = () => {
+    const target = editValidatedTarget;
+    setEditValidatedTarget(null);
+    if (target) {
+      navigation.navigate('EventEdit', { eventId: target.id });
+    }
+  };
 
   const renderEvent = ({ item, index }: { item: Event; index: number }) => {
     const config = statusConfig[item.status] || statusConfig.draft;
@@ -1069,9 +1152,18 @@ export default function MyEventsScreen() {
               <Ionicons name="close-circle" size={16} color={colors.gray400} />
             </TouchableOpacity>
           )}
-          <View style={[styles.searchPill, { backgroundColor: colors.gray100 }]}>
-            <Ionicons name="filter" size={12} color={colors.gray600} />
-          </View>
+          <TouchableOpacity
+            style={[styles.sortTriggerPill, { backgroundColor: colors.gray100 }]}
+            onPress={() => setSortSheetVisible(true)}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={t('organizer.myEvents.sortA11y')}
+          >
+            <Ionicons name="swap-vertical" size={13} color={colors.gray700} />
+            <Text style={[styles.sortTriggerText, { color: colors.gray700 }]} numberOfLines={1}>
+              {activeSortLabel}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -1287,6 +1379,57 @@ export default function MyEventsScreen() {
         subtitle={t('organizer.myEvents.sectionActions')}
         sections={eventActionSections}
       />
+
+      {/* Sheet de tri — réutilise EventActionsSheet pour cohérence visuelle. */}
+      <EventActionsSheet
+        visible={sortSheetVisible}
+        onClose={() => setSortSheetVisible(false)}
+        title={t('organizer.myEvents.sortEyebrow')}
+        subtitle={activeSortLabel}
+        sections={sortSections}
+      />
+
+      {/* Modal d'avertissement avant édition d'un event publié. Le backend
+          (apps/events/views.py:484) repasse l'event en 'submitted' si un champ
+          critique change → on prévient avant pour éviter la mauvaise surprise. */}
+      <Modal
+        visible={!!editValidatedTarget}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditValidatedTarget(null)}
+      >
+        <View style={styles.cancelModalBackdrop}>
+          <View style={[styles.cancelModalCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.cancelModalEyebrow, { color: '#F59E0B' }]}>
+              {t('organizer.myEvents.editValidatedEyebrow')}
+            </Text>
+            <Text style={[styles.cancelModalTitle, { color: colors.text }]}>
+              {t('organizer.myEvents.editValidatedTitle', { title: editValidatedTarget?.title || '' })}
+            </Text>
+            <Text style={[styles.cancelModalBody, { color: colors.gray500 }]}>
+              {t('organizer.myEvents.editValidatedBody')}
+            </Text>
+            <View style={styles.cancelModalActions}>
+              <TouchableOpacity
+                style={[styles.cancelModalBtn, { backgroundColor: colors.gray100 }]}
+                onPress={() => setEditValidatedTarget(null)}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.cancelModalBtnText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.cancelModalBtn, { backgroundColor: colors.primary }]}
+                onPress={handleEditValidatedConfirm}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.cancelModalBtnText, { color: '#fff' }]}>
+                  {t('organizer.myEvents.editValidatedConfirm')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </EditorialCanvas>
   );
 }
@@ -1403,6 +1546,20 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  sortTriggerPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    maxWidth: 150,
+  },
+  sortTriggerText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.2,
   },
   filterContainer: {
     paddingTop: Spacing.md,

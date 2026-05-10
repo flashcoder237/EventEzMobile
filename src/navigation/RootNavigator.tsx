@@ -57,6 +57,7 @@ import TicketPurchaseScreen from '../screens/tickets/TicketPurchaseScreen';
 import RegistrationDetailsScreen from '../screens/tickets/RegistrationDetailsScreen';
 import PendingTransfersScreen from '../screens/tickets/PendingTransfersScreen';
 import OfflineTicketsScreen from '../screens/tickets/OfflineTicketsScreen';
+import TransferAcceptScreen from '../screens/tickets/TransferAcceptScreen';
 
 // Dashboard & Profile Screens
 import NotificationsScreen from '../screens/dashboard/NotificationsScreen';
@@ -314,6 +315,8 @@ export default function RootNavigator() {
       <Stack.Screen name="RegistrationDetails" component={RegistrationDetailsScreen} options={{ presentation: 'modal' }} />
       <Stack.Screen name="PendingTransfers" component={PendingTransfersScreen} />
       <Stack.Screen name="OfflineTickets" component={OfflineTicketsScreen} />
+      {/* TransferAccept : ouvert par deep link https://eventez.online/transfer/{token}/accept */}
+      <Stack.Screen name="TransferAccept" component={TransferAcceptScreen} />
       <Stack.Screen name="Scan" component={ScanScreen} options={{ presentation: 'fullScreenModal' }} />
 
       {/* Dashboard & Profile Screens */}
@@ -340,6 +343,15 @@ export default function RootNavigator() {
         name="Conversation"
         component={ConversationScreen}
         options={{ headerShown: false }}
+        // getId : chaque conversationId est une instance distincte. Sans ça,
+        // naviguer depuis une notification vers une AUTRE conversation alors
+        // qu'une est déjà ouverte ne créait pas une nouvelle instance — React
+        // Navigation se contentait de merger les params, mais useMessageState
+        // gardait son state initialisé sur l'ancien conversationId → écran vide.
+        // Le fallback "new" couvre le cas {userId, userName} (DM jamais créée).
+        getId={({ params }: { params?: { conversationId?: string; userId?: string } }) =>
+          params?.conversationId || (params?.userId ? `new:${params.userId}` : 'new')
+        }
       />
 
       {/* Organizer Screens */}

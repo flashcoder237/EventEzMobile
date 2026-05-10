@@ -23,6 +23,7 @@ import EncouragementTip from './EncouragementTip';
 import TemplatePicker, { EventTemplate } from './TemplatePicker';
 import styles from './eventCreateStyles';
 import { useEventCreateThemedStyles } from './useEventCreateThemedStyles';
+import { getVideoProvider } from '../../lib/utils/videoUrl';
 
 // Mapping nom Lucide / mot-clé → Ionicon. On essaie un large jeu de
 // catégories + un fallback générique.
@@ -242,20 +243,55 @@ export default function EventStep1Info({
         {/* URL externe */}
         <View style={{ marginBottom: Spacing.sm }}>
           <Text style={[styles.label, themed.label, { fontSize: 12, marginBottom: 6 }]}>Lien YouTube ou Vimeo</Text>
-          <View style={[styles.imagePickerPlaceholder, themed.imagePickerPlaceholder, { paddingVertical: 8, paddingHorizontal: 12, opacity: coverVideo ? 0.4 : 1 }]}>
-            <Ionicons name="link-outline" size={18} color={themed.imagePickerIconColor} />
-            <TextInput
-              value={coverVideoUrl}
-              onChangeText={(v) => onCoverVideoUrlChange(v)}
-              editable={!coverVideo}
-              placeholder="https://youtube.com/watch?v=..."
-              placeholderTextColor={themed.imagePickerSubtext.color}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              style={{ flex: 1, marginLeft: 8, fontFamily: FontFamily.regular, fontSize: 14, color: themed.label.color, paddingVertical: 8 }}
-            />
-          </View>
+          {(() => {
+            const trimmed = coverVideoUrl.trim();
+            const provider = trimmed ? getVideoProvider(trimmed) : null;
+            const hasError = !!stepErrors.coverVideoUrl;
+            const isValidProvider = !!provider;
+            return (
+              <>
+                <View style={[
+                  styles.imagePickerPlaceholder,
+                  themed.imagePickerPlaceholder,
+                  {
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    opacity: coverVideo ? 0.4 : 1,
+                    borderWidth: hasError ? 1.5 : isValidProvider ? 1.5 : 0,
+                    borderColor: hasError ? '#EF4444' : isValidProvider ? '#10B981' : 'transparent',
+                  },
+                ]}>
+                  <Ionicons name="link-outline" size={18} color={themed.imagePickerIconColor} />
+                  <TextInput
+                    value={coverVideoUrl}
+                    onChangeText={(v) => onCoverVideoUrlChange(v)}
+                    editable={!coverVideo}
+                    placeholder="https://youtube.com/watch?v=..."
+                    placeholderTextColor={themed.imagePickerSubtext.color}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="url"
+                    style={{ flex: 1, marginLeft: 8, fontFamily: FontFamily.regular, fontSize: 14, color: themed.label.color, paddingVertical: 8 }}
+                  />
+                  {provider && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 8 }}>
+                      <Ionicons
+                        name={provider === 'youtube' ? 'logo-youtube' : 'videocam'}
+                        size={16}
+                        color={provider === 'youtube' ? '#FF0000' : '#1AB7EA'}
+                      />
+                      <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                    </View>
+                  )}
+                </View>
+                {hasError && (
+                  <Text style={{ fontFamily: FontFamily.medium, fontSize: 12, color: '#EF4444', marginTop: 6 }}>
+                    {stepErrors.coverVideoUrl}
+                  </Text>
+                )}
+              </>
+            );
+          })()}
         </View>
 
         {/* Separateur */}

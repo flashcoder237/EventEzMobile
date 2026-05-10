@@ -132,6 +132,9 @@ const linking: LinkingOptions<RootStackParamList> = {
       VerifyEmailToken: 'verify-email/:token',
       // Deep link consommé après clic sur le lien de réinitialisation mot de passe.
       ResetPassword: 'reset-password/:token',
+      // Deep link consommé après clic sur le lien de transfert de billet.
+      // Correspond à https://eventez.online/transfer/{token}/accept|decline
+      TransferAccept: 'transfer/:token/:action',
       Main: {
         screens: {
           Discover: 'discover',

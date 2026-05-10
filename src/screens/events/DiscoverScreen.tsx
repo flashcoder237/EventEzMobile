@@ -2437,7 +2437,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   categoryCard: {
-    width: (SCREEN_WIDTH - Spacing.lg * 2 - Spacing.sm) / 2,
+    // Math.floor évite que la somme (2 cards + gap) dépasse de 1px sur certains
+    // devices Android (Pixel 6 Pro 412dp) à cause du sub-pixel rounding,
+    // ce qui faisait basculer le grid en 1 colonne.
+    width: Math.floor((SCREEN_WIDTH - Spacing.lg * 2 - Spacing.sm) / 2),
     height: 130,
     borderRadius: 20,
     borderWidth: 1,

@@ -1569,6 +1569,7 @@ export type RootStackParamList = {
   RegistrationDetails: { registrationId: string };
   PendingTransfers: undefined;
   OfflineTickets: undefined;
+  TransferAccept: { token: string; action?: 'accept' | 'decline' };
   Profile: { userId?: string };
   EditProfile: undefined;
   Settings: undefined;

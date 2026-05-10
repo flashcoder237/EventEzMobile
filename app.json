@@ -85,6 +85,11 @@
               "scheme": "https",
               "host": "eventez.online",
               "pathPrefix": "/reset-password/"
+            },
+            {
+              "scheme": "https",
+              "host": "eventez.online",
+              "pathPrefix": "/transfer/"
             }
           ],
           "category": [

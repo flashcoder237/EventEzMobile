@@ -122,18 +122,15 @@ function StaggeredItemComponent({
   );
 }
 
-// Mémoïsé : rendu en boucle dans FlatList, props stables côté parent.
-// On NE compare PAS `children` — React.memo par défaut ne le fait pas, et
-// les changements internes aux children passent quand même via leur propre
-// closure. Ne comparer que index/staggerDelay/style évite des re-renders inutiles
-// quand le parent re-render mais que la position de l'item dans la liste n'a pas changé.
-export const StaggeredItem = memo(
-  StaggeredItemComponent,
-  (prev, next) =>
-    prev.index === next.index &&
-    prev.staggerDelay === next.staggerDelay &&
-    prev.style === next.style
-);
+// Mémoïsation par défaut (shallow compare). L'ancienne version comparait
+// uniquement {index, staggerDelay, style} en ignorant `children`, ce qui faisait
+// que les rows dont l'index ne changeait pas n'étaient JAMAIS re-rendus même
+// quand leur contenu changeait (preview message, badge unread, etc.). Symptôme :
+// MessagesScreen restait sur un état figé après envoi/réception WS.
+// La shallow compare native re-render quand la JSX `children` change (nouvelle
+// référence à chaque render parent), ce qui est le bon comportement pour des
+// listes dynamiques. L'animation d'entrée ne rejoue pas (deps useEffect vides).
+export const StaggeredItem = memo(StaggeredItemComponent);
 
 // ============================================
 // 3. ScaleOnMount — Scale bounce entrance

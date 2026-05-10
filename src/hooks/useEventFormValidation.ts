@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import type { EventFormState, AlertActions, TicketTypeForm, FormFieldForm } from './useEventForm';
+import { isExternalVideoUrl } from '../lib/utils/videoUrl';
 
 /**
  * Liste des clés de champ que le validateStep peut signaler en erreur.
@@ -10,6 +11,7 @@ export type StepFieldError =
   | 'title'
   | 'description'
   | 'categoryId'
+  | 'coverVideoUrl'
   | 'startDate'
   | 'endDate'
   | 'locationCity'
@@ -34,6 +36,12 @@ export function useEventFormValidation(
         if (!form.title.trim()) errors.title = 'Le titre est requis';
         if (!form.description.trim()) errors.description = 'La description est requise';
         if (!form.categoryId) errors.categoryId = 'Sélectionne une catégorie';
+        // Champ optionnel — on ne le bloque que si rempli ET non-reconnu
+        // (pas YouTube/Vimeo). Le backend rejette les autres providers, autant
+        // bloquer ici pour eviter un aller-retour API qui echoue au step 4.
+        if (form.coverVideoUrl && form.coverVideoUrl.trim() && !isExternalVideoUrl(form.coverVideoUrl.trim())) {
+          errors.coverVideoUrl = 'Seules les URLs YouTube et Vimeo sont supportees';
+        }
         break;
 
       case 2:
@@ -77,7 +85,8 @@ export function useEventFormValidation(
 
     return { valid: Object.keys(errors).length === 0, errors };
   }, [
-    form.title, form.description, form.categoryId, form.startDate, form.endDate,
+    form.title, form.description, form.categoryId, form.coverVideoUrl,
+    form.startDate, form.endDate,
     form.locationType, form.locationCity, form.onlineUrl, form.onlinePlatform,
     form.eventType, form.isFree, form.ticketTypes, form.formFields,
     form.showFormFieldsForBilletterie, showError,
