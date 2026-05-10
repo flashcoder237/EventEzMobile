@@ -3,16 +3,26 @@
  * Affiche une bulle de message avec contenu, attachments, reactions
  */
 
-import React, { memo, useCallback, useMemo } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
+  Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import ImageView from 'react-native-image-viewing';
+// expo-file-system v19+ a deplace l'API classique vers /legacy. Le module
+// principal exporte la nouvelle API File/Directory class-based qui n'a pas
+// `cacheDirectory` au top-level.
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import * as Haptics from 'expo-haptics';
+import * as Clipboard from 'expo-clipboard';
 import { useTranslation } from 'react-i18next';
 import { Message } from '../../types';
 import {
@@ -33,6 +43,71 @@ import {
   formatDuration,
 } from '../../lib/utils/messagingHelpers';
 import MessageStatusIcon from './MessageStatusIcon';
+
+// ============================================================================
+// Helpers attachments — taille humaine + meta type fichier
+// ============================================================================
+
+function formatFileSize(bytes?: number): string {
+  if (!bytes || bytes <= 0) return '';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let unitIdx = 0;
+  while (value >= 1024 && unitIdx < units.length - 1) {
+    value /= 1024;
+    unitIdx++;
+  }
+  return `${value.toFixed(value >= 100 || unitIdx === 0 ? 0 : 1)} ${units[unitIdx]}`;
+}
+
+function getFileExtension(filename?: string): string {
+  if (!filename) return '';
+  const idx = filename.lastIndexOf('.');
+  if (idx < 0 || idx === filename.length - 1) return '';
+  return filename.slice(idx + 1).toLowerCase();
+}
+
+interface FileTypeMeta {
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  label: string;
+}
+
+// Map extension → icone + couleur. Couleurs alignees sur les apps de
+// reference (PDF rouge Adobe, Word bleu Office, Excel vert Office, etc.).
+function getFileTypeMeta(filename?: string, mimeType?: string): FileTypeMeta {
+  const ext = getFileExtension(filename);
+  const mime = (mimeType || '').toLowerCase();
+
+  if (['pdf'].includes(ext) || mime.includes('pdf')) {
+    return { icon: 'document-text', color: '#E11D48', label: 'PDF' };
+  }
+  if (['doc', 'docx', 'odt', 'rtf'].includes(ext) || mime.includes('word') || mime.includes('document')) {
+    return { icon: 'document', color: '#2563EB', label: ext.toUpperCase() || 'DOC' };
+  }
+  if (['xls', 'xlsx', 'csv', 'ods'].includes(ext) || mime.includes('sheet') || mime.includes('excel')) {
+    return { icon: 'grid', color: '#059669', label: ext.toUpperCase() || 'XLSX' };
+  }
+  if (['ppt', 'pptx', 'odp', 'key'].includes(ext) || mime.includes('presentation')) {
+    return { icon: 'easel', color: '#EA580C', label: ext.toUpperCase() || 'PPTX' };
+  }
+  if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
+    return { icon: 'archive', color: '#7C3AED', label: ext.toUpperCase() || 'ZIP' };
+  }
+  if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext) || mime.startsWith('video/')) {
+    return { icon: 'videocam', color: '#0891B2', label: ext.toUpperCase() || 'VIDEO' };
+  }
+  if (['mp3', 'wav', 'm4a', 'ogg', 'flac'].includes(ext) || mime.startsWith('audio/')) {
+    return { icon: 'musical-notes', color: '#9333EA', label: ext.toUpperCase() || 'AUDIO' };
+  }
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext) || mime.startsWith('image/')) {
+    return { icon: 'image', color: '#0EA5E9', label: ext.toUpperCase() || 'IMAGE' };
+  }
+  if (['txt', 'md', 'log', 'json', 'xml'].includes(ext) || mime.startsWith('text/')) {
+    return { icon: 'document-outline', color: '#64748B', label: ext.toUpperCase() || 'TXT' };
+  }
+  return { icon: 'document-attach', color: '#64748B', label: ext.toUpperCase() || 'FILE' };
+}
 
 // État de lecture audio piloté par ConversationScreen (un seul player actif).
 export interface VoicePlaybackState {
@@ -193,6 +268,125 @@ function MessageBubble({
     onLongPress(message);
   }, [message, onLongPress]);
 
+  // ========== State pour viewer image fullscreen + DL fichiers ==========
+  // On collecte toutes les images du message en un seul array → permet a
+  // l'ImageView de proposer un swipe entre images (pattern WhatsApp).
+  const imageAttachments = useMemo(
+    () => (message.attachments || []).filter(a => a.attachment_type === 'image'),
+    [message.attachments],
+  );
+  const imageSources = useMemo(
+    () => imageAttachments.map(a => ({ uri: typeof a.file === 'string' ? a.file : (a.file as any)?.uri })),
+    [imageAttachments],
+  );
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [imageViewerIndex, setImageViewerIndex] = useState(0);
+
+  // DL state par attachment id : 'idle' | 'downloading' | { progress: 0..1 }
+  // Permet d'afficher un spinner ou une barre de progres sur le tile fichier
+  // pendant qu'on telecharge — surtout utile sur fichiers > 1 MB.
+  const [dlState, setDlState] = useState<Record<string, { progress: number } | undefined>>({});
+
+  const openImageAt = useCallback((index: number) => {
+    setImageViewerIndex(Math.max(0, Math.min(index, imageSources.length - 1)));
+    setImageViewerOpen(true);
+    try { Haptics.selectionAsync(); } catch { /* ignore */ }
+  }, [imageSources.length]);
+
+  // Telecharge le fichier dans le cache local puis ouvre via le picker systeme
+  // (Android = sélecteur app, iOS = QuickLook). Sharing.shareAsync ouvre la
+  // sheet "Ouvrir avec / Sauvegarder dans...". L'utilisateur n'a pas besoin
+  // de quitter l'app pour voir un PDF.
+  const downloadAndOpen = useCallback(async (attachment: any) => {
+    const url = typeof attachment.file === 'string' ? attachment.file : null;
+    if (!url) {
+      Alert.alert(t('componentsMessages.attachmentErrorTitle'), t('componentsMessages.attachmentInvalidUrl'));
+      return;
+    }
+    const attId = String(attachment.id);
+    const filename = attachment.file_name || `file-${attId}`;
+    // Pour eviter les caracteres invalides dans le path local
+    const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const targetUri = `${FileSystem.cacheDirectory}${attId}-${safeName}`;
+
+    try {
+      // Si deja telecharge, on saute le download
+      const info = await FileSystem.getInfoAsync(targetUri);
+      if (!info.exists) {
+        setDlState(prev => ({ ...prev, [attId]: { progress: 0 } }));
+        const resumable = FileSystem.createDownloadResumable(
+          url,
+          targetUri,
+          {},
+          (p) => {
+            const progress = p.totalBytesExpectedToWrite > 0
+              ? p.totalBytesWritten / p.totalBytesExpectedToWrite
+              : 0;
+            setDlState(prev => ({ ...prev, [attId]: { progress } }));
+          },
+        );
+        const result = await resumable.downloadAsync();
+        if (!result?.uri) throw new Error('Download failed');
+      }
+      setDlState(prev => ({ ...prev, [attId]: undefined }));
+
+      // Ouverture via le sheet de partage systeme — l'user choisit l'app
+      // (PDF reader, Word, Drive, etc.) ou "Sauvegarder dans Fichiers".
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(targetUri, {
+          dialogTitle: filename,
+          mimeType: attachment.mime_type || undefined,
+          UTI: attachment.mime_type || undefined,
+        });
+      } else {
+        Alert.alert(t('componentsMessages.attachmentErrorTitle'), t('componentsMessages.sharingUnavailable'));
+      }
+    } catch (error: any) {
+      setDlState(prev => ({ ...prev, [attId]: undefined }));
+      if (__DEV__) console.error('[Attachment] downloadAndOpen failed:', error);
+      Alert.alert(
+        t('componentsMessages.attachmentErrorTitle'),
+        error?.message || t('componentsMessages.attachmentDownloadFailed'),
+      );
+    }
+  }, [t]);
+
+  const showAttachmentMenu = useCallback((attachment: any) => {
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { /* ignore */ }
+    const url = typeof attachment.file === 'string' ? attachment.file : null;
+    const isImage = attachment.attachment_type === 'image';
+
+    const buttons: Array<{ text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }> = [];
+
+    // Telecharger / Ouvrir avec — pour tout type
+    buttons.push({
+      text: isImage ? t('componentsMessages.attachmentMenuShare') : t('componentsMessages.attachmentMenuOpenWith'),
+      onPress: () => { downloadAndOpen(attachment); },
+    });
+
+    // Copier le lien — utile pour partager via une autre app
+    if (url) {
+      buttons.push({
+        text: t('componentsMessages.attachmentMenuCopyLink'),
+        onPress: async () => {
+          try {
+            await Clipboard.setStringAsync(url);
+          } catch { /* ignore */ }
+        },
+      });
+    }
+
+    buttons.push({ text: t('common.cancel'), style: 'cancel' });
+
+    Alert.alert(
+      attachment.file_name || t('componentsMessages.attachmentMenuTitle'),
+      undefined,
+      buttons,
+      { cancelable: true },
+    );
+  }, [downloadAndOpen, t]);
+
   // Render Reply Preview
   const renderReplyPreview = () => {
     if (!replyToMessage) return null;
@@ -223,21 +417,35 @@ function MessageBubble({
     const isUploading = !!(attachment.id && uploadingAttachmentIds?.has(String(attachment.id)));
 
     if (attachment.attachment_type === 'image') {
+      // Index dans le tableau d'images (pour ouvrir le viewer au bon endroit)
+      const imageIdx = imageAttachments.findIndex(a => a.id === attachment.id);
       return (
-        <View key={attachment.id || index} style={styles.imageWrap}>
+        <TouchableOpacity
+          key={attachment.id || index}
+          style={styles.imageWrap}
+          activeOpacity={0.85}
+          onPress={() => { if (!isUploading) openImageAt(imageIdx >= 0 ? imageIdx : 0); }}
+          onLongPress={() => { if (!isUploading) showAttachmentMenu(attachment); }}
+          delayLongPress={300}
+          accessibilityRole="imagebutton"
+          accessibilityLabel={t('componentsMessages.imageAttachmentA11y')}
+          accessibilityHint={t('componentsMessages.imageAttachmentHint')}
+        >
           <Image
             source={attachment.file}
             style={[styles.imageAttachment, { backgroundColor: colors.gray100 }]}
             contentFit="cover"
             cachePolicy="memory-disk"
             transition={200}
+            placeholder={attachment.image_placeholder || undefined}
+            placeholderContentFit="cover"
           />
           {isUploading && (
             <View style={styles.uploadOverlay}>
               <ActivityIndicator size="small" color={Colors.white} />
             </View>
           )}
-        </View>
+        </TouchableOpacity>
       );
     }
 
@@ -286,23 +494,69 @@ function MessageBubble({
       );
     }
 
-    // Document
+    // Document — tap pour DL + ouvrir avec, long-press pour menu
+    const meta = getFileTypeMeta(attachment.file_name, attachment.mime_type);
+    const sizeStr = formatFileSize(attachment.file_size);
+    const subline = [meta.label, sizeStr].filter(Boolean).join(' · ');
+    const dl = attachment.id ? dlState[String(attachment.id)] : undefined;
+    const isDownloading = !!dl;
+    const downloadProgress = dl?.progress ?? 0;
+    // Couleur d'accent : couleur typee si peer, blanc si mine (sur fond indigo)
+    const iconColor = isMine ? Colors.white : meta.color;
+    const iconBg = isMine ? 'rgba(255,255,255,0.2)' : `${meta.color}1A`; // 10% opacity hex
+
     return (
       <View key={attachment.id || index} style={styles.imageWrap}>
         <TouchableOpacity
-          style={[styles.documentAttachment, { backgroundColor: isMine ? 'rgba(255,255,255,0.2)' : peerBubbleBg }]}
+          style={[styles.documentAttachment, { backgroundColor: isMine ? 'rgba(255,255,255,0.18)' : (isDark ? colors.gray100 : '#FFF') }]}
+          onPress={() => { if (!isUploading && !isDownloading) downloadAndOpen(attachment); }}
+          onLongPress={() => { if (!isUploading) showAttachmentMenu(attachment); }}
+          delayLongPress={300}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={attachment.file_name || t('componentsMessages.documentFallback')}
+          accessibilityHint={t('componentsMessages.documentTapHint')}
         >
-          <Ionicons
-            name="document-outline"
-            size={20}
-            color={isMine ? Colors.white : colors.primary}
-          />
-          <Text
-            style={[styles.documentName, { color: isMine ? Colors.white : peerTextColor }]}
-            numberOfLines={1}
-          >
-            {attachment.file_name || t('componentsMessages.documentFallback')}
-          </Text>
+          {/* Pastille colorée par type fichier */}
+          <View style={[styles.documentIconWrap, { backgroundColor: iconBg }]}>
+            {isDownloading ? (
+              <ActivityIndicator size="small" color={iconColor} />
+            ) : (
+              <Ionicons name={meta.icon} size={18} color={iconColor} />
+            )}
+          </View>
+          <View style={styles.documentTextWrap}>
+            <Text
+              style={[styles.documentName, { color: isMine ? Colors.white : peerTextColor }]}
+              numberOfLines={1}
+            >
+              {attachment.file_name || t('componentsMessages.documentFallback')}
+            </Text>
+            {(subline.length > 0 || isDownloading) && (
+              <Text
+                style={[styles.documentSubline, { color: isMine ? 'rgba(255,255,255,0.75)' : colors.gray500 }]}
+                numberOfLines={1}
+              >
+                {isDownloading
+                  ? t('componentsMessages.downloadProgress', { percent: Math.round(downloadProgress * 100) })
+                  : subline}
+              </Text>
+            )}
+            {/* Barre de progres pour fichiers > 1 MB */}
+            {isDownloading && (attachment.file_size || 0) > 1024 * 1024 && (
+              <View style={[styles.documentProgressTrack, { backgroundColor: isMine ? 'rgba(255,255,255,0.25)' : colors.gray200 }]}>
+                <View
+                  style={[
+                    styles.documentProgressFill,
+                    {
+                      backgroundColor: isMine ? Colors.white : meta.color,
+                      width: `${Math.min(100, Math.max(0, downloadProgress * 100))}%`,
+                    },
+                  ]}
+                />
+              </View>
+            )}
+          </View>
         </TouchableOpacity>
         {isUploading && (
           <View style={styles.uploadOverlay}>
@@ -425,6 +679,44 @@ function MessageBubble({
             </View>
           )}
         </View>
+
+        {/* Fullscreen image viewer (carousel + zoom + swipe). Mounte uniquement
+            quand visible pour eviter l'overhead Modal en arriere-plan. */}
+        {imageSources.length > 0 && imageViewerOpen && (
+          <ImageView
+            images={imageSources}
+            imageIndex={imageViewerIndex}
+            visible={imageViewerOpen}
+            onRequestClose={() => setImageViewerOpen(false)}
+            swipeToCloseEnabled
+            doubleTapToZoomEnabled
+            HeaderComponent={({ imageIndex }) =>
+              imageSources.length > 1 ? (
+                <View style={styles.imageViewerHeader} pointerEvents="none">
+                  <Text style={styles.imageViewerCounter}>
+                    {imageIndex + 1} / {imageSources.length}
+                  </Text>
+                </View>
+              ) : null
+            }
+            FooterComponent={({ imageIndex }) => {
+              const att = imageAttachments[imageIndex];
+              if (!att) return null;
+              return (
+                <View style={styles.imageViewerFooter}>
+                  <TouchableOpacity
+                    style={styles.imageViewerAction}
+                    onPress={() => downloadAndOpen(att)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('componentsMessages.attachmentMenuShare')}
+                  >
+                    <Ionicons name="share-outline" size={22} color="#FFF" />
+                  </TouchableOpacity>
+                </View>
+              );
+            }}
+          />
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -624,20 +916,81 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.gray100,
-    padding: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm + 2,
     borderRadius: BorderRadius.md,
     gap: Spacing.sm,
+    minWidth: 220,
+    maxWidth: 280,
   },
   documentAttachmentMine: {
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
+  documentIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  documentTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
   documentName: {
     fontSize: FontSizes.sm,
+    fontWeight: '600',
     color: Colors.gray700,
-    flex: 1,
   },
   documentNameMine: {
     color: Colors.white,
+  },
+  documentSubline: {
+    fontSize: 11,
+    marginTop: 2,
+    color: Colors.gray500,
+    letterSpacing: 0.2,
+  },
+  documentProgressTrack: {
+    height: 3,
+    borderRadius: 2,
+    marginTop: 6,
+    overflow: 'hidden',
+  },
+  documentProgressFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+
+  // Image viewer fullscreen
+  imageViewerHeader: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 24,
+    paddingHorizontal: Spacing.md,
+    alignItems: 'center',
+  },
+  imageViewerCounter: {
+    color: '#FFF',
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  imageViewerFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+  },
+  imageViewerAction: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Reactions
