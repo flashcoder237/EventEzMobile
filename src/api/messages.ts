@@ -25,6 +25,15 @@ export const messagesAPI = {
   deleteConversation: (id: string) =>
     api.delete(`/conversations/${id}/`),
 
+  /**
+   * Quitter une conversation sans la supprimer pour les autres.
+   * - Conv 'event' / 'group' : user retire de la liste des participants
+   * - Conv 'direct' : 400 (utiliser deleteConversation a la place)
+   * - Organizer / creator : 400 (peuvent pas se retirer de leur propre groupe)
+   */
+  leaveConversation: (id: string) =>
+    api.post(`/conversations/${id}/leave/`),
+
   archiveConversation: (id: string) =>
     api.post(`/conversations/${id}/archive/`),
 
