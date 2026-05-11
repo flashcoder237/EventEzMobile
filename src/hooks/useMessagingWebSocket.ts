@@ -131,6 +131,12 @@ const state = {
 
   // Grace timeout avant disconnect au dernier unsubscribe.
   disconnectGraceTimeout: null as ReturnType<typeof setTimeout> | null,
+
+  // Flag anti-race : empeche deux connect() async en parallele d'instancier
+  // deux WebSockets concurrents (race window entre `await getAccessToken()`
+  // et `state.ws = ws`). Set au debut de connect, clear au try/catch end ou
+  // dans onclose si reset propre.
+  connectInFlight: false,
 };
 
 function notifyListeners() {
@@ -471,6 +477,12 @@ async function connect() {
   if (state.ws && (state.ws.readyState === WebSocket.OPEN || state.ws.readyState === WebSocket.CONNECTING)) {
     return;
   }
+  // Anti-race : si un autre connect() est deja en train de tourner (entre
+  // `await getAccessToken()` et `state.ws = ws`), on bail. Sans ce flag,
+  // deux mount simultanes de hooks creent deux WebSockets concurrents.
+  if (state.connectInFlight) return;
+  state.connectInFlight = true;
+
   // Annuler une grace de disconnect en cours (un nouveau subscriber est arrive)
   if (state.disconnectGraceTimeout) {
     clearTimeout(state.disconnectGraceTimeout);
@@ -580,6 +592,11 @@ async function connect() {
     if (ws) {
       try { ws.close(); } catch { /* ignore */ }
     }
+  } finally {
+    // Clear le flag dans tous les cas (succes, throw, early return apres
+    // refus du token). Sans ca, un echec laisserait le flag a true et
+    // bloquerait tous les futurs connect().
+    state.connectInFlight = false;
   }
 }
 
@@ -701,6 +718,13 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     if (state.disconnectGraceTimeout) {
       clearTimeout(state.disconnectGraceTimeout);
       state.disconnectGraceTimeout = null;
+    }
+    // Si la WS est deja OPEN (un autre hook l'avait initiee), on fire
+    // immediatement onConnectionChange(true) pour ce subscriber tardif.
+    // Sans ca, son callback ne serait jamais appele pour l'etat actuel
+    // (l'event onopen a deja eu lieu dans le passe).
+    if (state.isConnected) {
+      try { cbRef.current.onConnectionChange?.(true); } catch { /* ignore */ }
     }
     connect();
 
