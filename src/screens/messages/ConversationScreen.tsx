@@ -17,10 +17,11 @@ import {
   StyleSheet,
   FlatList,
   ActivityIndicator,
-  Alert,
   TouchableOpacity,
   Clipboard,
   TextInput,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
@@ -43,11 +44,15 @@ import {
 } from 'expo-audio';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { messagesAPI, getMediaUrl } from '../../api';
+import { messagesAPI, eventsAPI, getMediaUrl } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useMessagingWebSocket } from '../../hooks/useMessagingWebSocket';
+import { useMutedConversations } from '../../hooks/useMutedConversations';
+import ImageView from 'react-native-image-viewing';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { useMessageState, AttachedFile } from '../../hooks/useMessageState';
 import { useOfflineQueue } from '../../hooks/useOfflineQueue';
 import type { QueuedMessage } from '../../lib/utils/messagingHelpers';
@@ -88,9 +93,27 @@ import {
   ReportReason,
   QuotaState,
 } from '../../components/messages';
+import EventActionsSheet, {
+  EventActionSection,
+  EventAction,
+} from '../../components/organizer/EventActionsSheet';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type ConversationRouteProp = RouteProp<RootStackParamList, 'Conversation'>;
+
+/** Format un nombre d'octets en chaîne lisible (KB / MB / GB). Hors composant
+ *  pour éviter une recréation à chaque render — utilisé par la galerie média. */
+function formatFileSizeForGallery(bytes?: number): string {
+  if (!bytes || bytes <= 0) return '';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let unitIdx = 0;
+  while (value >= 1024 && unitIdx < units.length - 1) {
+    value /= 1024;
+    unitIdx++;
+  }
+  return `${value.toFixed(value >= 100 || unitIdx === 0 ? 0 : 1)} ${units[unitIdx]}`;
+}
 
 export default function ConversationScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -98,7 +121,8 @@ export default function ConversationScreen() {
   const insets = useSafeAreaInsets();
   const { conversationId: initialConversationId, userId, userName } = route.params;
   const { user } = useAuth();
-  const { showError, showSuccess } = useAlert();
+  const { showError, showSuccess, showConfirm } = useAlert();
+  const { isMuted: isConvMuted, toggle: toggleConvMute } = useMutedConversations();
   const { colors, isDark } = useTheme();
   const { t, i18n } = useTranslation();
   const dateLocale = i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR';
@@ -359,14 +383,26 @@ export default function ConversationScreen() {
 
       actions.setHasMore(!!data.next);
       actions.setNextPageUrl(data.next || null);
-    } catch (error) {
+      setMessagesLoadError(null);
+    } catch (error: any) {
       if (__DEV__) console.error('Erreur chargement messages:', error);
+      // Surface uniquement l'erreur du fetch initial (loadMore=false). Pour
+      // un load more on évite de bloquer l'UI — l'utilisateur a déjà des msgs
+      // affichés et peut retenter via le scroll-up à nouveau.
+      if (!loadMore && state.messages.length === 0) {
+        setMessagesLoadError(
+          error?.response?.data?.detail || error?.message || t('conversation.messagesLoadError'),
+        );
+      }
     } finally {
       actions.setLoading(false);
       actions.setLoadingMore(false);
     }
   };
 
+  // Erreur de chargement des messages — affichée à la place du empty state
+  // (conversation.noMessages) quand le fetch initial échoue. Permet retry.
+  const [messagesLoadError, setMessagesLoadError] = useState<string | null>(null);
   // Type de conversation (direct / group / event) — alimente le banner quota.
   const [conversationType, setConversationType] = useState<'direct' | 'group' | 'event' | null>(null);
   // État quota / read-only utilisé pour bloquer l'envoi côté UI.
@@ -375,6 +411,26 @@ export default function ConversationScreen() {
   const [conversationDetails, setConversationDetails] = useState<any>(null);
   // Modale d'administration du groupe (organizer uniquement)
   const [showGroupAdminPanel, setShowGroupAdminPanel] = useState(false);
+  // Bottom sheet d'options de conversation (header •••). Remplace l'Alert
+  // natif qui ne supportait pas les sections + icônes + thème custom.
+  const [convOptionsSheetVisible, setConvOptionsSheetVisible] = useState(false);
+  // Event source de la conversation (group/event conv liée à un Event). On le
+  // fetch séparément car le serializer Conversation expose `event` comme
+  // PrimaryKeyRelatedField (UUID seul) — pas le détail. Affiché en bannière
+  // au-dessus des messages + en sous-titre du header.
+  const [eventContext, setEventContext] = useState<{ id: string; title: string; banner?: string | null } | null>(null);
+  // Modale détaillée des messages en échec (failed après 3 retries). Permet
+  // retry/delete unitaire au lieu de la perte silencieuse précédente.
+  const [failedMessagesModalVisible, setFailedMessagesModalVisible] = useState(false);
+  // Modale liste des participants (visible par tous les membres, pas que
+  // l'organizer). Le GroupAdminPanel reste réservé aux admins (actions
+  // mute/posting mode) — ce modal lui est read-only.
+  const [participantsModalVisible, setParticipantsModalVisible] = useState(false);
+  // Modale galerie médias (Photos / Documents) — agrège tous les attachments
+  // des messages déjà chargés. Pattern WhatsApp/Telegram.
+  const [mediaGalleryVisible, setMediaGalleryVisible] = useState(false);
+  const [mediaGalleryTab, setMediaGalleryTab] = useState<'photos' | 'documents'>('photos');
+  const [mediaGalleryViewerIndex, setMediaGalleryViewerIndex] = useState<number | null>(null);
 
   const fetchConversationDetails = async () => {
     if (!state.conversationId) return;
@@ -388,6 +444,29 @@ export default function ConversationScreen() {
       setConversationType(ctype);
       // Stocke la conversation détaillée pour le panel admin (participants, event)
       setConversationDetails(conversation);
+
+      // Si la conv est liée à un event, on récupère son titre + bannière pour
+      // l'afficher en contexte (header subtitle + bannière cliquable). Fail
+      // silencieusement — pas critique pour le chat lui-même.
+      const eventId = conversation.event;
+      if (eventId && typeof eventId === 'string') {
+        eventsAPI.getEvent(eventId)
+          .then(res => {
+            const ev = res.data;
+            if (ev?.id && ev?.title) {
+              setEventContext({
+                id: String(ev.id),
+                title: ev.title,
+                banner: getMediaUrl(ev.banner_image || (ev as any).display_image),
+              });
+            }
+          })
+          .catch(() => {
+            // Event supprimé / inaccessible — pas grave, on n'affiche pas le contexte.
+          });
+      } else {
+        setEventContext(null);
+      }
 
       const otherParticipant = conversation.participants?.find(
         (p: any) => p.id !== user?.id
@@ -475,57 +554,111 @@ export default function ConversationScreen() {
   // ============================================
 
   const handleShowConversationOptions = () => {
-    // Pour les groupes / événement où l'utilisateur est organizer/admin/moderator,
-    // on propose "Gérer le groupe" en plus du blocage. Le bouton "Bloquer" ne
-    // s'affiche pas dans les groupes (n'a pas de sens — il faudrait passer par
-    // le mute spécifique au groupe).
-    const buttons: any[] = [];
+    setConvOptionsSheetVisible(true);
+  };
 
+  // Construction des sections du bottom sheet d'options. Mémoizé pour ne pas
+  // recalculer à chaque render (le sheet lit `convOptionsSections`).
+  const convOptionsSections: EventActionSection[] = useMemo(() => {
     const isAdmin = !!quotaState?.is_organizer;
     const isGroup = conversationType && conversationType !== 'direct';
+    const convId = state.conversationId;
+    const muted = convId ? isConvMuted(convId) : false;
+    const actions: EventAction[] = [];
 
+    // Mute/Unmute — accessible peu importe le type de conv. Permet de couper
+    // les notifs sans archiver. Auparavant uniquement accessible depuis le
+    // long-press de la row dans l'inbox → friction notable.
+    if (convId) {
+      actions.push({
+        label: muted ? t('conversation.unmuteAction') : t('conversation.muteAction'),
+        icon: muted ? 'notifications-outline' : 'notifications-off-outline',
+        description: muted ? t('conversation.unmuteActionDesc') : t('conversation.muteActionDesc'),
+        onPress: () => toggleConvMute(convId),
+      });
+    }
+
+    // Pin / Unpin — `conversation.is_starred` côté backend. La conv épinglée
+    // remonte en tête de liste (cf. tri inbox). Pattern WhatsApp / iMessage.
+    if (convId) {
+      const isPinned = !!conversationDetails?.is_starred;
+      actions.push({
+        label: isPinned ? t('conversation.unpinAction') : t('conversation.pinAction'),
+        icon: isPinned ? 'pin' : 'pin-outline',
+        description: isPinned ? t('conversation.unpinActionDesc') : t('conversation.pinActionDesc'),
+        onPress: async () => {
+          // Optimiste : flip local immédiat, rollback si l'API échoue.
+          const previous = isPinned;
+          setConversationDetails((prev: any) => prev ? { ...prev, is_starred: !previous } : prev);
+          try {
+            await messagesAPI.starConversation(convId);
+          } catch {
+            setConversationDetails((prev: any) => prev ? { ...prev, is_starred: previous } : prev);
+            showError(t('common.error'), t('conversation.pinError'));
+          }
+        },
+      });
+    }
+
+    // Voir les participants — accessible à tous les membres d'un groupe/event,
+    // pas que les admins (le GroupAdminPanel reste réservé aux admins pour les
+    // actions de modération). Avant, les membres réguliers n'avaient aucun
+    // moyen de voir qui était dans le groupe.
+    if (isGroup) {
+      const count = conversationDetails?.participants?.length || 0;
+      actions.push({
+        label: t('conversation.viewParticipants'),
+        icon: 'people-circle-outline',
+        description: count > 0 ? t('conversation.viewParticipantsCount', { count }) : undefined,
+        onPress: () => setParticipantsModalVisible(true),
+      });
+    }
+
+    // Galerie médias — accessible à tous les types de conv. Affiche les
+    // attachments groupés par type (photos / documents). Filtré client-side
+    // sur state.messages — donc limité aux messages déjà fetched (pas tout
+    // l'historique). Pour aller plus loin il faudrait un endpoint dédié.
+    actions.push({
+      label: t('conversation.viewMedia'),
+      icon: 'images-outline',
+      onPress: () => {
+        setMediaGalleryTab('photos');
+        setMediaGalleryVisible(true);
+      },
+    });
     if (isGroup && isAdmin) {
-      buttons.push({
-        text: t('conversation.manageGroup'),
+      actions.push({
+        label: t('conversation.manageGroup'),
+        icon: 'settings-outline',
         onPress: () => setShowGroupAdminPanel(true),
       });
     }
-
     if (!isGroup) {
-      buttons.push({
-        text: t('conversation.blockUserOption'),
-        style: 'destructive' as const,
-        onPress: handleBlockUser,
+      actions.push({
+        label: t('conversation.blockUserOption'),
+        icon: 'ban-outline',
+        style: 'destructive',
+        onPress: () => handleBlockUser(),
       });
     }
+    return actions.length > 0 ? [{ actions }] : [];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationType, quotaState?.is_organizer, state.conversationId, isConvMuted, conversationDetails?.participants?.length, t]);
 
-    buttons.push({ text: t('conversation.cancelOption'), style: 'cancel' as const });
-
-    Alert.alert(t('conversation.optionsTitle'), undefined, buttons);
-  };
-
-  const handleBlockUser = async () => {
+  const handleBlockUser = () => {
     if (!state.otherUserId) return;
-
-    Alert.alert(
+    showConfirm(
       t('conversation.blockUserTitle'),
       t('conversation.blockUserConfirm', { name: state.conversationTitle }),
-      [
-        { text: t('conversation.cancelOption'), style: 'cancel' },
-        {
-          text: t('conversation.blockButton'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await messagesAPI.blockUser(state.otherUserId!);
-              showSuccess(t('conversation.userBlocked'), '');
-              navigation.goBack();
-            } catch (error) {
-              showError(t('common.error'), t('conversation.blockError'));
-            }
-          },
-        },
-      ]
+      async () => {
+        try {
+          await messagesAPI.blockUser(state.otherUserId!);
+          showSuccess(t('conversation.userBlocked'), '');
+          navigation.goBack();
+        } catch {
+          showError(t('common.error'), t('conversation.blockError'));
+        }
+      },
     );
   };
 
@@ -632,57 +765,81 @@ export default function ConversationScreen() {
         // 0.7 (au lieu de 0.8) : gain de poids ~30% supplémentaire pour rester
         // sous le quota groupe de 500 MB sans sacrifier la lisibilité.
         quality: 0.7,
-        allowsMultipleSelection: false,
+        allowsMultipleSelection: true,
+        // Limite raisonnable — au-delà l'upload séquentiel devient pénible
+        // et la latence perçue dégrade l'UX. Aligné sur les conventions
+        // WhatsApp / Telegram (~10 max par envoi).
+        selectionLimit: 10,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        const asset = result.assets[0];
-        const filename = asset.uri.split('/').pop() || 'image.jpg';
-        // Compression : resize à 1920px de large + JPEG 0.7. Une photo 4K à
-        // qualité 0.7 brute peut faire 3-5 Mo ; après resize on tombe sous
-        // ~800 Ko, ce qui rentre confortablement dans la limite 5 Mo et
-        // libère du quota de groupe pour les autres uploads.
-        let workingUri = asset.uri;
-        try {
-          const compressed = await ImageManipulator.manipulateAsync(
-            asset.uri,
-            [{ resize: { width: 1920 } }],
-            { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
-          );
-          workingUri = compressed.uri;
-        } catch {
-          // Fallback : si la compression échoue (HEIC corrompu, etc.), on
-          // tente l'upload tel quel — la limite 5 Mo le rejettera si besoin.
-        }
-        // Validation taille par fichier (5 Mo image) + quota cumulé du groupe.
-        // Note : sur l'image compressée, fileSize n'est pas exposé par
-        // ImageManipulator → on garde fileSize de l'asset original comme
-        // borne haute pessimiste (l'image effective sera plus petite).
-        const sizeBytes = (asset as any).fileSize || 0;
-        const { validateAttachmentSize, MESSAGE_LIMITS, formatBytes } = await import('../../constants/messaging');
-        const sizeError = validateAttachmentSize(sizeBytes, 'image');
-        if (sizeError && sizeBytes > 0) {
-          showError(t('conversation.imageTooLargeTitle'), sizeError);
-          return;
-        }
-        if (quotaState && quotaState.max_bytes != null && sizeBytes > 0) {
+      if (!result.canceled && result.assets.length > 0) {
+        const { validateAttachmentSize, formatBytes } = await import('../../constants/messaging');
+
+        // On compresse + valide chaque asset en parallèle. Les fichiers
+        // rejetés (taille ou quota) sont collectés et signalés en bloc à la fin.
+        type Processed =
+          | { ok: true; uri: string; name: string; bytes: number }
+          | { ok: false; name: string; reason: string };
+
+        const processed: Processed[] = await Promise.all(
+          result.assets.map(async (asset): Promise<Processed> => {
+            const filename = asset.uri.split('/').pop() || `image-${Date.now()}.jpg`;
+            let workingUri = asset.uri;
+            try {
+              const compressed = await ImageManipulator.manipulateAsync(
+                asset.uri,
+                [{ resize: { width: 1920 } }],
+                { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+              );
+              workingUri = compressed.uri;
+            } catch {
+              // Compression échouée → fallback sur l'URI brute.
+            }
+            const sizeBytes = (asset as any).fileSize || 0;
+            const sizeError = validateAttachmentSize(sizeBytes, 'image');
+            if (sizeError && sizeBytes > 0) {
+              return { ok: false, name: filename, reason: sizeError };
+            }
+            return { ok: true, uri: workingUri, name: filename, bytes: sizeBytes };
+          }),
+        );
+
+        const accepted = processed.filter((p): p is Extract<Processed, { ok: true }> => p.ok);
+        const rejected = processed.filter((p): p is Extract<Processed, { ok: false }> => !p.ok);
+
+        // Vérif quota cumulé : la somme des tailles brutes doit rentrer dans
+        // l'espace restant. Pessimiste (sizes pré-compression), mais évite
+        // l'upload partiel qui bloquerait à mi-chemin.
+        if (quotaState && quotaState.max_bytes != null) {
           const remaining = Math.max(0, quotaState.max_bytes - quotaState.total_bytes);
-          if (sizeBytes > remaining) {
+          const totalBytes = accepted.reduce((s, p) => s + p.bytes, 0);
+          if (totalBytes > remaining && totalBytes > 0) {
             showError(
               t('conversation.groupFullTitle'),
-              t('conversation.groupFullMessage', { remaining: formatBytes(remaining), max: formatBytes(quotaState.max_bytes) }),
+              t('conversation.groupFullMessage', {
+                remaining: formatBytes(remaining),
+                max: formatBytes(quotaState.max_bytes),
+              }),
             );
             return;
           }
         }
 
-        actions.setAttachedFiles([{
-          uri: workingUri,
-          name: filename,
-          type: 'image',
-        }]);
+        if (rejected.length > 0) {
+          // Au moins une image rejetée → on alerte sans bloquer les acceptées.
+          const summary = rejected.map(r => `• ${r.name} — ${r.reason}`).join('\n');
+          showError(t('conversation.imageTooLargeTitle'), summary);
+        }
+
+        if (accepted.length > 0) {
+          actions.setAttachedFiles(accepted.map(p => ({
+            uri: p.uri,
+            name: p.name,
+            type: 'image',
+          })));
+        }
       }
-    } catch (error) {
+    } catch {
       showError(t('common.error'), t('conversation.pickImageError'));
     }
   };
@@ -1026,33 +1183,51 @@ export default function ConversationScreen() {
         }
         break;
       }
+
+      case 'star': {
+        // Toggle star — le backend (`views.py:644-653`) bascule `is_starred`
+        // et retourne le nouvel état. On update optimiste pour réactivité.
+        const wasStarred = !!message.is_starred;
+        actions.updateMessage(String(message.id), { is_starred: !wasStarred });
+        messagesAPI.starMessage(String(message.id))
+          .then((res) => {
+            // Sync avec la valeur server (au cas où elle diffère, ex. retry).
+            const serverValue = res?.data?.is_starred;
+            if (typeof serverValue === 'boolean' && serverValue !== !wasStarred) {
+              actions.updateMessage(String(message.id), { is_starred: serverValue });
+            }
+            showSuccess(
+              wasStarred ? t('conversation.unstarredTitle') : t('conversation.starredTitle'),
+              '',
+            );
+          })
+          .catch(() => {
+            // Rollback en cas d'échec réseau.
+            actions.updateMessage(String(message.id), { is_starred: wasStarred });
+            showError(t('common.error'), t('conversation.starError'));
+          });
+        break;
+      }
     }
   }, [state.selectedMessage, user?.id, actions]);
 
   const handleBlockUserById = (targetUserId: string, targetName: string) => {
-    Alert.alert(
+    showConfirm(
       t('conversation.blockUserTitle'),
       t('conversation.blockUserConfirmCustom', { name: targetName }),
-      [
-        { text: t('conversation.cancelOption'), style: 'cancel' },
-        {
-          text: t('conversation.blockButton'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await messagesAPI.blockUser(targetUserId);
-              showSuccess(t('conversation.userBlocked'), '');
-              // Pour une conversation directe, on remonte. Pour un groupe, on
-              // reste sur place mais l'user n'aura plus ses futurs messages.
-              if (conversationType === 'direct') {
-                navigation.goBack();
-              }
-            } catch (error) {
-              showError(t('common.error'), t('conversation.blockError'));
-            }
-          },
-        },
-      ],
+      async () => {
+        try {
+          await messagesAPI.blockUser(targetUserId);
+          showSuccess(t('conversation.userBlocked'), '');
+          // Pour une conversation directe, on remonte. Pour un groupe, on
+          // reste sur place mais l'user n'aura plus ses futurs messages.
+          if (conversationType === 'direct') {
+            navigation.goBack();
+          }
+        } catch {
+          showError(t('common.error'), t('conversation.blockError'));
+        }
+      },
     );
   };
 
@@ -1079,33 +1254,26 @@ export default function ConversationScreen() {
   };
 
   const handleDeleteMessage = (messageId: string) => {
-    Alert.alert(
+    showConfirm(
       t('conversation.deleteMessageTitle'),
       t('conversation.deleteMessageConfirm'),
-      [
-        { text: t('conversation.cancelOption'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              if (isConnected && isAuthenticated) {
-                wsDeleteMessage(messageId);
-              } else {
-                await messagesAPI.deleteMessage(messageId);
-              }
-              // Soft delete: update message in place
-              actions.updateMessage(messageId, {
-                is_deleted: true,
-                content: '',
-                attachments: [],
-              });
-            } catch (error) {
-              showError(t('common.error'), t('conversation.deleteMessageError'));
-            }
-          },
-        },
-      ]
+      async () => {
+        try {
+          if (isConnected && isAuthenticated) {
+            wsDeleteMessage(messageId);
+          } else {
+            await messagesAPI.deleteMessage(messageId);
+          }
+          // Soft delete: update message in place
+          actions.updateMessage(messageId, {
+            is_deleted: true,
+            content: '',
+            attachments: [],
+          });
+        } catch {
+          showError(t('common.error'), t('conversation.deleteMessageError'));
+        }
+      },
     );
   };
 
@@ -1134,17 +1302,32 @@ export default function ConversationScreen() {
     }
   };
 
-  const handleForwardToUser = async (targetUserId: string) => {
-    if (!state.selectedMessage) return;
-
-    try {
-      await messagesAPI.forwardMessage({
-        message_id: String(state.selectedMessage.id),
-        target_user_id: targetUserId,
-      });
-      showSuccess(t('conversation.messageForwarded'), '');
-      actions.hideForwardModal();
-    } catch (error) {
+  const handleForwardToTargets = async (targetUserIds: string[]) => {
+    if (!state.selectedMessage || targetUserIds.length === 0) return;
+    const messageId = String(state.selectedMessage.id);
+    // Forward en parallèle vers tous les destinataires. On collecte les
+    // résultats pour signaler les échecs sans bloquer les autres.
+    const results = await Promise.allSettled(
+      targetUserIds.map(uid =>
+        messagesAPI.forwardMessage({ message_id: messageId, target_user_id: uid }),
+      ),
+    );
+    const failures = results.filter(r => r.status === 'rejected').length;
+    actions.hideForwardModal();
+    if (failures === 0) {
+      showSuccess(
+        targetUserIds.length === 1
+          ? t('conversation.messageForwarded')
+          : t('conversation.messageForwardedMultiple', { count: targetUserIds.length }),
+        '',
+      );
+    } else if (failures < targetUserIds.length) {
+      // Succès partiel : on alerte sur le mode "partiel" plutôt que d'avoir un seul toast trompeur.
+      showError(
+        t('conversation.forwardPartialTitle'),
+        t('conversation.forwardPartialBody', { ok: targetUserIds.length - failures, ko: failures }),
+      );
+    } else {
       showError(t('common.error'), t('conversation.forwardError'));
     }
   };
@@ -1562,21 +1745,62 @@ export default function ConversationScreen() {
     </TouchableOpacity>
   ), [colors.gray100, colors.primary, colors.text, colors.gray400, closeSearch]);
 
-  const renderEmpty = () => (
-    <View style={styles.emptyContainer}>
-      <View style={[styles.emptyIconContainer, { backgroundColor: colors.gray100 }]}>
-        <Ionicons name="chatbubble-ellipses-outline" size={48} color={colors.gray300} />
+  const renderEmpty = () => {
+    // Erreur de chargement prioritaire sur le empty state vide.
+    if (messagesLoadError) {
+      return (
+        <View style={styles.emptyContainer}>
+          <View style={[styles.emptyIconContainer, { backgroundColor: '#FEE2E2' }]}>
+            <Ionicons name="cloud-offline-outline" size={48} color="#991B1B" />
+          </View>
+          <Text style={[styles.emptyText, { color: '#991B1B' }]}>
+            {t('conversation.messagesLoadErrorTitle')}
+          </Text>
+          <Text style={[styles.emptySubtext, { color: colors.gray500 }]} numberOfLines={3}>
+            {messagesLoadError}
+          </Text>
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              marginTop: Spacing.md,
+              paddingHorizontal: Spacing.lg,
+              paddingVertical: Spacing.sm,
+              borderRadius: BorderRadius.full,
+              backgroundColor: colors.primary,
+            }}
+            onPress={() => {
+              setMessagesLoadError(null);
+              actions.setLoading(true);
+              fetchMessages();
+            }}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="refresh" size={16} color="#fff" />
+            <Text style={{ fontFamily: FontFamily.bold, fontSize: 13, color: '#fff' }}>
+              {t('common.retry')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.emptyContainer}>
+        <View style={[styles.emptyIconContainer, { backgroundColor: colors.gray100 }]}>
+          <Ionicons name="chatbubble-ellipses-outline" size={48} color={colors.gray300} />
+        </View>
+        <Text style={[styles.emptyText, { color: colors.gray500 }]}>
+          {state.isNewConversation ? t('conversation.newConversation') : t('conversation.noMessages')}
+        </Text>
+        <Text style={[styles.emptySubtext, { color: colors.gray400 }]}>
+          {state.isNewConversation
+            ? t('conversation.newConversationHint', { name: state.conversationTitle })
+            : t('conversation.startConversationHint')}
+        </Text>
       </View>
-      <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-        {state.isNewConversation ? t('conversation.newConversation') : t('conversation.noMessages')}
-      </Text>
-      <Text style={[styles.emptySubtext, { color: colors.gray400 }]}>
-        {state.isNewConversation
-          ? t('conversation.newConversationHint', { name: state.conversationTitle })
-          : t('conversation.startConversationHint')}
-      </Text>
-    </View>
-  );
+    );
+  };
 
   const renderLoadingMore = () => {
     if (!state.loadingMore) return null;
@@ -1595,7 +1819,46 @@ export default function ConversationScreen() {
 
   const headerTitle = state.conversationTitle || userName || '';
   const headerAvatar = state.otherUserAvatar;
+  // Pour les conversations directes, on récupère l'autre participant depuis
+  // conversationDetails pour exposer son statut de présence + last_seen +
+  // badge organizer vérifié. Conv groupe : on ne montre pas ces infos
+  // individuelles (le header affiche l'event source via `fromEvent`).
+  const otherParticipant: any = useMemo(() => {
+    if (conversationType !== 'direct') return null;
+    return conversationDetails?.participants?.find((p: any) => String(p.id) !== String(user?.id)) || null;
+  }, [conversationType, conversationDetails?.participants, user?.id]);
+  // Formate "En ligne" / "Vu il y a Xm/Xh/Xj" pour le subtitle du header.
+  // Renvoie null si l'utilisateur a opt-out de presence (presence_visible=false
+  // côté backend → last_seen=null, status='offline').
+  const presenceLabel = useMemo(() => {
+    if (!otherParticipant) return null;
+    if (otherParticipant.presence_status === 'online') return t('conversation.presenceOnline');
+    const lastSeen = otherParticipant.last_seen;
+    if (!lastSeen) return null;
+    const date = new Date(lastSeen);
+    const ms = Date.now() - date.getTime();
+    if (ms < 60_000) return t('conversation.presenceJustNow');
+    const minutes = Math.round(ms / 60_000);
+    if (minutes < 60) return t('conversation.presenceMinutes', { count: minutes });
+    const hours = Math.round(ms / 3_600_000);
+    if (hours < 24) return t('conversation.presenceHours', { count: hours });
+    const days = Math.round(ms / 86_400_000);
+    if (days < 7) return t('conversation.presenceDays', { count: days });
+    // Au-delà d'une semaine on bascule sur la date pour ne pas afficher "vu il y a 42 jours" qui paraît bizarre.
+    return t('conversation.presenceDate', { date: date.toLocaleDateString(dateLocale) });
+  }, [otherParticipant, t, dateLocale]);
+  const showVerifiedBadge = !!otherParticipant?.is_organizer_verified;
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
+
+  // Tap sur le header → navigation vers le profile de l'interlocuteur (DM)
+  // ou rien (group/event — la bannière event juste en dessous gère le link).
+  const handleHeaderTap = () => {
+    if (conversationType === 'direct' && state.otherUserId) {
+      navigation.navigate('OrganizerProfile', { organizerId: String(state.otherUserId) });
+    } else if (eventContext) {
+      navigation.navigate('EventDetails', { eventId: eventContext.id });
+    }
+  };
 
   const renderCustomHeader = () => (
     <View
@@ -1614,7 +1877,14 @@ export default function ConversationScreen() {
       >
         <Ionicons name="chevron-back" size={24} color={colors.primary} />
       </TouchableOpacity>
-      <View style={styles.customHeaderTitle}>
+      <TouchableOpacity
+        style={styles.customHeaderTitle}
+        onPress={handleHeaderTap}
+        activeOpacity={0.7}
+        disabled={conversationType !== 'direct' && !eventContext}
+        accessibilityRole="button"
+        accessibilityLabel={t('conversation.headerTapA11y')}
+      >
         {headerAvatar ? (
           <Image
             source={headerAvatar}
@@ -1629,13 +1899,47 @@ export default function ConversationScreen() {
             </Text>
           </View>
         )}
-        <Text
-          style={[styles.headerTitleText, { color: colors.text }]}
-          numberOfLines={1}
-        >
-          {headerTitle}
-        </Text>
-      </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text
+              style={[styles.headerTitleText, { color: colors.text, flexShrink: 1 }]}
+              numberOfLines={1}
+            >
+              {headerTitle}
+            </Text>
+            {/* Badge "vérifié" pour organisateurs avec OrganizerProfile.verified_status.
+                Inline avec le nom — pattern Twitter / Instagram. */}
+            {showVerifiedBadge && (
+              <Ionicons
+                name="checkmark-circle"
+                size={14}
+                color={colors.primary}
+                accessibilityLabel={t('conversation.organizerVerifiedA11y')}
+              />
+            )}
+          </View>
+          {/* Sous-titre : priorité au statut de présence pour les conv
+              directes (pattern WhatsApp), sinon event source pour les groupes. */}
+          {presenceLabel ? (
+            <Text
+              style={[
+                styles.headerSubtitle,
+                { color: otherParticipant?.presence_status === 'online' ? '#10B981' : colors.gray500 },
+              ]}
+              numberOfLines={1}
+            >
+              {presenceLabel}
+            </Text>
+          ) : eventContext ? (
+            <Text
+              style={[styles.headerSubtitle, { color: colors.accent }]}
+              numberOfLines={1}
+            >
+              {t('conversation.fromEvent', { name: eventContext.title })}
+            </Text>
+          ) : null}
+        </View>
+      </TouchableOpacity>
       <TouchableOpacity
         style={styles.headerMenuButton}
         onPress={() => {
@@ -1760,6 +2064,44 @@ export default function ConversationScreen() {
         </View>
       )}
 
+      {/* Bannière event source — affichée quand la conv est liée à un event,
+          peu importe le type. Donne le contexte instantanément et permet de
+          retourner à l'event en un tap (use case organizer fréquent). */}
+      {eventContext && (
+        <TouchableOpacity
+          style={[
+            styles.eventBanner,
+            { backgroundColor: colors.card, borderColor: hairline },
+          ]}
+          onPress={() => navigation.navigate('EventDetails', { eventId: eventContext.id })}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={t('conversation.openEventA11y', { name: eventContext.title })}
+        >
+          {eventContext.banner ? (
+            <Image
+              source={eventContext.banner}
+              style={styles.eventBannerThumb}
+              cachePolicy="memory-disk"
+              transition={200}
+            />
+          ) : (
+            <View style={[styles.eventBannerThumb, { backgroundColor: colors.gray100, alignItems: 'center', justifyContent: 'center' }]}>
+              <Ionicons name="calendar" size={18} color={colors.gray500} />
+            </View>
+          )}
+          <View style={styles.eventBannerBody}>
+            <Text style={[styles.eventBannerEyebrow, { color: colors.accent }]} numberOfLines={1}>
+              {t('conversation.eventBannerEyebrow')}
+            </Text>
+            <Text style={[styles.eventBannerTitle, { color: colors.text }]} numberOfLines={1}>
+              {eventContext.title}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.gray400} />
+        </TouchableOpacity>
+      )}
+
       {/* Banner quota / cycle de vie (groupes / event uniquement) */}
       {state.conversationId && conversationType && conversationType !== 'direct' && (
         <ConversationQuotaBanner
@@ -1870,18 +2212,86 @@ export default function ConversationScreen() {
                 </View>
               </View>
             )}
-            {/* Banner "messages en attente" : visible quand la queue offline
-                contient au moins un message non envoyé pour cette conv. */}
-            {offlineQueue.queueLength > 0 && (
-              <View style={styles.offlineQueueBanner}>
-                <Ionicons name="time-outline" size={14} color="#92400E" />
-                <Text style={styles.offlineQueueBannerText}>
-                  {offlineQueue.queueLength === 1
-                    ? t('conversation.pendingQueueSingular')
-                    : t('conversation.pendingQueuePlural', { count: offlineQueue.queueLength })}
-                  {offlineQueue.isSyncing ? t('conversation.pendingQueueSyncing') : ''}
-                </Text>
-              </View>
+            {/* Banner "messages en attente" — orange. Filtré sur les messages
+                de la conv courante seulement (la queue est globale par user). */}
+            {(() => {
+              const convId = String(state.conversationId || '');
+              const convQueue = offlineQueue.queue.filter(m => m.conversationId === convId);
+              const pending = convQueue.filter(m => !m.failed);
+              const failed = convQueue.filter(m => m.failed);
+              return (
+                <>
+                  {pending.length > 0 && (
+                    <View style={styles.offlineQueueBanner}>
+                      <Ionicons name="time-outline" size={14} color="#92400E" />
+                      <Text style={styles.offlineQueueBannerText}>
+                        {pending.length === 1
+                          ? t('conversation.pendingQueueSingular')
+                          : t('conversation.pendingQueuePlural', { count: pending.length })}
+                        {offlineQueue.isSyncing ? t('conversation.pendingQueueSyncing') : ''}
+                      </Text>
+                    </View>
+                  )}
+                  {failed.length > 0 && (
+                    <TouchableOpacity
+                      style={styles.failedQueueBanner}
+                      onPress={() => setFailedMessagesModalVisible(true)}
+                      activeOpacity={0.85}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('conversation.failedQueueA11y')}
+                    >
+                      <Ionicons name="alert-circle" size={16} color="#991B1B" />
+                      <Text style={styles.failedQueueBannerText}>
+                        {failed.length === 1
+                          ? t('conversation.failedQueueSingular')
+                          : t('conversation.failedQueuePlural', { count: failed.length })}
+                      </Text>
+                      <Text style={styles.failedQueueBannerCta}>
+                        {t('conversation.failedQueueView')}
+                      </Text>
+                      <Ionicons name="chevron-forward" size={14} color="#991B1B" />
+                    </TouchableOpacity>
+                  )}
+                </>
+              );
+            })()}
+            {/* Quick replies — visible uniquement pour l'organisateur d'un
+                event group. Permet d'insérer rapidement les réponses
+                récurrentes (adresse, horaire, programme). Pattern Eventbrite. */}
+            {quotaState?.is_organizer && conversationType !== 'direct' && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.quickRepliesStrip}
+                keyboardShouldPersistTaps="handled"
+              >
+                {[
+                  { key: 'address', icon: 'location-outline' as const, label: t('conversation.quickReplyAddress'), tpl: t('conversation.quickReplyAddressTpl') },
+                  { key: 'schedule', icon: 'time-outline' as const, label: t('conversation.quickReplySchedule'), tpl: t('conversation.quickReplyScheduleTpl') },
+                  { key: 'agenda', icon: 'list-outline' as const, label: t('conversation.quickReplyAgenda'), tpl: t('conversation.quickReplyAgendaTpl') },
+                  { key: 'dressCode', icon: 'shirt-outline' as const, label: t('conversation.quickReplyDressCode'), tpl: t('conversation.quickReplyDressCodeTpl') },
+                  { key: 'parking', icon: 'car-outline' as const, label: t('conversation.quickReplyParking'), tpl: t('conversation.quickReplyParkingTpl') },
+                  { key: 'thanks', icon: 'heart-outline' as const, label: t('conversation.quickReplyThanks'), tpl: t('conversation.quickReplyThanksTpl') },
+                ].map((tpl) => (
+                  <TouchableOpacity
+                    key={tpl.key}
+                    style={[styles.quickReplyChip, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}30` }]}
+                    onPress={() => {
+                      // Pré-remplit l'input avec le template. L'organizer
+                      // peut éditer avant d'envoyer (mode "smart template").
+                      const current = state.newMessage.trim();
+                      const next = current ? `${current}\n${tpl.tpl}` : tpl.tpl;
+                      actions.setNewMessage(next);
+                    }}
+                    activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityLabel={tpl.label}
+                  >
+                    <Ionicons name={tpl.icon} size={13} color={colors.primary} />
+                    <Text style={[styles.quickReplyChipText, { color: colors.primary }]}>{tpl.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             )}
             <InputToolbar
               value={state.newMessage}
@@ -1951,7 +2361,7 @@ export default function ConversationScreen() {
         searchQuery={forwardSearchQuery}
         onSearchChange={setForwardSearchQuery}
         onClose={actions.hideForwardModal}
-        onSelectTarget={handleForwardToUser}
+        onSendToTargets={handleForwardToTargets}
       />
 
       {/* Panel d'admin du groupe (organizer uniquement) */}
@@ -1973,6 +2383,358 @@ export default function ConversationScreen() {
           }}
         />
       )}
+
+      {/* Bottom sheet d'options conversation — remplace l'Alert natif L504. */}
+      <EventActionsSheet
+        visible={convOptionsSheetVisible}
+        onClose={() => setConvOptionsSheetVisible(false)}
+        title={state.conversationTitle || t('conversation.optionsTitle')}
+        subtitle={t('conversation.optionsTitle')}
+        sections={convOptionsSections}
+      />
+
+      {/* Liste des participants — accessible à tous les membres (vs
+          GroupAdminPanel qui est admin-only). Lecture seule. Tap sur un
+          participant → ouvre son profil (pour l'organizer ; les autres users
+          n'ont pas de profile public donc on les ignore en silence). */}
+      <Modal
+        visible={participantsModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setParticipantsModalVisible(false)}
+      >
+        <View style={styles.failedModalBackdrop}>
+          <View style={[styles.failedModalCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.failedModalEyebrow, { color: colors.accent }]}>
+              {t('conversation.participantsEyebrow')}
+            </Text>
+            <Text style={[styles.failedModalTitle, { color: colors.text }]}>
+              {t('conversation.viewParticipantsCount', {
+                count: conversationDetails?.participants?.length || 0,
+              })}
+            </Text>
+            <FlatList
+              data={conversationDetails?.participants || []}
+              keyExtractor={(item: any) => String(item.id)}
+              style={{ maxHeight: 380 }}
+              renderItem={({ item }: { item: any }) => {
+                const isOrganizer =
+                  conversationDetails?.event?.organizer_id === item.id ||
+                  conversationDetails?.event?.organizer === item.id;
+                const isMe = String(item.id) === String(user?.id);
+                const name = `${item.first_name || ''} ${item.last_name || ''}`.trim()
+                  || item.full_name
+                  || item.email
+                  || t('conversation.defaultUserName');
+                const avatar = getMediaUrl(item.profile_picture || item.image);
+                const initials = (name || '?').slice(0, 2).toUpperCase();
+                const navigateToProfile = () => {
+                  if (!isMe) {
+                    setParticipantsModalVisible(false);
+                    navigation.navigate('OrganizerProfile', { organizerId: String(item.id) });
+                  }
+                };
+                return (
+                  <TouchableOpacity
+                    style={[styles.participantRow, { borderBottomColor: colors.gray100 }]}
+                    onPress={navigateToProfile}
+                    activeOpacity={isMe ? 1 : 0.7}
+                    disabled={isMe}
+                  >
+                    {avatar ? (
+                      <Image source={avatar} style={styles.participantAvatar} cachePolicy="memory-disk" transition={150} />
+                    ) : (
+                      <View style={[styles.participantAvatar, { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }]}>
+                        <Text style={styles.participantInitials}>{initials}</Text>
+                      </View>
+                    )}
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={[styles.participantName, { color: colors.text }]} numberOfLines={1}>
+                        {name}{isMe ? ` ${t('conversation.participantYou')}` : ''}
+                      </Text>
+                      {item.email && (
+                        <Text style={[styles.participantEmail, { color: colors.gray500 }]} numberOfLines={1}>
+                          {item.email}
+                        </Text>
+                      )}
+                    </View>
+                    {isOrganizer && (
+                      <View style={[styles.organizerBadge, { backgroundColor: `${colors.accent}18` }]}>
+                        <Ionicons name="star" size={11} color={colors.accent} />
+                        <Text style={[styles.organizerBadgeText, { color: colors.accent }]}>
+                          {t('conversation.organizerBadge')}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
+              ListEmptyComponent={
+                <Text style={[styles.failedItemEmpty, { color: colors.gray400 }]}>
+                  {t('conversation.participantsEmpty')}
+                </Text>
+              }
+            />
+            <View style={styles.failedModalActions}>
+              <TouchableOpacity
+                style={[styles.failedModalBtn, { backgroundColor: colors.primary }]}
+                onPress={() => setParticipantsModalVisible(false)}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.failedModalBtnText, { color: '#fff' }]}>
+                  {t('common.close')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* === MEDIA GALLERY MODAL ===
+          Agrège les attachments (photos / documents) de TOUS les messages
+          déjà fetched. Limité à state.messages — pour une galerie exhaustive
+          il faudrait un endpoint dédié /messages/attachments?conversation=…
+          Pour l'instant ça couvre 80% du besoin (retrouver une photo récente). */}
+      {(() => {
+        const allAttachments = state.messages.flatMap(m => m.attachments || []);
+        const photos = allAttachments.filter(a => a.attachment_type === 'image');
+        const docs = allAttachments.filter(a => a.attachment_type === 'document' || a.attachment_type === 'other');
+        const photoUris = photos.map(a => ({ uri: typeof a.file === 'string' ? a.file : '' }));
+        return (
+          <>
+            <Modal
+              visible={mediaGalleryVisible}
+              transparent
+              animationType="slide"
+              onRequestClose={() => setMediaGalleryVisible(false)}
+            >
+              <View style={[styles.mediaGalleryCard, { backgroundColor: colors.background }]}>
+                <View style={[styles.mediaGalleryHeader, { borderBottomColor: hairline }]}>
+                  <TouchableOpacity
+                    onPress={() => setMediaGalleryVisible(false)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="close" size={24} color={colors.text} />
+                  </TouchableOpacity>
+                  <Text style={[styles.mediaGalleryTitle, { color: colors.text }]}>
+                    {t('conversation.viewMedia')}
+                  </Text>
+                  <View style={{ width: 24 }} />
+                </View>
+                <View style={[styles.mediaGalleryTabs, { borderBottomColor: hairline }]}>
+                  {(['photos', 'documents'] as const).map(tab => {
+                    const active = mediaGalleryTab === tab;
+                    const count = tab === 'photos' ? photos.length : docs.length;
+                    return (
+                      <TouchableOpacity
+                        key={tab}
+                        style={[
+                          styles.mediaGalleryTab,
+                          active && { borderBottomColor: colors.primary },
+                        ]}
+                        onPress={() => setMediaGalleryTab(tab)}
+                        activeOpacity={0.7}
+                      >
+                        <Text
+                          style={[
+                            styles.mediaGalleryTabText,
+                            { color: active ? colors.primary : colors.gray500 },
+                          ]}
+                        >
+                          {tab === 'photos' ? t('conversation.mediaTabPhotos') : t('conversation.mediaTabDocuments')}
+                          {count > 0 ? ` · ${count}` : ''}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {mediaGalleryTab === 'photos' ? (
+                  photos.length === 0 ? (
+                    <Text style={[styles.mediaGalleryEmpty, { color: colors.gray400 }]}>
+                      {t('conversation.mediaPhotosEmpty')}
+                    </Text>
+                  ) : (
+                    <FlatList
+                      data={photos}
+                      keyExtractor={(item) => String(item.id)}
+                      numColumns={3}
+                      contentContainerStyle={{ padding: 4 }}
+                      renderItem={({ item, index }) => (
+                        <TouchableOpacity
+                          style={styles.mediaPhotoTile}
+                          onPress={() => setMediaGalleryViewerIndex(index)}
+                          activeOpacity={0.85}
+                        >
+                          <Image
+                            source={{ uri: typeof item.file === 'string' ? item.file : '' }}
+                            style={styles.mediaPhotoImage}
+                            cachePolicy="memory-disk"
+                            transition={150}
+                          />
+                        </TouchableOpacity>
+                      )}
+                    />
+                  )
+                ) : (
+                  docs.length === 0 ? (
+                    <Text style={[styles.mediaGalleryEmpty, { color: colors.gray400 }]}>
+                      {t('conversation.mediaDocumentsEmpty')}
+                    </Text>
+                  ) : (
+                    <FlatList
+                      data={docs}
+                      keyExtractor={(item) => String(item.id)}
+                      contentContainerStyle={{ paddingVertical: Spacing.sm }}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          style={[styles.mediaDocRow, { borderBottomColor: hairline }]}
+                          onPress={async () => {
+                            const url = typeof item.file === 'string' ? item.file : null;
+                            if (!url) return;
+                            try {
+                              const filename = (item.file_name || `file-${item.id}`).replace(/[^a-zA-Z0-9._-]/g, '_');
+                              const targetUri = `${FileSystem.cacheDirectory}${item.id}-${filename}`;
+                              const info = await FileSystem.getInfoAsync(targetUri);
+                              if (!info.exists) {
+                                await FileSystem.downloadAsync(url, targetUri);
+                              }
+                              if (await Sharing.isAvailableAsync()) {
+                                await Sharing.shareAsync(targetUri, {
+                                  dialogTitle: item.file_name,
+                                  mimeType: item.mime_type || undefined,
+                                });
+                              }
+                            } catch {
+                              // ignore
+                            }
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <View style={[styles.mediaDocIcon, { backgroundColor: `${colors.primary}18` }]}>
+                            <Ionicons name="document-outline" size={20} color={colors.primary} />
+                          </View>
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <Text style={[styles.mediaDocName, { color: colors.text }]} numberOfLines={1}>
+                              {item.file_name || t('componentsMessages.attachmentMenuTitle')}
+                            </Text>
+                            {item.file_size ? (
+                              <Text style={[styles.mediaDocSize, { color: colors.gray500 }]}>
+                                {formatFileSizeForGallery(item.file_size)}
+                              </Text>
+                            ) : null}
+                          </View>
+                          <Ionicons name="chevron-forward" size={16} color={colors.gray400} />
+                        </TouchableOpacity>
+                      )}
+                    />
+                  )
+                )}
+              </View>
+            </Modal>
+            {/* Image viewer fullscreen pour la grille photos. */}
+            <ImageView
+              images={photoUris}
+              imageIndex={mediaGalleryViewerIndex ?? 0}
+              visible={mediaGalleryViewerIndex !== null}
+              onRequestClose={() => setMediaGalleryViewerIndex(null)}
+              presentationStyle="overFullScreen"
+            />
+          </>
+        );
+      })()}
+
+      {/* Modale détaillée des messages en échec. Chaque ligne expose le
+          contenu + actions Réessayer / Supprimer. Évite la perte silencieuse
+          de messages après MAX_RETRY_COUNT tentatives. */}
+      <Modal
+        visible={failedMessagesModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFailedMessagesModalVisible(false)}
+      >
+        <View style={styles.failedModalBackdrop}>
+          <View style={[styles.failedModalCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.failedModalEyebrow, { color: '#991B1B' }]}>
+              {t('conversation.failedModalEyebrow')}
+            </Text>
+            <Text style={[styles.failedModalTitle, { color: colors.text }]}>
+              {t('conversation.failedModalTitle')}
+            </Text>
+            <Text style={[styles.failedModalBody, { color: colors.gray500 }]}>
+              {t('conversation.failedModalBody')}
+            </Text>
+            <FlatList
+              data={offlineQueue.queue.filter(
+                m => m.failed && m.conversationId === String(state.conversationId || ''),
+              )}
+              keyExtractor={(item) => item.id}
+              style={{ maxHeight: 300 }}
+              renderItem={({ item }) => (
+                <View style={[styles.failedItem, { borderBottomColor: colors.gray100 }]}>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text
+                      style={[styles.failedItemContent, { color: colors.text }]}
+                      numberOfLines={2}
+                    >
+                      {item.content || t('componentsMessages.attachmentPlaceholder')}
+                    </Text>
+                    <Text style={[styles.failedItemMeta, { color: colors.gray400 }]}>
+                      {new Date(item.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.failedItemBtn, { backgroundColor: colors.primary }]}
+                    onPress={() => {
+                      offlineQueue.retryMessage(item.id);
+                    }}
+                    activeOpacity={0.85}
+                    accessibilityLabel={t('conversation.failedRetry')}
+                  >
+                    <Ionicons name="refresh" size={14} color="#fff" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.failedItemBtn, { backgroundColor: colors.gray100 }]}
+                    onPress={() => offlineQueue.dequeue(item.id)}
+                    activeOpacity={0.85}
+                    accessibilityLabel={t('conversation.failedDelete')}
+                  >
+                    <Ionicons name="trash-outline" size={14} color={colors.gray700} />
+                  </TouchableOpacity>
+                </View>
+              )}
+              ListEmptyComponent={
+                <Text style={[styles.failedItemEmpty, { color: colors.gray400 }]}>
+                  {t('conversation.failedEmpty')}
+                </Text>
+              }
+            />
+            <View style={styles.failedModalActions}>
+              <TouchableOpacity
+                style={[styles.failedModalBtn, { backgroundColor: colors.gray100 }]}
+                onPress={() => setFailedMessagesModalVisible(false)}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.failedModalBtnText, { color: colors.gray700 }]}>
+                  {t('common.close')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.failedModalBtn, { backgroundColor: colors.primary }]}
+                onPress={() => {
+                  offlineQueue.queue
+                    .filter(m => m.failed && m.conversationId === String(state.conversationId || ''))
+                    .forEach(m => offlineQueue.retryMessage(m.id));
+                }}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.failedModalBtnText, { color: '#fff' }]}>
+                  {t('conversation.failedRetryAll')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       </View>
     </EditorialCanvas>
   );
@@ -1991,6 +2753,28 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  // Quick replies strip (organizer-only, au-dessus de l'InputToolbar)
+  quickRepliesStrip: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  quickReplyChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  quickReplyChipText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: 0.2,
+  },
+
   // Offline queue banner (au-dessus de l'InputToolbar)
   offlineQueueBanner: {
     flexDirection: 'row',
@@ -2007,6 +2791,228 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: '#92400E',
     flex: 1,
+  },
+  failedQueueBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    backgroundColor: '#FEE2E2',
+    borderTopWidth: 1,
+    borderTopColor: '#FCA5A5',
+  },
+  failedQueueBannerText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.xs,
+    color: '#991B1B',
+    flex: 1,
+  },
+  failedQueueBannerCta: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    color: '#991B1B',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  // Failed messages modal
+  failedModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  failedModalCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: BorderRadius['2xl'],
+    padding: Spacing.lg,
+  },
+  failedModalEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  failedModalTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 20,
+    letterSpacing: -0.5,
+    marginBottom: 8,
+  },
+  failedModalBody: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: Spacing.md,
+  },
+  failedItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  failedItemContent: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    lineHeight: 17,
+  },
+  failedItemMeta: {
+    fontFamily: FontFamily.regular,
+    fontSize: 10,
+    marginTop: 2,
+  },
+  failedItemBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  failedItemEmpty: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    textAlign: 'center',
+    paddingVertical: Spacing.lg,
+    fontStyle: 'italic',
+  },
+  failedModalActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  failedModalBtn: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+  },
+  failedModalBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
+  // Participants list (read-only modal)
+  participantRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  participantAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  participantInitials: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 14,
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  participantName: {
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: 14,
+    letterSpacing: -0.2,
+  },
+  participantEmail: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    marginTop: 1,
+  },
+  organizerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+  },
+  organizerBadgeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  // Media gallery — modal plein écran
+  mediaGalleryCard: {
+    flex: 1,
+    paddingTop: 44, // safe area approximative
+  },
+  mediaGalleryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  mediaGalleryTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 18,
+    letterSpacing: -0.3,
+  },
+  mediaGalleryTabs: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+  },
+  mediaGalleryTab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  mediaGalleryTabText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  mediaGalleryEmpty: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    textAlign: 'center',
+    paddingVertical: Spacing['2xl'],
+    fontStyle: 'italic',
+  },
+  mediaPhotoTile: {
+    flex: 1 / 3,
+    aspectRatio: 1,
+    padding: 2,
+  },
+  mediaPhotoImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 4,
+  },
+  mediaDocRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  mediaDocIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mediaDocName: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 14,
+    letterSpacing: -0.1,
+  },
+  mediaDocSize: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    marginTop: 2,
   },
 
   // Header
@@ -2060,8 +3066,50 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
     maxWidth: 180,
   },
+  headerSubtitle: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: 0.1,
+    marginTop: 1,
+    maxWidth: 180,
+  },
   headerMenuButton: {
     padding: Spacing.sm,
+  },
+
+  // Event source banner — affiché au-dessus des messages quand la conv est
+  // liée à un event. Click → EventDetails.
+  eventBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+  },
+  eventBannerThumb: {
+    width: 38,
+    height: 38,
+    borderRadius: BorderRadius.md,
+  },
+  eventBannerBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  eventBannerEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  eventBannerTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 14,
+    letterSpacing: -0.2,
   },
 
   // Messages List

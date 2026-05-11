@@ -10,7 +10,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -33,6 +32,8 @@ import {
   Spacing,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAlert } from '../../contexts/AlertContext';
+import EventActionsSheet, { EventAction } from '../organizer/EventActionsSheet';
 import {
   MESSAGE_AVATAR_SIZE,
   formatMessageTime,
@@ -256,6 +257,10 @@ function MessageBubble({
 }: MessageBubbleProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
+  const { showError, showSuccess } = useAlert();
+  // Sheet d'actions sur une pièce jointe (Télécharger / Partager / Sauvegarder
+  // dans la galerie / Forward / Copier le lien). Remplace l'Alert natif.
+  const [attachSheetTarget, setAttachSheetTarget] = useState<any | null>(null);
   const avatar = getMessageAvatar(message);
   const initials = getMessageInitials(message);
   const hasAttachments = message.attachments && message.attachments.length > 0;
@@ -304,7 +309,7 @@ function MessageBubble({
   const downloadAndOpen = useCallback(async (attachment: any) => {
     const url = typeof attachment.file === 'string' ? attachment.file : null;
     if (!url) {
-      Alert.alert(t('componentsMessages.attachmentErrorTitle'), t('componentsMessages.attachmentInvalidUrl'));
+      showError(t('componentsMessages.attachmentErrorTitle'), t('componentsMessages.attachmentInvalidUrl'));
       return;
     }
     const attId = String(attachment.id);
@@ -344,17 +349,17 @@ function MessageBubble({
           UTI: attachment.mime_type || undefined,
         });
       } else {
-        Alert.alert(t('componentsMessages.attachmentErrorTitle'), t('componentsMessages.sharingUnavailable'));
+        showError(t('componentsMessages.attachmentErrorTitle'), t('componentsMessages.sharingUnavailable'));
       }
     } catch (error: any) {
       setDlState(prev => ({ ...prev, [attId]: undefined }));
       if (__DEV__) console.error('[Attachment] downloadAndOpen failed:', error);
-      Alert.alert(
+      showError(
         t('componentsMessages.attachmentErrorTitle'),
         error?.message || t('componentsMessages.attachmentDownloadFailed'),
       );
     }
-  }, [t]);
+  }, [t, showError]);
 
   // Sauvegarde une image dans la galerie photos via expo-media-library.
   // Import dynamique pour eviter le hard-fail si le package n'est pas encore
@@ -381,14 +386,14 @@ function MessageBubble({
       if (MediaLibrary?.saveToLibraryAsync) {
         const perm = await MediaLibrary.requestPermissionsAsync();
         if (!perm.granted) {
-          Alert.alert(
+          showError(
             t('componentsMessages.attachmentMenuPermissionDenied'),
             t('componentsMessages.attachmentMenuPermissionMessage'),
           );
           return;
         }
         await MediaLibrary.saveToLibraryAsync(targetUri);
-        Alert.alert(t('componentsMessages.attachmentMenuSavedSuccess'));
+        showSuccess(t('componentsMessages.attachmentMenuSavedSuccess'));
         try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { /* ignore */ }
       } else {
         // Fallback pour les builds sans expo-media-library : on ouvre la
@@ -396,7 +401,7 @@ function MessageBubble({
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(targetUri, { dialogTitle: filename });
         } else {
-          Alert.alert(
+          showError(
             t('componentsMessages.attachmentErrorTitle'),
             t('componentsMessages.sharingUnavailable'),
           );
@@ -404,46 +409,53 @@ function MessageBubble({
       }
     } catch (error: any) {
       if (__DEV__) console.error('[Attachment] saveImageToGallery failed:', error);
-      Alert.alert(
+      showError(
         t('componentsMessages.attachmentErrorTitle'),
         error?.message || t('componentsMessages.attachmentDownloadFailed'),
       );
     }
-  }, [t]);
+  }, [t, showError, showSuccess]);
 
   const showAttachmentMenu = useCallback((attachment: any) => {
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { /* ignore */ }
-    const url = typeof attachment.file === 'string' ? attachment.file : null;
-    const isImage = attachment.attachment_type === 'image';
+    setAttachSheetTarget(attachment);
+  }, []);
 
-    const buttons: Array<{ text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }> = [];
+  // Construction des actions du sheet, mémoizée. Recalculée quand la cible
+  // change (image ↔ document) ou quand les callbacks varient.
+  const attachSheetActions: EventAction[] = useMemo(() => {
+    const target = attachSheetTarget;
+    if (!target) return [];
+    const url = typeof target.file === 'string' ? target.file : null;
+    const isImage = target.attachment_type === 'image';
+    const actions: EventAction[] = [];
 
-    // Telecharger / Ouvrir avec — pour tout type
-    buttons.push({
-      text: isImage ? t('componentsMessages.attachmentMenuShare') : t('componentsMessages.attachmentMenuOpenWith'),
-      onPress: () => { downloadAndOpen(attachment); },
+    actions.push({
+      label: isImage ? t('componentsMessages.attachmentMenuShare') : t('componentsMessages.attachmentMenuOpenWith'),
+      icon: isImage ? 'share-outline' : 'open-outline',
+      onPress: () => downloadAndOpen(target),
     });
 
-    // Save-to-gallery — uniquement pour les images
     if (isImage) {
-      buttons.push({
-        text: t('componentsMessages.attachmentMenuSaveImage'),
-        onPress: () => { saveImageToGallery(attachment); },
+      actions.push({
+        label: t('componentsMessages.attachmentMenuSaveImage'),
+        icon: 'download-outline',
+        onPress: () => saveImageToGallery(target),
       });
     }
 
-    // Forward — reuse le flow message-level si le parent l'a fourni
     if (onForward) {
-      buttons.push({
-        text: t('componentsMessages.attachmentMenuForward'),
-        onPress: () => { onForward(message); },
+      actions.push({
+        label: t('componentsMessages.attachmentMenuForward'),
+        icon: 'arrow-redo-outline',
+        onPress: () => onForward(message),
       });
     }
 
-    // Copier le lien — utile pour partager via une autre app
     if (url) {
-      buttons.push({
-        text: t('componentsMessages.attachmentMenuCopyLink'),
+      actions.push({
+        label: t('componentsMessages.attachmentMenuCopyLink'),
+        icon: 'link-outline',
         onPress: async () => {
           try {
             await Clipboard.setStringAsync(url);
@@ -452,15 +464,8 @@ function MessageBubble({
       });
     }
 
-    buttons.push({ text: t('common.cancel'), style: 'cancel' });
-
-    Alert.alert(
-      attachment.file_name || t('componentsMessages.attachmentMenuTitle'),
-      undefined,
-      buttons,
-      { cancelable: true },
-    );
-  }, [downloadAndOpen, saveImageToGallery, onForward, message, t]);
+    return actions;
+  }, [attachSheetTarget, downloadAndOpen, saveImageToGallery, onForward, message, t]);
 
   // Render Reply Preview
   const renderReplyPreview = () => {
@@ -792,6 +797,15 @@ function MessageBubble({
             }}
           />
         )}
+
+        {/* Sheet d'actions sur une pièce jointe — remplace l'Alert natif. */}
+        <EventActionsSheet
+          visible={!!attachSheetTarget}
+          onClose={() => setAttachSheetTarget(null)}
+          title={attachSheetTarget?.file_name || t('componentsMessages.attachmentMenuTitle')}
+          subtitle={formatFileSize(attachSheetTarget?.file_size) || undefined}
+          sections={[{ actions: attachSheetActions }]}
+        />
       </View>
     </TouchableOpacity>
   );

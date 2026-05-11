@@ -137,6 +137,10 @@ export interface EventFormState {
 
   // Step validation — populated quand goToNextStep échoue, lu par les Steps
   stepErrors: Record<string, string>;
+
+  // Mode edition : true si on edite un event existant (vs create). Sert a relacher
+  // certaines validations qui n'ont du sens qu'au create (ex: start_date dans le passe).
+  isEditMode: boolean;
 }
 
 export interface AlertActions {
@@ -340,6 +344,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
     aiEnabled, aiLoading, aiResult, aiError, aiUsage,
     aiTitleLoading, aiDescLoading, aiPricingLoading,
     stepErrors,
+    isEditMode: !!editEventId,
   };
 
   // ============================================

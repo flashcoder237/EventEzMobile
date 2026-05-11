@@ -146,6 +146,51 @@ export default function MyEventsScreen() {
   // quand le menu dépassait 12 actions (event validated complet).
   const [actionsSheetEvent, setActionsSheetEvent] = useState<Event | null>(null);
 
+  // Broadcast modal — l'organizer écrit un message à tous les inscrits.
+  // type 'announcement' = system (centré, pas de push individuelle) /
+  // 'message' = text normal (notif push à tous). Mode choisi via switch.
+  const [broadcastTarget, setBroadcastTarget] = useState<Event | null>(null);
+  const [broadcastContent, setBroadcastContent] = useState('');
+  const [broadcastMode, setBroadcastMode] = useState<'announcement' | 'message'>('announcement');
+  const [broadcastLoading, setBroadcastLoading] = useState(false);
+
+  const closeBroadcast = () => {
+    if (broadcastLoading) return;
+    setBroadcastTarget(null);
+    setBroadcastContent('');
+    setBroadcastMode('announcement');
+  };
+
+  const submitBroadcast = async () => {
+    if (!broadcastTarget) return;
+    const trimmed = broadcastContent.trim();
+    if (!trimmed) {
+      showError(t('organizer.myEvents.broadcastEmptyTitle'), t('organizer.myEvents.broadcastEmptyMessage'));
+      return;
+    }
+    setBroadcastLoading(true);
+    try {
+      const res = await eventsAPI.broadcastMessage(broadcastTarget.id, {
+        content: trimmed,
+        message_type: broadcastMode === 'announcement' ? 'system' : 'text',
+      });
+      showSuccess(
+        t('organizer.myEvents.broadcastSentTitle'),
+        t('organizer.myEvents.broadcastSentMessage', {
+          count: res.data?.recipients_count ?? 0,
+        }),
+      );
+      closeBroadcast();
+    } catch (error: any) {
+      showError(
+        t('common.error'),
+        error?.response?.data?.detail || t('organizer.myEvents.broadcastError'),
+      );
+    } finally {
+      setBroadcastLoading(false);
+    }
+  };
+
   const closeRecurrence = () => {
     if (recurrenceLoading) return;
     setRecurrenceTarget(null);
@@ -541,9 +586,18 @@ export default function MyEventsScreen() {
       sections.push({ title: t('organizer.myEvents.sectionConfig'), actions: configActions });
     }
 
-    // ─── Promotion : visibilité + récurrence ───
+    // ─── Promotion : visibilité + récurrence + broadcast ───
     if (event.status === 'validated') {
       const promoActions: EventAction[] = [
+        {
+          // Diffuser une annonce aux inscrits — endpoint backend
+          // /events/{id}/broadcast-message/ qui crée la conv groupe au passage
+          // si elle n'existe pas et notifie tous les participants.
+          label: t('organizer.myEvents.actions.broadcastMessage'),
+          icon: 'megaphone-outline',
+          description: t('organizer.myEvents.actions.broadcastMessageDesc'),
+          onPress: () => setBroadcastTarget(event),
+        },
         {
           label: t('organizer.myEvents.actions.requestFeature'),
           icon: 'star-outline',
@@ -1364,6 +1418,114 @@ export default function MyEventsScreen() {
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <Text style={[styles.cancelModalBtnText, { color: '#fff' }]}>{t('organizer.myEvents.scheduleBtn')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* === MODAL BROADCAST ANNONCE ===
+          L'organizer écrit un message qui sera posté dans la conversation
+          groupe de l'event (créée si elle n'existe pas) et notifié à tous
+          les inscrits confirmés / acheteurs payés. */}
+      <Modal
+        visible={!!broadcastTarget}
+        transparent
+        animationType="fade"
+        onRequestClose={closeBroadcast}
+      >
+        <View style={styles.cancelModalBackdrop}>
+          <View style={[styles.cancelModalCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.cancelModalEyebrow, { color: colors.accent }]}>
+              {t('organizer.myEvents.broadcastEyebrow')}
+            </Text>
+            <Text style={[styles.cancelModalTitle, { color: colors.text }]}>
+              {t('organizer.myEvents.broadcastTitle', { title: broadcastTarget?.title || '' })}
+            </Text>
+            <Text style={[styles.cancelModalBody, { color: colors.gray500 }]}>
+              {broadcastMode === 'announcement'
+                ? t('organizer.myEvents.broadcastBodyAnnouncement')
+                : t('organizer.myEvents.broadcastBodyMessage')}
+            </Text>
+
+            {/* Switch entre Annonce (system, pas de push) et Message (text + push) */}
+            <View style={{ flexDirection: 'row', gap: 6, marginBottom: Spacing.md }}>
+              {(['announcement', 'message'] as const).map(mode => {
+                const active = mode === broadcastMode;
+                const label = mode === 'announcement'
+                  ? t('organizer.myEvents.broadcastModeAnnouncement')
+                  : t('organizer.myEvents.broadcastModeMessage');
+                return (
+                  <TouchableOpacity
+                    key={mode}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 10,
+                      borderRadius: BorderRadius.full,
+                      borderWidth: 1.5,
+                      backgroundColor: active ? colors.primary : 'transparent',
+                      borderColor: active ? colors.primary : hairline,
+                      alignItems: 'center',
+                    }}
+                    onPress={() => !broadcastLoading && setBroadcastMode(mode)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={{
+                      fontFamily: FontFamily.bold,
+                      fontSize: 12,
+                      color: active ? '#fff' : colors.text,
+                      letterSpacing: 0.2,
+                    }}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TextInput
+              style={[
+                styles.cancelModalInput,
+                {
+                  backgroundColor: inputBg,
+                  borderColor: hairline,
+                  color: colors.text,
+                  minHeight: 120,
+                },
+              ]}
+              value={broadcastContent}
+              onChangeText={setBroadcastContent}
+              placeholder={t('organizer.myEvents.broadcastPlaceholder')}
+              placeholderTextColor={colors.gray400}
+              multiline
+              numberOfLines={6}
+              textAlignVertical="top"
+              maxLength={4000}
+              editable={!broadcastLoading}
+            />
+
+            <View style={styles.cancelModalActions}>
+              <TouchableOpacity
+                style={[styles.cancelModalBtn, { backgroundColor: colors.gray100 }]}
+                onPress={closeBroadcast}
+                disabled={broadcastLoading}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.cancelModalBtnText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.cancelModalBtn, { backgroundColor: colors.primary }, broadcastLoading && { opacity: 0.6 }]}
+                onPress={submitBroadcast}
+                disabled={broadcastLoading}
+                activeOpacity={0.85}
+              >
+                {broadcastLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={[styles.cancelModalBtnText, { color: '#fff' }]}>
+                    {t('organizer.myEvents.broadcastSendBtn')}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>

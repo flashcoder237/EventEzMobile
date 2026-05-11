@@ -161,6 +161,12 @@ export const eventsAPI = {
   // Demande de mise en avant
   requestFeature: (id: string, data?: any) =>
     api.post(`/events/${id}/request_feature/`, data || {}),
+
+  // Broadcast un message dans la conversation groupe de l'event. Backend crée
+  // la conv + ajoute tous les inscrits confirmés/payés si pas déjà fait.
+  // `message_type='system'` = annonce (rendu centré, pas de notif push), `text` = message normal.
+  broadcastMessage: (id: string, data: { content: string; message_type?: 'text' | 'system' }) =>
+    api.post(`/events/${id}/broadcast-message/`, data),
 };
 
 // ============================================

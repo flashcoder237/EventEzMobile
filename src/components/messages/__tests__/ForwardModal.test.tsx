@@ -1,72 +1,46 @@
 /**
- * Tests Jest pour ForwardModal.
+ * Tests pour ForwardModal — composant de transfert de messages.
  *
- * ForwardModal est purement controle : recoit `targets` (User[]),
- * filtre par `searchQuery`, et appelle `onSelectTarget(userId)` au clic.
- * Aucun appel API en interne.
- *
- * Couvre :
- *  - render de la liste des destinataires + champ recherche
- *  - click sur un destinataire -> onSelectTarget(String(id))
- *  - filtre par recherche : appelle onSearchChange (controlled input)
- *  - bouton fermer (icon close) -> onClose
- *  - empty state si targets vide
+ * Verifie que :
+ *  - les destinataires sont rendus
+ *  - la search bar est presente et envoie ses changements via onSearchChange
+ *  - clic sur un destinataire le sélectionne (sans envoyer)
+ *  - tap sur le CTA sticky appelle onSendToTargets avec la liste d'IDs
+ *  - searchQuery filtre les résultats
+ *  - empty state s'affiche quand targets est vide
  */
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
+import ForwardModal from '../ForwardModal';
 
-// Stub bottom sheet anim pour render synchrone
-jest.mock('../../../hooks/useBottomSheetAnim', () => ({
-  useBottomSheetAnim: (visible: boolean) => ({
-    modalOpen: visible,
-    sheetAnim: {},
-    backdropAnim: {},
+// Mock du theme — getDisplayName tire firstName/lastName, on renvoie les
+// raw users pour piloter les valeurs depuis le test.
+jest.mock('../../../contexts/ThemeContext', () => ({
+  useTheme: () => ({
+    colors: {
+      primary: '#000',
+      surface: '#fff',
+      gray50: '#f9fafb',
+      gray100: '#f3f4f6',
+      gray300: '#d1d5db',
+      gray400: '#9ca3af',
+      gray500: '#6b7280',
+      gray700: '#374151',
+      gray900: '#111827',
+    },
   }),
 }));
 
-const themeColors = {
-  primary: '#4F46E5',
-  accent: '#FF6B6B',
-  text: '#111827',
-  card: '#FFFFFF',
-  surface: '#FFFFFF',
-  background: '#F4F3F0',
-  gray50: '#F9FAFB',
-  gray100: '#F3F4F6',
-  gray200: '#E5E7EB',
-  gray300: '#D1D5DB',
-  gray400: '#9CA3AF',
-  gray500: '#6B7280',
-  gray700: '#374151',
-  gray900: '#111827',
-  white: '#FFFFFF',
-};
-jest.mock('../../../contexts/ThemeContext', () => ({
-  useTheme: () => ({ colors: themeColors, isDark: false }),
+jest.mock('../../ui/LoadingOverlay', () => ({
+  LoadingSpinner: () => null,
 }));
 
-// expo-image mock
-jest.mock('expo-image', () => {
-  const RN = require('react-native');
-  return { Image: RN.Image };
-});
-
-// LoadingSpinner — neutralise pour render
-jest.mock('../../ui/LoadingOverlay', () => {
-  const RN = require('react-native');
-  return { LoadingSpinner: () => RN.View };
-});
-
-import ForwardModal from '../ForwardModal';
-
 const targets: any[] = [
-  { id: 1, email: 'alice@example.com', first_name: 'Alice', last_name: 'Martin' },
-  { id: 2, email: 'bob@example.com', first_name: 'Bob', last_name: 'Dupont' },
+  { id: 1, first_name: 'Alice', last_name: 'Martin', email: 'alice@example.com' },
+  { id: 2, first_name: 'Bob', last_name: 'Dupont', email: 'bob@example.com' },
 ];
 
 describe('ForwardModal', () => {
-  beforeEach(() => jest.clearAllMocks());
-
   it('renders the list of targets and the search input', () => {
     const { getByText, getByPlaceholderText } = render(
       <ForwardModal
@@ -76,19 +50,18 @@ describe('ForwardModal', () => {
         searchQuery=""
         onSearchChange={jest.fn()}
         onClose={jest.fn()}
-        onSelectTarget={jest.fn()}
+        onSendToTargets={jest.fn()}
       />
     );
     expect(getByText('Transférer à')).toBeTruthy();
-    // Les noms (Alice Martin / Bob Dupont) sont assembles par getDisplayName
     expect(getByText('Alice Martin')).toBeTruthy();
     expect(getByText('Bob Dupont')).toBeTruthy();
     expect(getByText('alice@example.com')).toBeTruthy();
     expect(getByPlaceholderText('Rechercher un contact...')).toBeTruthy();
   });
 
-  it('calls onSelectTarget with the user id (as string) when a target is pressed', () => {
-    const onSelectTarget = jest.fn();
+  it('toggles selection on tap and calls onSendToTargets via the sticky CTA', () => {
+    const onSendToTargets = jest.fn();
     const { getByText } = render(
       <ForwardModal
         visible
@@ -97,11 +70,15 @@ describe('ForwardModal', () => {
         searchQuery=""
         onSearchChange={jest.fn()}
         onClose={jest.fn()}
-        onSelectTarget={onSelectTarget}
+        onSendToTargets={onSendToTargets}
       />
     );
+    // Tap row : sélectionne sans envoyer
     fireEvent.press(getByText('Bob Dupont'));
-    expect(onSelectTarget).toHaveBeenCalledWith('2');
+    expect(onSendToTargets).not.toHaveBeenCalled();
+    // Le CTA sticky envoie la sélection
+    fireEvent.press(getByText('Envoyer à 1 destinataire'));
+    expect(onSendToTargets).toHaveBeenCalledWith(['2']);
   });
 
   it('forwards the search input changes via onSearchChange', () => {
@@ -114,7 +91,7 @@ describe('ForwardModal', () => {
         searchQuery=""
         onSearchChange={onSearchChange}
         onClose={jest.fn()}
-        onSelectTarget={jest.fn()}
+        onSendToTargets={jest.fn()}
       />
     );
     fireEvent.changeText(getByPlaceholderText('Rechercher un contact...'), 'ali');
@@ -130,7 +107,7 @@ describe('ForwardModal', () => {
         searchQuery="alice"
         onSearchChange={jest.fn()}
         onClose={jest.fn()}
-        onSelectTarget={jest.fn()}
+        onSendToTargets={jest.fn()}
       />
     );
     expect(getByText('Alice Martin')).toBeTruthy();
@@ -146,7 +123,7 @@ describe('ForwardModal', () => {
         searchQuery=""
         onSearchChange={jest.fn()}
         onClose={jest.fn()}
-        onSelectTarget={jest.fn()}
+        onSendToTargets={jest.fn()}
       />
     );
     expect(getByText('Aucun contact disponible')).toBeTruthy();

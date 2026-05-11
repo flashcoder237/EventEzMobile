@@ -355,6 +355,13 @@ export interface QueuedMessage {
   attachments: any[];
   timestamp: number;
   retryCount: number;
+  /**
+   * True quand le message a atteint MAX_RETRY_COUNT échecs et n'est plus
+   * automatiquement réessayé. L'UI affiche alors une bulle "Échec - réessayer"
+   * permettant à l'utilisateur de relancer manuellement ou de supprimer.
+   * Sans ce flag, après 3 retries on perdait silencieusement le message.
+   */
+  failed?: boolean;
 }
 
 /**

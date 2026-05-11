@@ -2,7 +2,7 @@
  * Modal pour transférer un message à un autre utilisateur — Bottom Sheet
  */
 
-import React, { memo } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 import {
   View,
@@ -43,7 +43,9 @@ interface ForwardModalProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onClose: () => void;
-  onSelectTarget: (userId: string) => void;
+  /** Appelé avec la liste complète des userIds sélectionnés au tap "Envoyer".
+   *  Le composant gère la sélection multiple en interne. */
+  onSendToTargets: (userIds: string[]) => void;
 }
 
 // Hauteur estimée d'une ligne cible (avatar + nom)
@@ -56,12 +58,32 @@ function ForwardModal({
   searchQuery,
   onSearchChange,
   onClose,
-  onSelectTarget,
+  onSendToTargets,
 }: ForwardModalProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { modalOpen, sheetAnim, backdropAnim } = useBottomSheetAnim(visible);
+  // Sélection multiple — Set d'userIds. Reset à chaque ouverture pour éviter
+  // qu'un user re-trouve une sélection fantôme d'une session précédente.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (visible) setSelectedIds(new Set());
+  }, [visible]);
+
+  const toggleSelection = (userId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
+
+  const handleSend = () => {
+    if (selectedIds.size === 0) return;
+    onSendToTargets(Array.from(selectedIds));
+  };
 
   const filteredTargets = targets.filter((user) => {
     const name = getDisplayName(user).toLowerCase();
@@ -74,11 +96,22 @@ function ForwardModal({
     const name = getDisplayName(item);
     const avatar = item.profile_picture || item.image;
     const initials = getUserInitials(name);
+    const id = String(item.id);
+    const selected = selectedIds.has(id);
 
     return (
       <TouchableOpacity
-        style={[styles.targetItem, { borderBottomColor: colors.gray50 }]}
-        onPress={() => onSelectTarget(String(item.id))}
+        style={[
+          styles.targetItem,
+          {
+            borderBottomColor: colors.gray50,
+            backgroundColor: selected ? `${colors.primary}10` : 'transparent',
+          },
+        ]}
+        onPress={() => toggleSelection(id)}
+        activeOpacity={0.7}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: selected }}
       >
         {avatar ? (
           <Image source={avatar} style={styles.avatar} cachePolicy="memory-disk" transition={200} />
@@ -93,7 +126,18 @@ function ForwardModal({
             <Text style={[styles.targetEmail, { color: colors.gray500 }]}>{item.email}</Text>
           )}
         </View>
-        <Ionicons name="send" size={18} color={colors.primary} />
+        {/* Checkbox state — coche pleine quand sélectionné, cercle vide sinon */}
+        <View
+          style={[
+            styles.checkbox,
+            {
+              borderColor: selected ? colors.primary : colors.gray300,
+              backgroundColor: selected ? colors.primary : 'transparent',
+            },
+          ]}
+        >
+          {selected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+        </View>
       </TouchableOpacity>
     );
   };
@@ -181,6 +225,27 @@ function ForwardModal({
               removeClippedSubviews
               getItemLayout={(_, i) => ({ length: FORWARD_TARGET_HEIGHT, offset: FORWARD_TARGET_HEIGHT * i, index: i })}
             />
+          )}
+
+          {/* Bouton sticky d'envoi multi-cibles. Désactivé tant qu'aucune
+              sélection. Affiche le compteur pour la transparence. */}
+          {selectedIds.size > 0 && (
+            <View style={[styles.sendCtaWrap, { borderTopColor: colors.gray100, backgroundColor: colors.surface }]}>
+              <TouchableOpacity
+                style={[styles.sendCta, { backgroundColor: colors.primary }]}
+                onPress={handleSend}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={t('componentsMessages.forwardSendA11y', { count: selectedIds.size })}
+              >
+                <Ionicons name="send" size={16} color="#FFFFFF" />
+                <Text style={styles.sendCtaText}>
+                  {selectedIds.size === 1
+                    ? t('componentsMessages.forwardSendSingular')
+                    : t('componentsMessages.forwardSendPlural', { count: selectedIds.size })}
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
         </Reanimated.View>
       </KeyboardAvoidingView>
@@ -297,5 +362,33 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
     fontFamily: FontFamily.regular,
     marginTop: Spacing.md,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendCtaWrap: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.md,
+    borderTopWidth: 1,
+  },
+  sendCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+  },
+  sendCtaText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 14,
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
 });

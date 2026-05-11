@@ -10,7 +10,7 @@
  * cache l'UI pour ne pas tromper les autres membres.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   View,
@@ -20,6 +20,7 @@ import {
   FlatList,
   ActivityIndicator,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -77,6 +78,11 @@ export default function GroupAdminPanel({
   const [mutedIds, setMutedIds] = useState<Set<number>>(new Set());
   const [loadingMuted, setLoadingMuted] = useState(true);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  // IDs des participants retirés depuis l'ouverture du panel — filtre la liste
+  // affichée sans avoir à refetcher conversationDetails côté parent. Le parent
+  // re-fetch au prochain mount via `onMutationApplied`.
+  const [removedIds, setRemovedIds] = useState<Set<number>>(new Set());
+  const [removingId, setRemovingId] = useState<number | null>(null);
 
   // Re-sync à chaque ouverture (la conv peut avoir évolué entre 2 ouvertures).
   useEffect(() => {
@@ -115,6 +121,46 @@ export default function GroupAdminPanel({
     } finally {
       setSavingMode(false);
     }
+  };
+
+  const handleRemoveParticipant = (userId: number, displayName: string) => {
+    // Confirmation native (l'AlertContext n'est pas dispo ici — on utilise
+    // l'API utilitaire `RN.Alert` via le pattern existant du panel). Pour
+    // garder le composant indépendant on inline ici avec un confirm.
+    Alert.alert(
+      t('componentsMessages.groupRemoveConfirmTitle'),
+      t('componentsMessages.groupRemoveConfirmBody', { name: displayName }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('componentsMessages.groupRemoveAction'),
+          style: 'destructive',
+          onPress: async () => {
+            setRemovingId(userId);
+            try {
+              await messagesAPI.removeParticipant(String(conversationId), String(userId));
+              setRemovedIds(prev => {
+                const next = new Set(prev);
+                next.add(userId);
+                return next;
+              });
+              showSuccess(
+                t('componentsMessages.groupRemoveSuccess'),
+                t('componentsMessages.groupRemoveSuccessBody', { name: displayName }),
+              );
+              onMutationApplied?.();
+            } catch (err: any) {
+              showError(
+                t('common.error'),
+                err?.response?.data?.detail || t('componentsMessages.groupRemoveError'),
+              );
+            } finally {
+              setRemovingId(null);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const toggleMute = async (userId: number) => {
@@ -183,39 +229,68 @@ export default function GroupAdminPanel({
           </View>
         </View>
         {!isOrganizer && (
-          <Pressable
-            onPress={() => toggleMute(p.id)}
-            disabled={isToggling}
-            style={({ pressed }) => [
-              styles.toggleButton,
-              {
-                backgroundColor: isMuted ? '#d1fae5' : colors.gray100,
-                opacity: pressed || isToggling ? 0.6 : 1,
-              },
-            ]}
-          >
-            {isToggling ? (
-              <ActivityIndicator size="small" color={isMuted ? '#065f46' : colors.text} />
-            ) : (
-              <Ionicons
-                name={isMuted ? 'mic-outline' : 'mic-off-outline'}
-                size={14}
-                color={isMuted ? '#065f46' : colors.text}
-              />
-            )}
-            <Text
-              style={[
-                styles.toggleText,
-                { color: isMuted ? '#065f46' : colors.text },
+          <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+            <Pressable
+              onPress={() => toggleMute(p.id)}
+              disabled={isToggling}
+              style={({ pressed }) => [
+                styles.toggleButton,
+                {
+                  backgroundColor: isMuted ? '#d1fae5' : colors.gray100,
+                  opacity: pressed || isToggling ? 0.6 : 1,
+                },
               ]}
             >
-              {isMuted ? t('componentsMessages.groupBtnUnmute') : t('componentsMessages.groupBtnMute')}
-            </Text>
-          </Pressable>
+              {isToggling ? (
+                <ActivityIndicator size="small" color={isMuted ? '#065f46' : colors.text} />
+              ) : (
+                <Ionicons
+                  name={isMuted ? 'mic-outline' : 'mic-off-outline'}
+                  size={14}
+                  color={isMuted ? '#065f46' : colors.text}
+                />
+              )}
+              <Text
+                style={[
+                  styles.toggleText,
+                  { color: isMuted ? '#065f46' : colors.text },
+                ]}
+              >
+                {isMuted ? t('componentsMessages.groupBtnUnmute') : t('componentsMessages.groupBtnMute')}
+              </Text>
+            </Pressable>
+            {/* Bouton retirer du groupe — destructif. Confirmation native
+                avant l'appel backend (removeParticipant). */}
+            <Pressable
+              onPress={() => handleRemoveParticipant(p.id, displayName)}
+              disabled={removingId === p.id}
+              style={({ pressed }) => [
+                styles.removeButton,
+                {
+                  backgroundColor: '#FEE2E2',
+                  opacity: pressed || removingId === p.id ? 0.6 : 1,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={t('componentsMessages.groupRemoveA11y', { name: displayName })}
+            >
+              {removingId === p.id ? (
+                <ActivityIndicator size="small" color="#991B1B" />
+              ) : (
+                <Ionicons name="person-remove-outline" size={14} color="#991B1B" />
+              )}
+            </Pressable>
+          </View>
         )}
       </View>
     );
   };
+
+  // Liste filtrée : exclure les participants déjà retirés (UI optimiste).
+  const visibleParticipants = useMemo(
+    () => participants.filter(p => !removedIds.has(p.id)),
+    [participants, removedIds],
+  );
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -292,7 +367,7 @@ export default function GroupAdminPanel({
             <View style={styles.section}>
               <View style={styles.participantsHeader}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                  {t('componentsMessages.groupSectionMembers', { count: participants.length })}
+                  {t('componentsMessages.groupSectionMembers', { count: visibleParticipants.length })}
                 </Text>
                 {mutedIds.size > 0 && (
                   <Text style={[styles.mutedCount, { color: colors.gray500 }]}>
@@ -306,7 +381,7 @@ export default function GroupAdminPanel({
                 </View>
               ) : (
                 <FlatList
-                  data={participants}
+                  data={visibleParticipants}
                   keyExtractor={(p) => String(p.id)}
                   renderItem={renderParticipant}
                   scrollEnabled={false}
@@ -483,5 +558,12 @@ const styles = StyleSheet.create({
   toggleText: {
     fontSize: 11,
     fontWeight: '600',
+  },
+  removeButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

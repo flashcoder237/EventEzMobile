@@ -66,6 +66,15 @@ export interface User {
   // Statistiques (SerializerMethodField)
   followers_count?: number;
   following_count?: number;
+  // Champs exposés par UserBasicSerializer côté messagerie (header conv).
+  // `is_organizer_verified` = raccourci pour organizer_profile?.verified_status,
+  // calculé serveur-side pour éviter d'avoir à serializer le profile complet
+  // dans chaque participant.
+  is_organizer_verified?: boolean;
+  /** ISO timestamp, ou null si user opt-out via presence_visible=false. */
+  last_seen?: string | null;
+  /** 'online' | 'away' | 'offline'. */
+  presence_status?: 'online' | 'away' | 'offline';
   // Django built-in fields
   is_active?: boolean; // Django User.is_active
   date_joined?: string; // Django User.date_joined
@@ -661,6 +670,13 @@ export interface Message {
   is_deleted: boolean;
   reactions?: MessageReaction[];
   created_at: string;
+  /**
+   * Client-only — true quand un message offline n'a pas pu être envoyé après
+   * MAX_RETRY_COUNT tentatives. La bulle s'affiche avec un état d'échec
+   * (bordure rouge + actions Réessayer/Supprimer) au lieu de disparaître
+   * silencieusement.
+   */
+  is_failed?: boolean;
 }
 
 export interface MessageAttachment {

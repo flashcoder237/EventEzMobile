@@ -213,8 +213,17 @@ const ConversationCard = memo(function ConversationCard({
       </View>
 
       <View style={cardStyles.body}>
-        {/* Ligne 1 : nom + heure */}
+        {/* Ligne 1 : nom + heure (avec icône épingle si la conv est pinned) */}
         <View style={cardStyles.titleRow}>
+          {conversation.is_starred && (
+            <Ionicons
+              name="pin"
+              size={11}
+              color={colors.primary}
+              style={{ marginRight: 4, transform: [{ rotate: '45deg' }] }}
+              accessibilityLabel={t('messages.pinnedA11y')}
+            />
+          )}
           <Text
             style={[
               cardStyles.name,
@@ -622,6 +631,10 @@ export default function MessagesScreen() {
   // ListEmptyComponent quand la requête échoue ET qu'on n'a aucune donnée en
   // cache. Permet à l'utilisateur de retry manuellement.
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Tri appliqué à filteredConversations. starred-first reste un invariant
+  // au-dessus du tri choisi (pin = top quoi qu'il arrive).
+  const [sortKey, setSortKey] = useState<'recent' | 'oldest' | 'unread' | 'alphabetical'>('recent');
+  const [sortSheetVisible, setSortSheetVisible] = useState(false);
   const userSearchTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const userSearchReqIdRef = useRef(0);
 
@@ -1089,8 +1102,8 @@ export default function MessagesScreen() {
     );
   };
 
-  const filteredConversations = conversations
-    .filter(conv => {
+  const filteredConversations = useMemo(() => {
+    const filtered = conversations.filter(conv => {
       if (activeTab === 'archived') {
         if (!conv.is_archived) return false;
       } else {
@@ -1100,22 +1113,42 @@ export default function MessagesScreen() {
         if ((conv.unread_count || 0) <= 0) return false;
       }
       if (activeTab === 'events') {
-        const otherUser = conv.participants?.find(p => p.id !== user?.id);
-        const role = (otherUser as any)?.role;
-        const uType = (otherUser as any)?.user_type;
-        if (role !== 'organizer' && uType !== 'organization') return false;
+        // Filtre uniquement les conv liées à un event (groupe event ou conv
+        // créée par l'organisateur). Avant : on filtrait par rôle de l'autre
+        // participant ce qui ne correspondait pas du tout au libellé "Events".
+        if ((conv as any).conversation_type !== 'event') return false;
       }
       const otherUser = conv.participants?.find(p => p.id !== user?.id);
       const name = conv.title || getDisplayName(otherUser || null);
       return name.toLowerCase().includes(searchQuery.toLowerCase());
-    })
-    .sort((a, b) => {
+    });
+    const sorted = [...filtered];
+    const aTime = (c: Conversation) =>
+      new Date(c.last_message_at || c.updated_at || c.created_at).getTime();
+    sorted.sort((a, b) => {
+      // L'ordre starred-first reste un invariant — l'utilisateur a explicitement
+      // épinglé ces conv, elles doivent toujours être en haut quel que soit le tri.
       if (a.is_starred && !b.is_starred) return -1;
       if (!a.is_starred && b.is_starred) return 1;
-      const aTime = new Date(a.last_message_at || a.updated_at || a.created_at).getTime();
-      const bTime = new Date(b.last_message_at || b.updated_at || b.created_at).getTime();
-      return bTime - aTime;
+      switch (sortKey) {
+        case 'recent': return aTime(b) - aTime(a);
+        case 'oldest': return aTime(a) - aTime(b);
+        case 'unread': {
+          const ua = a.unread_count || 0;
+          const ub = b.unread_count || 0;
+          if (ua !== ub) return ub - ua;
+          return aTime(b) - aTime(a);
+        }
+        case 'alphabetical': {
+          const na = a.title || getDisplayName(a.participants?.find(p => p.id !== user?.id) || null);
+          const nb = b.title || getDisplayName(b.participants?.find(p => p.id !== user?.id) || null);
+          return na.localeCompare(nb);
+        }
+        default: return aTime(b) - aTime(a);
+      }
     });
+    return sorted;
+  }, [conversations, activeTab, searchQuery, sortKey, user?.id]);
 
   const unreadCount = conversations.filter(c => (c.unread_count || 0) > 0 && !c.is_archived).length;
   const filteredUsers = availableUsers;
@@ -1421,6 +1454,23 @@ export default function MessagesScreen() {
               />
             </View>
           </View>
+          <TouchableOpacity
+            onPress={() => setSortSheetVisible(true)}
+            style={[
+              styles.iconDisc,
+              {
+                backgroundColor: colors.card,
+                borderColor: isDark ? colors.gray200 : 'rgba(0,0,0,0.06)',
+                marginRight: 8,
+              },
+              Shadows.sm,
+            ]}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t('messages.sortA11y')}
+          >
+            <Ionicons name="swap-vertical" size={18} color={colors.text} />
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setSearchOpen(s => !s)}
             style={[
@@ -1748,6 +1798,28 @@ export default function MessagesScreen() {
         title={convActionTitle}
         subtitle={t('messages.options')}
         sections={convActionSections}
+      />
+
+      {/* Sort sheet — pattern identique à MyEventsScreen. L'option active
+          a un checkmark-circle, les autres l'icône du tri choisi. */}
+      <EventActionsSheet
+        visible={sortSheetVisible}
+        onClose={() => setSortSheetVisible(false)}
+        title={t('messages.sortEyebrow')}
+        subtitle={t('messages.sortLabel', { value: t(`messages.sort_${sortKey}`) })}
+        sections={[{
+          actions: ([
+            { key: 'recent', icon: 'time-outline' as const },
+            { key: 'oldest', icon: 'hourglass-outline' as const },
+            { key: 'unread', icon: 'mail-unread-outline' as const },
+            { key: 'alphabetical', icon: 'text-outline' as const },
+          ] as const).map(opt => ({
+            label: t(`messages.sort_${opt.key}`),
+            icon: sortKey === opt.key ? ('checkmark-circle' as const) : opt.icon,
+            description: sortKey === opt.key ? t('messages.sortActive') : undefined,
+            onPress: () => setSortKey(opt.key),
+          })),
+        }]}
       />
     </SafeAreaView>
   );

@@ -548,8 +548,7 @@ export default function EventDetailsScreen() {
           <Text style={[styles.title, { color: colors.gray900 }]}>{event.title}</Text>
 
           {/* Organizer Card — toute la card tap → OrganizerProfile.
-              Bouton Follow inline (compact) + chevron pour signaler l'affordance.
-              Le bouton "Contacter" est déplacé vers OrganizerProfile screen. */}
+              Bouton Follow inline (compact) + bouton Message + chevron. */}
           <TouchableOpacity
             style={[styles.organizerCard, { backgroundColor: colors.gray50, borderColor: colors.gray100 }]}
             onPress={() => {
@@ -591,6 +590,21 @@ export default function EventDetailsScreen() {
                     variant="compact"
                     initialFollowing={!!(event.organizer as any).is_following}
                   />
+                </View>
+                {/* Bouton Message — déclenche handleContactOrganizer du hook,
+                    qui crée/ouvre la conversation DM. onStartShouldSetResponder
+                    intercepte le tap pour qu'il ne remonte pas à la card parente. */}
+                <View onStartShouldSetResponder={() => true}>
+                  <TouchableOpacity
+                    style={[styles.organizerContactBtn, { backgroundColor: colors.primary }]}
+                    onPress={handleContactOrganizer}
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('eventDetails.contactOrganizerA11y')}
+                  >
+                    <Ionicons name="chatbubble-outline" size={14} color="#FFFFFF" />
+                    <Text style={styles.organizerContactText}>{t('eventDetails.contactOrganizer')}</Text>
+                  </TouchableOpacity>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={colors.gray400} />
               </View>
@@ -1422,11 +1436,25 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: BorderRadius.full,
   },
-  // Cluster d'actions à droite : bouton Follow + chevron affordance
+  // Cluster d'actions à droite : Follow + Contact + chevron affordance
   organizerActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+  },
+  organizerContactBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+  },
+  organizerContactText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
   organizerFollowText: {
     fontFamily: FontFamily.bold,

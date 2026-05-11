@@ -44,7 +44,16 @@ export function useEventFormValidation(
         }
         break;
 
-      case 2:
+      case 2: {
+        // Buffer 5 min : tolere une legere latence entre saisie et soumission.
+        // Au create uniquement — en edit, l'organisateur peut modifier un event
+        // passe (description, etc.).
+        if (!form.isEditMode) {
+          const minStart = new Date(Date.now() - 5 * 60 * 1000);
+          if (form.startDate < minStart) {
+            errors.startDate = 'La date de debut ne peut pas etre dans le passe';
+          }
+        }
         if (form.endDate <= form.startDate) {
           errors.endDate = 'La date de fin doit être après la date de début';
         }
@@ -59,14 +68,15 @@ export function useEventFormValidation(
           }
         }
         break;
+      }
 
       case 3:
         if (form.eventType === 'billetterie') {
           if (!form.isFree && form.ticketTypes.length === 0) {
             errors.ticketTypes = 'Ajoute au moins un type de billet';
           }
-          if (!validateTicketTypes(form.ticketTypes, showError)) {
-            errors.ticketTypes = errors.ticketTypes || 'Vérifie les noms et quantités de billets';
+          if (!validateTicketTypes(form.ticketTypes, showError, form.startDate, form.endDate)) {
+            errors.ticketTypes = errors.ticketTypes || 'Vérifie les noms, prix et dates de vente';
           }
           if (form.showFormFieldsForBilletterie && form.formFields.length > 0) {
             if (!validateFormFields(form.formFields, showError)) {
@@ -109,15 +119,44 @@ export function useEventFormValidation(
   };
 }
 
-function validateTicketTypes(tickets: TicketTypeForm[], showError: AlertActions['showError']): boolean {
+function validateTicketTypes(
+  tickets: TicketTypeForm[],
+  showError: AlertActions['showError'],
+  eventStart?: Date,
+  eventEnd?: Date,
+): boolean {
   for (let i = 0; i < tickets.length; i++) {
     const ticket = tickets[i];
+    const ticketLabel = ticket.name.trim() || `#${i + 1}`;
     if (!ticket.name.trim()) {
       showError('Erreur', `Le nom du billet #${i + 1} est requis`);
       return false;
     }
+    // Prix >= 0 (parser tolerant : accepte "10,5" et "10.5", mais pas "abc")
+    const price = parseFloat(String(ticket.price).replace(',', '.'));
+    if (Number.isNaN(price) || price < 0) {
+      showError('Erreur', `Le prix du billet "${ticketLabel}" doit etre positif ou nul`);
+      return false;
+    }
     if (parseInt(ticket.quantity_total) <= 0) {
-      showError('Erreur', `La quantité du billet "${ticket.name}" doit être supérieure à 0`);
+      showError('Erreur', `La quantité du billet "${ticketLabel}" doit être supérieure à 0`);
+      return false;
+    }
+    // Sales window : start < end
+    if (ticket.sales_start && ticket.sales_end && ticket.sales_start >= ticket.sales_end) {
+      showError('Erreur', `Les dates de vente du billet "${ticketLabel}" sont incoherentes (fin avant debut)`);
+      return false;
+    }
+    // Sales doit finir AVANT (ou au plus tard a) la fin de l'event
+    if (eventEnd && ticket.sales_end && ticket.sales_end > eventEnd) {
+      showError('Erreur', `La vente du billet "${ticketLabel}" ne peut pas se terminer apres la fin de l'event`);
+      return false;
+    }
+    // max_per_order >= min_per_order si les deux sont definis
+    const minPer = parseInt(ticket.min_per_order);
+    const maxPer = parseInt(ticket.max_per_order);
+    if (!Number.isNaN(minPer) && !Number.isNaN(maxPer) && maxPer > 0 && maxPer < minPer) {
+      showError('Erreur', `Le max par commande du billet "${ticketLabel}" doit etre >= au min`);
       return false;
     }
   }

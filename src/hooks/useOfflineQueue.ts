@@ -112,6 +112,37 @@ export function useOfflineQueue({
     [saveQueue],
   );
 
+  // Marque un message comme failed (3 retries dépassés). Au lieu de dequeue
+  // silencieusement, on conserve le message avec le flag `failed: true` pour
+  // que l'UI puisse afficher une bulle "Échec — réessayer".
+  const markFailed = useCallback(
+    async (messageId: string) => {
+      setQueue(prev => {
+        const newQueue = prev.map(m =>
+          m.id === messageId ? { ...m, failed: true } : m,
+        );
+        saveQueue(newQueue);
+        return newQueue;
+      });
+    },
+    [saveQueue],
+  );
+
+  // Retry manuel d'un message failed : reset retryCount + failed=false, et
+  // déclenche syncQueue (qui sera triggered au prochain effect via queue change).
+  const retryMessage = useCallback(
+    async (messageId: string) => {
+      setQueue(prev => {
+        const newQueue = prev.map(m =>
+          m.id === messageId ? { ...m, retryCount: 0, failed: false } : m,
+        );
+        saveQueue(newQueue);
+        return newQueue;
+      });
+    },
+    [saveQueue],
+  );
+
   // Synchroniser les messages en attente
   const syncQueue = useCallback(async () => {
     if (isSyncing || !isConnected || queue.length === 0) return;
@@ -119,14 +150,21 @@ export function useOfflineQueue({
     setIsSyncing(true);
 
     for (const message of queue) {
+      // Skip les messages déjà marqués failed — l'utilisateur doit les retry
+      // manuellement (via retryMessage) ou les supprimer (dequeue).
+      if (message.failed) {
+        continue;
+      }
       if (message.retryCount >= MAX_RETRY_COUNT) {
-        // Abandonner après trop de tentatives
+        // Au-delà de 3 retries, on marque le message comme failed au lieu de
+        // le supprimer. L'UI affichera une bulle "Échec — réessayer/supprimer"
+        // pour que l'utilisateur garde la main sur ses données.
         if (__DEV__)
           console.warn(
-            `[OfflineQueue] Message ${message.id} abandoned after ${MAX_RETRY_COUNT} retries`,
+            `[OfflineQueue] Message ${message.id} marked failed after ${MAX_RETRY_COUNT} retries`,
           );
         onMessageFailed?.(message);
-        await dequeue(message.id);
+        await markFailed(message.id);
         continue;
       }
 
@@ -144,7 +182,7 @@ export function useOfflineQueue({
     }
 
     setIsSyncing(false);
-  }, [queue, isConnected, isSyncing, onSendMessage, dequeue, incrementRetry, onMessageFailed]);
+  }, [queue, isConnected, isSyncing, onSendMessage, dequeue, incrementRetry, markFailed, onMessageFailed]);
 
   // Charger la file au montage et quand l'userId change (post-login)
   useEffect(() => {
@@ -191,6 +229,7 @@ export function useOfflineQueue({
     enqueue,
     dequeue,
     syncQueue,
+    retryMessage,
   };
 }
 

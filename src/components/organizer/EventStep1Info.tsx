@@ -420,7 +420,15 @@ export default function EventStep1Info({
       <View style={styles.inputGroup}>
         <View style={styles.labelRow}>
           <Text style={[styles.labelRowLabel, themed.labelRowLabel]}>{t('componentsOrganizer.step1.shortDescriptionLabel')}</Text>
-          <Text style={[styles.labelRowCounter, themed.labelRowCounter]}>{shortDescription.length}/150</Text>
+          <Text style={[
+            styles.labelRowCounter,
+            themed.labelRowCounter,
+            shortDescription.length >= 150
+              ? { color: '#EF4444', fontFamily: FontFamily.semiBold }
+              : shortDescription.length >= 130
+                ? { color: '#F59E0B', fontFamily: FontFamily.semiBold }
+                : null,
+          ]}>{shortDescription.length}/150</Text>
         </View>
         <TextInput
           style={[styles.input, themed.input]}

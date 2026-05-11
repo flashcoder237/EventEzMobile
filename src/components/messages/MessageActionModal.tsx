@@ -36,7 +36,8 @@ export type MessageActionType =
   | 'delete'
   | 'copy'
   | 'report'
-  | 'block';
+  | 'block'
+  | 'star';
 
 interface MessageActionModalProps {
   visible: boolean;
@@ -71,6 +72,10 @@ const ACTIONS: ActionItem[] = [
   { type: 'react',   icon: 'happy-outline',      labelKey: 'componentsMessages.actionReact',                                                hideOnSystem: true },
   { type: 'forward', icon: 'arrow-redo-outline', labelKey: 'componentsMessages.actionForward',                                              hideOnSystem: true },
   { type: 'copy',    icon: 'copy-outline',       labelKey: 'componentsMessages.actionCopy' },
+  // Le label + l'icône sont remplacés dynamiquement par `unstar` quand le
+  // message est déjà star (cf. render plus bas). Type reste 'star' côté handler
+  // — le toggle se fait côté backend.
+  { type: 'star',    icon: 'star-outline',       labelKey: 'componentsMessages.actionStar',                                                 hideOnSystem: true },
   { type: 'edit',    icon: 'create-outline',     labelKey: 'componentsMessages.actionEdit',                          ownerOnly: true,     hideOnSystem: true },
   { type: 'delete',  icon: 'trash-outline',      labelKey: 'componentsMessages.actionDelete', destructive: true,      ownerOnly: true,     hideOnSystem: true },
   { type: 'report',  icon: 'flag-outline',       labelKey: 'componentsMessages.actionReport', destructive: true,      othersOnly: true,    hideOnSystem: true },
@@ -151,7 +156,15 @@ function MessageActionModal({
         {/* Actions */}
         <View style={styles.actionsContainer}>
           {filteredActions.map((action, index) => {
-            const label = t(action.labelKey);
+            // L'action star bascule entre "Marquer / Retirer" selon l'état
+            // actuel du message. Le handler appelle toujours `messagesAPI.starMessage`
+            // qui toggle côté backend (cf. views.py:644-653).
+            const isStarToggle = action.type === 'star' && message?.is_starred;
+            const labelKey = isStarToggle ? 'componentsMessages.actionUnstar' : action.labelKey;
+            const icon = isStarToggle ? 'star' : action.icon;
+            const tint = action.type === 'star' && message?.is_starred ? colors.warning : null;
+            const label = t(labelKey);
+            const isDestructive = !!action.destructive;
             return (
               <TouchableOpacity
                 key={action.type}
@@ -165,17 +178,17 @@ function MessageActionModal({
                 accessibilityRole="button"
                 accessibilityLabel={label}
               >
-                <View style={[styles.actionIcon, { backgroundColor: action.destructive ? `${colors.error}12` : colors.gray50 }]}>
+                <View style={[styles.actionIcon, { backgroundColor: isDestructive ? `${colors.error}12` : (tint ? `${tint}18` : colors.gray50) }]}>
                   <Ionicons
-                    name={action.icon}
+                    name={icon}
                     size={20}
-                    color={action.destructive ? colors.error : colors.gray700}
+                    color={isDestructive ? colors.error : (tint || colors.gray700)}
                   />
                 </View>
                 <Text
                   style={[
                     styles.actionLabel,
-                    { color: action.destructive ? colors.error : colors.gray700 },
+                    { color: isDestructive ? colors.error : colors.gray700 },
                   ]}
                 >
                   {label}

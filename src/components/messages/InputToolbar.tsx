@@ -4,7 +4,7 @@
  * Gere aussi l'apercu des pieces jointes, reponse et edition
  */
 
-import React, { memo, useRef, useEffect } from 'react';
+import React, { memo, useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -14,8 +14,8 @@ import {
   Animated,
   ActivityIndicator,
   Keyboard,
-  Alert,
 } from 'react-native';
+import EventActionsSheet from '../organizer/EventActionsSheet';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -82,6 +82,9 @@ function InputToolbar({
   const { t } = useTranslation();
   const inputRef = useRef<TextInput>(null);
   const recordingAnim = useRef(new Animated.Value(1)).current;
+  // Bottom sheet pour le choix d'attachement (Photo / Document). Remplace
+  // l'Alert natif qui ne supportait pas les icônes ni le theming custom.
+  const [attachSheetVisible, setAttachSheetVisible] = useState(false);
 
   // Animation de pulsation pendant l'enregistrement
   useEffect(() => {
@@ -243,7 +246,7 @@ function InputToolbar({
       {renderAttachmentPreview()}
 
       <View style={styles.inputRow}>
-        {/* Attach Button — propose Photo OU Document via une Alert. Sans
+        {/* Attach Button — ouvre le bottom sheet Photo / Document. Sans
             onPickDocument, fallback direct sur la galerie photo (compat
             ascendante avec les composants qui ne passent que onPickImage). */}
         <TouchableOpacity
@@ -253,25 +256,7 @@ function InputToolbar({
               onPickImage();
               return;
             }
-            Alert.alert(
-              t('componentsMessages.attachChoiceTitle'),
-              undefined,
-              [
-                {
-                  text: t('componentsMessages.attachChoicePhoto'),
-                  onPress: onPickImage,
-                },
-                {
-                  text: t('componentsMessages.attachChoiceDocument'),
-                  onPress: onPickDocument,
-                },
-                {
-                  text: t('common.cancel'),
-                  style: 'cancel',
-                },
-              ],
-              { cancelable: true },
-            );
+            setAttachSheetVisible(true);
           }}
           activeOpacity={TOUCH_OPACITY}
           accessibilityLabel={t('componentsMessages.inputJoinFile')}
@@ -329,6 +314,27 @@ function InputToolbar({
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Bottom sheet pour choisir entre Photo et Document. */}
+      <EventActionsSheet
+        visible={attachSheetVisible}
+        onClose={() => setAttachSheetVisible(false)}
+        title={t('componentsMessages.attachChoiceTitle')}
+        sections={[{
+          actions: [
+            {
+              label: t('componentsMessages.attachChoicePhoto'),
+              icon: 'image-outline',
+              onPress: () => onPickImage(),
+            },
+            {
+              label: t('componentsMessages.attachChoiceDocument'),
+              icon: 'document-outline',
+              onPress: () => { onPickDocument?.(); },
+            },
+          ],
+        }]}
+      />
     </View>
   );
 }
