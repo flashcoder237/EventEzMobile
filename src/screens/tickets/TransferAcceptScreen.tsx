@@ -1,7 +1,3 @@
-/**
- * TransferAcceptScreen — consomme le deep link
- * `https://eventez.online/transfer/{token}/accept|decline` (Universal Link / App Link).
- */
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
@@ -26,12 +22,27 @@ import {
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
-import { EditorialCanvas, WatermarkNumeral, EditorialPillCTA } from '../../components/ui/editorial';
+import {
+  EditorialCanvas,
+  EditorialHeader,
+  EditorialPillCTA,
+  WatermarkNumeral,
+  editorial,
+  pickStickyBarBg,
+  pickStickyBarBorder,
+} from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'TransferAccept'>;
 type RoutePropType = RouteProp<RootStackParamList, 'TransferAccept'>;
 
-type ScreenState = 'loading' | 'ready' | 'not_found' | 'already_done' | 'accepted' | 'declined';
+type ScreenState =
+  | 'loading'
+  | 'ready'
+  | 'not_found'
+  | 'wrong_recipient'
+  | 'already_done'
+  | 'accepted'
+  | 'declined';
 
 interface TransferInfo {
   id: string;
@@ -41,21 +52,20 @@ interface TransferInfo {
   status: string;
   message?: string;
   expires_at: string;
+  recipient_email?: string;
   sender_detail?: { first_name?: string; last_name?: string; email: string };
   sender?: string;
 }
 
 function formatRelativeDate(isoDate: string): string {
   try {
-    const date = new Date(isoDate);
-    const now = new Date();
-    const diffMs = date.getTime() - now.getTime();
-    const diffH = Math.round(diffMs / (1000 * 60 * 60));
-    if (diffH < 0) return 'expiré';
-    if (diffH < 1) return 'dans moins d\'une heure';
-    if (diffH < 24) return `dans ${diffH}h`;
-    const diffD = Math.round(diffH / 24);
-    return `dans ${diffD} jour${diffD > 1 ? 's' : ''}`;
+    const diff = new Date(isoDate).getTime() - Date.now();
+    if (diff <= 0) return 'expiré';
+    const h = Math.round(diff / 3_600_000);
+    if (h < 1) return "dans moins d'une heure";
+    if (h < 24) return `dans ${h}h`;
+    const d = Math.round(h / 24);
+    return `dans ${d} jour${d > 1 ? 's' : ''}`;
   } catch {
     return '';
   }
@@ -65,8 +75,8 @@ export default function TransferAcceptScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RoutePropType>();
   const { token, action = 'accept' } = route.params || {};
-  const { isAuthenticated } = useAuth();
-  const { colors } = useTheme();
+  const { isAuthenticated, user } = useAuth();
+  const { colors, isDark } = useTheme();
   const { showAlert, showConfirm } = useAlert();
 
   const [state, setState] = useState<ScreenState>('loading');
@@ -79,15 +89,25 @@ export default function TransferAcceptScreen() {
       const res = await ticketTransfersAPI.getByToken(token);
       const data: TransferInfo = res.data;
       setTransfer(data);
+
       if (['accepted', 'declined', 'cancelled', 'expired'].includes(data.status)) {
         setState('already_done');
-      } else {
-        setState('ready');
+        return;
       }
+
+      // Vérifie que le lien est bien destiné au compte connecté
+      if (isAuthenticated && user?.email && data.recipient_email) {
+        if (data.recipient_email.toLowerCase() !== user.email.toLowerCase()) {
+          setState('wrong_recipient');
+          return;
+        }
+      }
+
+      setState('ready');
     } catch {
       setState('not_found');
     }
-  }, [token]);
+  }, [token, isAuthenticated, user?.email]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -131,7 +151,7 @@ export default function TransferAcceptScreen() {
     }
     showConfirm(
       'Refuser le transfert ?',
-      'Vous ne pourrez pas annuler cette action.',
+      'Cette action est irréversible.',
       async () => {
         setActing(true);
         try {
@@ -146,222 +166,138 @@ export default function TransferAcceptScreen() {
         } finally {
           setActing(false);
         }
-      }
+      },
     );
   }, [isAuthenticated, navigation, token, showAlert, showConfirm]);
 
   const senderName = transfer?.sender_detail
-    ? (`${transfer.sender_detail.first_name ?? ''} ${transfer.sender_detail.last_name ?? ''}`.trim() ||
-        transfer.sender_detail.email)
-    : (transfer?.sender ?? '');
+    ? (
+        `${transfer.sender_detail.first_name ?? ''} ${transfer.sender_detail.last_name ?? ''}`.trim() ||
+        transfer.sender_detail.email
+      )
+    : (transfer?.sender ?? '—');
 
   const expiresIn = transfer?.expires_at ? formatRelativeDate(transfer.expires_at) : null;
+  const isExpiringSoon =
+    transfer?.expires_at
+      ? new Date(transfer.expires_at).getTime() - Date.now() < 6 * 3_600_000
+      : false;
 
-  const s = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
-    backBtn: {
-      position: 'absolute',
-      top: 56,
-      left: Spacing.md,
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.card,
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 10,
-    },
-    center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl },
-    centerText: {
-      color: colors.textSecondary,
-      fontFamily: FontFamily.regular,
-      fontSize: FontSizes.md,
-      textAlign: 'center',
-      marginTop: Spacing.md,
-    },
-    scroll: { flex: 1 },
-    inner: { padding: Spacing.lg, paddingTop: 100, paddingBottom: Spacing.xl },
-    eyebrow: {
-      fontFamily: FontFamily.semiBold,
-      fontSize: FontSizes.xs,
-      color: colors.primary,
-      letterSpacing: 2,
-      textTransform: 'uppercase',
-      marginBottom: Spacing.xs,
-    },
-    title: {
-      fontFamily: FontFamily.displayBold,
-      fontSize: FontSizes['2xl'],
-      color: colors.text,
-      letterSpacing: -0.5,
-      marginBottom: Spacing.lg,
-    },
-    card: {
-      backgroundColor: colors.card,
-      borderRadius: BorderRadius.xl,
-      padding: Spacing.md,
-      marginBottom: Spacing.md,
-      gap: Spacing.sm,
-    },
-    row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-    iconDisc: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: `${colors.primary}18`,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    label: { fontFamily: FontFamily.regular, fontSize: FontSizes.xs, color: colors.textSecondary },
-    value: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm, color: colors.text },
-    messageBox: {
-      backgroundColor: colors.surface ?? colors.background,
-      borderRadius: BorderRadius.lg,
-      padding: Spacing.md,
-      marginBottom: Spacing.md,
-    },
-    messageLabel: {
-      fontFamily: FontFamily.semiBold,
-      fontSize: FontSizes.xs,
-      color: colors.textSecondary,
-      marginBottom: 4,
-    },
-    messageText: {
-      fontFamily: FontFamily.regular,
-      fontSize: FontSizes.sm,
-      color: colors.text,
-      fontStyle: 'italic',
-    },
-    expiryRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      marginBottom: Spacing.md,
-    },
-    expiryText: { fontFamily: FontFamily.regular, fontSize: FontSizes.xs, color: '#D97706' },
-    authNotice: {
-      backgroundColor: `${colors.primary}12`,
-      borderRadius: BorderRadius.lg,
-      padding: Spacing.md,
-      marginBottom: Spacing.md,
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: Spacing.sm,
-    },
-    authNoticeText: {
-      fontFamily: FontFamily.regular,
-      fontSize: FontSizes.sm,
-      color: colors.primary,
-      flex: 1,
-    },
-    btnAccept: {
-      backgroundColor: colors.primary,
-      borderRadius: BorderRadius.xl,
-      paddingVertical: Spacing.md,
-      paddingHorizontal: Spacing.lg,
-      alignItems: 'center',
-      marginBottom: Spacing.sm,
-      flexDirection: 'row',
-      justifyContent: 'center',
-      gap: Spacing.sm,
-    },
-    btnAcceptText: { fontFamily: FontFamily.bold, fontSize: FontSizes.md, color: '#fff' },
-    btnDecline: {
-      backgroundColor: colors.card,
-      borderRadius: BorderRadius.xl,
-      paddingVertical: Spacing.md,
-      paddingHorizontal: Spacing.lg,
-      alignItems: 'center',
-    },
-    btnDeclineText: {
-      fontFamily: FontFamily.semiBold,
-      fontSize: FontSizes.md,
-      color: colors.textSecondary,
-    },
-    resultTitle: {
-      fontFamily: FontFamily.displayBold,
-      fontSize: FontSizes['2xl'],
-      color: colors.text,
-      textAlign: 'center',
-      marginTop: Spacing.md,
-      marginBottom: Spacing.sm,
-    },
-    resultSub: {
-      fontFamily: FontFamily.regular,
-      fontSize: FontSizes.md,
-      color: colors.textSecondary,
-      textAlign: 'center',
-      marginBottom: Spacing.xl,
-    },
-  });
+  const alreadyDoneStatusLabel =
+    transfer?.status === 'accepted' ? 'accepté' :
+    transfer?.status === 'declined' ? 'refusé' : 'expiré';
 
-  const BackBtn = () => (
-    <TouchableOpacity
-      style={s.backBtn}
-      onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main' as any)}
-    >
-      <Ionicons name="arrow-back" size={20} color={colors.text} />
-    </TouchableOpacity>
-  );
-
+  // ── Loading ──────────────────────────────────────────────────────────────
   if (state === 'loading') {
     return (
-      <View style={[s.container, s.center]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      <EditorialCanvas>
+        <View style={s.center}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </EditorialCanvas>
     );
   }
 
+  // ── Not found ─────────────────────────────────────────────────────────────
   if (state === 'not_found') {
     return (
       <EditorialCanvas>
-        <BackBtn />
+        <EditorialHeader eyebrow="TRANSFERT" title="Lien invalide" />
         <WatermarkNumeral>??</WatermarkNumeral>
         <View style={s.center}>
-          <Ionicons name="close-circle-outline" size={56} color="#EF4444" />
-          <Text style={s.centerText}>Ce lien de transfert n'existe pas ou a expiré.</Text>
+          <View style={[s.iconDisc, { backgroundColor: `${colors.error}18` }]}>
+            <Ionicons name="close-circle-outline" size={40} color={colors.error} />
+          </View>
+          <Text style={[s.resultTitle, { color: colors.text }]}>Lien introuvable</Text>
+          <Text style={[s.resultSub, { color: colors.textSecondary }]}>
+            Ce lien de transfert n'existe pas ou a déjà été utilisé.
+          </Text>
           <EditorialPillCTA
-            eyebrow="ACCUEIL"
-            label="Retour"
+            eyebrow="RETOUR"
+            label="Accueil"
             onPress={() => navigation.navigate('Main' as any)}
-            style={{ marginTop: Spacing.xl }}
+            style={s.resultCTA}
           />
         </View>
       </EditorialCanvas>
     );
   }
 
-  if (state === 'already_done') {
-    const statusLabel =
-      transfer?.status === 'accepted' ? 'accepté' :
-      transfer?.status === 'declined' ? 'refusé' : 'expiré';
+  // ── Mauvais destinataire ──────────────────────────────────────────────────
+  if (state === 'wrong_recipient') {
     return (
       <EditorialCanvas>
-        <BackBtn />
-        <WatermarkNumeral>OK</WatermarkNumeral>
+        <EditorialHeader eyebrow="TRANSFERT" title="Accès refusé" />
+        <WatermarkNumeral>!!</WatermarkNumeral>
         <View style={s.center}>
-          <Ionicons name="checkmark-circle-outline" size={56} color={colors.textSecondary} />
-          <Text style={s.resultTitle}>Transfert {statusLabel}</Text>
-          <Text style={s.centerText}>Ce transfert a déjà été traité.</Text>
+          <View style={[s.iconDisc, { backgroundColor: `${colors.warning}18` }]}>
+            <Ionicons name="warning-outline" size={40} color={colors.warning} />
+          </View>
+          <Text style={[s.resultTitle, { color: colors.text }]}>Ce lien ne vous est pas destiné</Text>
+          <Text style={[s.resultSub, { color: colors.textSecondary }]}>
+            Ce transfert a été envoyé à une autre adresse e-mail. Connectez-vous avec le bon compte pour y accéder.
+          </Text>
+          <EditorialPillCTA
+            eyebrow="COMPTE"
+            label="Changer de compte"
+            icon="person-outline"
+            onPress={() => navigation.navigate('Login', {
+              returnScreen: 'TransferAccept',
+              returnParams: { token, action },
+            })}
+            style={s.resultCTA}
+          />
+        </View>
+      </EditorialCanvas>
+    );
+  }
+
+  // ── Déjà traité ───────────────────────────────────────────────────────────
+  if (state === 'already_done') {
+    const isAccepted = transfer?.status === 'accepted';
+    return (
+      <EditorialCanvas>
+        <EditorialHeader eyebrow="TRANSFERT" title={`Transfert ${alreadyDoneStatusLabel}`} />
+        <WatermarkNumeral>{isAccepted ? 'OK' : 'NO'}</WatermarkNumeral>
+        <View style={s.center}>
+          <View style={[
+            s.iconDisc,
+            { backgroundColor: isAccepted ? `${colors.success}18` : `${colors.textSecondary}14` },
+          ]}>
+            <Ionicons
+              name={isAccepted ? 'checkmark-circle-outline' : 'close-circle-outline'}
+              size={40}
+              color={isAccepted ? colors.success : colors.textSecondary}
+            />
+          </View>
+          <Text style={[s.resultTitle, { color: colors.text }]}>
+            Transfert {alreadyDoneStatusLabel}
+          </Text>
+          <Text style={[s.resultSub, { color: colors.textSecondary }]}>
+            Ce transfert a déjà été traité.
+          </Text>
           <EditorialPillCTA
             eyebrow="BILLETS"
             label="Mes billets"
             onPress={() => navigation.navigate('PendingTransfers')}
-            style={{ marginTop: Spacing.xl }}
+            style={s.resultCTA}
           />
         </View>
       </EditorialCanvas>
     );
   }
 
+  // ── Accepté avec succès ───────────────────────────────────────────────────
   if (state === 'accepted') {
     return (
       <EditorialCanvas>
         <WatermarkNumeral>OK</WatermarkNumeral>
         <View style={s.center}>
-          <Ionicons name="checkmark-circle" size={64} color="#10B981" />
-          <Text style={s.resultTitle}>Billet reçu !</Text>
-          <Text style={s.resultSub}>
+          <View style={[s.iconDisc, { backgroundColor: `${colors.success}18` }]}>
+            <Ionicons name="checkmark-circle" size={48} color={colors.success} />
+          </View>
+          <Text style={[s.resultTitle, { color: colors.text }]}>Billet reçu !</Text>
+          <Text style={[s.resultSub, { color: colors.textSecondary }]}>
             {transfer?.event_title
               ? `Votre billet pour « ${transfer.event_title} » est dans vos billets.`
               : 'Votre billet a bien été transféré sur votre compte.'}
@@ -370,59 +306,98 @@ export default function TransferAcceptScreen() {
             eyebrow="BILLETS"
             label="Voir mes billets"
             onPress={() => navigation.navigate('PendingTransfers')}
+            style={s.resultCTA}
           />
         </View>
       </EditorialCanvas>
     );
   }
 
+  // ── Refusé ────────────────────────────────────────────────────────────────
   if (state === 'declined') {
     return (
       <EditorialCanvas>
         <WatermarkNumeral>NO</WatermarkNumeral>
         <View style={s.center}>
-          <Ionicons name="close-circle-outline" size={64} color={colors.textSecondary} />
-          <Text style={s.resultTitle}>Transfert refusé</Text>
-          <Text style={s.resultSub}>Vous avez refusé ce transfert de billet.</Text>
+          <View style={[s.iconDisc, { backgroundColor: `${colors.textSecondary}14` }]}>
+            <Ionicons name="close-circle-outline" size={48} color={colors.textSecondary} />
+          </View>
+          <Text style={[s.resultTitle, { color: colors.text }]}>Transfert refusé</Text>
+          <Text style={[s.resultSub, { color: colors.textSecondary }]}>
+            Vous avez refusé ce transfert de billet.
+          </Text>
           <EditorialPillCTA
             eyebrow="RETOUR"
             label="Accueil"
             onPress={() => navigation.navigate('Main' as any)}
+            style={s.resultCTA}
           />
         </View>
       </EditorialCanvas>
     );
   }
 
-  // state === 'ready'
+  // ── Ready — écran principal ───────────────────────────────────────────────
   return (
-    <EditorialCanvas>
-      <BackBtn />
+    <EditorialCanvas edges={['top']}>
+      <EditorialHeader
+        eyebrow="TRANSFERT DE BILLET"
+        title={transfer?.event_title ?? 'Invitation'}
+        align="left"
+      />
       <WatermarkNumeral>TX</WatermarkNumeral>
-      <ScrollView style={s.scroll} contentContainerStyle={s.inner} showsVerticalScrollIndicator={false}>
-        <Text style={s.eyebrow}>Transfert de billet</Text>
-        <Text style={s.title} numberOfLines={2}>
-          {transfer?.event_title ?? 'Invitation à un événement'}
-        </Text>
 
-        <View style={s.card}>
-          <View style={s.row}>
-            <View style={s.iconDisc}>
-              <Ionicons name="person-outline" size={16} color={colors.primary} />
+      <ScrollView
+        style={{ flex: 1, zIndex: 1 }}
+        contentContainerStyle={s.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Expiry chip */}
+        {expiresIn && expiresIn !== 'expiré' && (
+          <View style={[
+            s.expiryChip,
+            { backgroundColor: isExpiringSoon ? `${colors.warning}18` : `${colors.primary}12` },
+          ]}>
+            <Ionicons
+              name="time-outline"
+              size={13}
+              color={isExpiringSoon ? colors.warning : colors.primary}
+            />
+            <Text style={[s.expiryText, { color: isExpiringSoon ? colors.warning : colors.primary }]}>
+              Expire {expiresIn}
+            </Text>
+          </View>
+        )}
+
+        {/* Info card */}
+        <View style={[editorial.card, { backgroundColor: colors.card, borderColor: `${colors.primary}10` }]}>
+          {/* Expéditeur */}
+          <View style={s.infoRow}>
+            <View style={[s.iconDisc32, { backgroundColor: `${colors.primary}14` }]}>
+              <Ionicons name="person-outline" size={15} color={colors.primary} />
             </View>
-            <View>
-              <Text style={s.label}>Envoyé par</Text>
-              <Text style={s.value}>{senderName}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[editorial.eyebrow, s.infoLabel, { color: colors.textSecondary }]}>
+                Envoyé par
+              </Text>
+              <Text style={[s.infoValue, { color: colors.text }]} numberOfLines={1}>
+                {senderName}
+              </Text>
             </View>
           </View>
 
-          <View style={s.row}>
-            <View style={s.iconDisc}>
-              <Ionicons name="ticket-outline" size={16} color={colors.primary} />
+          <View style={[s.divider, { backgroundColor: `${colors.primary}08` }]} />
+
+          {/* Billet */}
+          <View style={s.infoRow}>
+            <View style={[s.iconDisc32, { backgroundColor: `${colors.primary}14` }]}>
+              <Ionicons name="ticket-outline" size={15} color={colors.primary} />
             </View>
-            <View>
-              <Text style={s.label}>Billet</Text>
-              <Text style={s.value}>
+            <View style={{ flex: 1 }}>
+              <Text style={[editorial.eyebrow, s.infoLabel, { color: colors.textSecondary }]}>
+                Billet
+              </Text>
+              <Text style={[s.infoValue, { color: colors.text }]}>
                 {(transfer?.quantity ?? 1) > 1
                   ? `${transfer?.quantity}× ${transfer?.ticket_type_name ?? 'Billet'}`
                   : (transfer?.ticket_type_name ?? 'Billet')}
@@ -431,56 +406,161 @@ export default function TransferAcceptScreen() {
           </View>
         </View>
 
+        {/* Message */}
         {transfer?.message ? (
-          <View style={s.messageBox}>
-            <Text style={s.messageLabel}>Message</Text>
-            <Text style={s.messageText}>"{transfer.message}"</Text>
+          <View style={[s.messageBox, { backgroundColor: colors.card, borderColor: `${colors.primary}10` }]}>
+            <Text style={[editorial.eyebrow, s.infoLabel, { color: colors.textSecondary }]}>
+              Message
+            </Text>
+            <Text style={[s.messageText, { color: colors.text }]}>
+              "{transfer.message}"
+            </Text>
           </View>
         ) : null}
 
-        {expiresIn && expiresIn !== 'expiré' && (
-          <View style={s.expiryRow}>
-            <Ionicons name="time-outline" size={14} color="#D97706" />
-            <Text style={s.expiryText}>Ce transfert expire {expiresIn}</Text>
-          </View>
-        )}
-
+        {/* Notice connexion */}
         {!isAuthenticated && (
-          <View style={s.authNotice}>
+          <View style={[s.authNotice, { backgroundColor: `${colors.primary}10` }]}>
             <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
-            <Text style={s.authNoticeText}>
+            <Text style={[s.authNoticeText, { color: colors.primary }]}>
               Connectez-vous pour accepter ou refuser ce billet.
             </Text>
           </View>
         )}
+      </ScrollView>
 
-        <TouchableOpacity
-          style={[s.btnAccept, acting && { opacity: 0.6 }]}
-          onPress={handleAccept}
-          disabled={acting}
-          activeOpacity={0.85}
-        >
-          {acting ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Ionicons name="checkmark-circle" size={18} color="#fff" />
-          )}
-          <Text style={s.btnAcceptText}>
-            {isAuthenticated ? 'Accepter le billet' : 'Se connecter pour accepter'}
-          </Text>
-        </TouchableOpacity>
-
+      {/* Sticky bottom bar */}
+      <View style={[
+        editorial.stickyBar,
+        {
+          backgroundColor: pickStickyBarBg(isDark),
+          borderTopColor: pickStickyBarBorder(isDark),
+        },
+      ]}>
+        {/* Bouton refuser (ghost) — seulement si authentifié */}
         {isAuthenticated && (
           <TouchableOpacity
-            style={[s.btnDecline, acting && { opacity: 0.6 }]}
+            style={[editorial.ghostBack, { opacity: acting ? 0.5 : 1 }]}
             onPress={handleDecline}
             disabled={acting}
-            activeOpacity={0.85}
+            activeOpacity={0.7}
           >
-            <Text style={s.btnDeclineText}>Refuser</Text>
+            <Ionicons name="close" size={16} color={colors.error} />
+            <Text style={[editorial.ghostBackText, { color: colors.error }]}>Refuser</Text>
           </TouchableOpacity>
         )}
-      </ScrollView>
+
+        <EditorialPillCTA
+          eyebrow={isAuthenticated ? 'ACCEPTER' : 'CONNEXION'}
+          label={isAuthenticated ? 'Recevoir le billet' : 'Se connecter pour accepter'}
+          onPress={handleAccept}
+          loading={acting}
+          disabled={acting}
+        />
+      </View>
     </EditorialCanvas>
   );
 }
+
+const s = StyleSheet.create({
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.xl,
+    zIndex: 1,
+  },
+  iconDisc: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
+  iconDisc32: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  resultTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes['2xl'],
+    letterSpacing: -0.5,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  resultSub: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.md,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: Spacing.xl,
+    maxWidth: '88%',
+  },
+  resultCTA: {
+    alignSelf: 'stretch',
+  },
+  scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xl,
+    gap: Spacing.md,
+  },
+  expiryChip: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+  },
+  expiryText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.xs,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  divider: {
+    height: 1,
+    marginVertical: Spacing.sm,
+  },
+  infoLabel: {
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.sm,
+  },
+  messageBox: {
+    borderRadius: BorderRadius['2xl'],
+    padding: Spacing.base,
+    borderWidth: 1,
+  },
+  messageText: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.sm,
+    fontStyle: 'italic',
+    lineHeight: 20,
+    marginTop: 4,
+  },
+  authNotice: {
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  authNoticeText: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.sm,
+    flex: 1,
+    lineHeight: 20,
+  },
+});
