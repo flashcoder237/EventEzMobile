@@ -1,34 +1,47 @@
 /**
  * hooks/useMessagingWebSocket.ts
- * WebSocket hook pour la messagerie en temps réel
  *
- * SÉCURITÉ: Le token est envoyé via le premier message WebSocket,
- * pas dans l'URL (évite l'exposition dans les logs serveur)
+ * SINGLETON WebSocket pour la messagerie en temps reel.
+ *
+ * Architecture : la WS est gere par un singleton au niveau du module (pas
+ * un instance par hook). Plusieurs ecrans peuvent appeler
+ * `useMessagingWebSocket()` simultanement (MessagesScreen, ConversationScreen,
+ * etc.) : ils partagent la MEME connexion WebSocket. Avant ce refactor,
+ * chaque ecran ouvrait sa propre WS → cycle close/reconnect au switch d'ecran.
+ *
+ * Les callbacks (onNewMessage, onTypingIndicator, etc.) de chaque hook
+ * sont stockes dans un Set de subscribers ; a chaque event WS, le manager
+ * iterate et dispatch a tous.
+ *
+ * Refcount : la WS connecte au PREMIER subscriber, reste up tant qu'il
+ * y a au moins 1 subscriber, et disconnect au DERNIER unsubscribe (avec
+ * grace period pour absorber les transitions rapides d'ecrans).
+ *
+ * SECURITE: Le token est envoye via le premier message WebSocket, pas
+ * dans l'URL (evite l'exposition dans les logs serveur).
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, MutableRefObject } from 'react';
 import { Platform } from 'react-native';
 import { getAccessToken, ensureFreshAccessToken } from '../api';
 import { Message, WebSocketIncomingMessage } from '../types';
 import { eventBus } from '../lib/eventBus';
 
-// Dériver l'URL WebSocket à partir de EXPO_PUBLIC_API_URL
-// pour que le WS pointe toujours vers le même serveur que l'API REST
+// ============================================================================
+// CONFIG
+// ============================================================================
+
 function getWebSocketBaseUrl(): string {
   const apiUrl = process.env.EXPO_PUBLIC_API_URL || '';
-
   if (apiUrl) {
     try {
       const url = new URL(apiUrl);
-      // http -> ws, https -> wss
       const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
       return `${wsProtocol}//${url.host}`;
     } catch {
       // URL invalide, fallback
     }
   }
-
-  // Fallback pour développement local
   return Platform.select({
     ios: 'ws://localhost:8000',
     android: 'ws://10.0.2.2:8000',
@@ -38,7 +51,20 @@ function getWebSocketBaseUrl(): string {
 
 const WS_BASE_URL = getWebSocketBaseUrl();
 
-// Legacy interface kept for the generic 'error' case not in the discriminated union
+const MAX_RECONNECT_ATTEMPTS = 5;
+const TYPING_TIMEOUT_MS = 5000;
+const CONNECTING_TIMEOUT_MS = 15000;
+const HEARTBEAT_INTERVAL_MS = 15000;
+const HEARTBEAT_TIMEOUT_MS = 20000;
+// Grace avant de fermer la WS quand le dernier subscriber unsubscribe.
+// Absorbe les transitions rapides d'ecrans (MessagesScreen → ConversationScreen
+// → retour MessagesScreen) qui sinon causeraient un disconnect/reconnect.
+const DISCONNECT_GRACE_MS = 5000;
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
 interface WebSocketErrorMessage {
   type: 'error';
   code?: string;
@@ -52,7 +78,7 @@ interface TypingUser {
   startedAt: Date;
 }
 
-interface UseMessagingWebSocketOptions {
+export interface UseMessagingWebSocketOptions {
   onNewMessage?: (message: Message) => void;
   onTypingIndicator?: (data: { conversationId: string | number; userName: string; isTyping: boolean }) => void;
   onMessageRead?: (data: { messageId: string | number; userId: number; readAt: string }) => void;
@@ -62,730 +88,639 @@ interface UseMessagingWebSocketOptions {
   onMessageDeleted?: (data: { messageId: string | number; userId: number }) => void;
   onMessageUpdated?: (data: { messageId: string | number; content: string; editedAt: string; userId: number }) => void;
   onPresenceChanged?: (data: { userId: number; status: string; lastSeen: string }) => void;
-  /**
-   * Diffusé par le backend au group `user_{id}` quand l'utilisateur marque
-   * des messages comme lus depuis un autre device. Permet de décrémenter
-   * `conversation.unread_count` localement sans refresh REST.
-   */
   onUnreadDecrement?: (data: { messageIds: (string | number)[]; conversationIds: (string | number)[] }) => void;
-  /**
-   * Diffusé quand l'utilisateur est ajouté à une nouvelle conversation
-   * (DM initiée par un autre user, ajout dans un groupe, etc.). Le client
-   * UI s'en sert pour rafraîchir la liste sans devoir poll en arrière-plan.
-   */
   onConversationAdded?: (data: { conversationId: string | number }) => void;
-  /**
-   * Diffusé quand l'utilisateur est retiré d'une conversation. Permet de
-   * la masquer immédiatement de la liste.
-   */
   onConversationRemoved?: (data: { conversationId: string | number }) => void;
   onServerError?: (code: string, message: string) => void;
 }
 
-// Configuration reconnexion
-const MAX_RECONNECT_ATTEMPTS = 5;
-const TYPING_TIMEOUT_MS = 5000;
-// Si le socket reste en CONNECTING au-delà de ce délai, on force-close pour
-// sortir de l'état "Connexion..." infini (réseau bloqué, proxy/captive portal,
-// pas de réponse 101 Switching Protocols). ws.close() depuis CONNECTING
-// déclenche onclose et relance la chaîne de reconnexion automatique.
-const CONNECTING_TIMEOUT_MS = 15000;
+// ============================================================================
+// SINGLETON STATE
+// ============================================================================
+//
+// Le `ws` (instance WebSocket) et tout l'etat de connexion vit ici, au niveau
+// du module — partage entre toutes les instances du hook. Les listeners React
+// sont notifies via `notifyListeners()` quand l'etat change → trigger les
+// useState locaux des hooks pour re-render.
 
-// Heartbeat applicatif (ping/pong JSON). Les frames natives WebSocket 0x9/0xA
-// ne sont pas exposées par l'API JS de RN, on doit donc passer par un
-// message app-level. Backend doit gérer { type: 'ping' } → répondre { type: 'pong' }.
-const HEARTBEAT_INTERVAL_MS = 15000;
-const HEARTBEAT_TIMEOUT_MS = 20000;
+const state = {
+  ws: null as WebSocket | null,
+  isConnected: false,
+  isAuthenticated: false,
+  connectionError: null as string | null,
+  typingUsers: new Map<string, TypingUser[]>(),
 
-export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}) {
-  const {
-    onNewMessage,
-    onTypingIndicator,
-    onMessageRead,
-    onReactionAdded,
-    onReactionRemoved,
-    onConnectionChange,
-    onMessageDeleted,
-    onMessageUpdated,
-    onPresenceChanged,
-    onUnreadDecrement,
-    onConversationAdded,
-    onConversationRemoved,
-    onServerError,
-  } = options;
+  reconnectAttempts: 0,
+  reconnectTimeout: null as ReturnType<typeof setTimeout> | null,
+  connectingTimeout: null as ReturnType<typeof setTimeout> | null,
+  heartbeatInterval: null as ReturnType<typeof setInterval> | null,
+  heartbeatTimeout: null as ReturnType<typeof setTimeout> | null,
+  pendingMessages: [] as any[],
+  authRefreshInProgress: false,
+  fatalError: false,
+  parseErrors: 0,
+  typingTimeouts: new Map<string, ReturnType<typeof setTimeout>>(),
 
-  // Stabilise les callbacks via une ref unique mise a jour a chaque render.
-  // Sans ca, `handleMessage` rebuild a chaque render parent (deps change)
-  // et la WS, configuree une seule fois au mount via useEffect([], () =>
-  // connect()), garde le PREMIER handleMessage capture. Resultat : les
-  // callbacks ulterieurs (apres re-render parent, login, etc.) ne sont jamais
-  // appeles et la liste reste stale. Pattern : ref + handleMessage([] deps).
-  const cbRef = useRef({
-    onNewMessage,
-    onTypingIndicator,
-    onMessageRead,
-    onReactionAdded,
-    onReactionRemoved,
-    onConnectionChange,
-    onMessageDeleted,
-    onMessageUpdated,
-    onPresenceChanged,
-    onUnreadDecrement,
-    onConversationAdded,
-    onConversationRemoved,
-    onServerError,
+  // Subscribers : Set de refs vers les options de chaque hook instance.
+  // A chaque event WS, on iterate et on appelle les callbacks dispo.
+  subscribers: new Set<MutableRefObject<UseMessagingWebSocketOptions>>(),
+
+  // Listeners pour la propagation de l'etat (isConnected, etc.) vers les
+  // useState locaux des hooks → trigger re-render React.
+  stateListeners: new Set<() => void>(),
+
+  // Grace timeout avant disconnect au dernier unsubscribe.
+  disconnectGraceTimeout: null as ReturnType<typeof setTimeout> | null,
+};
+
+function notifyListeners() {
+  state.stateListeners.forEach(l => {
+    try { l(); } catch { /* ignore — un listener cassé ne doit pas bloquer les autres */ }
   });
-  useEffect(() => {
-    cbRef.current = {
-      onNewMessage,
-      onTypingIndicator,
-      onMessageRead,
-      onReactionAdded,
-      onReactionRemoved,
-      onConnectionChange,
-      onMessageDeleted,
-      onMessageUpdated,
-      onPresenceChanged,
-      onUnreadDecrement,
-      onConversationAdded,
-      onConversationRemoved,
-      onServerError,
-    };
+}
+
+function notifyConnectionChange(connected: boolean) {
+  state.subscribers.forEach(s => {
+    try { s.current.onConnectionChange?.(connected); } catch { /* ignore */ }
   });
+}
 
-  const [isConnected, setIsConnected] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [typingUsers, setTypingUsers] = useState<Map<string, TypingUser[]>>(new Map());
+// ============================================================================
+// HEARTBEAT
+// ============================================================================
 
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const connectingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // Heartbeat : interval qui envoie des pings, et timeout qui attend le pong.
-  // Si pas de pong dans HEARTBEAT_TIMEOUT_MS, on force-close pour relancer le
-  // cycle de reconnexion (cas où le serveur est down sans avoir close le socket).
-  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const heartbeatTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttemptsRef = useRef(0);
-  // Si le serveur envoie un code d'erreur "permanent" (max_connections, etc.),
-  // on bloque la reconnexion auto pour éviter un storm.
-  const fatalErrorRef = useRef(false);
-  const typingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  const pendingMessagesRef = useRef<any[]>([]);
-  // Ref vers connect() pour pouvoir l'appeler depuis handleMessage sans créer
-  // une dépendance circulaire (connect est défini après handleMessage).
-  const connectRef = useRef<(() => void) | null>(null);
-  // Évite que onclose ne reconnecte automatiquement pendant qu'on refresh le
-  // token manuellement après un auth.error (sinon on se retrouve avec 2 WS).
-  const authRefreshInProgressRef = useRef(false);
-  // Compte les JSON.parse failures consécutifs : à 3, on force un reconnect.
-  // Évite de rester collé sur une connexion qui pousse du payload corrompu.
-  const parseErrorsRef = useRef(0);
+function stopHeartbeat() {
+  if (state.heartbeatInterval) {
+    clearInterval(state.heartbeatInterval);
+    state.heartbeatInterval = null;
+  }
+  if (state.heartbeatTimeout) {
+    clearTimeout(state.heartbeatTimeout);
+    state.heartbeatTimeout = null;
+  }
+}
 
-  // Stoppe l'interval de ping et le timeout de pong (cleanup).
-  const stopHeartbeat = useCallback(() => {
-    if (heartbeatIntervalRef.current) {
-      clearInterval(heartbeatIntervalRef.current);
-      heartbeatIntervalRef.current = null;
-    }
-    if (heartbeatTimeoutRef.current) {
-      clearTimeout(heartbeatTimeoutRef.current);
-      heartbeatTimeoutRef.current = null;
-    }
-  }, []);
-
-  // Démarre le heartbeat applicatif. Toutes les HEARTBEAT_INTERVAL_MS, on envoie
-  // un { type: 'ping' } et on arme un timeout HEARTBEAT_TIMEOUT_MS — si le pong
-  // n'arrive pas, on force-close le socket (déclenche onclose → reconnect auto).
-  // Backend doit gérer { type: 'ping' } → répondre { type: 'pong' }.
-  const startHeartbeat = useCallback(() => {
-    stopHeartbeat();
-    heartbeatIntervalRef.current = setInterval(() => {
-      const ws = wsRef.current;
-      if (!ws || ws.readyState !== WebSocket.OPEN) return;
-      try {
-        ws.send(JSON.stringify({ type: 'ping' }));
-      } catch {
-        // ignore — le close arrivera de lui-même
-        return;
-      }
-      // Arme le timeout de pong (s'il est déjà armé, on le remplace).
-      if (heartbeatTimeoutRef.current) {
-        clearTimeout(heartbeatTimeoutRef.current);
-      }
-      heartbeatTimeoutRef.current = setTimeout(() => {
-        if (__DEV__) console.warn('[WS] heartbeat timeout — connection silently dead, closing');
-        try {
-          wsRef.current?.close();
-        } catch {
-          // ignore
-        }
-      }, HEARTBEAT_TIMEOUT_MS);
-    }, HEARTBEAT_INTERVAL_MS);
-  }, [stopHeartbeat]);
-
-  // Cleanup typing timeout
-  const clearTypingTimeout = useCallback((key: string) => {
-    const existingTimeout = typingTimeoutsRef.current.get(key);
-    if (existingTimeout) {
-      clearTimeout(existingTimeout);
-      typingTimeoutsRef.current.delete(key);
-    }
-  }, []);
-
-  // Clear all typing timeouts
-  const clearAllTypingTimeouts = useCallback(() => {
-    typingTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
-    typingTimeoutsRef.current.clear();
-  }, []);
-
-  // Handle incoming WebSocket messages
-  const handleMessage = useCallback((event: MessageEvent) => {
-    let data: WebSocketIncomingMessage | WebSocketErrorMessage | { type: 'pong' };
+function startHeartbeat() {
+  stopHeartbeat();
+  state.heartbeatInterval = setInterval(() => {
+    const ws = state.ws;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
     try {
-      data = JSON.parse(event.data);
-      // Reset après chaque parse réussi.
-      parseErrorsRef.current = 0;
+      ws.send(JSON.stringify({ type: 'ping' }));
     } catch {
-      parseErrorsRef.current += 1;
-      if (parseErrorsRef.current >= 3) {
-        if (__DEV__) console.warn('[WS] 3 parse errors, forcing reconnect');
-        try { wsRef.current?.close(); } catch { /* ignore */ }
-      }
       return;
     }
-    try {
-      switch (data.type) {
-        case 'pong':
-          // Reset le timeout de pong : la connexion est vivante.
-          if (heartbeatTimeoutRef.current) {
-            clearTimeout(heartbeatTimeoutRef.current);
-            heartbeatTimeoutRef.current = null;
-          }
-          break;
+    if (state.heartbeatTimeout) clearTimeout(state.heartbeatTimeout);
+    state.heartbeatTimeout = setTimeout(() => {
+      if (__DEV__) console.warn('[WS] heartbeat timeout — connection silently dead, closing');
+      try { state.ws?.close(); } catch { /* ignore */ }
+    }, HEARTBEAT_TIMEOUT_MS);
+  }, HEARTBEAT_INTERVAL_MS);
+}
 
-        case 'auth.success':
-          setIsAuthenticated(true);
-          setConnectionError(null);
-          // Reset le compteur ici (et pas dans onopen) : on a la confirmation
-          // que la session est vraiment établie côté serveur.
-          reconnectAttemptsRef.current = 0;
-          // Envoyer les messages en attente
-          pendingMessagesRef.current.forEach(msg => {
-            wsRef.current?.send(JSON.stringify(msg));
+// ============================================================================
+// TYPING TIMEOUT HELPERS
+// ============================================================================
+
+function clearTypingTimeout(key: string) {
+  const t = state.typingTimeouts.get(key);
+  if (t) {
+    clearTimeout(t);
+    state.typingTimeouts.delete(key);
+  }
+}
+
+function clearAllTypingTimeouts() {
+  state.typingTimeouts.forEach(t => clearTimeout(t));
+  state.typingTimeouts.clear();
+}
+
+// ============================================================================
+// MESSAGE HANDLER — dispatch a tous les subscribers
+// ============================================================================
+
+function handleMessage(event: MessageEvent) {
+  let data: WebSocketIncomingMessage | WebSocketErrorMessage | { type: 'pong' };
+  try {
+    data = JSON.parse(event.data);
+    state.parseErrors = 0;
+  } catch {
+    state.parseErrors += 1;
+    if (state.parseErrors >= 3) {
+      if (__DEV__) console.warn('[WS] 3 parse errors, forcing reconnect');
+      try { state.ws?.close(); } catch { /* ignore */ }
+    }
+    return;
+  }
+
+  try {
+    switch (data.type) {
+      case 'pong':
+        if (state.heartbeatTimeout) {
+          clearTimeout(state.heartbeatTimeout);
+          state.heartbeatTimeout = null;
+        }
+        break;
+
+      case 'auth.success':
+        state.isAuthenticated = true;
+        state.connectionError = null;
+        state.reconnectAttempts = 0;
+        state.pendingMessages.forEach(msg => {
+          state.ws?.send(JSON.stringify(msg));
+        });
+        state.pendingMessages = [];
+        startHeartbeat();
+        notifyListeners();
+        break;
+
+      case 'auth.error':
+        state.isAuthenticated = false;
+        state.authRefreshInProgress = true;
+        if (state.ws) state.ws.close();
+        ensureFreshAccessToken().then((newAccess) => {
+          state.authRefreshInProgress = false;
+          if (newAccess) {
+            if (__DEV__) console.log('[WS] Auth failed, refreshed token, reconnecting');
+            state.reconnectAttempts = 0;
+            connect();
+          } else {
+            state.connectionError = (data as any).error || "Erreur d'authentification";
+            notifyListeners();
+          }
+        });
+        notifyListeners();
+        break;
+
+      case 'message.new':
+        if (data.message) {
+          state.subscribers.forEach(s => {
+            try { s.current.onNewMessage?.(data.message as Message); } catch { /* ignore */ }
           });
-          pendingMessagesRef.current = [];
-          // Démarre le heartbeat une fois la session pleinement établie.
-          startHeartbeat();
-          break;
+        }
+        break;
 
-        case 'auth.error':
-          // Le token envoyé a été rejeté — typiquement expiré (access JWT
-          // dure 30 min, le WS peut rester ouvert plus longtemps). On tente
-          // un refresh puis on reconnecte. Si le refresh échoue, c'est que
-          // la session est cuite — l'intercepteur API aura émis api-auth-error.
-          setIsAuthenticated(false);
-          authRefreshInProgressRef.current = true;
-          if (wsRef.current) {
-            wsRef.current.close();
-          }
-          ensureFreshAccessToken().then((newAccess) => {
-            authRefreshInProgressRef.current = false;
-            if (newAccess) {
-              if (__DEV__) console.log('[WS] Auth failed, refreshed token, reconnecting');
-              reconnectAttemptsRef.current = 0;
-              connectRef.current?.();
-            } else {
-              setConnectionError(data.error || 'Erreur d\'authentification');
-            }
+      case 'message.deleted':
+        if (data.message_id) {
+          state.subscribers.forEach(s => {
+            try {
+              s.current.onMessageDeleted?.({
+                messageId: data.message_id!,
+                userId: data.user_id || 0,
+              });
+            } catch { /* ignore */ }
           });
-          break;
+        }
+        break;
 
-        case 'message.new':
-          if (data.message && cbRef.current.onNewMessage) {
-            cbRef.current.onNewMessage(data.message);
-          }
-          break;
-
-        case 'message.deleted':
-          if (data.message_id && cbRef.current.onMessageDeleted) {
-            cbRef.current.onMessageDeleted({ messageId: data.message_id, userId: data.user_id || 0 });
-          }
-          break;
-
-        case 'message.edited':
-          if (data.message_id && cbRef.current.onMessageUpdated) {
-            cbRef.current.onMessageUpdated({
-              messageId: data.message_id,
-              content: data.content || '',
-              editedAt: data.edited_at || new Date().toISOString(),
-              userId: data.user_id || 0,
-            });
-          }
-          break;
-
-        case 'typing.indicator': {
-          if (data.conversation_id !== undefined && data.user_name) {
-            const conversationKey = String(data.conversation_id);
-            const isTyping = data.is_typing ?? true;
-
-            if (isTyping && data.user_id) {
-              setTypingUsers(prev => {
-                const newMap = new Map(prev);
-                const currentTyping = newMap.get(conversationKey) || [];
-                const userExists = currentTyping.some(u => u.userId === data.user_id);
-
-                if (!userExists) {
-                  newMap.set(conversationKey, [
-                    ...currentTyping,
-                    {
-                      userId: data.user_id!,
-                      userName: data.user_name!,
-                      conversationId: data.conversation_id!,
-                      startedAt: new Date(),
-                    },
-                  ]);
-                }
-                return newMap;
+      case 'message.edited':
+        if (data.message_id) {
+          state.subscribers.forEach(s => {
+            try {
+              s.current.onMessageUpdated?.({
+                messageId: data.message_id!,
+                content: data.content || '',
+                editedAt: data.edited_at || new Date().toISOString(),
+                userId: data.user_id || 0,
               });
+            } catch { /* ignore */ }
+          });
+        }
+        break;
 
-              // Auto-clear après timeout
-              const timeoutKey = `${conversationKey}-${data.user_id}`;
-              clearTypingTimeout(timeoutKey);
-              const timeout = setTimeout(() => {
-                setTypingUsers(prev => {
-                  const newMap = new Map(prev);
-                  const currentTyping = newMap.get(conversationKey) || [];
-                  newMap.set(
-                    conversationKey,
-                    currentTyping.filter(u => u.userId !== data.user_id)
-                  );
-                  return newMap;
-                });
-              }, TYPING_TIMEOUT_MS);
-              typingTimeoutsRef.current.set(timeoutKey, timeout);
-            } else {
-              setTypingUsers(prev => {
-                const newMap = new Map(prev);
-                const currentTyping = newMap.get(conversationKey) || [];
-                newMap.set(
-                  conversationKey,
-                  currentTyping.filter(u => u.userId !== data.user_id)
-                );
-                return newMap;
-              });
-              clearTypingTimeout(`${conversationKey}-${data.user_id}`);
+      case 'typing.indicator': {
+        if (data.conversation_id !== undefined && data.user_name) {
+          const conversationKey = String(data.conversation_id);
+          const isTyping = data.is_typing ?? true;
+
+          if (isTyping && data.user_id) {
+            const newMap = new Map(state.typingUsers);
+            const currentTyping = newMap.get(conversationKey) || [];
+            const userExists = currentTyping.some(u => u.userId === data.user_id);
+            if (!userExists) {
+              newMap.set(conversationKey, [
+                ...currentTyping,
+                {
+                  userId: data.user_id,
+                  userName: data.user_name,
+                  conversationId: data.conversation_id,
+                  startedAt: new Date(),
+                },
+              ]);
             }
+            state.typingUsers = newMap;
 
-            if (cbRef.current.onTypingIndicator) {
-              cbRef.current.onTypingIndicator({
-                conversationId: data.conversation_id,
-                userName: data.user_name,
+            const timeoutKey = `${conversationKey}-${data.user_id}`;
+            clearTypingTimeout(timeoutKey);
+            const timeout = setTimeout(() => {
+              const m = new Map(state.typingUsers);
+              const ct = m.get(conversationKey) || [];
+              m.set(conversationKey, ct.filter(u => u.userId !== data.user_id));
+              state.typingUsers = m;
+              notifyListeners();
+            }, TYPING_TIMEOUT_MS);
+            state.typingTimeouts.set(timeoutKey, timeout);
+          } else {
+            const newMap = new Map(state.typingUsers);
+            const currentTyping = newMap.get(conversationKey) || [];
+            newMap.set(conversationKey, currentTyping.filter(u => u.userId !== data.user_id));
+            state.typingUsers = newMap;
+            clearTypingTimeout(`${conversationKey}-${data.user_id}`);
+          }
+          notifyListeners();
+
+          state.subscribers.forEach(s => {
+            try {
+              s.current.onTypingIndicator?.({
+                conversationId: data.conversation_id!,
+                userName: data.user_name!,
                 isTyping,
               });
-            }
-          }
-          break;
+            } catch { /* ignore */ }
+          });
         }
+        break;
+      }
 
-        case 'message.read':
-          if (cbRef.current.onMessageRead && data.message_id && data.user_id && data.read_at) {
-            cbRef.current.onMessageRead({
-              messageId: data.message_id,
-              userId: data.user_id,
-              readAt: data.read_at,
-            });
-          }
-          break;
+      case 'message.read':
+        if (data.message_id && data.user_id && data.read_at) {
+          state.subscribers.forEach(s => {
+            try {
+              s.current.onMessageRead?.({
+                messageId: data.message_id!,
+                userId: data.user_id!,
+                readAt: data.read_at!,
+              });
+            } catch { /* ignore */ }
+          });
+        }
+        break;
 
-        case 'reaction.add':
-          if (cbRef.current.onReactionAdded && data.message_id && data.user_id && data.emoji) {
-            cbRef.current.onReactionAdded({
-              messageId: data.message_id,
-              userId: data.user_id,
-              emoji: data.emoji,
-            });
-          }
-          break;
+      case 'reaction.add':
+        if (data.message_id && data.user_id && data.emoji) {
+          state.subscribers.forEach(s => {
+            try {
+              s.current.onReactionAdded?.({
+                messageId: data.message_id!,
+                userId: data.user_id!,
+                emoji: data.emoji!,
+              });
+            } catch { /* ignore */ }
+          });
+        }
+        break;
 
-        case 'reaction.remove':
-          if (cbRef.current.onReactionRemoved && data.message_id && data.user_id && data.emoji) {
-            cbRef.current.onReactionRemoved({
-              messageId: data.message_id,
-              userId: data.user_id,
-              emoji: data.emoji,
-            });
-          }
-          break;
+      case 'reaction.remove':
+        if (data.message_id && data.user_id && data.emoji) {
+          state.subscribers.forEach(s => {
+            try {
+              s.current.onReactionRemoved?.({
+                messageId: data.message_id!,
+                userId: data.user_id!,
+                emoji: data.emoji!,
+              });
+            } catch { /* ignore */ }
+          });
+        }
+        break;
 
-        case 'presence.changed':
-          if (cbRef.current.onPresenceChanged && data.user_id) {
-            cbRef.current.onPresenceChanged({
-              userId: data.user_id,
-              status: data.status || 'offline',
-              lastSeen: data.last_seen || new Date().toISOString(),
-            });
-          }
-          break;
+      case 'presence.changed':
+        if (data.user_id) {
+          state.subscribers.forEach(s => {
+            try {
+              s.current.onPresenceChanged?.({
+                userId: data.user_id!,
+                status: data.status || 'offline',
+                lastSeen: data.last_seen || new Date().toISOString(),
+              });
+            } catch { /* ignore */ }
+          });
+        }
+        break;
 
-        case 'unread.decrement':
-          if (cbRef.current.onUnreadDecrement) {
-            cbRef.current.onUnreadDecrement({
+      case 'unread.decrement':
+        state.subscribers.forEach(s => {
+          try {
+            s.current.onUnreadDecrement?.({
               messageIds: data.message_ids || [],
               conversationIds: data.conversation_ids || [],
             });
-          }
-          break;
+          } catch { /* ignore */ }
+        });
+        break;
 
-        // Émis par le backend (consumers.conversation_join) quand l'user vient
-        // d'être ajouté à une conversation. Le client refetch sa liste pour
-        // l'afficher immédiatement, plutôt que d'attendre un refresh manuel.
-        case 'conversation.added':
-          if (cbRef.current.onConversationAdded && data.conversation_id !== undefined) {
-            cbRef.current.onConversationAdded({ conversationId: data.conversation_id });
-          }
-          break;
-
-        case 'conversation.removed':
-          if (cbRef.current.onConversationRemoved && data.conversation_id !== undefined) {
-            cbRef.current.onConversationRemoved({ conversationId: data.conversation_id });
-          }
-          break;
-
-        case 'error': {
-          if (__DEV__) console.error('WebSocket error from server:', data);
-          const errData = data as WebSocketErrorMessage;
-          // Erreurs "permanentes" pour cette session : on stoppe la reconnexion
-          // auto sinon on crée un storm (le serveur va continuer de rejeter).
-          if (errData.code === 'max_connections') {
-            fatalErrorRef.current = true;
-            setConnectionError(errData.error || 'Trop de connexions ouvertes');
-          }
-          // Propagate all error codes to caller for user-facing feedback
-          if (cbRef.current.onServerError && errData.code) {
-            cbRef.current.onServerError(errData.code, errData.error || 'Erreur serveur');
-          }
-          break;
+      case 'conversation.added':
+        if (data.conversation_id !== undefined) {
+          state.subscribers.forEach(s => {
+            try { s.current.onConversationAdded?.({ conversationId: data.conversation_id! }); } catch { /* ignore */ }
+          });
         }
+        break;
 
-        case 'service_unavailable': {
-          // Le ChatConsumer ferme le WS avec close code 4503 quand un incident
-          // bloquant 'messaging' est actif. Le payload contient l'objet
-          // incident — on le forward au StatusContext via eventBus pour
-          // déclencher l'IncidentBanner (filtré sur les écrans messagerie).
-          //
-          // Sans ce relais, l'utilisateur voyait juste le spinner reconnect en
-          // boucle sans explication.
-          const incident = data.incident;
-          if (incident) {
-            eventBus.emit('service-unavailable', { incident });
-            // Stoppe la reconnexion auto — on ne va pas spam le backend
-            // tant que l'incident n'est pas résolu. Le StatusContext refetch
-            // /api/status/ et reconnectera quand le service repasse healthy.
-            fatalErrorRef.current = true;
-            setConnectionError(
-              incident.title || "Messagerie temporairement indisponible",
-            );
-          }
-          break;
+      case 'conversation.removed':
+        if (data.conversation_id !== undefined) {
+          state.subscribers.forEach(s => {
+            try { s.current.onConversationRemoved?.({ conversationId: data.conversation_id! }); } catch { /* ignore */ }
+          });
         }
+        break;
 
-        default:
-          if (__DEV__) {
-            console.log('Unknown WebSocket message type:', (data as { type: string }).type);
-          }
+      case 'error': {
+        if (__DEV__) console.error('WebSocket error from server:', data);
+        const errData = data as WebSocketErrorMessage;
+        if (errData.code === 'max_connections') {
+          state.fatalError = true;
+          state.connectionError = errData.error || 'Trop de connexions ouvertes';
+          notifyListeners();
+        }
+        if (errData.code) {
+          state.subscribers.forEach(s => {
+            try { s.current.onServerError?.(errData.code!, errData.error || 'Erreur serveur'); } catch { /* ignore */ }
+          });
+        }
+        break;
       }
-    } catch (error) {
-      if (__DEV__) console.error('Error parsing WebSocket message:', error);
-    }
-    // Deps reduites a [] grace au cbRef. handleMessage est maintenant stable
-    // pour la duree de vie du hook → la WS connectee une fois au mount voit
-    // toujours les callbacks parent les plus recents via la ref.
-  }, [clearTypingTimeout, startHeartbeat]);
 
-  // Connect to WebSocket
-  const connect = useCallback(async () => {
-    // Fix memory leak : variable locale pour le socket. Si la creation reussit
-    // mais qu'une erreur survient pendant la setup (avant `wsRef.current = ws`),
-    // le socket reste ouvert et leak. On garde une reference locale pour
-    // pouvoir le fermer dans le catch.
-    let ws: WebSocket | null = null;
-    try {
-      // Récupérer le token d'accès via le helper centralisé
-      const accessToken = await getAccessToken();
-      if (!accessToken) {
-        setConnectionError('Non authentifié');
+      case 'service_unavailable': {
+        const incident = (data as any).incident;
+        if (incident) {
+          eventBus.emit('service-unavailable', { incident });
+          state.fatalError = true;
+          state.connectionError = incident.title || 'Messagerie temporairement indisponible';
+          notifyListeners();
+        }
+        break;
+      }
+
+      default:
+        if (__DEV__) {
+          console.log('Unknown WebSocket message type:', (data as { type: string }).type);
+        }
+    }
+  } catch (error) {
+    if (__DEV__) console.error('Error parsing WebSocket message:', error);
+  }
+}
+
+// ============================================================================
+// CONNECT / DISCONNECT (module-level, singleton)
+// ============================================================================
+
+async function connect() {
+  // Idempotent : si la WS est deja OPEN ou CONNECTING, ne rien faire.
+  if (state.ws && (state.ws.readyState === WebSocket.OPEN || state.ws.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+  // Annuler une grace de disconnect en cours (un nouveau subscriber est arrive)
+  if (state.disconnectGraceTimeout) {
+    clearTimeout(state.disconnectGraceTimeout);
+    state.disconnectGraceTimeout = null;
+  }
+
+  let ws: WebSocket | null = null;
+  try {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      state.connectionError = 'Non authentifié';
+      notifyListeners();
+      return;
+    }
+
+    if (state.ws) {
+      state.ws.close();
+    }
+
+    const wsUrl = `${WS_BASE_URL}/ws/messages/`;
+    if (!__DEV__ && !wsUrl.startsWith('wss://')) {
+      if (__DEV__) console.error('[WS] Refusing insecure ws:// in release build');
+      state.connectionError = 'Connexion non sécurisée';
+      notifyListeners();
+      return;
+    }
+
+    ws = new WebSocket(wsUrl);
+
+    if (state.connectingTimeout) clearTimeout(state.connectingTimeout);
+    state.connectingTimeout = setTimeout(() => {
+      if (ws && ws.readyState === WebSocket.CONNECTING) {
+        if (__DEV__) console.warn('[WS] handshake timeout, fermeture forcée');
+        state.connectionError = 'Délai de connexion dépassé. Le serveur ne répond pas.';
+        notifyListeners();
+        try { ws.close(); } catch { /* ignore */ }
+      }
+    }, CONNECTING_TIMEOUT_MS);
+
+    ws.onopen = () => {
+      if (__DEV__) console.log('WebSocket connected, authenticating...');
+      if (state.connectingTimeout) {
+        clearTimeout(state.connectingTimeout);
+        state.connectingTimeout = null;
+      }
+      state.parseErrors = 0;
+      state.isConnected = true;
+      notifyListeners();
+      notifyConnectionChange(true);
+      ws?.send(JSON.stringify({ type: 'auth', token: accessToken }));
+    };
+
+    ws.onclose = (event) => {
+      if (__DEV__) console.log('WebSocket closed:', event.code, event.reason);
+      if (state.connectingTimeout) {
+        clearTimeout(state.connectingTimeout);
+        state.connectingTimeout = null;
+      }
+      stopHeartbeat();
+      state.isConnected = false;
+      state.isAuthenticated = false;
+      notifyListeners();
+      notifyConnectionChange(false);
+
+      if (state.authRefreshInProgress) {
+        if (__DEV__) console.log('[WS] Auto-reconnect skipped — auth refresh in progress');
+        return;
+      }
+      if (state.fatalError) {
+        if (__DEV__) console.log('[WS] Auto-reconnect skipped — fatal error received');
         return;
       }
 
-      // Fermer l'ancienne connexion
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-
-      // SÉCURITÉ: Ne pas inclure le token dans l'URL
-      const wsUrl = `${WS_BASE_URL}/ws/messages/`;
-
-      // Garde anti-fuite en production : on refuse ws:// non chiffré hors DEV
-      // (le token JWT est envoyé dans le 1er frame — il doit être chiffré TLS).
-      if (!__DEV__ && !wsUrl.startsWith('wss://')) {
-        if (__DEV__) console.error('[WS] Refusing insecure ws:// in release build');
-        setConnectionError('Connexion non sécurisée');
+      // Pas de reconnect si plus aucun subscriber (la WS est en cours de
+      // teardown legitime apres le grace period). Sans ca on relance la
+      // boucle indefiniment apres logout.
+      if (state.subscribers.size === 0) {
+        if (__DEV__) console.log('[WS] No subscribers — skip auto-reconnect');
         return;
       }
 
-      ws = new WebSocket(wsUrl);
-
-      // Watchdog handshake : si le socket ne dépasse pas l'état CONNECTING
-      // dans le délai imparti, on le ferme pour relancer la boucle de
-      // reconnexion. Sans ça, l'UI reste sur "Connexion..." indéfiniment
-      // quand le serveur est joignable mais ne répond pas au handshake.
-      if (connectingTimeoutRef.current) {
-        clearTimeout(connectingTimeoutRef.current);
+      if (state.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        const baseDelay = Math.min(1000 * Math.pow(2, state.reconnectAttempts), 30000);
+        const jitter = baseDelay * 0.25 * (Math.random() * 2 - 1);
+        const delay = Math.max(500, Math.round(baseDelay + jitter));
+        state.reconnectAttempts++;
+        if (__DEV__) console.log(`Reconnecting in ${delay}ms (attempt ${state.reconnectAttempts}, base=${baseDelay})`);
+        state.reconnectTimeout = setTimeout(() => { connect(); }, delay);
+      } else {
+        state.connectionError = 'Connexion perdue. Veuillez rafraîchir.';
+        notifyListeners();
       }
-      connectingTimeoutRef.current = setTimeout(() => {
-        if (ws && ws.readyState === WebSocket.CONNECTING) {
-          if (__DEV__) console.warn('[WS] handshake timeout, fermeture forcée');
-          setConnectionError('Délai de connexion dépassé. Le serveur ne répond pas.');
-          try {
-            ws.close();
-          } catch {
-            // ignore
+    };
+
+    ws.onerror = (error) => {
+      if (__DEV__) console.error('WebSocket error:', error);
+      state.connectionError = 'Erreur de connexion';
+      notifyListeners();
+    };
+
+    ws.onmessage = handleMessage;
+    state.ws = ws;
+  } catch (error) {
+    if (__DEV__) console.error('Error connecting WebSocket:', error);
+    state.connectionError = 'Impossible de se connecter';
+    notifyListeners();
+    if (ws) {
+      try { ws.close(); } catch { /* ignore */ }
+    }
+  }
+}
+
+function disconnect() {
+  if (state.reconnectTimeout) {
+    clearTimeout(state.reconnectTimeout);
+    state.reconnectTimeout = null;
+  }
+  if (state.connectingTimeout) {
+    clearTimeout(state.connectingTimeout);
+    state.connectingTimeout = null;
+  }
+  stopHeartbeat();
+  if (state.ws) {
+    state.ws.close();
+    state.ws = null;
+  }
+  clearAllTypingTimeouts();
+  state.isConnected = false;
+  state.isAuthenticated = false;
+  notifyListeners();
+}
+
+function manualReconnect() {
+  state.reconnectAttempts = 0;
+  state.fatalError = false;
+  state.connectionError = null;
+  notifyListeners();
+  disconnect();
+  connect();
+}
+
+// ============================================================================
+// SEND HELPERS (module-level)
+// ============================================================================
+
+function sendWs(data: any): boolean {
+  if (state.ws?.readyState === WebSocket.OPEN && state.isAuthenticated) {
+    state.ws.send(JSON.stringify(data));
+    return true;
+  } else if (state.ws?.readyState === WebSocket.OPEN) {
+    state.pendingMessages.push(data);
+    return true;
+  }
+  return false;
+}
+
+function sendMessage(
+  conversationId: string | number,
+  content: string,
+  replyTo?: string | number,
+  attachmentIds?: string[],
+) {
+  return sendWs({
+    type: 'message.send',
+    conversation_id: conversationId,
+    content,
+    reply_to: replyTo,
+    attachments: attachmentIds,
+  });
+}
+
+function startTyping(conversationId: string | number) {
+  sendWs({ type: 'typing.start', conversation_id: conversationId });
+}
+function stopTyping(conversationId: string | number) {
+  sendWs({ type: 'typing.stop', conversation_id: conversationId });
+}
+function markMessagesAsRead(messageIds: (string | number)[]) {
+  sendWs({ type: 'message.read', message_ids: messageIds });
+}
+function addReaction(messageId: string | number, emoji: string) {
+  sendWs({ type: 'reaction.add', message_id: messageId, emoji });
+}
+function removeReaction(messageId: string | number, emoji: string) {
+  sendWs({ type: 'reaction.remove', message_id: messageId, emoji });
+}
+function editMessage(messageId: string | number, content: string) {
+  sendWs({ type: 'message.edit', message_id: messageId, content });
+}
+function deleteMessage(messageId: string | number) {
+  sendWs({ type: 'message.delete', message_id: messageId });
+}
+
+// ============================================================================
+// HOOK
+// ============================================================================
+
+export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}) {
+  // React state mirrors module state — listener pattern pour re-render.
+  const [isConnected, setIsConnected] = useState(state.isConnected);
+  const [isAuthenticated, setIsAuthenticated] = useState(state.isAuthenticated);
+  const [connectionError, setConnectionError] = useState<string | null>(state.connectionError);
+  const [typingUsers, setTypingUsers] = useState<Map<string, TypingUser[]>>(state.typingUsers);
+
+  // Sync local state avec module state via listener
+  useEffect(() => {
+    const sync = () => {
+      setIsConnected(state.isConnected);
+      setIsAuthenticated(state.isAuthenticated);
+      setConnectionError(state.connectionError);
+      setTypingUsers(state.typingUsers);
+    };
+    state.stateListeners.add(sync);
+    // Initial sync au mount (au cas ou la WS etait deja up via un autre hook)
+    sync();
+    return () => { state.stateListeners.delete(sync); };
+  }, []);
+
+  // Callbacks via cbRef — stable, lu via state.subscribers dans handleMessage
+  const cbRef = useRef<UseMessagingWebSocketOptions>(options);
+  useEffect(() => { cbRef.current = options; });
+
+  // Register/unregister + refcount-based connect/disconnect
+  useEffect(() => {
+    state.subscribers.add(cbRef);
+    // Premier subscriber → on cancel le grace timeout (si en cours) et on
+    // connect (no-op si deja connecte).
+    if (state.disconnectGraceTimeout) {
+      clearTimeout(state.disconnectGraceTimeout);
+      state.disconnectGraceTimeout = null;
+    }
+    connect();
+
+    return () => {
+      state.subscribers.delete(cbRef);
+      // Dernier unsubscribe → on programme une deconnexion apres grace
+      // (5s) pour absorber les transitions rapides d'ecrans. Si un autre
+      // hook se monte avant l'echeance, on cancel.
+      if (state.subscribers.size === 0) {
+        if (state.disconnectGraceTimeout) clearTimeout(state.disconnectGraceTimeout);
+        state.disconnectGraceTimeout = setTimeout(() => {
+          if (state.subscribers.size === 0) {
+            disconnect();
           }
-        }
-      }, CONNECTING_TIMEOUT_MS);
-
-      ws.onopen = () => {
-        if (__DEV__) console.log('WebSocket connected, authenticating...');
-        if (connectingTimeoutRef.current) {
-          clearTimeout(connectingTimeoutRef.current);
-          connectingTimeoutRef.current = null;
-        }
-        // Reset compteur de parse errors à chaque nouvelle connexion.
-        parseErrorsRef.current = 0;
-        setIsConnected(true);
-        // Ne PAS reset reconnectAttemptsRef ici — le backend accepte toujours
-        // le WS avant d'authentifier, donc onopen ne signifie pas "session OK".
-        // Le reset se fait dans le case 'auth.success' de handleMessage.
-        cbRef.current.onConnectionChange?.(true);
-
-        // Envoyer l'authentification via le premier message
-        ws?.send(JSON.stringify({
-          type: 'auth',
-          token: accessToken,
-        }));
-      };
-
-      ws.onclose = (event) => {
-        if (__DEV__) console.log('WebSocket closed:', event.code, event.reason);
-        if (connectingTimeoutRef.current) {
-          clearTimeout(connectingTimeoutRef.current);
-          connectingTimeoutRef.current = null;
-        }
-        // Stoppe le heartbeat — il sera redémarré au prochain auth.success.
-        stopHeartbeat();
-        setIsConnected(false);
-        setIsAuthenticated(false);
-        cbRef.current.onConnectionChange?.(false);
-
-        // Si on est en train de refresh manuellement le token après auth.error,
-        // ne pas enclencher la reconnexion auto — elle sera faite par le .then()
-        // une fois le refresh terminé (évite les doubles WS).
-        if (authRefreshInProgressRef.current) {
-          if (__DEV__) console.log('[WS] Auto-reconnect skipped — auth refresh in progress');
-          return;
-        }
-
-        // Erreur fatale (max_connections, etc.) : pas de reconnexion auto.
-        // L'utilisateur peut appeler reconnect() manuellement quand il veut.
-        if (fatalErrorRef.current) {
-          if (__DEV__) console.log('[WS] Auto-reconnect skipped — fatal error received');
-          return;
-        }
-
-        // Reconnexion automatique avec backoff exponentiel + jitter.
-        // Sans jitter, après une coupure réseau côté ISP, tous les clients
-        // tapent le serveur en synchronie aux mêmes timestamps (1s, 2s, 4s…).
-        // Le jitter ±25% étale les retries → courbe lissée côté backend
-        // (« thundering herd » mitigée). Pratique courante AWS/Google.
-        if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
-          const baseDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-          const jitter = baseDelay * 0.25 * (Math.random() * 2 - 1); // ±25%
-          const delay = Math.max(500, Math.round(baseDelay + jitter));
-          reconnectAttemptsRef.current++;
-          if (__DEV__) console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current}, base=${baseDelay})`);
-
-          reconnectTimeoutRef.current = setTimeout(() => {
-            connect();
-          }, delay);
-        } else {
-          setConnectionError('Connexion perdue. Veuillez rafraîchir.');
-        }
-      };
-
-      ws.onerror = (error) => {
-        if (__DEV__) console.error('WebSocket error:', error);
-        setConnectionError('Erreur de connexion');
-      };
-
-      ws.onmessage = handleMessage;
-
-      wsRef.current = ws;
-    } catch (error) {
-      if (__DEV__) console.error('Error connecting WebSocket:', error);
-      setConnectionError('Impossible de se connecter');
-      // Fix memory leak : si la creation a reussi mais que la setup a throw
-      // avant l'assignation a wsRef, on ferme le socket orphelin.
-      if (ws) {
-        try {
-          ws.close();
-        } catch {
-          // ignore
-        }
+          state.disconnectGraceTimeout = null;
+        }, DISCONNECT_GRACE_MS);
       }
-    }
-  }, [handleMessage, stopHeartbeat]);
-
-  // Synchronise connectRef avec la dernière version de connect (utilisé par
-  // handleMessage.auth.error qui ne peut pas capturer connect directement
-  // sans créer une boucle de deps).
-  useEffect(() => {
-    connectRef.current = connect;
-  }, [connect]);
-
-  // Disconnect
-  const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-    if (connectingTimeoutRef.current) {
-      clearTimeout(connectingTimeoutRef.current);
-      connectingTimeoutRef.current = null;
-    }
-    stopHeartbeat();
-
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-
-    clearAllTypingTimeouts();
-    setIsConnected(false);
-    setIsAuthenticated(false);
-  }, [clearAllTypingTimeouts, stopHeartbeat]);
-
-  // Manual reconnect
-  const reconnect = useCallback(() => {
-    reconnectAttemptsRef.current = 0;
-    fatalErrorRef.current = false;
-    setConnectionError(null);
-    disconnect();
-    connect();
-  }, [connect, disconnect]);
-
-  // Send a message (with queueing if not authenticated)
-  const sendWsMessage = useCallback((data: any) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN && isAuthenticated) {
-      wsRef.current.send(JSON.stringify(data));
-      return true;
-    } else if (wsRef.current?.readyState === WebSocket.OPEN) {
-      // Queued for after authentication
-      pendingMessagesRef.current.push(data);
-      return true;
-    }
-    return false;
-  }, [isAuthenticated]);
-
-  // Actions WebSocket
-  const sendMessage = useCallback((
-    conversationId: string | number,
-    content: string,
-    replyTo?: string | number,
-    attachmentIds?: string[]
-  ) => {
-    return sendWsMessage({
-      type: 'message.send',
-      conversation_id: conversationId,
-      content,
-      reply_to: replyTo,
-      attachments: attachmentIds,
-    });
-  }, [sendWsMessage]);
-
-  const startTyping = useCallback((conversationId: string | number) => {
-    sendWsMessage({
-      type: 'typing.start',
-      conversation_id: conversationId,
-    });
-  }, [sendWsMessage]);
-
-  const stopTyping = useCallback((conversationId: string | number) => {
-    sendWsMessage({
-      type: 'typing.stop',
-      conversation_id: conversationId,
-    });
-  }, [sendWsMessage]);
-
-  const markMessagesAsRead = useCallback((messageIds: (string | number)[]) => {
-    sendWsMessage({
-      type: 'message.read',
-      message_ids: messageIds,
-    });
-  }, [sendWsMessage]);
-
-  const addReaction = useCallback((messageId: string | number, emoji: string) => {
-    sendWsMessage({
-      type: 'reaction.add',
-      message_id: messageId,
-      emoji,
-    });
-  }, [sendWsMessage]);
-
-  const removeReaction = useCallback((messageId: string | number, emoji: string) => {
-    sendWsMessage({
-      type: 'reaction.remove',
-      message_id: messageId,
-      emoji,
-    });
-  }, [sendWsMessage]);
-
-  const editMessage = useCallback((messageId: string | number, content: string) => {
-    sendWsMessage({
-      type: 'message.edit',
-      message_id: messageId,
-      content,
-    });
-  }, [sendWsMessage]);
-
-  const deleteMessage = useCallback((messageId: string | number) => {
-    sendWsMessage({
-      type: 'message.delete',
-      message_id: messageId,
-    });
-  }, [sendWsMessage]);
-
-  // Auto-connect on mount
-  useEffect(() => {
-    connect();
-
-    return () => {
-      disconnect();
     };
   }, []);
 
-  // Fix memory leak : cleanup dedie pour les typing timeouts. Si le hook
-  // unmount avant que `disconnect()` soit appele (cas ou disconnect est
-  // skippe ou throw), les timeouts armes dans la Map restent vivants et
-  // tentent un setState sur un composant demonte.
-  useEffect(() => {
-    return () => {
-      typingTimeoutsRef.current.forEach((t) => clearTimeout(t));
-      typingTimeoutsRef.current.clear();
-    };
-  }, []);
-
-  // Get typing users for a specific conversation
   const getTypingUsersForConversation = useCallback((conversationId: string | number) => {
     return typingUsers.get(String(conversationId)) || [];
   }, [typingUsers]);
@@ -798,7 +733,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     getTypingUsersForConversation,
     connect,
     disconnect,
-    reconnect,
+    reconnect: manualReconnect,
     sendMessage,
     editMessage,
     deleteMessage,
