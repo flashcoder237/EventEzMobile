@@ -20,6 +20,7 @@ import ImageView from 'react-native-image-viewing';
 // `cacheDirectory` au top-level.
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import * as WebBrowser from 'expo-web-browser';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { useTranslation } from 'react-i18next';
@@ -76,6 +77,37 @@ interface FileTypeMeta {
 
 // Map extension → icone + couleur. Couleurs alignees sur les apps de
 // reference (PDF rouge Adobe, Word bleu Office, Excel vert Office, etc.).
+/**
+ * Decide si un fichier peut etre rendu inline par un browser in-app.
+ * Si oui → WebBrowser.openBrowserAsync (preview sans quitter l'app).
+ * Si non → fallback Sharing.shareAsync (app dediee : Word, Excel, etc.).
+ *
+ * Heuristique sur le MIME type ET l'extension (le MIME peut etre absent
+ * sur un upload mobile). Volontairement conservateur : on prefere envoyer
+ * vers Sharing pour les formats ambigus.
+ */
+function isBrowserFriendly(filename?: string, mimeType?: string): boolean {
+  const ext = getFileExtension(filename);
+  const mime = (mimeType || '').toLowerCase();
+  if (mime.startsWith('image/')) return true;
+  if (mime.startsWith('video/')) return true;
+  if (mime.startsWith('audio/')) return true;
+  if (mime.startsWith('text/')) return true;
+  if (mime === 'application/pdf') return true;
+  if (mime === 'application/json' || mime === 'application/xml') return true;
+  // Fallback sur l'extension si pas de MIME
+  if (!mime) {
+    const browserFriendly = [
+      'pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp',
+      'mp4', 'webm', 'mov',
+      'mp3', 'wav', 'ogg', 'm4a',
+      'txt', 'md', 'log', 'json', 'xml', 'csv', 'html', 'htm',
+    ];
+    if (browserFriendly.includes(ext)) return true;
+  }
+  return false;
+}
+
 function getFileTypeMeta(filename?: string, mimeType?: string): FileTypeMeta {
   const ext = getFileExtension(filename);
   const mime = (mimeType || '').toLowerCase();
@@ -302,16 +334,45 @@ function MessageBubble({
     try { Haptics.selectionAsync(); } catch { /* ignore */ }
   }, [imageSources.length]);
 
-  // Telecharge le fichier dans le cache local puis ouvre via le picker systeme
-  // (Android = sélecteur app, iOS = QuickLook). Sharing.shareAsync ouvre la
-  // sheet "Ouvrir avec / Sauvegarder dans...". L'utilisateur n'a pas besoin
-  // de quitter l'app pour voir un PDF.
+  // Strategie hybride pour ouvrir un attachment :
+  //
+  // 1. Si le fichier est browser-friendly (PDF, image, audio, video, texte) :
+  //    → WebBrowser.openBrowserAsync(url) ouvre direct dans un browser in-app.
+  //    L'user reste dans EventEz (swipe back pour revenir). Pas de DL local.
+  //
+  // 2. Sinon (Word, Excel, Zip, .apk, etc.) : DL local + Sharing.shareAsync.
+  //    Ces formats necessitent une app dediee — on laisse le user choisir
+  //    via le sheet "Partager avec…".
+  //
+  // Avant ce fix, on faisait toujours Sharing.shareAsync → label "Partager"
+  // même pour un PDF, ce qui troublait l'utilisateur ("je ne veux pas
+  // partager, je veux lire").
   const downloadAndOpen = useCallback(async (attachment: any) => {
     const url = typeof attachment.file === 'string' ? attachment.file : null;
     if (!url) {
       showError(t('componentsMessages.attachmentErrorTitle'), t('componentsMessages.attachmentInvalidUrl'));
       return;
     }
+
+    // Voie #1 : preview inline dans un browser in-app pour les types lus
+    // nativement par le navigateur.
+    if (isBrowserFriendly(attachment.file_name, attachment.mime_type)) {
+      try {
+        await WebBrowser.openBrowserAsync(url, {
+          // Animation propre, controls visibles (toolbar/share/refresh)
+          presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+          showTitle: true,
+          enableBarCollapsing: true,
+        });
+        return;
+      } catch (error: any) {
+        if (__DEV__) console.warn('[Attachment] WebBrowser failed, fallback Sharing:', error);
+        // Continue vers le fallback Sharing en cas d'echec (rare)
+      }
+    }
+
+    // Voie #2 : DL local + Sharing pour les formats qui necessitent une
+    // app dediee (Word, Excel, etc.) OU fallback si WebBrowser fail.
     const attId = String(attachment.id);
     const filename = attachment.file_name || `file-${attId}`;
     // Pour eviter les caracteres invalides dans le path local
@@ -339,8 +400,8 @@ function MessageBubble({
       }
       setDlState(prev => ({ ...prev, [attId]: undefined }));
 
-      // Ouverture via le sheet de partage systeme — l'user choisit l'app
-      // (PDF reader, Word, Drive, etc.) ou "Sauvegarder dans Fichiers".
+      // Ouverture via le sheet "Partager avec…" — l'user choisit l'app
+      // (Word, Excel, Drive, etc.) ou "Sauvegarder dans Fichiers".
       const isAvailable = await Sharing.isAvailableAsync();
       if (isAvailable) {
         await Sharing.shareAsync(targetUri, {
