@@ -57,6 +57,13 @@ interface TransferInfo {
   sender?: string;
 }
 
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  if (!domain) return email;
+  const visible = local.slice(0, 2);
+  return `${visible}${'*'.repeat(Math.max(2, local.length - 2))}@${domain}`;
+}
+
 function formatRelativeDate(isoDate: string): string {
   try {
     const diff = new Date(isoDate).getTime() - Date.now();
@@ -140,6 +147,13 @@ export default function TransferAcceptScreen() {
       setActing(false);
     }
   }, [isAuthenticated, navigation, token, showAlert]);
+
+  const handleRegister = useCallback(() => {
+    navigation.navigate('Register', {
+      returnScreen: 'TransferAccept',
+      returnParams: { token, action: 'accept' },
+    });
+  }, [navigation, token]);
 
   const handleDecline = useCallback(async () => {
     if (!isAuthenticated) {
@@ -421,9 +435,11 @@ export default function TransferAcceptScreen() {
         {/* Notice connexion */}
         {!isAuthenticated && (
           <View style={[s.authNotice, { backgroundColor: `${colors.primary}10` }]}>
-            <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
+            <Ionicons name="information-circle-outline" size={18} color={colors.primary} style={{ flexShrink: 0, marginTop: 1 }} />
             <Text style={[s.authNoticeText, { color: colors.primary }]}>
-              Connectez-vous pour accepter ou refuser ce billet.
+              {transfer?.recipient_email
+                ? `Ce transfert a été envoyé à ${maskEmail(transfer.recipient_email)}. Créez un compte ou connectez-vous avec cette adresse pour recevoir le billet.`
+                : 'Créez un compte ou connectez-vous pour recevoir ce billet.'}
             </Text>
           </View>
         )}
@@ -437,26 +453,45 @@ export default function TransferAcceptScreen() {
           borderTopColor: pickStickyBarBorder(isDark),
         },
       ]}>
-        {/* Bouton refuser (ghost) — seulement si authentifié */}
-        {isAuthenticated && (
-          <TouchableOpacity
-            style={[editorial.ghostBack, { opacity: acting ? 0.5 : 1 }]}
-            onPress={handleDecline}
-            disabled={acting}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="close" size={16} color={colors.error} />
-            <Text style={[editorial.ghostBackText, { color: colors.error }]}>Refuser</Text>
-          </TouchableOpacity>
+        {isAuthenticated ? (
+          // Authentifié — ghost "Refuser" + pill "Accepter"
+          <>
+            <TouchableOpacity
+              style={[editorial.ghostBack, { opacity: acting ? 0.5 : 1 }]}
+              onPress={handleDecline}
+              disabled={acting}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close" size={16} color={colors.error} />
+              <Text style={[editorial.ghostBackText, { color: colors.error }]}>Refuser</Text>
+            </TouchableOpacity>
+            <EditorialPillCTA
+              eyebrow="ACCEPTER"
+              label="Recevoir le billet"
+              onPress={handleAccept}
+              loading={acting}
+              disabled={acting}
+            />
+          </>
+        ) : (
+          // Non authentifié — ghost "Se connecter" + pill "Créer un compte"
+          <>
+            <TouchableOpacity
+              style={editorial.ghostBack}
+              onPress={handleAccept}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="log-in-outline" size={16} color={colors.primary} />
+              <Text style={[editorial.ghostBackText, { color: colors.primary }]}>Connexion</Text>
+            </TouchableOpacity>
+            <EditorialPillCTA
+              eyebrow="NOUVEAU COMPTE"
+              label="Créer un compte"
+              icon="person-add-outline"
+              onPress={handleRegister}
+            />
+          </>
         )}
-
-        <EditorialPillCTA
-          eyebrow={isAuthenticated ? 'ACCEPTER' : 'CONNEXION'}
-          label={isAuthenticated ? 'Recevoir le billet' : 'Se connecter pour accepter'}
-          onPress={handleAccept}
-          loading={acting}
-          disabled={acting}
-        />
       </View>
     </EditorialCanvas>
   );
