@@ -354,12 +354,20 @@ function MessageBubble({
       return;
     }
 
+    // Cas du sender qui clique sur SON propre fichier avant que l'upload
+    // ne soit termine : `attachment.file` est encore une URI locale
+    // (file://...). On evite tout download (qui throw "Expected URL scheme
+    // 'http' or 'https'") et on passe direct sur l'URI locale via
+    // WebBrowser (pour les types friendly) ou Sharing.
+    const isLocalUri = url.startsWith('file://') || url.startsWith('content://');
+
     // Voie #1 : preview inline dans un browser in-app pour les types lus
-    // nativement par le navigateur.
-    if (isBrowserFriendly(attachment.file_name, attachment.mime_type)) {
+    // nativement par le navigateur. NB : sur Android, WebBrowser ne supporte
+    // pas les file:// URIs — on skip cette voie pour le sender en cours
+    // d'upload et on tombe sur Sharing direct.
+    if (!isLocalUri && isBrowserFriendly(attachment.file_name, attachment.mime_type)) {
       try {
         await WebBrowser.openBrowserAsync(url, {
-          // Animation propre, controls visibles (toolbar/share/refresh)
           presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
           showTitle: true,
           enableBarCollapsing: true,
@@ -369,6 +377,28 @@ function MessageBubble({
         if (__DEV__) console.warn('[Attachment] WebBrowser failed, fallback Sharing:', error);
         // Continue vers le fallback Sharing en cas d'echec (rare)
       }
+    }
+
+    // Cas local : pas besoin de DL, on Share directement l'URI locale.
+    if (isLocalUri) {
+      try {
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(url, {
+            dialogTitle: attachment.file_name,
+            mimeType: attachment.mime_type || undefined,
+            UTI: attachment.mime_type || undefined,
+          });
+        } else {
+          showError(t('componentsMessages.attachmentErrorTitle'), t('componentsMessages.sharingUnavailable'));
+        }
+      } catch (error: any) {
+        if (__DEV__) console.error('[Attachment] local share failed:', error);
+        showError(
+          t('componentsMessages.attachmentErrorTitle'),
+          error?.message || t('componentsMessages.attachmentDownloadFailed'),
+        );
+      }
+      return;
     }
 
     // Voie #2 : DL local + Sharing pour les formats qui necessitent une
@@ -645,11 +675,18 @@ function MessageBubble({
     // Couleur d'accent : couleur typee si peer, blanc si mine (sur fond indigo)
     const iconColor = isMine ? Colors.white : meta.color;
     const iconBg = isMine ? 'rgba(255,255,255,0.2)' : `${meta.color}1A`; // 10% opacity hex
+    // Fond du tile document :
+    //  - sender (isMine)  → indigo (colors.primary) pour matcher la bulle texte
+    //  - peer             → bulle rose (peerBubbleBg) idem
+    //  L'ancien fond rgba(255,255,255,0.18) (white semi-transparent) ne s'aligne
+    //  visuellement avec rien quand l'attachment est rendu HORS de la bulle —
+    //  il flottait sur un fond canvas et paraissait gris.
+    const docTileBg = isMine ? colors.primary : peerBubbleBg;
 
     return (
       <View key={attachment.id || index} style={styles.imageWrap}>
         <TouchableOpacity
-          style={[styles.documentAttachment, { backgroundColor: isMine ? 'rgba(255,255,255,0.18)' : (isDark ? colors.gray100 : '#FFF') }]}
+          style={[styles.documentAttachment, { backgroundColor: docTileBg }]}
           onPress={() => { if (!isUploading && !isDownloading) downloadAndOpen(attachment); }}
           onLongPress={() => { if (!isUploading) showAttachmentMenu(attachment); }}
           delayLongPress={300}
