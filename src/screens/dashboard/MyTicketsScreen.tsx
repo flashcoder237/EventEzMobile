@@ -27,7 +27,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { registrationsAPI } from '../../api';
+import { registrationsAPI, ticketTransfersAPI } from '../../api';
 import { Searching, Empty, AnimatedIllustration } from '../../components/illustrations';
 import { Registration, RootStackParamList, Event } from '../../types';
 import {
@@ -310,6 +310,8 @@ export default function MyTicketsScreen() {
     searchOpen,
   } = state;
 
+  const [pendingTransferCount, setPendingTransferCount] = React.useState(0);
+
   // Canvas: warm light gray in light mode, dark slate in dark mode
   const canvasBg = isDark ? colors.background : CANVAS_LIGHT;
 
@@ -339,6 +341,15 @@ export default function MyTicketsScreen() {
   useEffect(() => {
     fetchRegistrations();
   }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      ticketTransfersAPI.getPendingTransfers().then((res: any) => {
+        const data = res.data?.results ?? res.data ?? [];
+        setPendingTransferCount(Array.isArray(data) ? data.length : 0);
+      }).catch(() => {});
+    }, [])
+  );
 
   // Extrait du fetch : transforme la liste de registrations en payload pour
   // useOfflineTickets et lance le caching. Idempotent (cacheTicket dedup
@@ -1153,6 +1164,22 @@ export default function MyTicketsScreen() {
               </View>
             </View>
             <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={[styles.headerBtn, { backgroundColor: colors.gray100 }]}
+                onPress={() => navigation.navigate('PendingTransfers')}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Transferts reçus"
+              >
+                <Ionicons name="swap-horizontal-outline" size={18} color={colors.gray600} />
+                {pendingTransferCount > 0 && (
+                  <View style={[styles.filterCountBadge, { backgroundColor: colors.primary }]}>
+                    <Text style={styles.filterCountBadgeText}>
+                      {pendingTransferCount > 9 ? '9+' : pendingTransferCount}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.headerBtn, { backgroundColor: colors.gray100 }]}
                 onPress={() => dispatch({ type: 'SET_SEARCH_OPEN', payload: !searchOpen })}
