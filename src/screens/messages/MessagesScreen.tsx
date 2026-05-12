@@ -1153,6 +1153,25 @@ export default function MessagesScreen() {
   const unreadCount = conversations.filter(c => (c.unread_count || 0) > 0 && !c.is_archived).length;
   const filteredUsers = availableUsers;
 
+  // ── Pending message requests count — pour le badge sur le bouton header ──
+  // Fetch au mount + au focus de l'ecran (pour refresh apres accept/decline
+  // depuis MessageRequestsScreen). Lightweight : un seul appel GET, pas de WS.
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const fetchPendingRequestsCount = useCallback(async () => {
+    try {
+      const response = await messagesAPI.getMessageRequests();
+      const count = (response.data?.count != null
+        ? response.data.count
+        : (response.data?.results || []).length) || 0;
+      setPendingRequestsCount(count);
+    } catch {
+      // silencieux — pas critique
+    }
+  }, []);
+  useFocusEffect(useCallback(() => {
+    fetchPendingRequestsCount();
+  }, [fetchPendingRequestsCount]));
+
   const renderConversation = useCallback(({ item, index }: { item: Conversation; index: number }) => {
     const otherUser = item.participants?.find(p => p.id !== user?.id);
     const displayName = item.title || getDisplayName(otherUser || null);
@@ -1467,9 +1486,25 @@ export default function MessagesScreen() {
             ]}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel={t('messages.messageRequestsButton')}
+            accessibilityLabel={
+              pendingRequestsCount > 0
+                ? `${t('messages.messageRequestsButton')}, ${pendingRequestsCount}`
+                : t('messages.messageRequestsButton')
+            }
           >
             <Ionicons name="mail-unread-outline" size={18} color={colors.text} />
+            {pendingRequestsCount > 0 && (
+              <View
+                style={[
+                  styles.iconDiscBadge,
+                  { backgroundColor: colors.accent, borderColor: colors.background },
+                ]}
+              >
+                <Text style={styles.iconDiscBadgeText}>
+                  {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setSortSheetVisible(true)}
@@ -1866,6 +1901,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  iconDiscBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconDiscBadgeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    color: Colors.white,
+    lineHeight: 12,
   },
   headerEyebrow: {
     fontFamily: FontFamily.bold,

@@ -216,6 +216,15 @@ export default function MessageRequestsScreen() {
           <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('messageRequests.eyebrow')}</Text>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('messageRequests.title')}</Text>
         </View>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Connections')}
+          style={[styles.networkBtn, { backgroundColor: colors.card }, Shadows.sm]}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={t('connections.title')}
+        >
+          <Ionicons name="people-outline" size={18} color={colors.text} />
+        </TouchableOpacity>
       </View>
 
       {loading && !refreshing ? (
@@ -256,6 +265,10 @@ const styles = StyleSheet.create({
     width: 36, height: 36, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
     ...Shadows.sm,
+  },
+  networkBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center',
   },
   headerEyebrow: {
     fontFamily: FontFamily.bold, fontSize: 11,

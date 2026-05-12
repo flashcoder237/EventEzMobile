@@ -25,6 +25,7 @@ const KNOWN_NOTIF_NAV_SCREENS = new Set<string>([
   'Profile', 'EditProfile', 'Settings', 'BlockedUsers',
   'Notifications', 'UserDashboard',
   'Messages', 'Conversation', 'NewConversation', 'MessageRequests',
+  'Connections', 'ConnectionScanner',
   'Map',
   'EventCreate', 'EventEdit', 'MyEvents', 'EventAnalytics', 'EventRegistrations',
   'SessionDetails', 'SpeakerDetails', 'OrganizerProfile',

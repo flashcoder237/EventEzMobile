@@ -1641,6 +1641,8 @@ export type RootStackParamList = {
   Conversation: { conversationId?: string; userId?: string; userName?: string };
   NewConversation: { userId?: string };
   MessageRequests: undefined;
+  Connections: undefined;
+  ConnectionScanner: undefined;
   Map: { eventId?: string };
   EventCreate: { draftId?: string } | undefined;
   EventEdit: { eventId: string };
