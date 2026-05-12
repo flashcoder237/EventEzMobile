@@ -24,7 +24,7 @@ const KNOWN_NOTIF_NAV_SCREENS = new Set<string>([
   'QRCode', 'RegistrationDetails', 'PendingTransfers', 'OfflineTickets',
   'Profile', 'EditProfile', 'Settings', 'BlockedUsers',
   'Notifications', 'UserDashboard',
-  'Messages', 'Conversation', 'NewConversation',
+  'Messages', 'Conversation', 'NewConversation', 'MessageRequests',
   'Map',
   'EventCreate', 'EventEdit', 'MyEvents', 'EventAnalytics', 'EventRegistrations',
   'SessionDetails', 'SpeakerDetails', 'OrganizerProfile',

@@ -56,7 +56,7 @@ import { StaggeredItem } from '../../components/ui/Animations';
 import EventActionsSheet, { EventAction } from '../../components/organizer/EventActionsSheet';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-type TabType = 'all' | 'unread' | 'events' | 'archived';
+type TabType = 'all' | 'unread' | 'events' | 'requests' | 'archived';
 
 // Hauteur estimée d'une ligne conversation
 const CONVERSATION_ROW_HEIGHT = 76;
@@ -1454,6 +1454,23 @@ export default function MessagesScreen() {
               />
             </View>
           </View>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('MessageRequests')}
+            style={[
+              styles.iconDisc,
+              {
+                backgroundColor: colors.card,
+                borderColor: isDark ? colors.gray200 : 'rgba(0,0,0,0.06)',
+                marginRight: 8,
+              },
+              Shadows.sm,
+            ]}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t('messages.messageRequestsButton')}
+          >
+            <Ionicons name="mail-unread-outline" size={18} color={colors.text} />
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setSortSheetVisible(true)}
             style={[

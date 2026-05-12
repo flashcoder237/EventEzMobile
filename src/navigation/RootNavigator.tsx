@@ -74,6 +74,7 @@ import FollowingUsersScreen from '../screens/profile/FollowingUsersScreen';
 // Messages Screens
 import MessagesScreen from '../screens/messages/MessagesScreen';
 import ConversationScreen from '../screens/messages/ConversationScreen';
+import MessageRequestsScreen from '../screens/messages/MessageRequestsScreen';
 
 // Scan Screen
 import ScanScreen from '../screens/scan/ScanScreen';
@@ -339,6 +340,7 @@ export default function RootNavigator() {
 
       {/* Messages Screens */}
       <Stack.Screen name="Messages" component={MessagesScreen} />
+      <Stack.Screen name="MessageRequests" component={MessageRequestsScreen} options={{ headerShown: false }} />
       <Stack.Screen
         name="Conversation"
         component={ConversationScreen}

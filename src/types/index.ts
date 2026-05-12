@@ -511,21 +511,41 @@ export interface Discount {
 // ============================================
 
 // Methodes de paiement (payments.Payment.PAYMENT_METHOD_CHOICES)
-export type PaymentMethod = 'mtn_money' | 'orange_money' | 'credit_card' | 'paypal' | 'bank_transfer' | 'wave' | 'mpesa' | 'airtel_money';
+// NotchPay + CinetPay (selon pays + admin config)
+export type PaymentMethod =
+  // Communes
+  | 'mtn_money' | 'orange_money' | 'credit_card' | 'paypal'
+  | 'bank_transfer' | 'wave' | 'mpesa' | 'airtel_money'
+  // CinetPay-specifiques
+  | 'moov_money'        // CI, BJ, BF, TG, ML, NE
+  | 'free_money'        // SN
+  | 'yas'               // TG (T-Money), BJ (Celtiis)
+  | 'cinetpay_wallet';  // wallet CinetPay
+
 // Alias pour compatibilite UI
 export type PaymentMethodAlias = PaymentMethod | 'momo' | 'om' | 'card' | 'transfer';
 
 // Statuts de paiement (payments.Payment.PAYMENT_STATUS_CHOICES)
 export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'cancelled';
 
+// Passerelle de paiement (audit + routing)
+export type PaymentGateway = 'notchpay' | 'cinetpay';
+
 // Configuration paiement par pays (retournee par GET /payments/methods/?country=XX)
 export interface PaymentMethodOption {
   id: PaymentMethod;
   name: string;
+  /** Canal NotchPay si dispo (ex: 'cm.mtn'). Vide pour CinetPay-only. */
   channel: string;
-  type: 'mobile_money' | 'card' | 'bank_transfer';
+  type: 'mobile_money' | 'card' | 'bank_transfer' | 'wallet';
   /** Plafond par transaction (string Decimal) ou null si pas de limite. */
   max_amount?: string | null;
+  /** Providers qui peuvent traiter cette methode pour ce pays. */
+  providers?: PaymentGateway[];
+  /** Provider qui sera effectivement utilise (route via factory backend). */
+  selected_provider?: PaymentGateway | null;
+  /** Code operateur CinetPay (ex: 'OMCIV2', 'MOOVBF'). */
+  cinetpay_channel?: string;
 }
 
 export interface CountryPaymentConfig {
@@ -551,6 +571,8 @@ export interface Payment {
   status: PaymentStatus;
   transaction_id?: string;
   notchpay_reference?: string;
+  cinetpay_reference?: string;
+  payment_gateway?: PaymentGateway;
   payment_date?: string;
   // Suivi de la transaction
   created_at: string;
@@ -591,6 +613,29 @@ export interface PaymentVerification {
   payment_id: string;
   status: PaymentStatus;
   transaction_id?: string;
+  message?: string;
+}
+
+// Reponse de POST /api/payments/initiate/ (endpoint unifie NotchPay/CinetPay)
+export interface PaymentInitiateResponse {
+  success: boolean;
+  provider: PaymentGateway;
+  payment_id: string;
+  transaction_id: string;
+  /** URL hebergee a charger en WebBrowser (NotchPay authorization_url / CinetPay payment_url). */
+  payment_url: string;
+  message?: string;
+  error?: string;
+}
+
+// Reponse de GET /api/payments/cinetpay/return/ (status read-only post-redirect)
+export interface CinetPayReturnResponse {
+  success: boolean;
+  status: PaymentStatus;
+  is_successful: boolean;
+  payment_id: string;
+  amount: string;
+  currency: string;
   message?: string;
 }
 
@@ -1595,6 +1640,7 @@ export type RootStackParamList = {
   Messages: undefined;
   Conversation: { conversationId?: string; userId?: string; userName?: string };
   NewConversation: { userId?: string };
+  MessageRequests: undefined;
   Map: { eventId?: string };
   EventCreate: { draftId?: string } | undefined;
   EventEdit: { eventId: string };
