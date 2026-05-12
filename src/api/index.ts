@@ -26,6 +26,10 @@ export { paymentsAPI, refundsAPI, invoicesAPI, subscriptionsAPI, walletAPI, payo
 // Messages & Conversations
 export { messagesAPI } from './messages';
 
+// User Connections (LinkedIn-style bidirectional links — QR / mutual follow / manual)
+export { connectionsAPI } from './connections';
+export type { Connection, ConnectionUser, QrTokenResponse } from './connections';
+
 // Notifications & Templates
 export { notificationsAPI, notificationTemplatesAPI } from './notifications';
 

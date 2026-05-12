@@ -34,6 +34,19 @@ export const messagesAPI = {
   leaveConversation: (id: string) =>
     api.post(`/conversations/${id}/leave/`),
 
+  // ── Message requests (anti-spam DM flow) ────────────────────────────────
+
+  /** Liste les demandes de messages en attente (destinataire). */
+  getMessageRequests: () => api.get('/conversations/requests/'),
+
+  /** Accepte une demande → la conv passe en 'accepted'. */
+  acceptMessageRequest: (id: string) =>
+    api.post(`/conversations/${id}/accept_request/`),
+
+  /** Refuse une demande → la conv passe en 'declined' + readonly. */
+  declineMessageRequest: (id: string) =>
+    api.post(`/conversations/${id}/decline_request/`),
+
   archiveConversation: (id: string) =>
     api.post(`/conversations/${id}/archive/`),
 
