@@ -17,6 +17,7 @@ jest.mock('../../api', () => ({
 
 import { currencyAPI } from '../../api';
 import { useCurrencyConversion } from '../useCurrencyConversion';
+import { _resetCurrencyCache } from '../../constants/currency';
 
 const mockConvert = currencyAPI.convert as jest.MockedFunction<
   typeof currencyAPI.convert
@@ -37,6 +38,10 @@ describe('useCurrencyConversion (mobile)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Le hook utilise maintenant un cache en memoire des rates (TTL 1h).
+    // Sans reset, un test qui a cache un rate XAF->EUR le reutilise dans le
+    // test suivant et bypass le mock — d'ou des assertions qui echouent.
+    _resetCurrencyCache();
   });
 
   afterEach(() => {
@@ -181,5 +186,48 @@ describe('useCurrencyConversion (mobile)', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.userCurrency).toBe('KES');
+  });
+
+  it('falls back to EUR international when backend rejects detected currency', async () => {
+    restoreLocale = setLocale('en-NG'); // Nigeria → NGN
+    // 1er call : NGN rejete par backend (unsupported_currency)
+    mockConvert.mockRejectedValueOnce({
+      response: {
+        status: 400,
+        data: {
+          error: 'unsupported_currency',
+          fallback_currency: 'EUR',
+        },
+      },
+    } as any);
+    // 2eme call : retry sur EUR, succes
+    mockConvert.mockResolvedValueOnce({
+      data: { rate: 0.00152, from_currency: 'XAF', to_currency: 'EUR' },
+    } as any);
+
+    const { result } = renderHook(() => useCurrencyConversion('XAF'));
+    // Wait for both calls to settle
+    await waitFor(() => {
+      expect(mockConvert).toHaveBeenCalledTimes(2);
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    // L'utilisateur voit "≈ X EUR" plutot que rien
+    expect(result.current.userCurrency).toBe('EUR');
+    expect(result.current.convertedPrice(5000)).toMatch(/EUR/);
+
+    // Verifier que les 2 calls ont les bonnes devises
+    expect(mockConvert).toHaveBeenNthCalledWith(1, 1, 'XAF', 'NGN');
+    expect(mockConvert).toHaveBeenNthCalledWith(2, 1, 'XAF', 'EUR');
+  });
+
+  it('returns null when event currency equals the international fallback (no redundant conversion)', async () => {
+    restoreLocale = setLocale('xx-YY'); // detection echoue → fallback EUR
+    // Event en EUR : pas besoin de convertir EUR -> EUR
+    const { result } = renderHook(() => useCurrencyConversion('EUR'));
+
+    // userCurrency = null car eventCurrency === detected (= EUR fallback)
+    expect(result.current.userCurrency).toBeNull();
+    expect(mockConvert).not.toHaveBeenCalled();
   });
 });

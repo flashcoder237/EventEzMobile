@@ -1,154 +1,138 @@
 import { useState, useEffect, useCallback } from 'react';
 import { currencyAPI } from '../api';
-
-// Map locale précis (lang-country) vers devise. Reste utile pour les cas où le
-// même pays a plusieurs devises selon la langue parlée (CH = CHF/EUR mixte).
-const localeToCurrency: Record<string, string> = {
-  'fr-FR': 'EUR',
-  'fr-BE': 'EUR',
-  'fr-CH': 'CHF',
-  'fr-CA': 'CAD',
-  'en-US': 'USD',
-  'en-GB': 'GBP',
-  'en-CA': 'CAD',
-  'en-AU': 'AUD',
-  'de-DE': 'EUR',
-  'de-AT': 'EUR',
-  'de-CH': 'CHF',
-  'es-ES': 'EUR',
-  'it-IT': 'EUR',
-  'pt-PT': 'EUR',
-  'pt-BR': 'BRL',
-  'nl-NL': 'EUR',
-  'nl-BE': 'EUR',
-  'ja-JP': 'JPY',
-  'zh-CN': 'CNY',
-  'ko-KR': 'KRW',
-  'ar-SA': 'SAR',
-  'ar-AE': 'AED',
-  'ar-MA': 'MAD',
-  'sw-KE': 'KES',
-  'en-KE': 'KES',
-  'en-NG': 'NGN',
-  'en-GH': 'GHS',
-  'en-UG': 'UGX',
-  'en-ZA': 'ZAR',
-  'fr-CM': 'XAF',
-  'fr-CI': 'XOF',
-  'fr-SN': 'XOF',
-  'fr-CD': 'CDF',
-};
-
-// Map pays → devise — c'est le pays qui détermine la devise, pas la langue.
-// Sans ça, un utilisateur anglais en France (locale `en-FR`) tombait sur le
-// fallback langue `en → USD` au lieu d'EUR. Voir AUDIT_PROFOND §3.4.
-const countryToCurrency: Record<string, string> = {
-  // Zone euro
-  FR: 'EUR', DE: 'EUR', BE: 'EUR', NL: 'EUR', LU: 'EUR', AT: 'EUR',
-  IE: 'EUR', FI: 'EUR', PT: 'EUR', ES: 'EUR', IT: 'EUR', GR: 'EUR',
-  MT: 'EUR', CY: 'EUR', SI: 'EUR', SK: 'EUR', EE: 'EUR', LV: 'EUR', LT: 'EUR',
-  // Autres Europe
-  GB: 'GBP', CH: 'CHF', SE: 'SEK', NO: 'NOK', DK: 'DKK', PL: 'PLN',
-  CZ: 'CZK', HU: 'HUF', RO: 'RON', BG: 'BGN', HR: 'EUR',
-  // Amérique
-  US: 'USD', CA: 'CAD', MX: 'MXN', BR: 'BRL', AR: 'ARS', CL: 'CLP', CO: 'COP',
-  // Asie
-  JP: 'JPY', CN: 'CNY', KR: 'KRW', IN: 'INR', ID: 'IDR', VN: 'VND',
-  TH: 'THB', PH: 'PHP', MY: 'MYR', SG: 'SGD', HK: 'HKD', TW: 'TWD',
-  // Moyen-Orient
-  SA: 'SAR', AE: 'AED', QA: 'QAR', KW: 'KWD', BH: 'BHD', OM: 'OMR', JO: 'JOD',
-  IL: 'ILS', TR: 'TRY',
-  // Afrique
-  MA: 'MAD', TN: 'TND', DZ: 'DZD', EG: 'EGP', NG: 'NGN', GH: 'GHS', KE: 'KES',
-  UG: 'UGX', TZ: 'TZS', ZA: 'ZAR', RW: 'RWF', ET: 'ETB',
-  // Zone CFA
-  CM: 'XAF', CG: 'XAF', CF: 'XAF', TD: 'XAF', GA: 'XAF', GQ: 'XAF',
-  CI: 'XOF', SN: 'XOF', BF: 'XOF', BJ: 'XOF', ML: 'XOF', NE: 'XOF', TG: 'XOF',
-  CD: 'CDF',
-  // Océanie
-  AU: 'AUD', NZ: 'NZD',
-  // Russie
-  RU: 'RUB',
-};
-
-function detectUserCurrency(): string | null {
-  try {
-    // Hermes / React Native: Intl.DateTimeFormat works
-    const locale = Intl.DateTimeFormat().resolvedOptions().locale; // e.g. "fr-FR"
-
-    // 1. Exact match locale précis (ex: fr-CH → CHF, distinct de fr-FR → EUR)
-    if (localeToCurrency[locale]) return localeToCurrency[locale];
-
-    const parts = locale.split('-');
-    if (parts.length >= 2) {
-      const langCountry = `${parts[0]}-${parts[parts.length - 1]}`;
-      if (localeToCurrency[langCountry]) return localeToCurrency[langCountry];
-    }
-
-    // 2. Match par PAYS (priorité sur la langue) — couvre les locales mixtes
-    // type `en-FR`, `en-DE`, `pt-FR`, etc. C'est la nationalité du device qui
-    // détermine la devise utile, pas la langue d'affichage.
-    if (parts.length >= 2) {
-      const country = parts[parts.length - 1].toUpperCase();
-      if (countryToCurrency[country]) return countryToCurrency[country];
-    }
-
-    // 3. Fallback final : par langue. Très imparfait mais évite null.
-    const lang = parts[0];
-    const langFallbacks: Record<string, string> = {
-      fr: 'EUR',
-      en: 'USD',
-      de: 'EUR',
-      es: 'EUR',
-      it: 'EUR',
-      pt: 'EUR',
-      ar: 'SAR',
-      ja: 'JPY',
-      zh: 'CNY',
-      ko: 'KRW',
-      sw: 'KES',
-    };
-
-    return langFallbacks[lang] || null;
-  } catch {
-    return null;
-  }
-}
+import {
+  detectUserCurrency,
+  getCachedRate,
+  setCachedRate,
+  markUnsupportedPair,
+  isPairKnownUnsupported,
+  setRuntimeFallback,
+  getInternationalFallback,
+} from '../constants/currency';
 
 interface ConversionResult {
   /** Formats a converted price string like "≈ 7,63 EUR", or null if same currency / no rate */
   convertedPrice: (amount: number) => string | null;
-  /** The detected user currency, or null */
+  /** The detected user currency (or fallback international si pays inconnu) */
   userCurrency: string | null;
   /** Whether the rate is still loading */
   isLoading: boolean;
 }
 
+/**
+ * Hook de conversion devise indicative.
+ *
+ * Logique :
+ * 1. Detecte la devise probable du payeur (locale device).
+ * 2. Si eventCurrency === detectedCurrency → null (rien a convertir).
+ * 3. Fetch rate de conversion event -> detectedCurrency.
+ * 4. Si backend renvoie 400 unsupported_currency :
+ *    - Marque la paire comme non-support (cache 1h).
+ *    - Lit la `fallback_currency` envoyee par le backend.
+ *    - Re-essaie : event -> fallback (typiquement EUR).
+ *    - Affiche le resultat en fallback : "≈ X EUR" plutot que rien.
+ * 5. Si l'event est DEJA dans la devise fallback (ex: event EUR + payeur
+ *    indien avec INR non liste) → null (deja affiche en EUR, redondant).
+ *
+ * Cache rates en memoire (TTL 1h) : 10 prix sur le meme ecran = 1 fetch.
+ */
 export function useCurrencyConversion(eventCurrency: string): ConversionResult {
-  const userCurrency = detectUserCurrency();
-  const shouldConvert = !!userCurrency && userCurrency !== eventCurrency;
-  const [rate, setRate] = useState<number | null>(null);
+  const detectedCurrency = detectUserCurrency();
+  // shouldConvert : on essaie tant que la devise event differe de celle
+  // detectee. Si le fetch echoue (unsupported), on retry avec le fallback
+  // dans le useEffect — d'ou `targetCurrency` qui peut bouger.
+  const initialTarget = detectedCurrency !== eventCurrency ? detectedCurrency : null;
+
+  const [targetCurrency, setTargetCurrency] = useState<string | null>(initialTarget);
+  const [rate, setRate] = useState<number | null>(() =>
+    initialTarget ? getCachedRate(eventCurrency, initialTarget) : null,
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!shouldConvert || !userCurrency) return;
+    // Re-derive en cas de changement event currency
+    const target = detectedCurrency !== eventCurrency ? detectedCurrency : null;
+    setTargetCurrency(target);
+    if (!target) {
+      setRate(null);
+      return;
+    }
+  }, [eventCurrency, detectedCurrency]);
+
+  useEffect(() => {
+    if (!targetCurrency) return;
+
+    // 1. Cache hit
+    const cached = getCachedRate(eventCurrency, targetCurrency);
+    if (cached !== null) {
+      setRate(cached);
+      return;
+    }
+
+    // 2. Si paire connue non-supportee, on retombe immediatement sur le fallback
+    if (isPairKnownUnsupported(eventCurrency, targetCurrency)) {
+      const fallback = getInternationalFallback();
+      if (eventCurrency === fallback) {
+        // Event deja dans la devise fallback → rien a montrer
+        setRate(null);
+        setTargetCurrency(null);
+        return;
+      }
+      // Switch sur le fallback (cache potentiel)
+      const fallbackCached = getCachedRate(eventCurrency, fallback);
+      if (fallbackCached !== null) {
+        setRate(fallbackCached);
+        setTargetCurrency(fallback);
+        return;
+      }
+      // Sinon le useEffect va retrigger avec le fallback comme target
+      setTargetCurrency(fallback);
+      return;
+    }
+
     let cancelled = false;
     setIsLoading(true);
 
-    // On lit `rate` (precision complete) et PAS `converted_amount` qui est quantize
-    // a 2 decimales cote backend. Pour XAF->EUR (rate=0.00152), converted_amount de
-    // 1 XAF arrondi donne 0.00, ce qui casse ensuite le calcul pour tous les prix.
     currencyAPI
-      .convert(1, eventCurrency, userCurrency)
+      .convert(1, eventCurrency, targetCurrency)
       .then((res) => {
         if (cancelled) return;
         const rateValue = Number(res.data?.rate);
         if (Number.isFinite(rateValue) && rateValue > 0) {
           setRate(rateValue);
+          setCachedRate(eventCurrency, targetCurrency, rateValue);
+        } else {
+          setRate(null);
         }
       })
-      .catch(() => {
-        /* silently fail — conversion is informational only */
+      .catch((err) => {
+        if (cancelled) return;
+        const errorCode = err?.response?.data?.error;
+        if (errorCode === 'unsupported_currency') {
+          // Marque la paire comme non-support pour eviter re-fetch boucle
+          markUnsupportedPair(eventCurrency, targetCurrency);
+
+          // Recupere la devise fallback envoyee par le backend (peut differer
+          // de notre hardcoded selon settings serveur).
+          const backendFallback = err?.response?.data?.fallback_currency;
+          if (backendFallback) {
+            setRuntimeFallback(backendFallback);
+          }
+
+          // Retry avec la fallback international
+          const fallback = backendFallback || getInternationalFallback();
+          if (fallback && fallback !== eventCurrency && fallback !== targetCurrency) {
+            // Le useEffect va re-fire avec le nouveau target
+            setTargetCurrency(fallback);
+            return;
+          }
+          // Si event = fallback, on ne peut rien afficher
+          setRate(null);
+          setTargetCurrency(null);
+        } else {
+          // Erreur reseau ou autre — on masque silencieusement
+          setRate(null);
+        }
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -157,30 +141,28 @@ export function useCurrencyConversion(eventCurrency: string): ConversionResult {
     return () => {
       cancelled = true;
     };
-  }, [eventCurrency, userCurrency, shouldConvert]);
+  }, [eventCurrency, targetCurrency]);
 
   const convertedPrice = useCallback(
     (amount: number): string | null => {
-      if (!shouldConvert || rate == null || rate <= 0 || amount <= 0) return null;
+      if (!targetCurrency || rate == null || rate <= 0 || amount <= 0) return null;
 
       const converted = amount * rate;
-      // Si le montant converti arrondi est 0 (montant negligeable),
-      // on n'affiche rien plutot que "≈ 0 EUR".
-      if (converted < 0.01) return null;
+      if (!Number.isFinite(converted) || converted < 0.01) return null;
 
       const formatted = new Intl.NumberFormat('fr-FR', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2,
       }).format(converted);
 
-      return `≈ ${formatted} ${userCurrency}`;
+      return `≈ ${formatted} ${targetCurrency}`;
     },
-    [shouldConvert, rate, userCurrency],
+    [targetCurrency, rate],
   );
 
   return {
     convertedPrice,
-    userCurrency: shouldConvert ? userCurrency : null,
-    isLoading: shouldConvert ? isLoading : false,
+    userCurrency: targetCurrency,
+    isLoading,
   };
 }

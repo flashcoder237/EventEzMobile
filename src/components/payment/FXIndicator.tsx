@@ -1,39 +1,30 @@
 /**
  * Indicateur non-contractuel de conversion pour les payeurs internationaux.
  * Version mobile du composant web FXIndicator.
+ *
+ * Utilise le meme module `constants/currency` que `useCurrencyConversion`
+ * pour garantir qu'on n'a JAMAIS deux conversions divergentes sur le meme
+ * ecran (bug pre-refactor : FXIndicator connaissait 14 pays,
+ * useCurrencyConversion en connaissait 70+).
  */
 
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Localization from 'expo-localization';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 import { commissionsAPI } from '../../api';
-
-const LOCALE_TO_CURRENCY: Record<string, string> = {
-  FR: 'EUR', DE: 'EUR', ES: 'EUR', IT: 'EUR', PT: 'EUR', NL: 'EUR',
-  BE: 'EUR', AT: 'EUR', IE: 'EUR', FI: 'EUR', LU: 'EUR',
-  US: 'USD', CA: 'USD',
-  GB: 'GBP',
-};
-
-function inferPayerCurrency(): string {
-  try {
-    // expo-localization renvoie une liste; on prend la premiere region disponible.
-    const locales = (Localization as any).getLocales?.() ?? [];
-    const region = locales[0]?.regionCode?.toUpperCase();
-    if (region && LOCALE_TO_CURRENCY[region]) return LOCALE_TO_CURRENCY[region];
-    // Fallback : deprecie mais large support
-    const legacy = (Localization as any).region?.toUpperCase();
-    if (legacy && LOCALE_TO_CURRENCY[legacy]) return LOCALE_TO_CURRENCY[legacy];
-  } catch {
-    /* ignore */
-  }
-  return 'EUR';
-}
+import {
+  detectUserCurrency,
+  getCachedRate,
+  setCachedRate,
+  markUnsupportedPair,
+  isPairKnownUnsupported,
+  setRuntimeFallback,
+  getInternationalFallback,
+} from '../../constants/currency';
 
 function formatMoney(amount: number, currency: string): string {
   try {
@@ -56,27 +47,82 @@ export default function FXIndicator({ amount, fromCurrency }: Props) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const [converted, setConverted] = useState<{ value: number; currency: string } | null>(null);
-  const [targetCurrency] = useState<string>(() => inferPayerCurrency());
+  // Devise cible : detectee, ou fallback international (jamais null).
+  // Pourra etre switched sur le fallback si la 1ere paire est unsupported.
+  const [targetCurrency, setTargetCurrency] = useState<string>(() => detectUserCurrency());
 
   useEffect(() => {
     let cancelled = false;
-    if (!amount || !fromCurrency || !targetCurrency) return;
+    if (!amount || amount <= 0 || !fromCurrency) {
+      setConverted(null);
+      return;
+    }
     if (fromCurrency.toUpperCase() === targetCurrency.toUpperCase()) {
       setConverted(null);
       return;
     }
+
+    // 1. Cache hit
+    const cachedRate = getCachedRate(fromCurrency, targetCurrency);
+    if (cachedRate !== null) {
+      const value = amount * cachedRate;
+      if (Number.isFinite(value) && value >= 0.01) {
+        setConverted({ value, currency: targetCurrency });
+      } else {
+        setConverted(null);
+      }
+      return;
+    }
+
+    // 2. Paire connue non-supportee → switch sur fallback international
+    if (isPairKnownUnsupported(fromCurrency, targetCurrency)) {
+      const fallback = getInternationalFallback();
+      if (fromCurrency.toUpperCase() === fallback.toUpperCase()) {
+        setConverted(null);
+        return;
+      }
+      // Le useEffect va se relancer avec le fallback
+      setTargetCurrency(fallback);
+      return;
+    }
+
     (async () => {
       try {
-        const res: any = await commissionsAPI.convert(amount, fromCurrency, targetCurrency);
+        const res: any = await commissionsAPI.convert(1, fromCurrency, targetCurrency);
         const data = res?.data ?? res;
-        const value = typeof data?.converted_amount === 'number' ? data.converted_amount : null;
-        if (!cancelled && value !== null) {
-          setConverted({ value, currency: targetCurrency });
+        const rateValue = Number(data?.rate);
+        if (!Number.isFinite(rateValue) || rateValue <= 0) {
+          if (!cancelled) setConverted(null);
+          return;
         }
-      } catch {
-        if (!cancelled) setConverted(null);
+        setCachedRate(fromCurrency, targetCurrency, rateValue);
+        if (cancelled) return;
+        const value = amount * rateValue;
+        if (Number.isFinite(value) && value >= 0.01) {
+          setConverted({ value, currency: targetCurrency });
+        } else {
+          setConverted(null);
+        }
+      } catch (err: any) {
+        if (cancelled) return;
+        const errorCode = err?.response?.data?.error;
+        if (errorCode === 'unsupported_currency') {
+          markUnsupportedPair(fromCurrency, targetCurrency);
+
+          // Lit le fallback que le backend nous renvoie
+          const backendFallback = err?.response?.data?.fallback_currency;
+          if (backendFallback) setRuntimeFallback(backendFallback);
+
+          const fallback = backendFallback || getInternationalFallback();
+          if (fallback && fallback !== fromCurrency && fallback !== targetCurrency) {
+            setTargetCurrency(fallback);
+            return;
+          }
+        }
+        setConverted(null);
       }
     })();
+
     return () => {
       cancelled = true;
     };
