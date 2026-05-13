@@ -22,7 +22,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { subscriptionsAPI, paymentsAPI } from '../../api';
+import { subscriptionsAPI, paymentsAPI, walletAPI } from '../../api';
 import { usePaymentVerification } from '../../hooks/usePaymentVerification';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { getServiceFeeLabel } from '../../constants/payment';
@@ -198,7 +198,11 @@ export default function SubscriptionScreen() {
   const { colors, isDark } = useTheme();
   const { t, i18n } = useTranslation();
   const numberLocale = i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR';
-  const { config: commissionConfig, currency: commissionCurrency } = useCommissionConfig();
+  // Commission affichee en bas (rappel) : on utilise le pays organisateur
+  // (= futur event country puisque mono-devise) pour que l'organisateur
+  // voit ses vrais frais de billetterie, pas un default global.
+  const [organizerCountry, setOrganizerCountry] = useState<string>('CM');
+  const { config: commissionConfig, currency: commissionCurrency } = useCommissionConfig(organizerCountry);
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [planCurrency, setPlanCurrency] = useState('XAF');
   const [subscription, setSubscription] = useState<OrganizerSubscription | null>(null);
@@ -214,12 +218,27 @@ export default function SubscriptionScreen() {
   // Animated underline for toggle
   const toggleAnim = useRef(new Animated.Value(0)).current;
 
-  const countryCode = commissionConfig?.country_code;
-  const phonePrefix = COUNTRY_PHONE_PREFIX[countryCode || 'CM'] || '+237';
+  // Pays organisateur — declare plus haut (alimente useCommissionConfig).
+  // C'est ce pays (source : wallet.country = strategie mono-devise) qui
+  // determine les prix forfait et les methodes de paiement disponibles,
+  // pas la locale device ni le default global du commission config.
+  const phonePrefix = COUNTRY_PHONE_PREFIX[organizerCountry] || '+237';
+
+  useEffect(() => {
+    let cancelled = false;
+    walletAPI.getMyWallet()
+      .then((res: any) => {
+        if (cancelled) return;
+        const country = (res?.data?.country || '').toUpperCase();
+        if (country) setOrganizerCountry(country);
+      })
+      .catch(() => { /* wallet pas encore cree : on garde CM */ });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, [countryCode]);
+  }, [organizerCountry]);
 
   useEffect(() => {
     Animated.spring(toggleAnim, {
@@ -233,7 +252,7 @@ export default function SubscriptionScreen() {
   const loadData = async () => {
     try {
       const [plansRes, subRes] = await Promise.all([
-        subscriptionsAPI.getPrices(countryCode),
+        subscriptionsAPI.getPrices(organizerCountry),
         subscriptionsAPI.getCurrentPlan(),
       ]);
       const loadedPlans = plansRes.data.results || plansRes.data || [];
@@ -349,7 +368,7 @@ export default function SubscriptionScreen() {
                 // Reutilise le meme endpoint que la billetterie (merge NotchPay+CinetPay).
                 setMethodsLoading(true);
                 try {
-                  const country = (data.payment?.country_code || countryCode || 'CM').toUpperCase();
+                  const country = (data.payment?.country_code || organizerCountry || 'CM').toUpperCase();
                   const currency = data.payment?.currency || planCurrency || 'XAF';
                   const methodsRes = await paymentsAPI.getPaymentMethods(country, currency);
                   const apiMethods = methodsRes.data?.methods || [];

@@ -353,7 +353,8 @@ export default function PaymentScreen() {
       // sur la même registration aura besoin d'une nouvelle clé).
       void clearIdempotencyKey(registrationId);
 
-      const eventObj = typeof registration?.event === 'object' ? registration.event : null;
+      const eventObj = registration?.event_detail
+        || (typeof registration?.event === 'object' ? registration.event : null);
       navigation.replace('PaymentSuccess', {
         paymentId: paymentId!,
         registrationId: registrationId,
@@ -457,21 +458,27 @@ export default function PaymentScreen() {
     })();
   }, []);
 
-  // Si l'utilisateur n'a PAS encore choisi (pas de valeur persistée), et que la
-  // locale n'a rien donné, on tombe sur le pays de l'événement comme fallback
-  // intelligent. Ne s'applique qu'une fois, avant le premier choix manuel.
+  // Le pays SELECTIONNE par defaut suit le pays de l'event (cohérence avec
+  // Currency Strategy : Payment.currency = Event.currency = methodes du pays
+  // event). Le payeur peut basculer sur "Autre pays" (INTL) ou choisir un
+  // autre pays via le selecteur s'il veut explicitement une autre option.
+  //
+  // Avant le fix : la locale du device gagnait → un Camerounais voyait
+  // MTN/Orange CM proposes pour un event francais EUR (incoherent + paiement
+  // refuse par le backend a cause de la mismatch de devise).
   const manualCountryChoiceRef = useRef(false);
   useEffect(() => {
     if (!countryHydrated) return;
     if (manualCountryChoiceRef.current) return;
     if (!registration) return;
-    const eventObj = typeof registration.event === 'object' ? registration.event : null;
+    const eventObj = registration.event_detail
+      || (typeof registration.event === 'object' ? registration.event : null);
     const eventCountry = eventObj?.location_country_code || eventObj?.location_country;
     if (eventCountry) {
       const upper = String(eventCountry).toUpperCase();
-      // On ne remplace que si la locale n'a rien donné (payerCountry par défaut = 'CM')
-      // et qu'on n'a pas déjà une valeur persistée, ce qui est déjà filtré par hydratation.
-      if (SUPPORTED_CODES.has(upper) && !detectUserCountry()) {
+      // On force le pays event si supporte, peu importe la locale device.
+      // Le payeur peut toujours overrider via le CountryBadgeSelector.
+      if (SUPPORTED_CODES.has(upper) && upper !== payerCountry) {
         setPayerCountry(upper);
       }
     }
@@ -494,22 +501,38 @@ export default function PaymentScreen() {
     }
   }, []);
 
-  // Fetch dynamic payment methods based on payer's country (not event's country)
+  // Fetch les methodes de paiement compatibles avec la DEVISE DE L'EVENT.
+  //
+  // Currency Strategy "Event mono-devise" : `Payment.currency = Event.currency`,
+  // pas de conversion au moment du paiement. Un Camerounais ne peut PAS payer
+  // un event EUR via MTN Mobile Money (qui est XAF) — la plateforme refuse
+  // les payments cross-currency.
+  //
+  // Donc les methodes doivent etre celles du PAYS EVENT (qui determine la
+  // devise event = methodes compatibles), pas celles du payeur.
+  //
+  // Cas "INTL" : si le payeur explicite "Autre pays" via le selecteur, on
+  // bascule sur la config internationale (cartes Visa/MC + PayPal) cote
+  // backend, qui doit aussi etre compatible event.currency.
   useEffect(() => {
     if (!countryHydrated) return;
     let cancelled = false;
     const fetchPaymentMethods = async () => {
       setMethodsLoading(true);
-      // Reset selection : les methodes du nouveau pays peuvent etre differentes.
+      // Reset selection : les methodes peuvent etre differentes.
       setSelectedMethod(null);
       setDynamicMethods([]);
       try {
-        // Si 'Autre pays', on passe la devise de l'événement pour que le backend
-        // décide si PayPal est disponible (dépend de la devise).
-        const eventObj = registration && typeof registration.event === 'object' ? registration.event : null;
+        const eventObj = registration?.event_detail
+          || (registration && typeof registration.event === 'object' ? registration.event : null);
         const eventCountry = eventObj?.location_country_code || eventObj?.location_country;
-        const currency = payerCountry === INTL_CODE ? getEventCurrency(eventCountry) : undefined;
-        const response = await paymentsAPI.getPaymentMethods(payerCountry, currency);
+        const eventCurrency = getEventCurrency(eventCountry);
+
+        // Si le payeur a explicitement choisi "Autre pays" (INTL), on garde
+        // ce signal mais on passe quand meme la devise event pour le filtrage.
+        // Sinon : eventCountry est la source de verite.
+        const fetchCountry = payerCountry === INTL_CODE ? INTL_CODE : (eventCountry || payerCountry);
+        const response = await paymentsAPI.getPaymentMethods(fetchCountry, eventCurrency);
         if (cancelled) return;
         const config: CountryPaymentConfig = response.data;
         setCountryConfig(config);
@@ -611,8 +634,12 @@ export default function PaymentScreen() {
     }, 0);
   };
 
-  // Commission config dynamique par pays
-  const eventObj = typeof registration?.event === 'object' ? registration?.event : null;
+  // Commission config dynamique par pays. Le backend RegistrationSerializer
+  // expose `event` comme UUID (FK) ET `event_detail` comme objet complet.
+  // On lit event_detail en priorite — sinon `currency` retombe sur 'XAF' par
+  // defaut et l'UI affiche FCFA pour un event EUR.
+  const eventObj = registration?.event_detail
+    || (typeof registration?.event === 'object' ? registration?.event : null);
   const eventCountryCode = (eventObj as any)?.location_country_code || (eventObj as any)?.location_country || 'CM';
 
   // Strategie "Event mono-devise" (docs/CURRENCY_STRATEGY.md) :
@@ -991,7 +1018,8 @@ export default function PaymentScreen() {
       setProcessing(false);
       savePaymentMethodOnSuccess();
 
-      const eventObj = typeof registration?.event === 'object' ? registration.event : null;
+      const eventObj = registration?.event_detail
+        || (typeof registration?.event === 'object' ? registration.event : null);
       navigation.replace('PaymentSuccess', {
         paymentId: paymentId,
         registrationId: registrationId,
