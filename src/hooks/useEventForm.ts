@@ -17,6 +17,7 @@ import type { AlertType } from '../components/common/CustomAlert';
 import { useOrganizerWallet } from './useOrganizerWallet';
 import { useEventFormValidation } from './useEventFormValidation';
 import { useEventFormSubmit } from './useEventFormSubmit';
+import { displayCurrency } from '../lib/utils/priceFormatters';
 
 // Re-export constants from dedicated file
 export { STEPS, LOCATION_TYPES, FIELD_TYPES, SESSION_TYPES } from './useEventFormConstants';
@@ -253,7 +254,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
   // Strategie "Event mono-devise" : la devise provient du wallet de l'organisateur
   // (l'event herite de wallet.currency a sa creation, docs/CURRENCY_STRATEGY.md).
   const { currency: walletCurrency } = useOrganizerWallet();
-  const platformCurrency = walletCurrency === 'XAF' || walletCurrency === 'XOF' ? 'FCFA' : walletCurrency;
+  const platformCurrency = displayCurrency(walletCurrency);
 
   // Step navigation
   const [currentStep, setCurrentStep] = useState(1);

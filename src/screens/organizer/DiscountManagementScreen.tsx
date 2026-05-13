@@ -27,6 +27,7 @@ import {
 } from '../../constants/theme';
 import { SkeletonList, DiscountCardSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem } from '../../components/ui/Animations';
+import { displayCurrency } from '../../lib/utils/priceFormatters';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RoutePropType = RouteProp<RootStackParamList, 'DiscountManagement'>;
@@ -69,7 +70,7 @@ export default function DiscountManagementScreen() {
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   const [eventCurrency, setEventCurrency] = useState<string>('XAF');
-  const platformCurrency = eventCurrency === 'XAF' || eventCurrency === 'XOF' ? 'FCFA' : eventCurrency;
+  const platformCurrency = displayCurrency(eventCurrency);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 

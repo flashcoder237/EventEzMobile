@@ -3,7 +3,7 @@
  * Pure functions — no dependency on React or theme colors.
  */
 
-import { formatPriceRange } from './priceFormatters';
+import { formatPriceRange, displayCurrency } from './priceFormatters';
 
 // ---------- Types ----------
 
@@ -52,7 +52,7 @@ export function formatCardPrice(params: CardPriceParams): string {
   }
 
   if (typeof price === 'number' && price > 0)
-    return tx('componentsEvents.priceFromShort', { price: price.toLocaleString(), currency });
+    return tx('componentsEvents.priceFromShort', { price: price.toLocaleString(), currency: displayCurrency(currency) });
 
   if (typeof price === 'number' && price === 0) return tx('componentsEvents.priceFree');
 

@@ -56,6 +56,7 @@ import CountryBadgeSelector, {
 } from '../../components/payment/CountryBadgeSelector';
 import FXIndicator from '../../components/payment/FXIndicator';
 import { formatPhoneInput, formatPhoneForDisplay, preparePhoneForInput } from '../../lib/utils/phoneFormatters';
+import { displayCurrency } from '../../lib/utils/priceFormatters';
 import { getOrCreateIdempotencyKey, clearIdempotencyKey } from '../../lib/utils/paymentIdempotency';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -645,7 +646,7 @@ export default function PaymentScreen() {
   // Strategie "Event mono-devise" (docs/CURRENCY_STRATEGY.md) :
   // la devise d'affichage vient de l'evenement, PAS du pays du payeur.
   const eventCurrencyCode = ((eventObj as any)?.currency || 'XAF').toUpperCase();
-  const eventCurrencyLabel = eventCurrencyCode === 'XAF' || eventCurrencyCode === 'XOF' ? 'FCFA' : eventCurrencyCode;
+  const eventCurrencyLabel = displayCurrency(eventCurrencyCode);
 
   // Passe event.currency au backend pour qu'il convertisse fixed_fee dans
   // la devise event si la commission du pays event est dans une autre

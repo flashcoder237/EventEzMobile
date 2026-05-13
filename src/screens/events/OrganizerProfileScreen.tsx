@@ -28,6 +28,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList, User, Event } from '../../types';
 import { formatCompactNumber } from '../../lib/utils/numberFormatters';
+import { displayCurrency } from '../../lib/utils/priceFormatters';
 import {
   Colors,
   FontSizes,
@@ -437,7 +438,7 @@ export default function OrganizerProfileScreen() {
                             </View>
                           ) : event.base_price != null ? (
                             <Text style={[styles.eventPrice, { color: colors.gray900 }]}>
-                              {Number(event.base_price).toLocaleString()} {event.currency || 'FCFA'}
+                              {Number(event.base_price).toLocaleString()} {displayCurrency(event.currency)}
                             </Text>
                           ) : null}
                           <View style={styles.eventStatRow}>

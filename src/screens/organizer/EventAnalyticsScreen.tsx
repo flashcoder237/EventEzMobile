@@ -26,6 +26,7 @@ import {
 } from '../../constants/theme';
 import { SkeletonList, StatCardSkeleton } from '../../components/ui/Skeleton';
 import { KPICard } from '../../components/charts';
+import { displayCurrency } from '../../lib/utils/priceFormatters';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'EventAnalytics'>;
@@ -44,7 +45,7 @@ export default function EventAnalyticsScreen() {
 
   const [event, setEvent] = useState<Event | null>(null);
   const eventCurrencyCode = (event?.currency || 'XAF').toUpperCase();
-  const platformCurrency = eventCurrencyCode === 'XAF' || eventCurrencyCode === 'XOF' ? 'FCFA' : eventCurrencyCode;
+  const platformCurrency = displayCurrency(eventCurrencyCode);
   const [analytics, setAnalytics] = useState<any>(null);
   const [prediction, setPrediction] = useState<any>(null);
   const [loading, setLoading] = useState(true);

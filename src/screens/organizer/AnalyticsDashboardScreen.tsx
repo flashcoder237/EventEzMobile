@@ -30,6 +30,7 @@ import { StaggeredItem } from '../../components/ui/Animations';
 import { AnalyticsDashboardScreenSkeleton } from '../../components/ui/Skeleton';
 import ExportButton from '../../components/common/ExportButton';
 import { KPICard, BarChart } from '../../components/charts';
+import { displayCurrency } from '../../lib/utils/priceFormatters';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TimeRange = '7d' | '30d' | '90d' | '1y';
@@ -41,7 +42,7 @@ export default function AnalyticsDashboardScreen() {
   const { showError } = useAlert();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const { currency: walletCurrency } = useOrganizerWallet();
-  const platformCurrency = walletCurrency === 'XAF' || walletCurrency === 'XOF' ? 'FCFA' : walletCurrency;
+  const platformCurrency = displayCurrency(walletCurrency);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

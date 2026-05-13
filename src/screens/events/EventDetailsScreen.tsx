@@ -66,6 +66,7 @@ import { Badge } from '../../components/ui/Badge';
 import ConvertedPrice from '../../components/common/ConvertedPrice';
 import { EditorialCanvas, WatermarkNumeral, EditorialPillCTA, EditorialColors } from '../../components/ui/editorial';
 import { formatCompactNumber } from '../../lib/utils/numberFormatters';
+import { displayCurrency } from '../../lib/utils/priceFormatters';
 
 type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
 
@@ -1108,14 +1109,7 @@ export default function EventDetailsScreen() {
                 {minPrice === null
                   ? '—'
                   : minPrice > 0
-                  ? `${minPrice.toLocaleString()} ${
-                      // Label humain : "FCFA" pour XAF/XOF (plus parlant
-                      // localement), code ISO sinon. Backend renvoie toujours
-                      // un code ISO (XAF/XOF/EUR/etc.), jamais "FCFA".
-                      event?.currency === 'XAF' || event?.currency === 'XOF'
-                        ? 'FCFA'
-                        : event?.currency || 'XAF'
-                    }`
+                  ? `${minPrice.toLocaleString()} ${displayCurrency(event?.currency)}`
                   : t('eventDetails.free')}
               </Text>
               {minPrice !== null && minPrice > 0 && (

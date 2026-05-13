@@ -18,7 +18,8 @@ import { TicketTypeForm, FormFieldForm, FIELD_TYPES } from '../../hooks/useEvent
 import DateTimePickerField from '../ui/DateTimePickerField';
 import AIAssistButton from '../events/AIAssistButton';
 import styles from './eventCreateStyles';
-import { useEventCreateThemedStyles } from './useEventCreateThemedStyles';
+import { useEventCreateThemedStyles } from './useEventCreateThemedStyles';
+import { displayCurrency } from '../../lib/utils/priceFormatters';
 
 // ============================================
 // Props
@@ -258,8 +259,7 @@ export default function EventStep3Pricing({
   // Strategie "Event mono-devise" : la devise est celle du wallet de l'organisateur,
   // heritee par l'evenement au create et verrouillee ensuite (cf. docs/CURRENCY_STRATEGY.md)
   const { currency: walletCurrency } = useOrganizerWallet();
-  const displayCurrency =
-    walletCurrency === 'XAF' || walletCurrency === 'XOF' ? 'FCFA' : walletCurrency;
+  const currencyLabel = displayCurrency(walletCurrency);
   const themed = useEventCreateThemedStyles();
   return (
     <View style={styles.stepContent}>
@@ -293,7 +293,7 @@ export default function EventStep3Pricing({
           />
           <Text style={{ fontFamily: FontFamily.medium, fontSize: 12, lineHeight: 17, color: isDark ? '#C7D2FE' : '#4338CA', flex: 1 }}>
             {t('componentsOrganizer.step3.currencyLabel')} <Text style={{ fontFamily: FontFamily.bold }}>{walletCurrency}</Text>
-            {displayCurrency !== walletCurrency ? ` (${displayCurrency})` : ''}
+            {currencyLabel !== walletCurrency ? ` (${currencyLabel})` : ''}
             {t('componentsOrganizer.step3.currencyInherited')}
           </Text>
         </View>
@@ -393,7 +393,7 @@ export default function EventStep3Pricing({
 
                   <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
-                      <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.priceLabel', { currency: displayCurrency })}</Text>
+                      <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.priceLabel', { currency: currencyLabel })}</Text>
                       <TextInput
                         style={[styles.input, themed.input]}
                         value={ticket.price}

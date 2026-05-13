@@ -12,6 +12,7 @@ import { Event, WaitlistEntry } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import ConvertedPrice from '../common/ConvertedPrice';
+import { displayCurrency } from '../../lib/utils/priceFormatters';
 
 export interface TicketsTabProps {
   event: Event;
@@ -200,11 +201,7 @@ export default function TicketsTab({
                           >
                             {ticket.price.toLocaleString()}{' '}
                             <Text style={styles.currency}>
-                              {/* Label "FCFA" pour XAF/XOF (plus parlant
-                                  localement), code ISO sinon. */}
-                              {event.currency === 'XAF' || event.currency === 'XOF'
-                                ? 'FCFA'
-                                : event.currency || 'XAF'}
+                              {displayCurrency(event.currency)}
                             </Text>
                           </Text>
                           <ConvertedPrice amount={ticket.price} eventCurrency={event.currency || 'XAF'} />

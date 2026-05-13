@@ -29,6 +29,7 @@ import {
 } from '../../constants/theme';
 import DateTimePickerField from '../../components/ui/DateTimePickerField';
 import { GradientButton } from '../../components/ui';
+import { displayCurrency } from '../../lib/utils/priceFormatters';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RoutePropType = RouteProp<RootStackParamList, 'DiscountForm'>;
@@ -54,7 +55,7 @@ export default function DiscountFormScreen() {
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   // Strategie "Event mono-devise" : la devise du code promo = devise de l'evenement
   const [eventCurrency, setEventCurrency] = useState<string>('XAF');
-  const platformCurrency = eventCurrency === 'XAF' || eventCurrency === 'XOF' ? 'FCFA' : eventCurrency;
+  const platformCurrency = displayCurrency(eventCurrency);
 
   const [code, setCode] = useState('');
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');

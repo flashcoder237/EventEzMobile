@@ -2305,15 +2305,17 @@ export default function ConversationScreen() {
           );
         })()}
 
-        {/* Anti-spam : si destinataire d'une demande pending → input masque
-             (il doit accepter d'abord). L'initiator peut voir l'input mais
-             le backend cap a 1 message via can_user_post. */}
+        {/* Anti-spam : pending_request → input toujours masque (le backend
+             cap a 1 message pour l'initiator, et le recipient doit accepter
+             avant de pouvoir repondre). La banner au-dessus suffit. On
+             preserve quand meme la SafeArea bottom pour eviter que la liste
+             touche le bord de l'ecran. */}
         {(() => {
           const isPending = conversationDetails?.request_status === 'pending_request';
-          const initiatorId = conversationDetails?.request_initiator?.id ?? conversationDetails?.request_initiator;
-          const isRecipientOfPending = isPending && initiatorId != null && initiatorId !== user?.id;
-          return isRecipientOfPending;
-        })() ? null : (quotaState?.is_read_only || (quotaState as any)?.is_muted || (quotaState && (quotaState as any).can_post === false)) ? (
+          return isPending;
+        })() ? (
+          <View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }} />
+        ) : (quotaState?.is_read_only || (quotaState as any)?.is_muted || (quotaState && (quotaState as any).can_post === false)) ? (
           <View style={{
             paddingBottom: insets.bottom + 12,
             paddingTop: 12,
