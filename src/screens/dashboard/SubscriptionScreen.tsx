@@ -22,7 +22,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { subscriptionsAPI } from '../../api';
+import { subscriptionsAPI, paymentsAPI } from '../../api';
 import { usePaymentVerification } from '../../hooks/usePaymentVerification';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { getServiceFeeLabel } from '../../constants/payment';
@@ -123,7 +123,43 @@ const formatPrice = (price: number, currency: string = 'XAF', t?: TFn, locale: s
 };
 
 type PaymentStep = 'select-method' | 'enter-phone' | 'processing' | 'success' | 'failed';
-type PaymentMethod = 'mtn_money' | 'orange_money' | 'credit_card';
+// Type ouvert : couvre toutes les methodes que NotchPay + CinetPay supportent.
+// Le backend valide via PaymentProviderFactory.
+type PaymentMethod = string;
+
+// Mapping API method id -> proprietes UI (icone, couleur, requires phone).
+// Couvre les 11 methodes possibles : mtn_money, orange_money, moov_money,
+// free_money, yas, wave, mpesa, airtel_money, cinetpay_wallet, credit_card,
+// paypal, bank_transfer.
+interface MethodUI {
+  iconName: keyof typeof MaterialCommunityIcons.glyphMap | keyof typeof Ionicons.glyphMap;
+  iconLib: 'mci' | 'ion';
+  color: string;          // couleur de fond pastel
+  iconColor: string;      // couleur de l'icone
+  requiresPhone: boolean;
+}
+
+const METHOD_UI_CONFIG: Record<string, MethodUI> = {
+  mtn_money:       { iconLib: 'mci', iconName: 'cellphone', color: '#FFCC00', iconColor: '#FFCC00', requiresPhone: true },
+  orange_money:    { iconLib: 'mci', iconName: 'cellphone', color: '#FF6600', iconColor: '#FF6600', requiresPhone: true },
+  moov_money:      { iconLib: 'mci', iconName: 'cellphone', color: '#0EA5E9', iconColor: '#0EA5E9', requiresPhone: true },
+  free_money:      { iconLib: 'mci', iconName: 'cellphone', color: '#EF4444', iconColor: '#EF4444', requiresPhone: true },
+  yas:             { iconLib: 'mci', iconName: 'cellphone', color: '#10B981', iconColor: '#10B981', requiresPhone: true },
+  wave:            { iconLib: 'mci', iconName: 'cellphone', color: '#06B6D4', iconColor: '#06B6D4', requiresPhone: true },
+  mpesa:           { iconLib: 'mci', iconName: 'cellphone', color: '#16A34A', iconColor: '#16A34A', requiresPhone: true },
+  airtel_money:    { iconLib: 'mci', iconName: 'cellphone', color: '#F43F5E', iconColor: '#F43F5E', requiresPhone: true },
+  cinetpay_wallet: { iconLib: 'ion', iconName: 'wallet-outline', color: '#8B5CF6', iconColor: '#8B5CF6', requiresPhone: false },
+  credit_card:     { iconLib: 'ion', iconName: 'card-outline', color: '#3B82F6', iconColor: '#3B82F6', requiresPhone: false },
+  paypal:          { iconLib: 'ion', iconName: 'logo-paypal', color: '#1E40AF', iconColor: '#1E40AF', requiresPhone: false },
+  bank_transfer:   { iconLib: 'ion', iconName: 'business-outline', color: '#6B7280', iconColor: '#6B7280', requiresPhone: false },
+};
+
+interface AvailableMethod {
+  id: string;
+  name: string;
+  provider: 'notchpay' | 'cinetpay' | null;
+  ui: MethodUI;
+}
 
 interface PaymentModalState {
   visible: boolean;
@@ -170,6 +206,10 @@ export default function SubscriptionScreen() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [upgrading, setUpgrading] = useState<string | null>(null);
   const [payment, setPayment] = useState<PaymentModalState>(INITIAL_PAYMENT_STATE);
+  // Methodes de paiement dynamiques (fetch au moment d'ouvrir la modale).
+  // Vide tant que pas charge — on affiche un spinner cote select-method.
+  const [availableMethods, setAvailableMethods] = useState<AvailableMethod[]>([]);
+  const [methodsLoading, setMethodsLoading] = useState(false);
 
   // Animated underline for toggle
   const toggleAnim = useRef(new Animated.Value(0)).current;
@@ -304,6 +344,34 @@ export default function SubscriptionScreen() {
                   amount: data.calculated_price ?? data.payment?.amount ?? data.amount ?? price,
                   errorMessage: '',
                 });
+
+                // Charge dynamiquement les methodes selon (pays organisateur, devise).
+                // Reutilise le meme endpoint que la billetterie (merge NotchPay+CinetPay).
+                setMethodsLoading(true);
+                try {
+                  const country = (data.payment?.country_code || countryCode || 'CM').toUpperCase();
+                  const currency = data.payment?.currency || planCurrency || 'XAF';
+                  const methodsRes = await paymentsAPI.getPaymentMethods(country, currency);
+                  const apiMethods = methodsRes.data?.methods || [];
+                  const mapped: AvailableMethod[] = apiMethods
+                    .filter((m: any) => METHOD_UI_CONFIG[m.id])
+                    .map((m: any) => ({
+                      id: m.id,
+                      name: m.name,
+                      provider: m.selected_provider ?? null,
+                      ui: METHOD_UI_CONFIG[m.id],
+                    }));
+                  setAvailableMethods(mapped);
+                } catch (e) {
+                  // Fallback : 3 methodes minimales pour ne pas bloquer
+                  setAvailableMethods([
+                    { id: 'mtn_money', name: t('subscriptionForm.mtnMomo'), provider: null, ui: METHOD_UI_CONFIG.mtn_money },
+                    { id: 'orange_money', name: t('subscriptionForm.orangeMoneyMethod'), provider: null, ui: METHOD_UI_CONFIG.orange_money },
+                    { id: 'credit_card', name: t('subscriptionForm.creditCardMethod'), provider: null, ui: METHOD_UI_CONFIG.credit_card },
+                  ]);
+                } finally {
+                  setMethodsLoading(false);
+                }
               } else {
                 // Free plan -> directly applied
                 Alert.alert(
@@ -329,8 +397,10 @@ export default function SubscriptionScreen() {
   };
 
   const handleSelectPaymentMethod = (method: PaymentMethod) => {
-    if (method === 'credit_card') {
-      // Process card payment immediately (redirects to NotchPay)
+    // Methode sans phone (carte, paypal, cinetpay_wallet, bank_transfer) :
+    // processing immediat (redirect via WebBrowser cote provider).
+    const m = availableMethods.find(x => x.id === method);
+    if (m && !m.ui.requiresPhone) {
       setPayment((prev) => ({ ...prev, method, step: 'processing' }));
       processPayment(method, '');
     } else {
@@ -815,56 +885,57 @@ export default function SubscriptionScreen() {
               </View>
             )}
 
-            {/* Step: Select Method */}
+            {/* Step: Select Method (dynamique selon pays organisateur) */}
             {payment.step === 'select-method' && (
               <View style={styles.methodsContainer}>
-                {/* MTN Mobile Money */}
-                <TouchableOpacity
-                  style={[styles.methodCard, { backgroundColor: cardBg, borderColor }]}
-                  onPress={() => handleSelectPaymentMethod('mtn_money')}
-                  activeOpacity={TOUCH_OPACITY}
-                >
-                  <View style={[styles.methodIconCircle, { backgroundColor: '#FFCC00' + '20' }]}>
-                    <MaterialCommunityIcons name="cellphone" size={24} color="#FFCC00" />
+                {methodsLoading ? (
+                  <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                    <ActivityIndicator size="small" color={VIOLET} />
                   </View>
-                  <View style={styles.methodInfo}>
-                    <Text style={[styles.methodName, { color: ink }]}>{t('subscriptionForm.mtnMomo')}</Text>
-                    <Text style={[styles.methodDescription, { color: colors.gray500 }]}>{t('subscriptionForm.mtnDescription')}</Text>
+                ) : availableMethods.length === 0 ? (
+                  <View style={{ padding: 16, borderRadius: 12, backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FCD34D' }}>
+                    <Text style={{ fontSize: 13, color: '#92400E' }}>
+                      Aucune methode de paiement disponible pour votre pays. Contactez le support.
+                    </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
-                </TouchableOpacity>
-
-                {/* Orange Money */}
-                <TouchableOpacity
-                  style={[styles.methodCard, { backgroundColor: cardBg, borderColor }]}
-                  onPress={() => handleSelectPaymentMethod('orange_money')}
-                  activeOpacity={TOUCH_OPACITY}
-                >
-                  <View style={[styles.methodIconCircle, { backgroundColor: '#FF6600' + '20' }]}>
-                    <MaterialCommunityIcons name="cellphone" size={24} color="#FF6600" />
-                  </View>
-                  <View style={styles.methodInfo}>
-                    <Text style={[styles.methodName, { color: ink }]}>{t('subscriptionForm.orangeMoneyMethod')}</Text>
-                    <Text style={[styles.methodDescription, { color: colors.gray500 }]}>{t('subscriptionForm.orangeDescription')}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
-                </TouchableOpacity>
-
-                {/* Credit Card */}
-                <TouchableOpacity
-                  style={[styles.methodCard, { backgroundColor: cardBg, borderColor }]}
-                  onPress={() => handleSelectPaymentMethod('credit_card')}
-                  activeOpacity={TOUCH_OPACITY}
-                >
-                  <View style={[styles.methodIconCircle, { backgroundColor: '#3B82F6' + '20' }]}>
-                    <Ionicons name="card-outline" size={24} color="#3B82F6" />
-                  </View>
-                  <View style={styles.methodInfo}>
-                    <Text style={[styles.methodName, { color: ink }]}>{t('subscriptionForm.creditCardMethod')}</Text>
-                    <Text style={[styles.methodDescription, { color: colors.gray500 }]}>{t('subscriptionForm.creditCardDescription')}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
-                </TouchableOpacity>
+                ) : (
+                  availableMethods.map((m) => {
+                    const Icon = m.ui.iconLib === 'mci' ? MaterialCommunityIcons : Ionicons;
+                    return (
+                      <TouchableOpacity
+                        key={m.id}
+                        style={[styles.methodCard, { backgroundColor: cardBg, borderColor }]}
+                        onPress={() => handleSelectPaymentMethod(m.id)}
+                        activeOpacity={TOUCH_OPACITY}
+                      >
+                        <View style={[styles.methodIconCircle, { backgroundColor: m.ui.color + '20' }]}>
+                          {/* @ts-expect-error : iconName est union de deux libs */}
+                          <Icon name={m.ui.iconName} size={24} color={m.ui.iconColor} />
+                        </View>
+                        <View style={styles.methodInfo}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                            <Text style={[styles.methodName, { color: ink }]}>{m.name}</Text>
+                            {m.provider && (
+                              <View style={{
+                                paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+                                backgroundColor: m.provider === 'cinetpay' ? '#EDE9FE' : '#D1FAE5',
+                              }}>
+                                <Text style={{
+                                  fontSize: 9, fontWeight: '600',
+                                  color: m.provider === 'cinetpay' ? '#6D28D9' : '#047857',
+                                  textTransform: 'uppercase', letterSpacing: 0.5,
+                                }}>
+                                  {m.provider === 'cinetpay' ? 'CinetPay' : 'NotchPay'}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
               </View>
             )}
 
@@ -872,7 +943,14 @@ export default function SubscriptionScreen() {
             {payment.step === 'enter-phone' && (
               <View style={styles.phoneContainer}>
                 <Text style={[styles.phoneLabel, { color: ink }]}>
-                  {payment.method === 'mtn_money' ? t('subscriptionForm.phoneLabelMtn') : t('subscriptionForm.phoneLabelOrange')}
+                  {(() => {
+                    // Affiche le nom de la methode courante (MTN MoMo, Wave, etc.)
+                    const m = availableMethods.find(x => x.id === payment.method);
+                    if (m) return t('subscriptionForm.phoneLabelGeneric', { method: m.name, defaultValue: `Numero ${m.name}` });
+                    if (payment.method === 'mtn_money') return t('subscriptionForm.phoneLabelMtn');
+                    if (payment.method === 'orange_money') return t('subscriptionForm.phoneLabelOrange');
+                    return t('subscriptionForm.phoneLabelGeneric', { method: '', defaultValue: 'Numero de telephone' });
+                  })()}
                 </Text>
                 <View style={[styles.phoneInputRow, { borderColor }]}>
                   <View style={[styles.phonePrefix, { backgroundColor: surface, borderRightColor: borderColor }]}>

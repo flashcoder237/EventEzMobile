@@ -27,12 +27,22 @@ export interface SupportedCountry {
 export const INTL_CODE = 'INTL';
 
 export const SUPPORTED_COUNTRIES: SupportedCountry[] = [
+  // Pays NotchPay (et CinetPay pour CM/CI/SN)
   { code: 'CM',       name: 'Cameroun',       currency: 'XAF', flag: '🇨🇲' },
   { code: 'CI',       name: "Côte d'Ivoire",  currency: 'XOF', flag: '🇨🇮' },
   { code: 'SN',       name: 'Sénégal',        currency: 'XOF', flag: '🇸🇳' },
   { code: 'KE',       name: 'Kenya',          currency: 'KES', flag: '🇰🇪' },
   { code: 'GH',       name: 'Ghana',          currency: 'GHS', flag: '🇬🇭' },
   { code: 'UG',       name: 'Ouganda',        currency: 'UGX', flag: '🇺🇬' },
+  // Pays CinetPay uniquement (UEMOA + Congo + Guinee)
+  { code: 'BF',       name: 'Burkina Faso',   currency: 'XOF', flag: '🇧🇫' },
+  { code: 'ML',       name: 'Mali',           currency: 'XOF', flag: '🇲🇱' },
+  { code: 'TG',       name: 'Togo',           currency: 'XOF', flag: '🇹🇬' },
+  { code: 'BJ',       name: 'Bénin',          currency: 'XOF', flag: '🇧🇯' },
+  { code: 'NE',       name: 'Niger',          currency: 'XOF', flag: '🇳🇪' },
+  { code: 'CD',       name: 'RD Congo',       currency: 'CDF', flag: '🇨🇩' },
+  { code: 'GN',       name: 'Guinée',         currency: 'GNF', flag: '🇬🇳' },
+  // Payeur international (cartes + PayPal via redirect)
   { code: INTL_CODE,  name: 'Autre pays',     currency: '',    flag: '🌍' },
 ];
 

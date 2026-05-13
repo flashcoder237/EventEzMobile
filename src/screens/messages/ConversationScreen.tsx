@@ -1277,7 +1277,15 @@ export default function ConversationScreen() {
     );
   };
 
+  // Référence du message à transférer — préservée séparément de
+  // `state.selectedMessage`, qui est remis à null dès que MessageActionModal
+  // se ferme (`hideActionMenu` dans le reducer). Sans cette ref, le tap sur
+  // "Envoyer" du ForwardModal voyait `selectedMessage=null` et abandonnait
+  // silencieusement.
+  const forwardSourceMessageRef = useRef<Message | null>(null);
+
   const handleForwardMessage = async (message: Message) => {
+    forwardSourceMessageRef.current = message;
     actions.showForwardModal();
     actions.setLoadingForwardTargets(true);
 
@@ -1303,8 +1311,12 @@ export default function ConversationScreen() {
   };
 
   const handleForwardToTargets = async (targetUserIds: string[]) => {
-    if (!state.selectedMessage || targetUserIds.length === 0) return;
-    const messageId = String(state.selectedMessage.id);
+    // On lit la source du transfert depuis la ref dédiée — `selectedMessage`
+    // a déjà été remis à null par hideActionMenu au moment où le user a tapé
+    // "Forward" dans le menu d'actions. Sans cette ref → bouton inactif.
+    const sourceMessage = forwardSourceMessageRef.current;
+    if (!sourceMessage || targetUserIds.length === 0) return;
+    const messageId = String(sourceMessage.id);
     // Forward en parallèle vers tous les destinataires. On collecte les
     // résultats pour signaler les échecs sans bloquer les autres.
     const results = await Promise.allSettled(
@@ -1314,6 +1326,7 @@ export default function ConversationScreen() {
     );
     const failures = results.filter(r => r.status === 'rejected').length;
     actions.hideForwardModal();
+    forwardSourceMessageRef.current = null;
     if (failures === 0) {
       showSuccess(
         targetUserIds.length === 1
@@ -2360,7 +2373,12 @@ export default function ConversationScreen() {
         loading={state.loadingForwardTargets}
         searchQuery={forwardSearchQuery}
         onSearchChange={setForwardSearchQuery}
-        onClose={actions.hideForwardModal}
+        onClose={() => {
+          // Clear la ref pour ne pas conserver une référence à un message
+          // potentiellement déjà mis à jour / supprimé après la fermeture.
+          forwardSourceMessageRef.current = null;
+          actions.hideForwardModal();
+        }}
         onSendToTargets={handleForwardToTargets}
       />
 

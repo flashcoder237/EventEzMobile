@@ -344,6 +344,9 @@ export default function SettingsScreen() {
   const [messagingPresenceVisible, setMessagingPresenceVisible] = useState(true);
   const [messagingSettingsId, setMessagingSettingsId] = useState<string | null>(null);
   const [blockedCount, setBlockedCount] = useState(0);
+  // Politique anti-spam DM : qui peut me contacter
+  type ContactPolicy = 'everyone' | 'connections' | 'connections_strict' | 'nobody';
+  const [whoCanContact, setWhoCanContact] = useState<ContactPolicy>('connections');
 
   // Préférences
   const [language, setLanguage] = useState('fr');
@@ -389,6 +392,9 @@ export default function SettingsScreen() {
         setMessagingEnabled(settings.messaging_enabled ?? true);
         setMessagingReadReceipts(settings.read_receipts_enabled ?? true);
         setMessagingPresenceVisible(settings.presence_visible ?? true);
+        if (settings.who_can_contact) {
+          setWhoCanContact(settings.who_can_contact as ContactPolicy);
+        }
         const blocked = Array.isArray(settings.blocked_users) ? settings.blocked_users : [];
         setBlockedCount(blocked.length);
         return sid;
@@ -404,8 +410,8 @@ export default function SettingsScreen() {
   };
 
   const updateMessagingSetting = async (
-    key: 'messaging_enabled' | 'read_receipts_enabled' | 'presence_visible',
-    value: boolean,
+    key: 'messaging_enabled' | 'read_receipts_enabled' | 'presence_visible' | 'who_can_contact',
+    value: boolean | string,
   ) => {
     let sid = messagingSettingsIdRef.current;
     if (!sid) {
@@ -421,6 +427,30 @@ export default function SettingsScreen() {
       // Rollback en cas d'erreur
       fetchMessagingSettings();
     }
+  };
+
+  const openWhoCanContactPicker = () => {
+    const options: { value: ContactPolicy; label: string; desc: string }[] = [
+      { value: 'everyone', label: t('settings.whoCanContactEveryone'), desc: t('settings.whoCanContactEveryoneDesc') },
+      { value: 'connections', label: t('settings.whoCanContactConnections'), desc: t('settings.whoCanContactConnectionsDesc') },
+      { value: 'connections_strict', label: t('settings.whoCanContactConnectionsStrict'), desc: t('settings.whoCanContactConnectionsStrictDesc') },
+      { value: 'nobody', label: t('settings.whoCanContactNobody'), desc: t('settings.whoCanContactNobodyDesc') },
+    ];
+    showAlert(
+      t('settings.whoCanContactPickerTitle'),
+      t('settings.whoCanContactPickerMessage'),
+      [
+        ...options.map(opt => ({
+          text: `${opt.value === whoCanContact ? '✓ ' : ''}${opt.label}`,
+          onPress: () => {
+            setWhoCanContact(opt.value);
+            updateMessagingSetting('who_can_contact', opt.value);
+          },
+        })),
+        { text: t('common.cancel'), style: 'cancel' as const },
+      ],
+      'info',
+    );
   };
 
   const fetchSettings = async () => {
@@ -1041,6 +1071,20 @@ export default function SettingsScreen() {
                 }}
               />
             }
+          />
+          <OptionCard
+            icon="shield-checkmark-outline"
+            eyebrow={t('settings.whoCanContactCurrent', { defaultValue: 'ANTI-SPAM' })}
+            title={t('settings.rowWhoCanContact')}
+            subtitle={
+              whoCanContact === 'everyone' ? t('settings.whoCanContactEveryone') :
+              whoCanContact === 'connections' ? t('settings.whoCanContactConnections') :
+              whoCanContact === 'connections_strict' ? t('settings.whoCanContactConnectionsStrict') :
+              t('settings.whoCanContactNobody')
+            }
+            tone="primary"
+            onPress={() => openWhoCanContactPicker()}
+            right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
           <OptionCard
             icon="ban-outline"

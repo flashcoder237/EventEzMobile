@@ -78,6 +78,44 @@ export const paymentsAPI = {
   processMobileMoney: (id: string, data: { phone: string; channel?: string }) =>
     api.post(`/payments/${id}/process_mobile_money/`, data),
 
+  /**
+   * Endpoint generique unifie : cree le Payment + initialise chez le bon
+   * gateway (NotchPay ou CinetPay) en une requete. Backend route via
+   * PaymentProviderFactory selon (payment_method, country_code).
+   *
+   * Body :
+   *   - registration_id, payment_method (obligatoires)
+   *   - billing_email, billing_phone, billing_name (optionnels)
+   *   - customer.{name,surname,address,city,country,state,zip_code}
+   *     (obligatoire pour carte CinetPay)
+   *
+   * Retourne payment_url a ouvrir via WebBrowser.openBrowserAsync().
+   */
+  initiate: (data: {
+    registration_id: string;
+    payment_method: string;
+    billing_email?: string;
+    billing_phone?: string;
+    billing_name?: string;
+    customer?: {
+      name?: string;
+      surname?: string;
+      address?: string;
+      city?: string;
+      country?: string;
+      state?: string;
+      zip_code?: string;
+    };
+  }) => api.post('/payments/initiate/', data),
+
+  /**
+   * GET /api/payments/cinetpay/return/ — statut Payment apres redirect CinetPay.
+   * Le webhook fait foi pour la mutation du statut ; ce endpoint sert juste a
+   * afficher succes/echec/en-cours dans l'ecran de retour mobile.
+   */
+  cinetpayReturn: (transactionId: string) =>
+    api.get('/payments/cinetpay/return/', { params: { transaction_id: transactionId } }),
+
   // Export — use `useExport()` hook instead.
   // Endpoint kept for reference: GET /payments/export/?status=&export_format=csv|xlsx|pdf
 };

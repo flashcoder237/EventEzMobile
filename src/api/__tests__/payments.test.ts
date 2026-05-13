@@ -162,6 +162,34 @@ describe('paymentsAPI', () => {
     expect(api.patch).not.toHaveBeenCalled();
     expect(api.delete).not.toHaveBeenCalled();
   });
+
+  it('initiate(data) → POST /payments/initiate/ (endpoint unifie CinetPay/NotchPay)', async () => {
+    const data = {
+      registration_id: 'reg-1',
+      payment_method: 'moov_money',
+      billing_email: 'user@test.com',
+      billing_phone: '+22697123456',
+    };
+    await paymentsAPI.initiate(data);
+    expect(api.post).toHaveBeenCalledWith('/payments/initiate/', data);
+    expect(api.post).toHaveBeenCalledTimes(1);
+    expect(api.get).not.toHaveBeenCalled();
+    expect(api.put).not.toHaveBeenCalled();
+    expect(api.patch).not.toHaveBeenCalled();
+    expect(api.delete).not.toHaveBeenCalled();
+  });
+
+  it('cinetpayReturn(transactionId) → GET /payments/cinetpay/return/?transaction_id=', async () => {
+    await paymentsAPI.cinetpayReturn('txn-abc');
+    expect(api.get).toHaveBeenCalledWith('/payments/cinetpay/return/', {
+      params: { transaction_id: 'txn-abc' },
+    });
+    expect(api.get).toHaveBeenCalledTimes(1);
+    expect(api.post).not.toHaveBeenCalled();
+    expect(api.put).not.toHaveBeenCalled();
+    expect(api.patch).not.toHaveBeenCalled();
+    expect(api.delete).not.toHaveBeenCalled();
+  });
 });
 
 // ===========================================================================

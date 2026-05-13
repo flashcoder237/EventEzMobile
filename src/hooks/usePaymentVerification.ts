@@ -3,14 +3,18 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 // ============================================
 // PAYMENT STATUS CONSTANTS
 // ============================================
-// These constants must match the values returned by the backend
+// These constants must match the values returned by the backend.
+// Couvre :
+// - NotchPay : `complete`, `failed`, `cancelled`, ...
+// - CinetPay Seamless v1 : `SUCCESS` / `FAILED` / `PENDING` (uppercase, normalise lowercase)
+// - CinetPay v2 legacy : `ACCEPTED` / `REFUSED` / `WAITING_FOR_CUSTOMER` (compat retro)
 export const PAYMENT_STATUS = {
   // Success statuses
-  SUCCESS: ['completed', 'complete', 'successful', 'paid'],
+  SUCCESS: ['completed', 'complete', 'success', 'successful', 'paid', 'accepted'],
   // Failure statuses
-  FAILED: ['failed', 'cancelled', 'rejected', 'expired', 'error', 'declined', 'timeout'],
-  // Pending statuses
-  PENDING: ['pending', 'processing', 'initiated', 'awaiting_confirmation'],
+  FAILED: ['failed', 'cancelled', 'rejected', 'expired', 'error', 'declined', 'timeout', 'refused'],
+  // Pending statuses — `waiting_for_customer` reste pour compat v2 USSD push
+  PENDING: ['pending', 'processing', 'initiated', 'awaiting_confirmation', 'waiting_for_customer'],
 };
 
 export const isPaymentSuccess = (status: string): boolean => {

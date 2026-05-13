@@ -63,7 +63,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const SUPPORTED_CODES = new Set(SUPPORTED_COUNTRIES.map((c) => c.code));
 const PAYER_COUNTRY_STORAGE_KEY = 'eventez:payer_country';
 
-// Import des icônes de paiement
+// Import des icones de paiement. Les nouvelles methodes CinetPay
+// (moov_money / free_money / yas / cinetpay_wallet) n'ont pas de PNG
+// dans assets/payments/ ; sans entree ici, le selecteur affiche un disque
+// colore avec l'initiale. Ajouter les PNG quand dispo.
 const PaymentIcons: Record<string, ImageSource> = {
   mtn_money: require('../../../assets/payments/momo.png'),
   orange_money: require('../../../assets/payments/om.png'),
@@ -74,7 +77,7 @@ const PaymentIcons: Record<string, ImageSource> = {
   paypal: require('../../../assets/payments/PayPal_Logo.png'),
 };
 
-// Couleurs par méthode de paiement
+// Couleurs par methode de paiement
 const METHOD_COLORS: Record<string, string> = {
   mtn_money: '#FFCC00',
   orange_money: '#FF6600',
@@ -83,48 +86,83 @@ const METHOD_COLORS: Record<string, string> = {
   mpesa: '#4CAF50',
   airtel_money: '#E53935',
   paypal: '#003087',
+  // CinetPay-specifiques
+  moov_money: '#0EA5E9',          // Moov bleu cyan
+  free_money: '#10B981',          // Free Money SN
+  yas: '#C026D3',                 // T-Money / Yas
+  cinetpay_wallet: '#6D28D9',     // CinetPay violet
 };
 
-// Descriptions par méthode
-const METHOD_DESCRIPTIONS: Record<string, string> = {
-  mtn_money: 'Paie avec ton compte MTN MoMo',
-  orange_money: 'Paie avec ton compte Orange Money',
-  credit_card: 'Visa, Mastercard, etc.',
-  wave: 'Paie avec ton compte Wave',
-  mpesa: 'Paie avec M-Pesa',
-  airtel_money: 'Paie avec Airtel Money',
-  paypal: 'Paie avec ton compte PayPal',
+// Mapping methode -> cle i18n pour la description (toutes traduites FR + EN
+// dans src/i18n/locales/). Fallback : `payment.paymentMethodFallbackDescription`.
+const METHOD_DESCRIPTION_KEYS: Record<string, string> = {
+  mtn_money: 'payment.paymentMTNDescription',
+  orange_money: 'payment.paymentOrangeDescription',
+  credit_card: 'payment.paymentCardDescription',
+  wave: 'payment.paymentWaveDescription',
+  mpesa: 'payment.paymentMPesaDescription',
+  airtel_money: 'payment.paymentAirtelDescription',
+  paypal: 'payment.paymentPayPalDescription',
+  bank_transfer: 'payment.paymentBankTransferDescription',
+  // CinetPay-specifiques
+  moov_money: 'payment.paymentMoovMoneyDescription',
+  free_money: 'payment.paymentFreeMoneyDescription',
+  yas: 'payment.paymentYasDescription',
+  cinetpay_wallet: 'payment.paymentCinetPayWalletDescription',
 };
 
-// Méthodes de type mobile money
+// Methodes de type mobile money (etend avec les nouveautes CinetPay)
 const MOBILE_MONEY_METHODS = new Set([
   'mtn_money', 'orange_money', 'wave', 'mpesa', 'airtel_money',
+  'moov_money', 'free_money', 'yas',
 ]);
 
-// Méthodes qui utilisent une redirection navigateur (pas de saisie téléphone)
+// Methodes qui utilisent une redirection navigateur (pas de saisie telephone) :
+// - NotchPay : credit_card + paypal (page hebergee)
+// - CinetPay : credit_card + cinetpay_wallet (page hebergee)
+// Note : les Mobile Money via CinetPay passent aussi par redirect (la page
+// CinetPay capture phone+PIN). Ce flag est defini dynamiquement dans le
+// submit handler en fonction du selected_provider renvoye par /payments/methods/.
 const REDIRECT_METHODS = new Set([
-  'credit_card', 'paypal',
+  'credit_card', 'paypal', 'cinetpay_wallet',
 ]);
 
-// Map locale → code pays NotchPay (pour afficher les méthodes de paiement du payeur)
+// Methodes specifiques a CinetPay (selected_provider est toujours 'cinetpay'
+// independamment de la config admin). Le submit handler force la branche
+// CinetPay (POST /api/payments/initiate/ + WebBrowser).
+const CINETPAY_ONLY_METHODS = new Set([
+  'moov_money', 'free_money', 'yas', 'cinetpay_wallet',
+]);
+
+// Map locale -> code pays (afficher les methodes du payeur)
 const LOCALE_TO_COUNTRY: Record<string, string> = {
+  // Pays NotchPay
   'fr-CM': 'CM', 'en-CM': 'CM',
   'fr-CI': 'CI',
   'fr-SN': 'SN',
   'sw-KE': 'KE', 'en-KE': 'KE',
   'en-GH': 'GH',
   'en-UG': 'UG', 'sw-UG': 'UG',
+  // Pays CinetPay-only
+  'fr-BF': 'BF',
+  'fr-ML': 'ML',
+  'fr-TG': 'TG',
+  'fr-BJ': 'BJ',
+  'fr-NE': 'NE',
+  'fr-CD': 'CD', 'sw-CD': 'CD',
+  'fr-GN': 'GN',
 };
+
+const KNOWN_COUNTRIES = ['CM', 'CI', 'SN', 'KE', 'GH', 'UG', 'BF', 'ML', 'TG', 'BJ', 'NE', 'CD', 'GN'] as const;
 
 function detectUserCountry(): string | null {
   try {
     const locale = Intl.DateTimeFormat().resolvedOptions().locale;
     if (LOCALE_TO_COUNTRY[locale]) return LOCALE_TO_COUNTRY[locale];
-    // Try with last part as country code
     const parts = locale.split('-');
     if (parts.length >= 2) {
       const countryPart = parts[parts.length - 1].toUpperCase();
-      if (['CM', 'CI', 'SN', 'KE', 'GH', 'UG'].includes(countryPart)) return countryPart;
+      if ((KNOWN_COUNTRIES as readonly string[]).includes(countryPart)) return countryPart;
     }
     return null;
   } catch {
@@ -477,16 +515,22 @@ export default function PaymentScreen() {
         setCountryConfig(config);
 
         if (config.methods && config.methods.length > 0) {
-          const methods: PaymentMethodOption[] = config.methods.map((m: APIPaymentMethodOption) => ({
-            id: m.id as PaymentMethodId,
-            name: m.name,
-            icon: PaymentIcons[m.id] || PaymentIcons.credit_card,
-            color: METHOD_COLORS[m.id] || '#666666',
-            description: METHOD_DESCRIPTIONS[m.id] || `Paiement via ${m.name}`,
-            channel: m.channel,
-            type: m.type,
-            maxAmount: m.max_amount != null ? Number(m.max_amount) : null,
-          }));
+          const methods: PaymentMethodOption[] = config.methods.map((m: APIPaymentMethodOption) => {
+            const descKey = METHOD_DESCRIPTION_KEYS[m.id];
+            const description = descKey
+              ? t(descKey)
+              : t('payment.paymentMethodFallbackDescription', { name: m.name });
+            return {
+              id: m.id as PaymentMethodId,
+              name: m.name,
+              icon: PaymentIcons[m.id] || PaymentIcons.credit_card,
+              color: METHOD_COLORS[m.id] || '#666666',
+              description,
+              channel: m.channel,
+              type: m.type,
+              maxAmount: m.max_amount != null ? Number(m.max_amount) : null,
+            };
+          });
           setDynamicMethods(methods);
           setMethodsFetchFailed(false);
         }
@@ -652,13 +696,23 @@ export default function PaymentScreen() {
       return;
     }
 
-    // Validation du numéro de téléphone pour Mobile Money
-    const validation = validatePhoneNumber(selectedMethod);
-    if (!validation.valid) {
-      return;
-    }
+    // Detection precoce du provider : CinetPay capture le telephone sur sa
+    // page hebergee, donc on saute la validation locale (sinon on bloquerait
+    // l'utilisateur qui n'a pas tape son numero dans notre form).
+    const earlyMethodConfig = dynamicMethods.find((m) => m.id === selectedMethod);
+    const earlyIsCinetPay =
+      (earlyMethodConfig as any)?.selected_provider === 'cinetpay'
+      || CINETPAY_ONLY_METHODS.has(selectedMethod);
 
-    const formattedPhone = validation.formatted || '';
+    // Validation du numero de telephone pour Mobile Money via NotchPay uniquement
+    let formattedPhone = '';
+    if (!earlyIsCinetPay) {
+      const validation = validatePhoneNumber(selectedMethod);
+      if (!validation.valid) {
+        return;
+      }
+      formattedPhone = validation.formatted || '';
+    }
 
     // Confirmation biométrique avant d'initier le paiement (catégorie payments).
     // Posé AVANT setProcessing pour ne pas bloquer le bouton si l'user annule.
@@ -678,10 +732,86 @@ export default function PaymentScreen() {
         throw new Error('Email utilisateur non disponible. Reconnecte-toi.');
       }
 
-      // Récupère la clé d'idempotence persistée (ou en crée une) — réutilisée
-      // tant que le paiement n'a pas atteint un statut terminal. Évite le double
-      // débit si un retry intervient APRÈS que createPayment a réussi côté serveur
-      // mais que la réponse n'est jamais arrivée au client.
+      // ===== Branche CinetPay : tout passe par /api/payments/initiate/ =====
+      // CinetPay heberge sa propre page de paiement (Mobile Money + carte +
+      // wallet). On cree le Payment ET on initie en une seule requete, puis
+      // on ouvre la page dans WebBrowser. Apres fermeture, on polle le statut
+      // via verifyPayment (identique au flow Stripe / NotchPay carte).
+      const methodConfig = dynamicMethods.find((m) => m.id === selectedMethod);
+      const isCinetPayMethod =
+        (methodConfig as any)?.selected_provider === 'cinetpay'
+        || CINETPAY_ONLY_METHODS.has(selectedMethod);
+
+      if (isCinetPayMethod) {
+        const initiateResponse = await paymentsAPI.initiate({
+          registration_id: registrationId,
+          payment_method: selectedMethod,
+          billing_email: userEmail,
+          billing_phone: formattedPhone,
+        });
+        const payload = initiateResponse.data;
+        if (!payload?.success || !payload?.payment_url) {
+          throw new Error(payload?.message || t('payment.paymentURLNotReceived'));
+        }
+        const cinetpayPaymentId = payload.payment_id as string;
+        // transaction_id EventEz envoye a CinetPay = str(payment.id). On le
+        // persiste pour pouvoir interroger /payments/cinetpay/return/ apres
+        // le retour de WebBrowser (lecture rapide vs polling complet).
+        const cinetpayTxnId = (payload.transaction_id as string) || cinetpayPaymentId;
+        setPaymentId(cinetpayPaymentId);
+
+        const result = await WebBrowser.openBrowserAsync(payload.payment_url, {
+          dismissButtonStyle: 'close',
+          presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+          toolbarColor: colors.primary,
+          controlsColor: Colors.white,
+        });
+
+        // Apres fermeture du WebBrowser (dismiss OU succes), on tente UNE lecture
+        // rapide via /payments/cinetpay/return/?transaction_id=... pour avoir un
+        // statut "frais" avant de retomber sur le polling complet (qui peut prendre
+        // jusqu'a 7.5 min). Le backend lit juste le Payment en DB (pas d'appel
+        // CinetPay) donc c'est tres rapide. Le webhook fait foi pour la transition
+        // pending → completed, on lit juste l'etat courant.
+        try {
+          const ret = await paymentsAPI.cinetpayReturn(cinetpayTxnId);
+          const retStatus = (ret?.data?.status || '').toLowerCase();
+          if (ret?.data?.is_successful || retStatus === 'completed') {
+            // Statut deja confirme cote serveur (webhook arrive avant
+            // que l'utilisateur ne ferme WebBrowser). On peut sauter le polling.
+            startVerification(cinetpayPaymentId);
+            return;
+          }
+        } catch (e) {
+          if (__DEV__) console.log('[CinetPay] return lookup failed (non-bloquant):', e);
+        }
+
+        if (result.type === 'dismiss' || result.type === 'cancel') {
+          setProcessing(false);
+          showAlert(
+            t('payment.paymentInterruptedTitle'),
+            t('payment.paymentInterruptedMessage'),
+            [
+              {
+                text: t('payment.paymentCheckStatus'),
+                onPress: () => startVerification(cinetpayPaymentId),
+              },
+              { text: t('payment.paymentRetry'), onPress: () => handlePayment() },
+              { text: t('payment.paymentBack'), style: 'cancel' },
+            ],
+          );
+          return;
+        }
+
+        // Webhook backend met a jour Payment.status ; on polle pour rafraichir l'UI.
+        startVerification(cinetpayPaymentId);
+        return;
+      }
+
+      // Recupere la cle d'idempotence persistee (ou en cree une) — reutilisee
+      // tant que le paiement n'a pas atteint un statut terminal. Evite le double
+      // debit si un retry intervient APRES que createPayment a reussi cote serveur
+      // mais que la reponse n'est jamais arrivee au client.
       const idempotencyKey = await getOrCreateIdempotencyKey(registrationId);
 
       // Create payment avec les bons noms de champs + clé d'idempotence
