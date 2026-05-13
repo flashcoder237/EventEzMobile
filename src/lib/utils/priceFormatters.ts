@@ -6,6 +6,22 @@
 import { Event } from '../../types';
 
 /**
+ * Transforme un code ISO 4217 en label d'affichage utilisateur.
+ * Convention de l'app : XAF/XOF (Francs CFA) → "FCFA" (label friendly).
+ * Autres devises : retournees telles quelles (EUR, USD, GBP, etc.).
+ *
+ * À utiliser PARTOUT où on affiche une devise à l'utilisateur (cartes
+ * billet, détails événement, paiements, wallet, etc.) pour garantir un
+ * affichage homogène.
+ */
+export function displayCurrency(currency: string | null | undefined): string {
+  if (!currency) return 'FCFA';
+  const upper = currency.toUpperCase();
+  if (upper === 'XAF' || upper === 'XOF') return 'FCFA';
+  return upper;
+}
+
+/**
  * Calcule le prix d'un evenement a partir des differentes sources disponibles.
  * Retourne le prix minimum ou undefined si le prix est inconnu.
  */
@@ -44,7 +60,7 @@ export function formatPrice(amount: number, currency: string = 'FCFA'): string {
     .toString()
     .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
-  return `${formatted} ${currency}`;
+  return `${formatted} ${displayCurrency(currency)}`;
 }
 
 /**
@@ -97,8 +113,8 @@ export function formatPriceRange(min: number, max: number, currency: string = 'F
       .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
   if (min === 0) {
-    return `Gratuit - ${formatNum(max)} ${currency}`;
+    return `Gratuit - ${formatNum(max)} ${displayCurrency(currency)}`;
   }
 
-  return `${formatNum(min)} - ${formatNum(max)} ${currency}`;
+  return `${formatNum(min)} - ${formatNum(max)} ${displayCurrency(currency)}`;
 }

@@ -3121,6 +3121,25 @@
     "forwardPartialBody": "Envoyé à {{ok}} destinataires. {{ko}} en échec.",
     "readOnlyDiscussionTitle": "Discussion en lecture seule",
     "readOnlyDiscussionMessage": "Sauvegardez vos messages — la conversation sera bientôt supprimée.",
+    "dmBlocked": {
+      "title": "Envoi impossible",
+      "pendingTitle": "Demande en attente",
+      "messagingDisabled": "Cet utilisateur a désactivé sa messagerie.",
+      "blocked": "Vous ne pouvez plus écrire à cet utilisateur.",
+      "recipientAcceptsNobody": "Cet utilisateur n'accepte aucun message direct.",
+      "recipientRequiresConnection": "Cet utilisateur n'accepte que ses connexions (QR ou follow mutuel) ou ses co-participants à des événements.",
+      "previouslyDeclined": "Cette personne a déjà refusé votre demande précédente.",
+      "conversationDeclined": "Cette conversation a été refusée et n'accepte plus de message.",
+      "pendingMessageCap": "Votre demande a été envoyée. Attendez la réponse avant d'envoyer un autre message."
+    },
+    "pendingBanner": {
+      "title": "En attente d'acceptation",
+      "subtitle": "Cette personne doit accepter votre demande pour que vous puissiez continuer à échanger.",
+      "previewTitle": "Demande de message",
+      "previewSubtitle": "Acceptez pour échanger librement, ou refusez pour ne plus recevoir de messages.",
+      "accept": "Accepter",
+      "decline": "Refuser"
+    },
     "mutedTitle": "Vous êtes muté",
     "mutedMessage": "L'organisateur a restreint votre droit d'écriture dans cette discussion.",
     "postingLockedTitle": "Lecture seule",

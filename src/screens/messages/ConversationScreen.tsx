@@ -239,6 +239,16 @@ export default function ConversationScreen() {
         showError(t('conversation.postingRestrictedTitle'), t('conversation.postingRestrictedMessage'));
       }
     },
+    onRequestStatusChanged: ({ conversationId, requestStatus }) => {
+      // Anti-spam DM : la conv courante a ete acceptee/refusee par l'autre.
+      // Mettre a jour le local pour masquer/afficher le banner et l'input.
+      if (String(conversationId) !== String(state.conversationId)) return;
+      setConversationDetails((prev: any) => prev ? {
+        ...prev,
+        request_status: requestStatus,
+        is_read_only: requestStatus === 'declined' ? true : prev.is_read_only,
+      } : prev);
+    },
   });
 
   // Typing users for current conversation
@@ -1627,11 +1637,58 @@ export default function ConversationScreen() {
       AsyncStorage.removeItem(`draft:${conversationIdToUse || state.conversationId}`).catch(() => {});
 
       // FlatList inversé affiche automatiquement les nouveaux messages en bas (index 0)
-    } catch (error) {
+    } catch (error: any) {
       if (__DEV__) console.error('Erreur envoi message:', error);
       actions.removeTempMessages();
       // Cleanup des overlays loader si on a interrompu un upload
       setUploadingIds(new Set());
+
+      // Anti-spam DM : si le backend a refuse l'envoi avec un `reason`
+      // explicite, on affiche un message clair au lieu de l'erreur generique.
+      const httpStatus = error?.response?.status;
+      const reason = error?.response?.data?.reason;
+      if (httpStatus === 403 && reason) {
+        const reasonI18nMap: Record<string, { title: string; message: string }> = {
+          messaging_disabled: {
+            title: t('conversation.dmBlocked.title'),
+            message: t('conversation.dmBlocked.messagingDisabled'),
+          },
+          blocked: {
+            title: t('conversation.dmBlocked.title'),
+            message: t('conversation.dmBlocked.blocked'),
+          },
+          recipient_accepts_nobody: {
+            title: t('conversation.dmBlocked.title'),
+            message: t('conversation.dmBlocked.recipientAcceptsNobody'),
+          },
+          recipient_requires_connection: {
+            title: t('conversation.dmBlocked.title'),
+            message: t('conversation.dmBlocked.recipientRequiresConnection'),
+          },
+          previously_declined: {
+            title: t('conversation.dmBlocked.title'),
+            message: t('conversation.dmBlocked.previouslyDeclined'),
+          },
+          conversation_declined: {
+            title: t('conversation.dmBlocked.title'),
+            message: t('conversation.dmBlocked.conversationDeclined'),
+          },
+          pending_request_message_cap: {
+            title: t('conversation.dmBlocked.pendingTitle'),
+            message: t('conversation.dmBlocked.pendingMessageCap'),
+          },
+          conversation_read_only: {
+            title: t('conversation.readOnlyDiscussionTitle'),
+            message: t('conversation.readOnlyDiscussionMessage'),
+          },
+        };
+        const entry = reasonI18nMap[reason];
+        if (entry) {
+          actions.setNewMessage(messageContent);
+          showError(entry.title, entry.message);
+          return;
+        }
+      }
 
       // Si pas de connexion, on enqueue le message dans la queue offline
       // persistante (AsyncStorage). Il sera rejoué dès que isConnected===true.
@@ -2171,9 +2228,92 @@ export default function ConversationScreen() {
           <TypingIndicator typingUsers={typingUsers} />
         )}
 
-        {/* Input Toolbar — masqué entièrement quand la conversation est en lecture seule,
-             que l'utilisateur est muté ou que le mode d'écriture l'exclut. */}
-        {(quotaState?.is_read_only || (quotaState as any)?.is_muted || (quotaState && (quotaState as any).can_post === false)) ? (
+        {/* Anti-spam DM : banner pending_request — style editorial.
+              - Initiator : eyebrow "EN ATTENTE" + titre + subtitle (indigo)
+              - Recipient : eyebrow "DEMANDE" + titre + subtitle + pill CTAs (corail) */}
+        {conversationDetails?.request_status === 'pending_request' && (() => {
+          const isInitiator = conversationDetails?.request_initiator === user?.id
+            || conversationDetails?.request_initiator?.id === user?.id;
+          if (isInitiator) {
+            return (
+              <View style={[styles.pendingBanner, { backgroundColor: `${colors.primary}10`, borderTopColor: colors.primary }]}>
+                <Ionicons name="time-outline" size={20} color={colors.primary} style={{ marginTop: 2 }} />
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={[styles.pendingBannerEyebrow, { color: colors.primary }]}>
+                    {t('messageRequests.eyebrow')}
+                  </Text>
+                  <Text style={[styles.pendingBannerTitle, { color: colors.text }]}>
+                    {t('conversation.pendingBanner.title')}
+                  </Text>
+                  <Text style={[styles.pendingBannerSubtitle, { color: colors.gray600 }]}>
+                    {t('conversation.pendingBanner.subtitle')}
+                  </Text>
+                </View>
+              </View>
+            );
+          }
+          // Recipient : preview + actions
+          return (
+            <View style={[styles.pendingBanner, { backgroundColor: `${colors.accent}10`, borderTopColor: colors.accent }]}>
+              <Ionicons name="mail-open-outline" size={20} color={colors.accent} style={{ marginTop: 2 }} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.pendingBannerEyebrow, { color: colors.accent }]}>
+                  {t('messageRequests.eyebrow')}
+                </Text>
+                <Text style={[styles.pendingBannerTitle, { color: colors.text }]}>
+                  {t('conversation.pendingBanner.previewTitle')}
+                </Text>
+                <Text style={[styles.pendingBannerSubtitle, { color: colors.gray600 }]}>
+                  {t('conversation.pendingBanner.previewSubtitle')}
+                </Text>
+                <View style={styles.pendingBannerActions}>
+                  <TouchableOpacity
+                    style={[styles.pendingBannerBtn, styles.pendingBannerBtnGhost, { borderColor: colors.gray300 }]}
+                    onPress={async () => {
+                      try {
+                        await messagesAPI.declineMessageRequest(String(state.conversationId));
+                        navigation.goBack();
+                      } catch (e: any) {
+                        showError(t('common.error'), String(e?.response?.data?.error || t('messageRequests.declineFailed')));
+                      }
+                    }}
+                    activeOpacity={TOUCH_OPACITY}
+                  >
+                    <Text style={[styles.pendingBannerBtnText, { color: colors.gray700 }]}>
+                      {t('conversation.pendingBanner.decline')}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.pendingBannerBtn, styles.pendingBannerBtnPrimary, { backgroundColor: colors.primary }]}
+                    onPress={async () => {
+                      try {
+                        const res = await messagesAPI.acceptMessageRequest(String(state.conversationId));
+                        setConversationDetails((prev: any) => prev ? { ...prev, ...res.data } : res.data);
+                      } catch (e: any) {
+                        showError(t('common.error'), String(e?.response?.data?.error || t('messageRequests.acceptFailed')));
+                      }
+                    }}
+                    activeOpacity={TOUCH_OPACITY}
+                  >
+                    <Text style={[styles.pendingBannerBtnText, { color: Colors.white }]}>
+                      {t('conversation.pendingBanner.accept')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          );
+        })()}
+
+        {/* Anti-spam : si destinataire d'une demande pending → input masque
+             (il doit accepter d'abord). L'initiator peut voir l'input mais
+             le backend cap a 1 message via can_user_post. */}
+        {(() => {
+          const isPending = conversationDetails?.request_status === 'pending_request';
+          const initiatorId = conversationDetails?.request_initiator?.id ?? conversationDetails?.request_initiator;
+          const isRecipientOfPending = isPending && initiatorId != null && initiatorId !== user?.id;
+          return isRecipientOfPending;
+        })() ? null : (quotaState?.is_read_only || (quotaState as any)?.is_muted || (quotaState && (quotaState as any).can_post === false)) ? (
           <View style={{
             paddingBottom: insets.bottom + 12,
             paddingTop: 12,
@@ -2790,6 +2930,59 @@ const styles = StyleSheet.create({
   quickReplyChipText: {
     fontFamily: FontFamily.semiBold,
     fontSize: 11,
+    letterSpacing: 0.2,
+  },
+
+  // Anti-spam DM : banner pending_request — style editorial
+  // (eyebrow uppercase + titre displayBold + pill CTAs)
+  pendingBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderTopWidth: 1,
+  },
+  pendingBannerEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  pendingBannerTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 16,
+    letterSpacing: -0.3,
+    marginTop: 2,
+  },
+  pendingBannerSubtitle: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.xs,
+    lineHeight: 17,
+    marginTop: 4,
+  },
+  pendingBannerActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  pendingBannerBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingBannerBtnGhost: {
+    borderWidth: 1,
+    backgroundColor: 'transparent',
+  },
+  pendingBannerBtnPrimary: {
+    // borderless pill — color set inline via colors.primary
+  },
+  pendingBannerBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSizes.sm,
     letterSpacing: 0.2,
   },
 

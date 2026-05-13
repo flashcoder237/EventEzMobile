@@ -825,6 +825,14 @@ export default function MessagesScreen() {
       setConversations(prev => prev.filter(c => String(c.id) !== id));
       CacheService.invalidate(`convos:${user?.id}`);
     },
+    // Anti-spam DM : refresh inbox + compteur de demandes a chaque accept/decline.
+    // Le serveur diffuse ce hook aux 2 participants → cote initiator sa conv
+    // bascule vers l'inbox normale (accept) ou disparait (decline) ; cote
+    // recipient idem.
+    onRequestStatusChanged: () => {
+      fetchConversations(true).catch(() => {});
+      fetchPendingRequestsCount().catch(() => {});
+    },
   });
 
   // Refresh quand l'ecran reprend le focus (retour depuis ConversationScreen,

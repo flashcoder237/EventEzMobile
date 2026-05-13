@@ -33,6 +33,7 @@ import { useTicketLockPref } from '../../hooks/useTicketLockPref';
 import { ticketPurchasesAPI } from '../../api';
 import { TicketPurchase, RootStackParamList } from '../../types';
 import { getTicketVerificationUrl } from '../../constants/urls';
+import { displayCurrency } from '../../lib/utils/priceFormatters';
 import {
   FontSizes,
   FontFamily,
@@ -189,16 +190,16 @@ export default function QRCodeScreen() {
             </div>
             <div class="detail-row">
               <span class="detail-label">${t('qrCode.pdfUnitPrice')}</span>
-              <span class="detail-value">${ticket?.unit_price ? `${ticket.unit_price.toLocaleString()} ${event?.currency || 'FCFA'}` : t('qrCode.free')}</span>
+              <span class="detail-value">${ticket?.unit_price ? `${ticket.unit_price.toLocaleString()} ${displayCurrency(event?.currency)}` : t('qrCode.free')}</span>
             </div>
             ${(ticket?.discount_amount ?? 0) > 0 ? `
             <div class="detail-row">
               <span class="detail-label">${t('qrCode.pdfDiscount')}</span>
-              <span class="detail-value" style="color: #059669;">-${ticket!.discount_amount!.toLocaleString()} ${event?.currency || 'FCFA'}</span>
+              <span class="detail-value" style="color: #059669;">-${ticket!.discount_amount!.toLocaleString()} ${displayCurrency(event?.currency)}</span>
             </div>` : ''}
             <div class="detail-row">
               <span class="detail-label">${t('qrCode.pdfTotalPaid')}</span>
-              <span class="detail-value total">${ticket?.total_price ? `${ticket.total_price.toLocaleString()} ${event?.currency || 'FCFA'}` : t('qrCode.free')}</span>
+              <span class="detail-value total">${ticket?.total_price ? `${ticket.total_price.toLocaleString()} ${displayCurrency(event?.currency)}` : t('qrCode.free')}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">${t('qrCode.pdfReference')}</span>
@@ -604,7 +605,7 @@ export default function QRCodeScreen() {
                   <View style={styles.detailCell}>
                     <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('qrCode.labelUnitPrice')}</Text>
                     <Text style={[styles.detailValueEditorial, { color: colors.gray900 }]}>
-                      {ticket.unit_price.toLocaleString()} {event?.currency || 'FCFA'}
+                      {ticket.unit_price.toLocaleString()} {displayCurrency(event?.currency)}
                     </Text>
                   </View>
                 ) : null}
@@ -612,7 +613,7 @@ export default function QRCodeScreen() {
                   <View style={styles.detailCell}>
                     <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('qrCode.labelDiscount')}</Text>
                     <Text style={[styles.detailValueEditorial, { color: colors.success }]}>
-                      −{ticket.discount_amount!.toLocaleString()} {event?.currency || 'FCFA'}
+                      −{ticket.discount_amount!.toLocaleString()} {displayCurrency(event?.currency)}
                     </Text>
                   </View>
                 )}
@@ -629,7 +630,7 @@ export default function QRCodeScreen() {
                   <Text style={[styles.totalSub, { color: colors.gray600 }]}>{t('qrCode.totalSub')}</Text>
                 </View>
                 <Text style={[styles.totalAmount, { color: colors.gray900 }]}>
-                  {ticketPrice > 0 ? `${ticketPrice.toLocaleString()} ${event?.currency || 'FCFA'}` : t('qrCode.free')}
+                  {ticketPrice > 0 ? `${ticketPrice.toLocaleString()} ${displayCurrency(event?.currency)}` : t('qrCode.free')}
                 </Text>
               </View>
             </View>

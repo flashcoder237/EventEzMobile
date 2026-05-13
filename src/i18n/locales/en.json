@@ -2832,6 +2832,25 @@
     "forwardPartialBody": "Sent to {{ok}} recipients. {{ko}} failed.",
     "readOnlyDiscussionTitle": "Read-only discussion",
     "readOnlyDiscussionMessage": "Save your messages — the conversation will soon be deleted.",
+    "dmBlocked": {
+      "title": "Cannot send",
+      "pendingTitle": "Request pending",
+      "messagingDisabled": "This user has disabled their messaging.",
+      "blocked": "You can no longer message this user.",
+      "recipientAcceptsNobody": "This user does not accept any direct messages.",
+      "recipientRequiresConnection": "This user only accepts messages from connections (QR or mutual follow) or event co-attendees.",
+      "previouslyDeclined": "This person already declined your previous request.",
+      "conversationDeclined": "This conversation was declined and no longer accepts messages.",
+      "pendingMessageCap": "Your request has been sent. Wait for a reply before sending another message."
+    },
+    "pendingBanner": {
+      "title": "Awaiting acceptance",
+      "subtitle": "This person needs to accept your request for the exchange to continue.",
+      "previewTitle": "Message request",
+      "previewSubtitle": "Accept to chat freely, or decline to stop receiving messages.",
+      "accept": "Accept",
+      "decline": "Decline"
+    },
     "mutedTitle": "You are muted",
     "mutedMessage": "The organizer has restricted your posting rights in this discussion.",
     "postingLockedTitle": "Read-only",

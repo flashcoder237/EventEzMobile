@@ -1,15 +1,17 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback, memo } from 'react';
 import {
   View,
   Text,
   TextInput,
+  TextInputProps,
   StyleSheet,
   ScrollView,
   Animated,
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
   ViewStyle,
 } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -54,6 +56,93 @@ const STEP_NUMBERS = [1, 2, 3, 4] as const;
 const STAT_ICONS = ['people-outline', 'ticket-outline', 'star-outline'] as const;
 const BENEFIT_ICONS = ['calendar-outline', 'ticket-outline', 'analytics-outline', 'wallet-outline'] as const;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Champ de formulaire isolé : gère SON propre état focus localement.
+//
+// Pourquoi : si l'état `focusedField` vit dans le screen parent, chaque
+// onFocus/onBlur déclenche un setState parent → re-render → renderStepX
+// recrée tout le JSX → KeyboardAwareScrollView re-scroll → focus perdu →
+// onBlur → setState → re-render → … cycle visible de focus qui « ressort ».
+//
+// Avec un state local + React.memo, seul ce champ se re-render au focus/blur.
+// Le screen parent reste stable, l'input garde le focus, le clavier ne saute
+// plus, et `updateField` (stable via useCallback côté parent) ne casse pas le
+// memo.
+// ─────────────────────────────────────────────────────────────────────────────
+interface FormFieldProps {
+  label: string;
+  iconName: keyof typeof Ionicons.glyphMap;
+  value: string;
+  field: keyof FormData;
+  error?: string;
+  placeholder: string;
+  onChange: (field: keyof FormData, value: string) => void;
+  autoCapitalize?: TextInputProps['autoCapitalize'];
+  keyboardType?: TextInputProps['keyboardType'];
+  colors: ReturnType<typeof useTheme>['colors'];
+}
+
+const FormField = memo(function FormField({
+  label,
+  iconName,
+  value,
+  field,
+  error,
+  placeholder,
+  onChange,
+  autoCapitalize,
+  keyboardType,
+  colors,
+}: FormFieldProps) {
+  // STATELESS — aucun setState sur focus/blur.
+  //
+  // Pourquoi : New Architecture (Fabric, app.json:newArchEnabled=true) a un
+  // bug où changer le style d'un View parent pendant qu'un TextInput enfant a
+  // le focus peut détruire/recréer le TextInput natif → focus perdu → clavier
+  // qui descend immédiatement après être monté. Le fix le plus solide est de
+  // ne JAMAIS modifier le style du wrapper sur focus.
+  //
+  // Bordure statique : on garde toujours `inputFocused` (border primaire) sauf
+  // si erreur (border rouge). Pas d'état intermédiaire « unfocused ». Le
+  // curseur natif clignotant suffit comme indication de focus.
+
+  const wrapperStyle = error ? styles.inputError : styles.inputFocused;
+
+  return (
+    <View style={styles.inputContainer}>
+      <Text style={[styles.inputLabel, { color: colors.gray600 }]}>{label}</Text>
+      <View
+        style={[
+          styles.inputWrapper,
+          { backgroundColor: colors.card, borderColor: colors.gray200 },
+          wrapperStyle,
+        ]}
+      >
+        <Ionicons name={iconName} size={20} color={colors.primary} />
+        <TextInput
+          style={[styles.input, { color: colors.gray900 }]}
+          placeholder={placeholder}
+          placeholderTextColor={colors.gray400}
+          value={value}
+          onChangeText={(text) => onChange(field, text)}
+          autoCapitalize={autoCapitalize}
+          keyboardType={keyboardType}
+          autoComplete="off"
+          textContentType="none"
+          returnKeyType="done"
+          blurOnSubmit
+        />
+      </View>
+      {error && (
+        <View style={styles.errorRow}>
+          <Ionicons name="alert-circle" size={14} color={colors.error} />
+          <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+        </View>
+      )}
+    </View>
+  );
+});
+
 export default function BecomeOrganizerScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -81,7 +170,6 @@ export default function BecomeOrganizerScreen() {
   ];
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState<Step>(1);
-  const [focusedField, setFocusedField] = useState<string | null>(null);
   const progressAnim = useRef(new Animated.Value(1)).current;
 
   const [formData, setFormData] = useState<FormData>({
@@ -106,12 +194,14 @@ export default function BecomeOrganizerScreen() {
     setCurrentStep(step);
   };
 
-  const updateField = (field: keyof FormData, value: string) => {
-    setFormData({ ...formData, [field]: value });
-    if (errors[field as keyof FormErrors]) {
-      setErrors({ ...errors, [field]: undefined });
-    }
-  };
+  // Stable via useCallback + functional setState — déps vides garantissent
+  // que la même référence est passée à FormField (préserve React.memo).
+  const updateField = useCallback((field: keyof FormData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) =>
+      prev[field as keyof FormErrors] ? { ...prev, [field]: undefined } : prev,
+    );
+  }, []);
 
   const validateStep3 = () => {
     const newErrors: FormErrors = {};
@@ -188,12 +278,6 @@ export default function BecomeOrganizerScreen() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const getInputStyle = (field: string, hasError: boolean) => {
-    if (hasError) return styles.inputError;
-    if (focusedField === field) return styles.inputFocused;
-    return null;
   };
 
   // Step 1: Welcome
@@ -338,90 +422,42 @@ export default function BecomeOrganizerScreen() {
       <View style={styles.formContainer}>
         {formData.organizer_type === 'organization' && (
           <>
-            {/* Company Name */}
-            <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.gray600 }]}>{t('becomeOrganizerForm.labelCompanyName')}</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.gray200 }, getInputStyle('company_name', !!errors.company_name)]}>
-                <Ionicons
-                  name="business-outline"
-                  size={20}
-                  color={focusedField === 'company_name' ? colors.primary : colors.gray400}
-                />
-                <TextInput
-                  style={[styles.input, { color: colors.gray900 }]}
-                  placeholder={t('becomeOrganizerForm.placeholderCompanyName')}
-                  placeholderTextColor={colors.gray400}
-                  value={formData.company_name}
-                  onChangeText={(text) => updateField('company_name', text)}
-                  onFocus={() => setFocusedField('company_name')}
-                  onBlur={() => setFocusedField(null)}
-                  autoCapitalize="words"
-                />
-              </View>
-              {errors.company_name && (
-                <View style={styles.errorRow}>
-                  <Ionicons name="alert-circle" size={14} color={colors.error} />
-                  <Text style={[styles.errorText, { color: colors.error }]}>{errors.company_name}</Text>
-                </View>
-              )}
-            </View>
+            <FormField
+              label={t('becomeOrganizerForm.labelCompanyName')}
+              iconName="business-outline"
+              field="company_name"
+              value={formData.company_name}
+              error={errors.company_name}
+              placeholder={t('becomeOrganizerForm.placeholderCompanyName')}
+              onChange={updateField}
+              autoCapitalize="words"
+              colors={colors}
+            />
 
-            {/* Registration Number */}
-            <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.gray600 }]}>{t('becomeOrganizerForm.labelRegistrationNumber')}</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.gray200 }, getInputStyle('registration_number', !!errors.registration_number)]}>
-                <Ionicons
-                  name="document-text-outline"
-                  size={20}
-                  color={focusedField === 'registration_number' ? colors.primary : colors.gray400}
-                />
-                <TextInput
-                  style={[styles.input, { color: colors.gray900 }]}
-                  placeholder={t('becomeOrganizerForm.placeholderRegistrationNumber')}
-                  placeholderTextColor={colors.gray400}
-                  value={formData.registration_number}
-                  onChangeText={(text) => updateField('registration_number', text)}
-                  onFocus={() => setFocusedField('registration_number')}
-                  onBlur={() => setFocusedField(null)}
-                />
-              </View>
-              {errors.registration_number && (
-                <View style={styles.errorRow}>
-                  <Ionicons name="alert-circle" size={14} color={colors.error} />
-                  <Text style={[styles.errorText, { color: colors.error }]}>{errors.registration_number}</Text>
-                </View>
-              )}
-            </View>
+            <FormField
+              label={t('becomeOrganizerForm.labelRegistrationNumber')}
+              iconName="document-text-outline"
+              field="registration_number"
+              value={formData.registration_number}
+              error={errors.registration_number}
+              placeholder={t('becomeOrganizerForm.placeholderRegistrationNumber')}
+              onChange={updateField}
+              colors={colors}
+            />
           </>
         )}
 
-        {/* Phone */}
-        <View style={styles.inputContainer}>
-          <Text style={[styles.inputLabel, { color: colors.gray600 }]}>{t('becomeOrganizerForm.labelPhone')}</Text>
-          <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.gray200 }, getInputStyle('phone', !!errors.phone)]}>
-            <Ionicons
-              name="call-outline"
-              size={20}
-              color={focusedField === 'phone' ? colors.primary : colors.gray400}
-            />
-            <TextInput
-              style={[styles.input, { color: colors.gray900 }]}
-              placeholder={t('becomeOrganizerForm.placeholderPhone')}
-              placeholderTextColor={colors.gray400}
-              value={formData.phone}
-              onChangeText={(text) => updateField('phone', text)}
-              onFocus={() => setFocusedField('phone')}
-              onBlur={() => setFocusedField(null)}
-              keyboardType="phone-pad"
-            />
-          </View>
-          {errors.phone && (
-            <View style={styles.errorRow}>
-              <Ionicons name="alert-circle" size={14} color={colors.error} />
-              <Text style={[styles.errorText, { color: colors.error }]}>{errors.phone}</Text>
-            </View>
-          )}
-        </View>
+        <FormField
+          label={t('becomeOrganizerForm.labelPhone')}
+          iconName="call-outline"
+          field="phone"
+          value={formData.phone}
+          error={errors.phone}
+          placeholder={t('becomeOrganizerForm.placeholderPhone')}
+          onChange={updateField}
+          keyboardType="phone-pad"
+          colors={colors}
+        />
       </View>
     </View>
   );
@@ -575,54 +611,64 @@ export default function BecomeOrganizerScreen() {
         </View>
       </View>
 
-      <KeyboardAwareScrollView
+      {/* KeyboardAvoidingView englobe ScrollView ET footer pour que les
+          boutons remontent au-dessus du clavier (sinon le footer reste fixe
+          en bas et est masqué par le clavier sur iOS). Android utilise
+          `adjustResize` (cf. app.json) qui resize la view entière. */}
+      <KeyboardAvoidingView
         style={{ flex: 1 }}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        bottomOffset={80}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
       >
-        {renderCurrentStep()}
-      </KeyboardAwareScrollView>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="always"
+        >
+          {renderCurrentStep()}
+        </ScrollView>
 
-      {/* Footer Buttons — paddingBottom inclut insets.bottom pour ne pas
-          être recouvert par la barre de navigation Android (gestures ou
-          3-button) ni le home indicator iOS. */}
-      <View
-        style={[
-          styles.footer,
-          {
-            borderTopColor: colors.gray100,
-            backgroundColor: colors.card,
-            paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.sm,
-          },
-        ]}
-      >
-        {currentStep > 1 && (
-          <AnimatedPressable
-            onPress={handleBack}
-            style={[styles.backButton, { backgroundColor: colors.gray100 }]}
-            animationType="scale"
-            scaleValue={0.95}
-          >
-            <Ionicons name="arrow-back" size={20} color={colors.gray600} />
-            <Text style={[styles.backButtonText, { color: colors.gray600 }]}>{t('becomeOrganizerForm.buttonBack')}</Text>
-          </AnimatedPressable>
-        )}
+        {/* Footer Buttons — paddingBottom inclut insets.bottom pour ne pas
+            être recouvert par la barre de navigation Android ni le home
+            indicator iOS. Le KeyboardAvoidingView au-dessus garantit que ce
+            footer remonte avec le clavier. */}
+        <View
+          style={[
+            styles.footer,
+            {
+              borderTopColor: colors.gray100,
+              backgroundColor: colors.card,
+              paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.sm,
+            },
+          ]}
+        >
+          {currentStep > 1 && (
+            <AnimatedPressable
+              onPress={handleBack}
+              style={[styles.backButton, { backgroundColor: colors.gray100 }]}
+              animationType="scale"
+              scaleValue={0.95}
+            >
+              <Ionicons name="arrow-back" size={20} color={colors.gray600} />
+              <Text style={[styles.backButtonText, { color: colors.gray600 }]}>{t('becomeOrganizerForm.buttonBack')}</Text>
+            </AnimatedPressable>
+          )}
 
-        <GradientButton
-          onPress={currentStep === 4 ? handleSubmit : handleNext}
-          title={currentStep === 4 ? t('becomeOrganizerForm.buttonConfirm') : t('becomeOrganizerForm.buttonContinue')}
-          loading={isLoading}
-          icon={
-            currentStep === 4
-              ? <Ionicons name="checkmark" size={20} color={colors.white} />
-              : <Ionicons name="arrow-forward" size={20} color={colors.white} />
-          }
-          size="lg"
-          style={StyleSheet.flatten([styles.nextButton, currentStep === 1 && { flex: 1 }]) as ViewStyle}
-        />
-      </View>
+          <GradientButton
+            onPress={currentStep === 4 ? handleSubmit : handleNext}
+            title={currentStep === 4 ? t('becomeOrganizerForm.buttonConfirm') : t('becomeOrganizerForm.buttonContinue')}
+            loading={isLoading}
+            icon={
+              currentStep === 4
+                ? <Ionicons name="checkmark" size={20} color={colors.white} />
+                : <Ionicons name="arrow-forward" size={20} color={colors.white} />
+            }
+            size="lg"
+            style={StyleSheet.flatten([styles.nextButton, currentStep === 1 && { flex: 1 }]) as ViewStyle}
+          />
+        </View>
+      </KeyboardAvoidingView>
       </View>
     </EditorialCanvas>
   );

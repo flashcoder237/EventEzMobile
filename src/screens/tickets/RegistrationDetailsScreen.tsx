@@ -21,6 +21,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { registrationsAPI, ticketTransfersAPI, paymentsAPI } from '../../api';
 import { getVerificationUrl } from '../../constants/urls';
 import { Registration, RootStackParamList } from '../../types';
+import { displayCurrency } from '../../lib/utils/priceFormatters';
 import { TransferTicketModal } from '../../components/tickets';
 import { useOfflineTickets, useEventReminders } from '../../hooks';
 import { isPaymentSuccess, isPaymentFailed } from '../../hooks/usePaymentVerification';
@@ -756,7 +757,7 @@ export default function RegistrationDetailsScreen() {
                         numberOfLines={1}
                       >
                         {ticketPrice > 0
-                          ? `${ticketPrice.toLocaleString()} ${event?.currency || 'FCFA'}`
+                          ? `${ticketPrice.toLocaleString()} ${displayCurrency(event?.currency)}`
                           : t('common.free')}
                       </Text>
                     </View>
@@ -796,7 +797,7 @@ export default function RegistrationDetailsScreen() {
                 </Text>
               </View>
               <Text style={[styles.ticketsTotalAmount, { color: colors.gray900 }]}>
-                {registration.tickets.reduce((sum: number, ticketItem: any) => sum + (Number(ticketItem.total_price) || 0), 0).toLocaleString()} {event?.currency || 'FCFA'}
+                {registration.tickets.reduce((sum: number, ticketItem: any) => sum + (Number(ticketItem.total_price) || 0), 0).toLocaleString()} {displayCurrency(event?.currency)}
               </Text>
             </View>
           </View>

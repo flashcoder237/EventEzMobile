@@ -1852,6 +1852,7 @@ export type WebSocketIncomingMessage =
   | { type: 'unread.decrement'; message_ids: (string | number)[]; conversation_ids: (string | number)[] }
   | { type: 'conversation.added'; conversation_id: string | number }
   | { type: 'conversation.removed'; conversation_id: string | number }
+  | { type: 'request.status.changed'; conversation_id: string | number; request_status: 'accepted' | 'declined' | 'pending_request'; actor_id?: number }
   | { type: 'service_unavailable'; incident: any };
 
 export type WebSocketOutgoingMessage =

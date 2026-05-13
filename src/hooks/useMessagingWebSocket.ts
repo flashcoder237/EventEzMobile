@@ -91,6 +91,11 @@ export interface UseMessagingWebSocketOptions {
   onUnreadDecrement?: (data: { messageIds: (string | number)[]; conversationIds: (string | number)[] }) => void;
   onConversationAdded?: (data: { conversationId: string | number }) => void;
   onConversationRemoved?: (data: { conversationId: string | number }) => void;
+  onRequestStatusChanged?: (data: {
+    conversationId: string | number;
+    requestStatus: 'accepted' | 'declined' | 'pending_request';
+    actorId?: number;
+  }) => void;
   onServerError?: (code: string, message: string) => void;
 }
 
@@ -427,6 +432,23 @@ function handleMessage(event: MessageEvent) {
         if (data.conversation_id !== undefined) {
           state.subscribers.forEach(s => {
             try { s.current.onConversationRemoved?.({ conversationId: data.conversation_id! }); } catch { /* ignore */ }
+          });
+        }
+        break;
+
+      case 'request.status.changed':
+        // Anti-spam DM : accept/decline d'une demande de message.
+        // Le destinataire qui accepte → la conv bascule de "Demandes" vers
+        // l'inbox normale chez les deux ; refuse → disparait des deux.
+        if ((data as any).conversation_id !== undefined && (data as any).request_status) {
+          state.subscribers.forEach(s => {
+            try {
+              s.current.onRequestStatusChanged?.({
+                conversationId: (data as any).conversation_id,
+                requestStatus: (data as any).request_status,
+                actorId: (data as any).actor_id,
+              });
+            } catch { /* ignore */ }
           });
         }
         break;
