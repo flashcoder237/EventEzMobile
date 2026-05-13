@@ -21,7 +21,19 @@ interface CommissionConfig {
   isError: boolean;
 }
 
-export function useCommissionConfig(countryCode?: string): CommissionConfig {
+/**
+ * @param countryCode    Code ISO du pays event (CM, FR, etc.). Defaut = pays backend.
+ * @param targetCurrency Devise cible (typiquement event.currency). Si fournie ET
+ *                       differente de la devise de la commission du pays, le
+ *                       backend convertit `fixed_fee` dans la devise cible.
+ *                       Sans ça, on aurait un fixed_fee en XAF affiche dans un
+ *                       event EUR (cas du fallback backend quand le pays event
+ *                       n'a pas de CommissionConfig dediee).
+ */
+export function useCommissionConfig(
+  countryCode?: string,
+  targetCurrency?: string,
+): CommissionConfig {
   const [config, setConfig] = useState<CommissionConfigResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
@@ -33,7 +45,7 @@ export function useCommissionConfig(countryCode?: string): CommissionConfig {
       setIsLoading(true);
       setIsError(false);
       try {
-        const res = await commissionsAPI.getConfig(countryCode);
+        const res = await commissionsAPI.getConfig(countryCode, targetCurrency);
         if (!cancelled) {
           setConfig(res.data);
         }
@@ -51,7 +63,7 @@ export function useCommissionConfig(countryCode?: string): CommissionConfig {
 
     fetchConfig();
     return () => { cancelled = true; };
-  }, [countryCode]);
+  }, [countryCode, targetCurrency]);
 
   return {
     config,

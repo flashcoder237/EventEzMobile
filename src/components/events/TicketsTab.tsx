@@ -199,7 +199,13 @@ export default function TicketsTab({
                             ]}
                           >
                             {ticket.price.toLocaleString()}{' '}
-                            <Text style={styles.currency}>{event.currency || 'XAF'}</Text>
+                            <Text style={styles.currency}>
+                              {/* Label "FCFA" pour XAF/XOF (plus parlant
+                                  localement), code ISO sinon. */}
+                              {event.currency === 'XAF' || event.currency === 'XOF'
+                                ? 'FCFA'
+                                : event.currency || 'XAF'}
+                            </Text>
                           </Text>
                           <ConvertedPrice amount={ticket.price} eventCurrency={event.currency || 'XAF'} />
                         </>

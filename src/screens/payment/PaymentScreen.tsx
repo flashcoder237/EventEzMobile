@@ -614,17 +614,27 @@ export default function PaymentScreen() {
   // Commission config dynamique par pays
   const eventObj = typeof registration?.event === 'object' ? registration?.event : null;
   const eventCountryCode = (eventObj as any)?.location_country_code || (eventObj as any)?.location_country || 'CM';
-  const { config: commissionConfig } = useCommissionConfig(eventCountryCode);
 
   // Strategie "Event mono-devise" (docs/CURRENCY_STRATEGY.md) :
   // la devise d'affichage vient de l'evenement, PAS du pays du payeur.
   const eventCurrencyCode = ((eventObj as any)?.currency || 'XAF').toUpperCase();
   const eventCurrencyLabel = eventCurrencyCode === 'XAF' || eventCurrencyCode === 'XOF' ? 'FCFA' : eventCurrencyCode;
 
+  // Passe event.currency au backend pour qu'il convertisse fixed_fee dans
+  // la devise event si la commission du pays event est dans une autre
+  // devise (cas fallback default). Garantit que le label "5% + X EUR"
+  // affiche bien X en EUR plutot que mixage de devises silencieux.
+  const { config: commissionConfig } = useCommissionConfig(
+    eventCountryCode,
+    eventCurrencyCode,
+  );
+
   const subtotal = calculateSubtotal();
   const feeBearer = (eventObj as any)?.fee_bearer || 'participant';
-  const serviceFee = feeBearer === 'organizer' ? 0 : calculateServiceFee(subtotal, commissionConfig);
-  const serviceFeeLabel = getServiceFeeLabel(commissionConfig);
+  // Passe eventCurrencyCode pour rejeter le fixed_fee si commissionConfig
+  // n'est pas dans la meme devise que l'event (cas fallback backend).
+  const serviceFee = feeBearer === 'organizer' ? 0 : calculateServiceFee(subtotal, commissionConfig, eventCurrencyCode);
+  const serviceFeeLabel = getServiceFeeLabel(commissionConfig, eventCurrencyCode);
   const finalTotal = Math.round((subtotal + serviceFee) * 100) / 100;
 
   // Debug: vérifier que la commission est calculée

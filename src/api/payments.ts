@@ -269,8 +269,19 @@ export const commissionsAPI = {
   getCommissions: (params?: any) =>
     api.get('/commissions/', { params }),
 
-  getConfig: (countryCode?: string) => {
-    const params = countryCode ? { country_code: countryCode } : {};
+  /**
+   * Recupere la config commission d'un pays.
+   *
+   * @param countryCode    Code ISO du pays event
+   * @param targetCurrency Devise cible — si fournie ET differente de la devise
+   *                       du pays, le backend convertit `fixed_fee` dans cette
+   *                       devise. Evite d'afficher un fixed_fee XAF pour un
+   *                       event EUR.
+   */
+  getConfig: (countryCode?: string, targetCurrency?: string) => {
+    const params: Record<string, string> = {};
+    if (countryCode) params.country_code = countryCode;
+    if (targetCurrency) params.target_currency = targetCurrency;
     return api.get('/commissions/config/', { params });
   },
 

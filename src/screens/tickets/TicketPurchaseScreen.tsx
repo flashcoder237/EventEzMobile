@@ -21,6 +21,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import ConvertedPrice from '../../components/common/ConvertedPrice';
 import { eventsAPI, ticketTypesAPI, registrationsAPI, discountsAPI } from '../../api';
 import { Event, TicketType, RootStackParamList, FormField, Discount } from '../../types';
 import GradientButton from '../../components/ui/GradientButton';
@@ -125,7 +126,29 @@ export default function TicketPurchaseScreen() {
   // afficherait la commission XAF par défaut → frais affichés faux. Voir
   // AUDIT_PROFOND §3.4 (useCommissionConfig sans countryCode).
   const eventCountry = event?.location_country_code || event?.location_country;
-  const { config: commissionConfig, currency: commissionCurrency } = useCommissionConfig(eventCountry);
+  // event.currency en deuxieme arg : le backend convertira fixed_fee dans cette
+  // devise si la commission du pays event est dans une autre devise (cas du
+  // fallback default XAF quand le pays event n'a pas de CommissionConfig
+  // dediee). Sans ca, on aurait fixed_fee=100 XAF affiche dans un event EUR.
+  const { config: commissionConfig } = useCommissionConfig(
+    eventCountry,
+    event?.currency,
+  );
+
+  // SOURCE UNIQUE DE VERITE pour l'AFFICHAGE des prix : `event.currency`.
+  // Currency Strategy "Event mono-devise" : on paie TOUJOURS dans la devise
+  // de l'event (= devise du wallet organisateur). Les frais service/fixes
+  // sont calcules avec `commissionConfig` (taux + fee du pays event) mais
+  // affichés dans la meme devise que l'event pour eviter toute confusion.
+  // La conversion vers la devise du payeur se fait via ConvertedPrice
+  // (indicative, jamais contractuelle).
+  const eventCurrencyCode = (event?.currency || 'XAF').toUpperCase();
+  // Label humain : "FCFA" pour XAF/XOF (plus parlant localement),
+  // code ISO sinon. Backend renvoie toujours un code ISO.
+  const eventCurrencyLabel =
+    eventCurrencyCode === 'XAF' || eventCurrencyCode === 'XOF'
+      ? 'FCFA'
+      : eventCurrencyCode;
   // Discount state
   const [discountCode, setDiscountCode] = useState('');
   const [validatingDiscount, setValidatingDiscount] = useState(false);
@@ -348,7 +371,10 @@ export default function TicketPurchaseScreen() {
   const feeBearer = (event as any)?.fee_bearer || 'participant';
   const getServiceFee = () => {
     if (feeBearer === 'organizer') return 0;
-    return calculateServiceFee(getTotalPrice(), commissionConfig);
+    // Passe eventCurrencyCode pour que `calculateServiceFee` puisse rejeter
+    // le `fixed_fee` si commissionConfig.currency != event.currency
+    // (sinon mix de devises numerique fausse).
+    return calculateServiceFee(getTotalPrice(), commissionConfig, eventCurrencyCode);
   };
 
   const getGrandTotal = () => {
@@ -839,7 +865,7 @@ export default function TicketPurchaseScreen() {
                         {isFree ? t('ticketPurchase.freeBadge') : `${ticketType.price.toLocaleString()}`}
                       </Text>
                       {!isFree && (
-                        <Text style={[styles.bpCurrency, { color: colors.gray500 }]}>{commissionCurrency}</Text>
+                        <Text style={[styles.bpCurrency, { color: colors.gray500 }]}>{eventCurrencyLabel}</Text>
                       )}
                       {availableQty > 0 && ticketType.quantity_total !== undefined && (
                         <>
@@ -930,8 +956,8 @@ export default function TicketPurchaseScreen() {
                   <Text style={[styles.appliedDiscountCode, { color: colors.text }]}>{appliedDiscount.code}</Text>
                   <Text style={styles.appliedDiscountValue}>
                     {appliedDiscount.discount_type === 'percentage'
-                      ? `−${appliedDiscount.value || 0}% · −${getDiscountAmount().toLocaleString()} ${commissionCurrency}`
-                      : `−${(appliedDiscount.value || 0).toLocaleString()} ${commissionCurrency}`}
+                      ? `−${appliedDiscount.value || 0}% · −${getDiscountAmount().toLocaleString()} ${eventCurrencyLabel}`
+                      : `−${(appliedDiscount.value || 0).toLocaleString()} ${eventCurrencyLabel}`}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -1025,7 +1051,7 @@ export default function TicketPurchaseScreen() {
                       <Text style={{ color: colors.gray400 }}> × {quantity}</Text>
                     </Text>
                     <Text style={[styles.receiptValue, { color: colors.text }]}>
-                      {(ticketType.price * quantity).toLocaleString()} {commissionCurrency}
+                      {(ticketType.price * quantity).toLocaleString()} {eventCurrencyLabel}
                     </Text>
                   </View>
                 );
@@ -1037,7 +1063,7 @@ export default function TicketPurchaseScreen() {
                   <View style={styles.receiptRow}>
                     <Text style={[styles.receiptLabel, { color: colors.gray500 }]}>{t('ticketPurchase.subtotal')}</Text>
                     <Text style={[styles.receiptValue, { color: colors.gray500 }]}>
-                      {getSubtotal().toLocaleString()} {commissionCurrency}
+                      {getSubtotal().toLocaleString()} {eventCurrencyLabel}
                     </Text>
                   </View>
                   <View style={styles.receiptRow}>
@@ -1048,7 +1074,7 @@ export default function TicketPurchaseScreen() {
                       </Text>
                     </View>
                     <Text style={[styles.discountValue, { color: '#10B981' }]}>
-                      −{getDiscountAmount().toLocaleString()} {commissionCurrency}
+                      −{getDiscountAmount().toLocaleString()} {eventCurrencyLabel}
                     </Text>
                   </View>
                 </>
@@ -1060,16 +1086,16 @@ export default function TicketPurchaseScreen() {
                   <View style={styles.receiptRow}>
                     <Text style={[styles.receiptLabel, { color: colors.gray500 }]}>{t('ticketPurchase.subtotal')}</Text>
                     <Text style={[styles.receiptValue, { color: colors.gray500 }]}>
-                      {getTotalPrice().toLocaleString()} {commissionCurrency}
+                      {getTotalPrice().toLocaleString()} {eventCurrencyLabel}
                     </Text>
                   </View>
                   {getServiceFee() > 0 && (
                     <View style={styles.receiptRow}>
                       <Text style={[styles.receiptLabel, { color: colors.gray500 }]} numberOfLines={1}>
-                        {t('ticketPurchase.serviceFees')} ({getServiceFeeLabel(commissionConfig)})
+                        {t('ticketPurchase.serviceFees', { label: getServiceFeeLabel(commissionConfig, eventCurrencyCode) })}
                       </Text>
                       <Text style={[styles.receiptValue, { color: colors.gray500 }]}>
-                        {getServiceFee().toLocaleString()} {commissionCurrency}
+                        {getServiceFee().toLocaleString()} {eventCurrencyLabel}
                       </Text>
                     </View>
                   )}
@@ -1078,16 +1104,21 @@ export default function TicketPurchaseScreen() {
 
               <View style={[styles.receiptDashedThick, { borderTopColor: 'rgba(0,0,0,0.18)' }]} />
 
-              <View style={styles.receiptTotalRow} accessibilityRole="text" accessibilityLabel={`Total: ${getGrandTotal().toLocaleString()} ${commissionCurrency}`}>
+              <View style={styles.receiptTotalRow} accessibilityRole="text" accessibilityLabel={`Total: ${getGrandTotal().toLocaleString()} ${eventCurrencyLabel}`}>
                 <Text style={[styles.receiptTotalLabel, { color: colors.text }]}>{t('ticketPurchase.totalToPay')}</Text>
                 <View style={styles.receiptTotalValueRow}>
                   <Text style={[styles.receiptTotalValue, { color: colors.text }]}>
                     {getGrandTotal().toLocaleString()}
                   </Text>
                   <Text style={[styles.receiptTotalCurrency, { color: colors.gray500 }]}>
-                    {commissionCurrency}
+                    {eventCurrencyLabel}
                   </Text>
                 </View>
+              </View>
+              {/* Conversion indicative du total — coherence avec EventDetails,
+                  TicketsTab et PaymentScreen qui affichent tous ConvertedPrice. */}
+              <View style={{ alignSelf: 'flex-end', marginTop: 4 }}>
+                <ConvertedPrice amount={getGrandTotal()} eventCurrency={eventCurrencyCode} />
               </View>
             </View>
           </View>
@@ -1118,16 +1149,30 @@ export default function TicketPurchaseScreen() {
                   {getGrandTotal().toLocaleString()}
                 </Text>
                 <Text style={[styles.bottomTotalCurrency, { color: colors.gray500 }]}>
-                  {commissionCurrency}
+                  {eventCurrencyLabel}
                 </Text>
               </View>
+              {/* Conversion indicative sous le total sticky — pas afficher si
+                  meme devise (ConvertedPrice retourne null automatiquement). */}
+              <ConvertedPrice
+                amount={getGrandTotal()}
+                eventCurrency={eventCurrencyCode}
+                style={{ fontSize: 10, marginTop: 2 }}
+              />
             </>
           ) : (
             <>
               <Text style={[styles.bottomTotalEyebrow, { color: colors.gray500 }]}>{t('ticketPurchase.bottomInscription')}</Text>
               <Text style={[styles.bottomTotalValue, { color: colors.text }]}>
-                {event?.is_free || !event?.base_price ? t('common.free') : `${(event?.base_price || 0).toLocaleString()} ${commissionCurrency}`}
+                {event?.is_free || !event?.base_price ? t('common.free') : `${(event?.base_price || 0).toLocaleString()} ${eventCurrencyLabel}`}
               </Text>
+              {!event?.is_free && !!event?.base_price && (
+                <ConvertedPrice
+                  amount={event.base_price}
+                  eventCurrency={eventCurrencyCode}
+                  style={{ fontSize: 10, marginTop: 2 }}
+                />
+              )}
             </>
           )}
         </View>

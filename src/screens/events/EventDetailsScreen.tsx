@@ -1108,11 +1108,21 @@ export default function EventDetailsScreen() {
                 {minPrice === null
                   ? '—'
                   : minPrice > 0
-                  ? `${minPrice.toLocaleString()} ${event?.currency || 'FCFA'}`
+                  ? `${minPrice.toLocaleString()} ${
+                      // Label humain : "FCFA" pour XAF/XOF (plus parlant
+                      // localement), code ISO sinon. Backend renvoie toujours
+                      // un code ISO (XAF/XOF/EUR/etc.), jamais "FCFA".
+                      event?.currency === 'XAF' || event?.currency === 'XOF'
+                        ? 'FCFA'
+                        : event?.currency || 'XAF'
+                    }`
                   : t('eventDetails.free')}
               </Text>
               {minPrice !== null && minPrice > 0 && (
-                <ConvertedPrice amount={minPrice} eventCurrency={event?.currency || 'XAF'} />
+                <ConvertedPrice
+                  amount={minPrice}
+                  eventCurrency={event?.currency || 'XAF'}
+                />
               )}
             </>
           )}
