@@ -973,12 +973,18 @@ export interface OrganizerWallet {
   total_withdrawn: number;
   total_fees: number;
   currency: string;
+  country?: string;
   bank_name?: string;
   bank_account_name?: string;
   bank_account_number?: string;
   mobile_money_number?: string;
   mobile_money_provider?: string;
   minimum_payout: number;
+  // Phase 2 — Stripe Connect Express (optionnels)
+  stripe_account_id?: string;
+  stripe_onboarding_complete?: boolean;
+  stripe_payouts_enabled?: boolean;
+  stripe_payout_schedule?: 'automatic' | 'manual';
   recent_transactions?: WalletTransaction[]; // SerializerMethodField
   can_withdraw: boolean; // SerializerMethodField
   created_at: string;

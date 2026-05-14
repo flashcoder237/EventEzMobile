@@ -28,6 +28,8 @@ import { getServiceFeeLabel } from '../../constants/payment';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { WalletScreenSkeleton } from '../../components/ui/Skeleton';
 import { walletAPI, payoutsAPI } from '../../api';
+import { useSupportedCountries } from '../../hooks/useSupportedCountries';
+import StripeOnboardingBanner from '../../components/organizer/StripeOnboardingBanner';
 import {
   OrganizerWallet,
   WalletTransaction,
@@ -76,6 +78,14 @@ export default function WalletScreen() {
     { key: 'pending', label: t('organizer.wallet.tabPending') },
   ]), [t]);
   const { config: commissionConfig } = useCommissionConfig();
+  const { countries: supportedCountries } = useSupportedCountries();
+  // Codes ISO des pays servis par Stripe uniquement (pas NotchPay/CinetPay).
+  // Sert au composant StripeOnboardingBanner pour decider d'afficher
+  // ou non le CTA d'onboarding.
+  const stripeCountryCodes = React.useMemo(
+    () => supportedCountries.filter((c) => c.provider === 'stripe').map((c) => c.code),
+    [supportedCountries],
+  );
   const biometric = useBiometricConfirm();
   const [wallet, setWallet] = useState<OrganizerWallet | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
@@ -725,6 +735,18 @@ export default function WalletScreen() {
       <View style={styles.tabContentWrap}>
         {activeTab === 'overview' && (
           <>
+            {/* Phase 2 — Stripe Connect onboarding (Stripe-only countries). */}
+            <View style={{ paddingHorizontal: 16 }}>
+              <StripeOnboardingBanner
+                country={wallet?.country}
+                stripeAccountId={wallet?.stripe_account_id}
+                onboardingComplete={wallet?.stripe_onboarding_complete}
+                payoutsEnabled={wallet?.stripe_payouts_enabled}
+                stripeCountries={stripeCountryCodes}
+                onComplete={fetchData}
+              />
+            </View>
+
             <View style={styles.section}>
               <View style={styles.sectionHeaderE}>
                 <View style={{ flex: 1 }}>

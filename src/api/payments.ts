@@ -233,6 +233,16 @@ export const walletAPI = {
   getStats: () =>
     api.get('/wallet/stats/'),
 
+  /**
+   * Phase 2 — Cree (ou regenere) un AccountLink Stripe Connect Express
+   * pour l'onboarding KYC de l'organisateur. Retourne `onboarding_url`
+   * a ouvrir via WebBrowser.openBrowserAsync(). Le webhook account.updated
+   * mettra a jour wallet.stripe_onboarding_complete / stripe_payouts_enabled
+   * apres que l'organisateur ait fini.
+   */
+  stripeOnboardingLink: (params?: { return_url?: string; refresh_url?: string }) =>
+    api.post('/wallet/stripe-onboarding-link/', params || {}),
+
   // Export — use `useExport()` hook instead.
   // Endpoint kept for reference: GET /wallet/transactions/export/?type=&export_format=csv|xlsx|pdf
 };
