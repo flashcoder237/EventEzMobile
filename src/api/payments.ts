@@ -116,6 +116,13 @@ export const paymentsAPI = {
   cinetpayReturn: (transactionId: string) =>
     api.get('/payments/cinetpay/return/', { params: { transaction_id: transactionId } }),
 
+  /**
+   * Liste des pays ou un organisateur peut creer un event (NotchPay +
+   * CinetPay + 46 pays Stripe = 59 pays). Endpoint public, auth-free.
+   * Utilise par les badges "Pays non disponible" cote UI creation event.
+   */
+  supportedCountries: () => api.get('/payments/supported-countries/'),
+
   // Export — use `useExport()` hook instead.
   // Endpoint kept for reference: GET /payments/export/?status=&export_format=csv|xlsx|pdf
 };

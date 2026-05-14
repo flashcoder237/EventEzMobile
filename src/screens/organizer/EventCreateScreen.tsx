@@ -29,6 +29,7 @@ import {
 import { useEventForm, STEPS } from '../../hooks/useEventForm';
 import { useEventDraft } from '../../hooks/useEventDraft';
 import { useNamedDrafts } from '../../hooks/useNamedDrafts';
+import { useSupportedCountries } from '../../hooks/useSupportedCountries';
 import { formToPreviewEvent } from '../../lib/utils/eventPreview';
 import {
   Colors,
@@ -121,6 +122,14 @@ export default function EventCreateScreen() {
     hydrateForm,
     formatDate,
   } = useEventForm(alertActions, eventId);
+
+  // Stripe Phase 1 : badge "Pays non disponible" si l'organisateur saisit
+  // un pays hors NotchPay/CinetPay/Stripe. Le backend refusera de toute
+  // facon a la creation — on previent l'utilisateur tot pour eviter une
+  // mauvaise surprise apres avoir rempli toutes les etapes.
+  const { isSupported: isCountrySupported } = useSupportedCountries();
+  const isLocationCountryUnsupported =
+    !!form.locationCountry && !isCountrySupported(form.locationCountry);
 
   // Le systeme de brouillon n'a de sens qu'en mode creation : en edition,
   // la source de verite est l'evenement existant cote backend.
@@ -505,6 +514,39 @@ export default function EventCreateScreen() {
             keyboardShouldPersistTaps="handled"
             bottomOffset={80}
           >
+            {/* Stripe Phase 1 : banner si le pays event n'est pas couvert
+                par un PSP (NotchPay / CinetPay / Stripe). Visible sur toutes
+                les etapes pour eviter que l'utilisateur arrive jusqu'a la
+                soumission avant de tomber sur le 400 backend. */}
+            {isLocationCountryUnsupported && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  padding: 12,
+                  marginBottom: 16,
+                  backgroundColor: '#FEF2F2',
+                  borderColor: '#FCA5A5',
+                  borderWidth: 1,
+                  borderRadius: 12,
+                }}
+              >
+                <Ionicons name="alert-circle" size={20} color="#DC2626" />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#991B1B', fontWeight: '600', fontSize: 13 }}>
+                    {t('eventCreate.unsupportedCountryTitle', { defaultValue: 'Pays non disponible' })}
+                  </Text>
+                  <Text style={{ color: '#B91C1C', fontSize: 12, marginTop: 4, lineHeight: 17 }}>
+                    {t('eventCreate.unsupportedCountryMessage', {
+                      country: form.locationCountry,
+                      defaultValue: `EventEz ne traite pas encore les paiements dans ce pays (${form.locationCountry}). La creation sera refusee.`,
+                    })}
+                  </Text>
+                </View>
+              </View>
+            )}
+
             {form.currentStep === 1 && (
               <EventStep1Info
                 title={form.title}
