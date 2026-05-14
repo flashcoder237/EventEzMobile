@@ -2915,6 +2915,10 @@
   "subscriptionForm": {
     "title": "Mon abonnement",
     "loading": "Chargement...",
+    "subscribeOnWeb": "Souscrire sur le web",
+    "manageOnWeb": "Gérer sur le web",
+    "webNoticeTitle": "Souscription sécurisée sur le web",
+    "webNoticeBody": "L'abonnement s'active sur eventez.online avec tous vos moyens de paiement (Mobile Money, carte). Vous serez ramené automatiquement dans l'app à la fin du paiement.",
     "statusActive": "Actif",
     "statusTrial": "Essai",
     "statusExpired": "Expire",
@@ -5166,6 +5170,8 @@
       "emptyText": "Les sponsors apparaîtront ici quand un partenariat sera ajouté."
     },
     "eventCreate": {
+      "unsupportedCountryTitle": "Pays non disponible",
+      "unsupportedCountryMessage": "EventEz ne traite pas encore les paiements dans ce pays ({{country}}). La création de l'événement sera refusée. Liste des pays supportés : NotchPay, CinetPay et Stripe (46 pays).",
       "draftFoundTitle": "Brouillon trouvé",
       "draftFoundMessage": "Un brouillon « {{title}} » est en cours. Reprendre ?",
       "resume": "Reprendre",

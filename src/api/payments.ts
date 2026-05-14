@@ -17,13 +17,19 @@ export const paymentsAPI = {
     api.get(`/payments/${id}/`),
 
   createPayment: (data: any) =>
-    api.post('/payments/', data),
+    // Toujours marque source=mobile : permet au backend d'inclure ?source=mobile
+    // dans le return_url envoye a NotchPay/CinetPay, pour que la page web
+    // /payment/callback/{id} declenche le deep link `eventez://payment-success/{id}`
+    // et ferme le navigateur in-app (openAuthSessionAsync).
+    api.post('/payments/', { source: 'mobile', ...data }),
 
   updatePayment: (id: string, data: any) =>
     api.put(`/payments/${id}/`, data),
 
   initializePayment: (id: string) =>
-    api.post(`/payments/${id}/initialize_payment/`),
+    // Idem : signale au backend que ce paiement vient du mobile pour le
+    // bon return_url. Cf. createPayment ci-dessus.
+    api.post(`/payments/${id}/initialize_payment/`, { source: 'mobile' }),
 
   verifyPayment: async (id: string) => {
     try {
@@ -76,7 +82,7 @@ export const paymentsAPI = {
   },
 
   processMobileMoney: (id: string, data: { phone: string; channel?: string }) =>
-    api.post(`/payments/${id}/process_mobile_money/`, data),
+    api.post(`/payments/${id}/process_mobile_money/`, { source: 'mobile', ...data }),
 
   /**
    * Endpoint generique unifie : cree le Payment + initialise chez le bon
@@ -106,7 +112,7 @@ export const paymentsAPI = {
       state?: string;
       zip_code?: string;
     };
-  }) => api.post('/payments/initiate/', data),
+  }) => api.post('/payments/initiate/', { source: 'mobile', ...data }),
 
   /**
    * GET /api/payments/cinetpay/return/ — statut Payment apres redirect CinetPay.
