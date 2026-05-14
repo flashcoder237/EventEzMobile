@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,23 +9,21 @@ import {
   Alert,
   Animated,
   Dimensions,
-  Modal,
-  TextInput,
-  Linking,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { subscriptionsAPI, paymentsAPI, walletAPI } from '../../api';
-import { usePaymentVerification } from '../../hooks/usePaymentVerification';
+import { subscriptionsAPI, walletAPI } from '../../api';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { getServiceFeeLabel } from '../../constants/payment';
+import { WEB_BASE_URL, DEEP_LINK_SCHEME } from '../../constants/urls';
 import {
   RootStackParamList,
   SubscriptionPlan,
@@ -122,75 +120,33 @@ const formatPrice = (price: number, currency: string = 'XAF', t?: TFn, locale: s
   return `${price.toLocaleString(locale)} ${currency}`;
 };
 
-type PaymentStep = 'select-method' | 'enter-phone' | 'processing' | 'success' | 'failed';
-// Type ouvert : couvre toutes les methodes que NotchPay + CinetPay supportent.
-// Le backend valide via PaymentProviderFactory.
-type PaymentMethod = string;
+// ----------------------------------------------------------------------
+// IMPORTANT — Conformite Google Play & App Store
+// ----------------------------------------------------------------------
+// Les abonnements Essential/Premium sont des services SaaS B2B vendus
+// uniquement sur le web (https://eventez.online/dashboard/subscription).
+// L'app mobile NE GERE PAS le paiement in-app : ouvrir un flux paiement
+// pour ces plans dans l'app declencherait l'obligation Google Play
+// Billing (commission 15-30%, et incompatible avec Mobile Money).
+//
+// Pattern : meme strategie qu'Eventbrite, Slack, Notion, Calendly —
+// l'app mobile affiche les plans + sert de "manage subscription"
+// vers le web. Le paiement reel se fait dans le navigateur.
+//
+// Apres paiement reussi, le web redirige vers le deep link
+// `eventez://subscription` qui re-ouvre cet ecran et reload les data.
+// Le navigateur in-app se ferme automatiquement (openAuthSessionAsync).
+// ----------------------------------------------------------------------
 
-// Mapping API method id -> proprietes UI (icone, couleur, requires phone).
-// Couvre les 11 methodes possibles : mtn_money, orange_money, moov_money,
-// free_money, yas, wave, mpesa, airtel_money, cinetpay_wallet, credit_card,
-// paypal, bank_transfer.
-interface MethodUI {
-  iconName: keyof typeof MaterialCommunityIcons.glyphMap | keyof typeof Ionicons.glyphMap;
-  iconLib: 'mci' | 'ion';
-  color: string;          // couleur de fond pastel
-  iconColor: string;      // couleur de l'icone
-  requiresPhone: boolean;
-}
-
-const METHOD_UI_CONFIG: Record<string, MethodUI> = {
-  mtn_money:       { iconLib: 'mci', iconName: 'cellphone', color: '#FFCC00', iconColor: '#FFCC00', requiresPhone: true },
-  orange_money:    { iconLib: 'mci', iconName: 'cellphone', color: '#FF6600', iconColor: '#FF6600', requiresPhone: true },
-  moov_money:      { iconLib: 'mci', iconName: 'cellphone', color: '#0EA5E9', iconColor: '#0EA5E9', requiresPhone: true },
-  free_money:      { iconLib: 'mci', iconName: 'cellphone', color: '#EF4444', iconColor: '#EF4444', requiresPhone: true },
-  yas:             { iconLib: 'mci', iconName: 'cellphone', color: '#10B981', iconColor: '#10B981', requiresPhone: true },
-  wave:            { iconLib: 'mci', iconName: 'cellphone', color: '#06B6D4', iconColor: '#06B6D4', requiresPhone: true },
-  mpesa:           { iconLib: 'mci', iconName: 'cellphone', color: '#16A34A', iconColor: '#16A34A', requiresPhone: true },
-  airtel_money:    { iconLib: 'mci', iconName: 'cellphone', color: '#F43F5E', iconColor: '#F43F5E', requiresPhone: true },
-  cinetpay_wallet: { iconLib: 'ion', iconName: 'wallet-outline', color: '#8B5CF6', iconColor: '#8B5CF6', requiresPhone: false },
-  credit_card:     { iconLib: 'ion', iconName: 'card-outline', color: '#3B82F6', iconColor: '#3B82F6', requiresPhone: false },
-  paypal:          { iconLib: 'ion', iconName: 'logo-paypal', color: '#1E40AF', iconColor: '#1E40AF', requiresPhone: false },
-  bank_transfer:   { iconLib: 'ion', iconName: 'business-outline', color: '#6B7280', iconColor: '#6B7280', requiresPhone: false },
-};
-
-interface AvailableMethod {
-  id: string;
-  name: string;
-  provider: 'notchpay' | 'cinetpay' | null;
-  ui: MethodUI;
-}
-
-interface PaymentModalState {
-  visible: boolean;
-  step: PaymentStep;
-  plan: SubscriptionPlan | null;
-  paymentId: string | null;
-  method: PaymentMethod | null;
-  phone: string;
-  amount: number;
-  errorMessage: string;
-}
-
-const INITIAL_PAYMENT_STATE: PaymentModalState = {
-  visible: false,
-  step: 'select-method',
-  plan: null,
-  paymentId: null,
-  method: null,
-  phone: '',
-  amount: 0,
-  errorMessage: '',
-};
-
-// Phone prefix per country code (NotchPay supported countries)
-const COUNTRY_PHONE_PREFIX: Record<string, string> = {
-  CM: '+237',
-  CI: '+225',
-  SN: '+221',
-  KE: '+254',
-  GH: '+233',
-  UG: '+256',
+const buildSubscriptionWebUrl = (planName?: string, billingCycle?: string): string => {
+  const returnUrl = `${DEEP_LINK_SCHEME}://subscription?status=success`;
+  const params = new URLSearchParams({
+    return_url: returnUrl,
+    source: 'mobile',
+  });
+  if (planName) params.set('plan', planName);
+  if (billingCycle) params.set('cycle', billingCycle);
+  return `${WEB_BASE_URL}/dashboard/subscription?${params.toString()}`;
 };
 
 export default function SubscriptionScreen() {
@@ -204,25 +160,22 @@ export default function SubscriptionScreen() {
   const [organizerCountry, setOrganizerCountry] = useState<string>('CM');
   const { config: commissionConfig, currency: commissionCurrency } = useCommissionConfig(organizerCountry);
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  // Stripe Phase 1+ : si le backend refuse de pricer pour ce pays
+  // (country_not_supported / pricing_not_available), on bloque la page
+  // abonnement avec un banner clair.
+  const [pricingError, setPricingError] = useState<{
+    error: 'country_not_supported' | 'pricing_not_available';
+    country: string;
+    message: string;
+  } | null>(null);
   const [planCurrency, setPlanCurrency] = useState('XAF');
   const [subscription, setSubscription] = useState<OrganizerSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [upgrading, setUpgrading] = useState<string | null>(null);
-  const [payment, setPayment] = useState<PaymentModalState>(INITIAL_PAYMENT_STATE);
-  // Methodes de paiement dynamiques (fetch au moment d'ouvrir la modale).
-  // Vide tant que pas charge — on affiche un spinner cote select-method.
-  const [availableMethods, setAvailableMethods] = useState<AvailableMethod[]>([]);
-  const [methodsLoading, setMethodsLoading] = useState(false);
 
   // Animated underline for toggle
   const toggleAnim = useRef(new Animated.Value(0)).current;
-
-  // Pays organisateur — declare plus haut (alimente useCommissionConfig).
-  // C'est ce pays (source : wallet.country = strategie mono-devise) qui
-  // determine les prix forfait et les methodes de paiement disponibles,
-  // pas la locale device ni le default global du commission config.
-  const phonePrefix = COUNTRY_PHONE_PREFIX[organizerCountry] || '+237';
 
   useEffect(() => {
     let cancelled = false;
@@ -251,17 +204,37 @@ export default function SubscriptionScreen() {
 
   const loadData = async () => {
     try {
-      const [plansRes, subRes] = await Promise.all([
+      const [pricesRes, subRes] = await Promise.allSettled([
         subscriptionsAPI.getPrices(organizerCountry),
         subscriptionsAPI.getCurrentPlan(),
       ]);
-      const loadedPlans = plansRes.data.results || plansRes.data || [];
-      setPlans(loadedPlans);
-      // Use currency from first non-free plan, or commission config
-      const paidPlan = loadedPlans.find((p: SubscriptionPlan) => p.monthly_price > 0);
-      setPlanCurrency(paidPlan?.currency || commissionCurrency || 'XAF');
-      if (subRes.data?.plan || subRes.data?.plan_details) {
-        setSubscription(subRes.data);
+
+      if (pricesRes.status === 'fulfilled') {
+        const loadedPlans = pricesRes.value.data.results || pricesRes.value.data || [];
+        setPlans(loadedPlans);
+        const paidPlan = loadedPlans.find((p: SubscriptionPlan) => p.monthly_price > 0);
+        setPlanCurrency(paidPlan?.currency || commissionCurrency || 'XAF');
+        setPricingError(null);
+      } else {
+        // Le backend a refuse de pricer (403) → on stocke l'erreur pour
+        // afficher la bannier mobile, on n'ouvre PAS la souscription.
+        const err: any = pricesRes.reason;
+        const httpStatus = err?.response?.status;
+        const data = err?.response?.data;
+        if (httpStatus === 403 && (data?.error === 'country_not_supported' || data?.error === 'pricing_not_available')) {
+          setPricingError({
+            error: data.error,
+            country: data.country || organizerCountry,
+            message: data.message || '',
+          });
+          setPlans([]);
+        } else {
+          if (__DEV__) console.error('Erreur chargement plans:', err);
+        }
+      }
+
+      if (subRes.status === 'fulfilled' && (subRes.value.data?.plan || subRes.value.data?.plan_details)) {
+        setSubscription(subRes.value.data);
       }
     } catch (err) {
       if (__DEV__) console.error('Erreur chargement abonnement:', err);
@@ -286,61 +259,63 @@ export default function SubscriptionScreen() {
     return targetIdx > currentIdx;
   };
 
-  // Shared payment verification hook for subscription payments
-  const {
-    startVerification: startSubscriptionVerification,
-    stopVerification: stopSubscriptionVerification,
-  } = usePaymentVerification({
-    pollInterval: 5000,
-    maxAttempts: 120, // 10 min (Mobile Money peut prendre jusqu'a 10 min)
-    maxConsecutiveErrors: 10,
-    // Use the subscription-specific verify endpoint
-    verifyFn: (paymentId: string) => subscriptionsAPI.verifyPayment(paymentId),
-    // Subscription verify returns status directly in data.status
-    extractStatus: (data: any) => (data?.status || '').toLowerCase(),
-    extractErrorMessage: (data: any) => data?.message || t('subscriptionForm.paymentDefaultError'),
-    onSuccess: (_data) => {
-      setPayment((prev) => ({ ...prev, step: 'success' }));
+  // Recharge auto si l'utilisateur revient sur l'ecran (focus) — typiquement
+  // apres avoir ferme le navigateur web sans declencher le deep link de retour
+  // (ex : il a abandonne, ou a paye mais ferme la page avant le redirect).
+  useFocusEffect(
+    React.useCallback(() => {
       loadData();
-    },
-    onFailure: (errorMessage, _data) => {
-      setPayment((prev) => ({
-        ...prev,
-        step: 'failed',
-        errorMessage,
-      }));
-    },
-    onTimeout: (_lastStatus) => {
-      setPayment((prev) => ({
-        ...prev,
-        step: 'failed',
-        errorMessage: t('subscriptionForm.paymentTimeoutError'),
-      }));
-    },
-    onMaxErrors: (_lastError) => {
-      setPayment((prev) => ({
-        ...prev,
-        step: 'failed',
-        errorMessage: t('subscriptionForm.paymentTimeoutError'),
-      }));
-    },
-  });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [organizerCountry])
+  );
 
-  const closePaymentModal = useCallback(() => {
-    stopSubscriptionVerification();
-    setPayment(INITIAL_PAYMENT_STATE);
-  }, [stopSubscriptionVerification]);
+  // Plans payants : la souscription se fait sur le web. On ouvre le navigateur
+  // in-app (Custom Tab/SFSafariViewController) et on attend le deep link
+  // `eventez://subscription?status=success` qui ferme automatiquement le
+  // navigateur et nous ramene ici. Voir buildSubscriptionWebUrl + commentaire
+  // en haut du fichier pour le pourquoi (Google Play Billing compliance).
+  const openWebSubscription = async (plan: SubscriptionPlan) => {
+    const url = buildSubscriptionWebUrl(plan.name, billingCycle);
+    const returnUrl = Linking.createURL('/subscription');
+    setUpgrading(plan.id);
+    try {
+      const result = await WebBrowser.openAuthSessionAsync(url, returnUrl, {
+        showInRecents: true,
+      });
+      // result.type :
+      //   - 'success' : redirige vers returnUrl (paiement confirme cote web)
+      //   - 'cancel'  : utilisateur a ferme le navigateur manuellement
+      //   - 'dismiss' : navigateur ferme par le systeme
+      if (result.type === 'success') {
+        Alert.alert(
+          t('subscriptionForm.subscriptionUpdatedTitle'),
+          t('subscriptionForm.subscriptionUpdatedMessage', { plan: plan.display_name }),
+          [{ text: t('refundRequest.okButton') }]
+        );
+      }
+      // Dans tous les cas on recharge — l'utilisateur a peut-etre paye puis
+      // ferme le navigateur sans qu'on capte le redirect.
+      await loadData();
+    } catch (err: any) {
+      Alert.alert(
+        t('common.error'),
+        err?.message || t('subscriptionForm.genericChangeError')
+      );
+    } finally {
+      setUpgrading(null);
+    }
+  };
 
-  const handleUpgrade = async (plan: SubscriptionPlan) => {
-    const isUp = isUpgrade(plan.name);
-    const price = billingCycle === 'monthly' ? plan.monthly_price : plan.yearly_price;
-    const cycleLabel = billingCycle === 'monthly' ? t('subscriptionForm.perMonth') : t('subscriptionForm.perYear');
-
+  // Downgrade vers le plan gratuit : aucun paiement, pas de probleme de
+  // policy. On reste in-app pour cette action (UX : pas besoin du web).
+  const handleDowngradeToFree = async (plan: SubscriptionPlan) => {
     Alert.alert(
       t('subscriptionForm.confirmChangeTitle'),
-      isUp
-        ? t('subscriptionForm.confirmUpgrade', { plan: plan.display_name, price: formatPrice(price, planCurrency, t, numberLocale), cycle: cycleLabel })
-        : t('subscriptionForm.confirmDowngrade', { plan: plan.display_name, price: formatPrice(price, planCurrency, t, numberLocale), cycle: cycleLabel }),
+      t('subscriptionForm.confirmDowngrade', {
+        plan: plan.display_name,
+        price: t('subscriptionForm.free'),
+        cycle: '',
+      }),
       [
         { text: t('subscriptionForm.cancelButton'), style: 'cancel' },
         {
@@ -348,58 +323,13 @@ export default function SubscriptionScreen() {
           onPress: async () => {
             setUpgrading(plan.id);
             try {
-              const res = await subscriptionsAPI.upgrade(plan.id, billingCycle);
-              const data = res.data;
-
-              if (data.requires_payment) {
-                // Paid plan -> show payment modal
-                setPayment({
-                  visible: true,
-                  step: 'select-method',
-                  plan,
-                  paymentId: data.payment?.id ?? data.payment_id,
-                  method: null,
-                  phone: '',
-                  amount: data.calculated_price ?? data.payment?.amount ?? data.amount ?? price,
-                  errorMessage: '',
-                });
-
-                // Charge dynamiquement les methodes selon (pays organisateur, devise).
-                // Reutilise le meme endpoint que la billetterie (merge NotchPay+CinetPay).
-                setMethodsLoading(true);
-                try {
-                  const country = (data.payment?.country_code || organizerCountry || 'CM').toUpperCase();
-                  const currency = data.payment?.currency || planCurrency || 'XAF';
-                  const methodsRes = await paymentsAPI.getPaymentMethods(country, currency);
-                  const apiMethods = methodsRes.data?.methods || [];
-                  const mapped: AvailableMethod[] = apiMethods
-                    .filter((m: any) => METHOD_UI_CONFIG[m.id])
-                    .map((m: any) => ({
-                      id: m.id,
-                      name: m.name,
-                      provider: m.selected_provider ?? null,
-                      ui: METHOD_UI_CONFIG[m.id],
-                    }));
-                  setAvailableMethods(mapped);
-                } catch (e) {
-                  // Fallback : 3 methodes minimales pour ne pas bloquer
-                  setAvailableMethods([
-                    { id: 'mtn_money', name: t('subscriptionForm.mtnMomo'), provider: null, ui: METHOD_UI_CONFIG.mtn_money },
-                    { id: 'orange_money', name: t('subscriptionForm.orangeMoneyMethod'), provider: null, ui: METHOD_UI_CONFIG.orange_money },
-                    { id: 'credit_card', name: t('subscriptionForm.creditCardMethod'), provider: null, ui: METHOD_UI_CONFIG.credit_card },
-                  ]);
-                } finally {
-                  setMethodsLoading(false);
-                }
-              } else {
-                // Free plan -> directly applied
-                Alert.alert(
-                  t('subscriptionForm.subscriptionUpdatedTitle'),
-                  t('subscriptionForm.subscriptionUpdatedMessage', { plan: plan.display_name }),
-                  [{ text: t('refundRequest.okButton') }]
-                );
-                await loadData();
-              }
+              await subscriptionsAPI.upgrade(plan.id, billingCycle);
+              Alert.alert(
+                t('subscriptionForm.subscriptionUpdatedTitle'),
+                t('subscriptionForm.subscriptionUpdatedMessage', { plan: plan.display_name }),
+                [{ text: t('refundRequest.okButton') }]
+              );
+              await loadData();
             } catch (err: any) {
               const errorMessage =
                 err?.response?.data?.detail ||
@@ -415,66 +345,12 @@ export default function SubscriptionScreen() {
     );
   };
 
-  const handleSelectPaymentMethod = (method: PaymentMethod) => {
-    // Methode sans phone (carte, paypal, cinetpay_wallet, bank_transfer) :
-    // processing immediat (redirect via WebBrowser cote provider).
-    const m = availableMethods.find(x => x.id === method);
-    if (m && !m.ui.requiresPhone) {
-      setPayment((prev) => ({ ...prev, method, step: 'processing' }));
-      processPayment(method, '');
+  // Dispatch : plan gratuit → in-app, plan payant → web.
+  const handleUpgrade = (plan: SubscriptionPlan) => {
+    if (plan.monthly_price === 0 && plan.yearly_price === 0) {
+      handleDowngradeToFree(plan);
     } else {
-      // Mobile Money -> need phone number
-      setPayment((prev) => ({ ...prev, method, step: 'enter-phone' }));
-    }
-  };
-
-  const handleSubmitPhone = () => {
-    const cleanPhone = payment.phone.replace(/\s/g, '');
-    if (cleanPhone.length < 9) {
-      Alert.alert(t('subscriptionForm.invalidPhoneTitle'), t('subscriptionForm.invalidPhoneMessage'));
-      return;
-    }
-    setPayment((prev) => ({ ...prev, step: 'processing' }));
-    processPayment(payment.method!, cleanPhone);
-  };
-
-  const processPayment = async (method: PaymentMethod, phone: string) => {
-    const currentPaymentId = payment.paymentId!;
-    try {
-      const prefixDigits = phonePrefix.replace('+', '');
-      const fullPhone = phone ? `${phonePrefix}${phone.replace(new RegExp(`^\\+?${prefixDigits}`), '')}` : '';
-      const res = await subscriptionsAPI.processPayment(currentPaymentId, method, fullPhone);
-      const data = res.data;
-      // Backend retourne { success, payment: { status }, authorization_url? }
-      const subStatus = (data.payment?.status || data.status || '').toLowerCase();
-
-      if (data.success === false) {
-        setPayment((prev) => ({
-          ...prev,
-          step: 'failed',
-          errorMessage: data.message || t('subscriptionForm.paymentDefaultError'),
-        }));
-      } else if (data.authorization_url) {
-        // Carte : ouvrir le navigateur + poller
-        Linking.openURL(data.authorization_url);
-        startSubscriptionVerification(currentPaymentId);
-      } else if (subStatus === 'completed') {
-        setPayment((prev) => ({ ...prev, step: 'success' }));
-        loadData();
-      } else {
-        // Mobile Money en cours : polling jusqu'a confirmation OTP
-        startSubscriptionVerification(currentPaymentId);
-      }
-    } catch (err: any) {
-      const errorMessage =
-        err?.response?.data?.detail ||
-        err?.response?.data?.message ||
-        t('subscriptionForm.paymentProcessError');
-      setPayment((prev) => ({
-        ...prev,
-        step: 'failed',
-        errorMessage,
-      }));
+      openWebSubscription(plan);
     }
   };
 
@@ -568,6 +444,43 @@ export default function SubscriptionScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Stripe Phase 1+ : bannier si le pays organisateur n'est pas
+            couvert ou n'a pas de tarif seede. On masque les plans payants. */}
+        {pricingError && (
+          <View
+            style={{
+              flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+              padding: 14, marginBottom: 16, borderRadius: 14,
+              backgroundColor: '#FFFBEB', borderWidth: 1, borderColor: '#FCD34D',
+            }}
+          >
+            <Ionicons name="alert-circle" size={22} color="#D97706" style={{ marginTop: 2 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#78350F', marginBottom: 4 }}>
+                {pricingError.error === 'country_not_supported'
+                  ? t('subscription.unsupportedCountryTitle', {
+                      defaultValue: `Pays non couvert (${pricingError.country})`,
+                      country: pricingError.country,
+                    })
+                  : t('subscription.pricingUnavailableTitle', {
+                      defaultValue: `Tarif indisponible pour ${pricingError.country}`,
+                      country: pricingError.country,
+                    })}
+              </Text>
+              <Text style={{ fontSize: 12, color: '#92400E', lineHeight: 17 }}>
+                {pricingError.message
+                  || (pricingError.error === 'country_not_supported'
+                    ? t('subscription.unsupportedCountryBody', {
+                        defaultValue: `EventEz n'opere pas (encore) dans ${pricingError.country}. La souscription a un forfait y est indisponible.`,
+                      })
+                    : t('subscription.pricingUnavailableBody', {
+                        defaultValue: `Les forfaits ne sont pas encore tarifes pour ${pricingError.country}. Contactez le support pour activer votre marche.`,
+                      }))}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Current Plan Card */}
         <View style={[styles.currentPlanCard, { backgroundColor: cardBg, borderColor: borderColor }]}>
           <View style={styles.currentPlanHeader}>
@@ -799,53 +712,91 @@ export default function SubscriptionScreen() {
                 </View>
               </View>
 
-              {/* Action button */}
-              {!isCurrent && (
-                <View style={styles.planActionContainer}>
-                  {isUpgradeAction ? (
-                    <TouchableOpacity
-                      onPress={() => handleUpgrade(plan)}
-                      activeOpacity={TOUCH_OPACITY}
-                      disabled={isProcessing}
-                    >
-                      <LinearGradient
-                        colors={[VIOLET, ROSE]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.upgradeButton}
+              {/* Action button — paid plans open the web (Play Billing compliance),
+                  free plan downgrade stays in-app (no payment). */}
+              {!isCurrent && (() => {
+                const isPaidPlan = plan.monthly_price > 0 || plan.yearly_price > 0;
+                return (
+                  <View style={styles.planActionContainer}>
+                    {isUpgradeAction ? (
+                      <TouchableOpacity
+                        onPress={() => handleUpgrade(plan)}
+                        activeOpacity={TOUCH_OPACITY}
+                        disabled={isProcessing}
+                      >
+                        <LinearGradient
+                          colors={[VIOLET, ROSE]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.upgradeButton}
+                        >
+                          {isProcessing ? (
+                            <ActivityIndicator size="small" color="#FFFFFF" />
+                          ) : (
+                            <>
+                              <Ionicons
+                                name={isPaidPlan ? 'open-outline' : 'arrow-up-circle-outline'}
+                                size={20}
+                                color="#FFFFFF"
+                              />
+                              <Text style={styles.upgradeButtonText}>
+                                {isPaidPlan
+                                  ? t('subscriptionForm.subscribeOnWeb', { defaultValue: 'Souscrire sur le web' })
+                                  : t('subscriptionForm.switchToPlan')}
+                              </Text>
+                            </>
+                          )}
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={[styles.downgradeButton, { backgroundColor: surface, borderColor }]}
+                        onPress={() => handleUpgrade(plan)}
+                        activeOpacity={TOUCH_OPACITY}
+                        disabled={isProcessing}
                       >
                         {isProcessing ? (
-                          <ActivityIndicator size="small" color="#FFFFFF" />
+                          <ActivityIndicator size="small" color={colors.gray600} />
                         ) : (
                           <>
-                            <Ionicons name="arrow-up-circle-outline" size={20} color="#FFFFFF" />
-                            <Text style={styles.upgradeButtonText}>{t('subscriptionForm.switchToPlan')}</Text>
+                            <Ionicons
+                              name={isPaidPlan ? 'open-outline' : 'arrow-down-circle-outline'}
+                              size={20}
+                              color={colors.gray600}
+                            />
+                            <Text style={[styles.downgradeButtonText, { color: colors.gray600 }]}>
+                              {isPaidPlan
+                                ? t('subscriptionForm.manageOnWeb', { defaultValue: 'Gerer sur le web' })
+                                : t('subscriptionForm.switchToPlan')}
+                            </Text>
                           </>
                         )}
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity
-                      style={[styles.downgradeButton, { backgroundColor: surface, borderColor }]}
-                      onPress={() => handleUpgrade(plan)}
-                      activeOpacity={TOUCH_OPACITY}
-                      disabled={isProcessing}
-                    >
-                      {isProcessing ? (
-                        <ActivityIndicator size="small" color={colors.gray600} />
-                      ) : (
-                        <>
-                          <Ionicons name="arrow-down-circle-outline" size={20} color={colors.gray600} />
-                          <Text style={[styles.downgradeButtonText, { color: colors.gray600 }]}>{t('subscriptionForm.switchToPlan')}</Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                );
+              })()}
             </View>
           );
         })}
+
+        {/* Web subscription notice — pourquoi le paiement passe par le web */}
+        <View style={[styles.webNotice, { backgroundColor: violet + '0A', borderColor: violet + '20' }]}>
+          <View style={[styles.commissionIconCircle, { backgroundColor: violet + '15' }]}>
+            <Ionicons name="globe-outline" size={20} color={violet} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.webNoticeTitle, { color: ink }]}>
+              {t('subscriptionForm.webNoticeTitle', { defaultValue: 'Souscription securisee sur le web' })}
+            </Text>
+            <Text style={[styles.commissionText, { color: colors.gray600, marginTop: 2 }]}>
+              {t('subscriptionForm.webNoticeBody', {
+                defaultValue:
+                  "L'abonnement s'active sur eventez.online avec tous vos moyens de paiement (Mobile Money, carte). Vous serez ramene automatiquement dans l'app a la fin.",
+              })}
+            </Text>
+          </View>
+        </View>
 
         {/* Commission reminder */}
         <View style={[styles.commissionReminder, { backgroundColor: violet + '08', borderColor: violet + '15' }]}>
@@ -859,261 +810,6 @@ export default function SubscriptionScreen() {
 
         <View style={{ height: Spacing['3xl'] }} />
       </ScrollView>
-
-      {/* Payment Modal */}
-      <Modal
-        visible={payment.visible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => {
-          if (payment.step !== 'processing') closePaymentModal();
-        }}
-      >
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContainer, { backgroundColor: cardBg }]}>
-            {/* Modal Header */}
-            <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
-              <Text style={[styles.modalTitle, { color: ink }]}>
-                {payment.step === 'select-method' && t('subscriptionForm.modalMethod')}
-                {payment.step === 'enter-phone' && t('subscriptionForm.modalPhone')}
-                {payment.step === 'processing' && t('subscriptionForm.modalProcessing')}
-                {payment.step === 'success' && t('subscriptionForm.modalSuccess')}
-                {payment.step === 'failed' && t('subscriptionForm.modalFailed')}
-              </Text>
-              {payment.step !== 'processing' && (
-                <TouchableOpacity
-                  onPress={closePaymentModal}
-                  style={[styles.modalCloseButton, { backgroundColor: surface }]}
-                  activeOpacity={TOUCH_OPACITY}
-                >
-                  <Ionicons name="close" size={24} color={colors.gray600} />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Amount display */}
-            {payment.step !== 'success' && payment.step !== 'failed' && (
-              <View style={[styles.modalAmountRow, { borderBottomColor: borderColor }]}>
-                <Text style={[styles.modalAmountLabel, { color: colors.gray500 }]}>
-                  {payment.plan?.display_name} - {billingCycle === 'monthly' ? t('subscriptionForm.monthly') : t('subscriptionForm.yearly')}
-                </Text>
-                <Text style={[styles.modalAmountValue, { color: ink }]}>
-                  {formatPrice(payment.amount, planCurrency, t, numberLocale)}
-                </Text>
-              </View>
-            )}
-
-            {/* Step: Select Method (dynamique selon pays organisateur) */}
-            {payment.step === 'select-method' && (
-              <View style={styles.methodsContainer}>
-                {methodsLoading ? (
-                  <View style={{ paddingVertical: 32, alignItems: 'center' }}>
-                    <ActivityIndicator size="small" color={VIOLET} />
-                  </View>
-                ) : availableMethods.length === 0 ? (
-                  <View style={{ padding: 16, borderRadius: 12, backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FCD34D' }}>
-                    <Text style={{ fontSize: 13, color: '#92400E' }}>
-                      Aucune methode de paiement disponible pour votre pays. Contactez le support.
-                    </Text>
-                  </View>
-                ) : (
-                  availableMethods.map((m) => {
-                    const Icon = m.ui.iconLib === 'mci' ? MaterialCommunityIcons : Ionicons;
-                    return (
-                      <TouchableOpacity
-                        key={m.id}
-                        style={[styles.methodCard, { backgroundColor: cardBg, borderColor }]}
-                        onPress={() => handleSelectPaymentMethod(m.id)}
-                        activeOpacity={TOUCH_OPACITY}
-                      >
-                        <View style={[styles.methodIconCircle, { backgroundColor: m.ui.color + '20' }]}>
-                          {/* @ts-expect-error : iconName est union de deux libs */}
-                          <Icon name={m.ui.iconName} size={24} color={m.ui.iconColor} />
-                        </View>
-                        <View style={styles.methodInfo}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-                            <Text style={[styles.methodName, { color: ink }]}>{m.name}</Text>
-                            {m.provider && (
-                              <View style={{
-                                paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
-                                backgroundColor: m.provider === 'cinetpay' ? '#EDE9FE' : '#D1FAE5',
-                              }}>
-                                <Text style={{
-                                  fontSize: 9, fontWeight: '600',
-                                  color: m.provider === 'cinetpay' ? '#6D28D9' : '#047857',
-                                  textTransform: 'uppercase', letterSpacing: 0.5,
-                                }}>
-                                  {m.provider === 'cinetpay' ? 'CinetPay' : 'NotchPay'}
-                                </Text>
-                              </View>
-                            )}
-                          </View>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
-                      </TouchableOpacity>
-                    );
-                  })
-                )}
-              </View>
-            )}
-
-            {/* Step: Enter Phone */}
-            {payment.step === 'enter-phone' && (
-              <View style={styles.phoneContainer}>
-                <Text style={[styles.phoneLabel, { color: ink }]}>
-                  {(() => {
-                    // Affiche le nom de la methode courante (MTN MoMo, Wave, etc.)
-                    const m = availableMethods.find(x => x.id === payment.method);
-                    if (m) return t('subscriptionForm.phoneLabelGeneric', { method: m.name, defaultValue: `Numero ${m.name}` });
-                    if (payment.method === 'mtn_money') return t('subscriptionForm.phoneLabelMtn');
-                    if (payment.method === 'orange_money') return t('subscriptionForm.phoneLabelOrange');
-                    return t('subscriptionForm.phoneLabelGeneric', { method: '', defaultValue: 'Numero de telephone' });
-                  })()}
-                </Text>
-                <View style={[styles.phoneInputRow, { borderColor }]}>
-                  <View style={[styles.phonePrefix, { backgroundColor: surface, borderRightColor: borderColor }]}>
-                    <Text style={[styles.phonePrefixText, { color: colors.gray500 }]}>{phonePrefix}</Text>
-                  </View>
-                  <TextInput
-                    style={[styles.phoneInput, { color: ink }]}
-                    value={payment.phone}
-                    onChangeText={(text) =>
-                      setPayment((prev) => ({ ...prev, phone: text.replace(/[^0-9]/g, '') }))
-                    }
-                    placeholder={t('subscriptionForm.phonePlaceholder')}
-                    placeholderTextColor={colors.gray400}
-                    keyboardType="phone-pad"
-                    maxLength={9}
-                    autoFocus
-                  />
-                </View>
-                <TouchableOpacity
-                  onPress={handleSubmitPhone}
-                  activeOpacity={TOUCH_OPACITY}
-                  disabled={payment.phone.replace(/\s/g, '').length < 9}
-                >
-                  <LinearGradient
-                    colors={[VIOLET, ROSE]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={[
-                      styles.payButton,
-                      payment.phone.replace(/\s/g, '').length < 9 && { opacity: 0.5 },
-                    ]}
-                  >
-                    <Text style={styles.payButtonText}>
-                      {t('subscriptionForm.payWithAmount', { amount: formatPrice(payment.amount, planCurrency, t, numberLocale) })}
-                    </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.backToMethodsButton}
-                  onPress={() => setPayment((prev) => ({ ...prev, step: 'select-method', method: null }))}
-                  activeOpacity={TOUCH_OPACITY}
-                >
-                  <Ionicons name="arrow-back" size={16} color={colors.gray600} />
-                  <Text style={[styles.backToMethodsText, { color: colors.gray600 }]}>{t('subscriptionForm.changeMethod')}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Step: Processing */}
-            {payment.step === 'processing' && (
-              <View style={styles.processingContainer}>
-                <LoadingSpinner />
-                <Text style={[styles.processingTitle, { color: ink }]}>{t('subscriptionForm.processingTitle')}</Text>
-                <Text style={[styles.processingDescription, { color: colors.gray500 }]}>
-                  {payment.method === 'credit_card'
-                    ? t('subscriptionForm.processingDescriptionCard')
-                    : t('subscriptionForm.processingDescriptionMomo')}
-                </Text>
-                {payment.method && payment.method !== 'credit_card' && (
-                  <View style={[styles.processingHint, { backgroundColor: violet + '10' }]}>
-                    <Ionicons name="information-circle-outline" size={18} color={violet} />
-                    <Text style={[styles.processingHintText, { color: violet }]}>
-                      {payment.method === 'mtn_money'
-                        ? t('subscriptionForm.mtnHint')
-                        : t('subscriptionForm.orangeHint')}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Step: Success */}
-            {payment.step === 'success' && (
-              <View style={styles.resultContainer}>
-                <View style={[styles.successIconCircle, isDark && { backgroundColor: '#052E16' }]}>
-                  <Ionicons name="checkmark-circle" size={56} color={colors.success} />
-                </View>
-                <Text style={[styles.resultTitle, { color: ink }]}>{t('subscriptionForm.successResultTitle')}</Text>
-                <Text style={[styles.resultDescription, { color: colors.gray500 }]}>
-                  {t('subscriptionForm.successResultDescription', { plan: payment.plan?.display_name || '' })}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    closePaymentModal();
-                    loadData();
-                  }}
-                  activeOpacity={TOUCH_OPACITY}
-                >
-                  <LinearGradient
-                    colors={[VIOLET, ROSE]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.payButton}
-                  >
-                    <Text style={styles.payButtonText}>{t('subscriptionForm.closeButton')}</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Step: Failed */}
-            {payment.step === 'failed' && (
-              <View style={styles.resultContainer}>
-                <View style={[styles.failedIconCircle, isDark && { backgroundColor: '#450A0A' }]}>
-                  <Ionicons name="close-circle" size={56} color={colors.error} />
-                </View>
-                <Text style={[styles.resultTitle, { color: ink }]}>{t('subscriptionForm.failedResultTitle')}</Text>
-                <Text style={[styles.resultDescription, { color: colors.gray500 }]}>
-                  {payment.errorMessage || t('subscriptionForm.failedResultDescription')}
-                </Text>
-                <TouchableOpacity
-                  onPress={() =>
-                    setPayment((prev) => ({
-                      ...prev,
-                      step: 'select-method',
-                      method: null,
-                      phone: '',
-                      errorMessage: '',
-                    }))
-                  }
-                  activeOpacity={TOUCH_OPACITY}
-                >
-                  <LinearGradient
-                    colors={[VIOLET, ROSE]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.payButton}
-                  >
-                    <Text style={styles.payButtonText}>{t('subscriptionForm.retryButton')}</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.backToMethodsButton}
-                  onPress={closePaymentModal}
-                  activeOpacity={TOUCH_OPACITY}
-                >
-                  <Text style={[styles.backToMethodsText, { color: colors.gray600 }]}>{t('subscriptionForm.cancelButton')}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </EditorialCanvas>
   );
 }
@@ -1513,6 +1209,22 @@ const styles = StyleSheet.create({
     color: Colors.gray600,
   },
 
+  // ===== Web Subscription Notice =====
+  webNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.md,
+    marginTop: Spacing.lg,
+    gap: Spacing.md,
+    borderWidth: 1,
+  },
+  webNoticeTitle: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.sm,
+    lineHeight: 20,
+  },
+
   // ===== Commission Reminder =====
   commissionReminder: {
     flexDirection: 'row',
@@ -1520,7 +1232,7 @@ const styles = StyleSheet.create({
     backgroundColor: VIOLET + '08',
     borderRadius: BorderRadius.xl,
     padding: Spacing.md,
-    marginTop: Spacing.xl,
+    marginTop: Spacing.md,
     gap: Spacing.md,
     borderWidth: 1,
     borderColor: VIOLET + '15',
