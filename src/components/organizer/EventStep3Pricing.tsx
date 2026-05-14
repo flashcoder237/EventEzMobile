@@ -12,13 +12,14 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useOrganizerWallet } from '../../hooks/useOrganizerWallet';
+import { useTicketPriceCap } from '../../hooks/useTicketPriceCap';
 import { Spacing, FontFamily } from '../../constants/theme';
 import { LocationType } from '../../types';
 import { TicketTypeForm, FormFieldForm, FIELD_TYPES } from '../../hooks/useEventForm';
 import DateTimePickerField from '../ui/DateTimePickerField';
 import AIAssistButton from '../events/AIAssistButton';
 import styles from './eventCreateStyles';
-import { useEventCreateThemedStyles } from './useEventCreateThemedStyles';
+import { useEventCreateThemedStyles } from './useEventCreateThemedStyles';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
 
 // ============================================
@@ -258,8 +259,11 @@ export default function EventStep3Pricing({
   const { colors, isDark } = useTheme();
   // Strategie "Event mono-devise" : la devise est celle du wallet de l'organisateur,
   // heritee par l'evenement au create et verrouillee ensuite (cf. docs/CURRENCY_STRATEGY.md)
-  const { currency: walletCurrency } = useOrganizerWallet();
+  const { currency: walletCurrency, country: walletCountry } = useOrganizerWallet();
   const currencyLabel = displayCurrency(walletCurrency);
+  // Plafond max par ticket selon le pays/devise du wallet (PlatformLimit DB).
+  // Affiche un hint sous le champ + colore en rouge si depasse.
+  const { cap: maxTicketPrice, source: capSource } = useTicketPriceCap(walletCountry, walletCurrency);
   const themed = useEventCreateThemedStyles();
   return (
     <View style={styles.stepContent}>
@@ -395,7 +399,14 @@ export default function EventStep3Pricing({
                     <View style={[styles.inputGroup, { flex: 1 }]}>
                       <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.priceLabel', { currency: currencyLabel })}</Text>
                       <TextInput
-                        style={[styles.input, themed.input]}
+                        style={[
+                          styles.input,
+                          themed.input,
+                          // Highlight rouge si depasse le plafond.
+                          maxTicketPrice != null && Number(ticket.price || 0) > maxTicketPrice
+                            ? { borderColor: '#EF4444', borderWidth: 1.5 }
+                            : null,
+                        ]}
                         value={ticket.price}
                         onChangeText={(value) => onUpdateTicketType(index, 'price', value)}
                         placeholder="0"
@@ -403,6 +414,31 @@ export default function EventStep3Pricing({
                         keyboardType="numeric"
                         editable={!isFree}
                       />
+                      {maxTicketPrice != null && (
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            marginTop: 4,
+                            color: Number(ticket.price || 0) > maxTicketPrice
+                              ? '#DC2626'
+                              : (colors.gray500 || '#6B7280'),
+                            fontFamily: FontFamily.regular,
+                          }}
+                          numberOfLines={2}
+                        >
+                          {Number(ticket.price || 0) > maxTicketPrice
+                            ? t('componentsOrganizer.step3.priceCapExceeded', {
+                                defaultValue: `Au-delà du plafond (${maxTicketPrice.toLocaleString('fr-FR')} ${currencyLabel}). Création refusée.`,
+                                max: maxTicketPrice.toLocaleString('fr-FR'),
+                                currency: currencyLabel,
+                              })
+                            : t('componentsOrganizer.step3.priceCapHint', {
+                                defaultValue: `Max ${maxTicketPrice.toLocaleString('fr-FR')} ${currencyLabel}${capSource === 'platform_limit' ? ' (configuré admin)' : ''}`,
+                                max: maxTicketPrice.toLocaleString('fr-FR'),
+                                currency: currencyLabel,
+                              })}
+                        </Text>
+                      )}
                     </View>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
                       <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.quantityLabel')}</Text>

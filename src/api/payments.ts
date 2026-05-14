@@ -129,6 +129,16 @@ export const paymentsAPI = {
    */
   supportedCountries: () => api.get('/payments/supported-countries/'),
 
+  /**
+   * Plafond ticket pour un (country, currency). Public, auth-free.
+   * Utilise par EventStep3Pricing pour afficher la limite et valider
+   * avant submit.
+   */
+  ticketPriceCap: (country: string, currency: string) =>
+    api.get('/payments/ticket-price-cap/', {
+      params: { country, currency },
+    }),
+
   // Export — use `useExport()` hook instead.
   // Endpoint kept for reference: GET /payments/export/?status=&export_format=csv|xlsx|pdf
 };
