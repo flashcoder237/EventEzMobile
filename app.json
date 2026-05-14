@@ -20,18 +20,7 @@
       "usesAppleSignIn": true,
       "associatedDomains": [
         "applinks:eventez.online"
-      ],
-      "infoPlist": {
-        "NSAppTransportSecurity": {
-          "NSExceptionDomains": {
-            "eventez.online": {
-              "NSExceptionAllowsInsecureHTTPLoads": true,
-              "NSIncludesSubdomains": true,
-              "NSTemporaryExceptionRequiresForwardSecrecy": false
-            }
-          }
-        }
-      }
+      ]
     },
     "android": {
       "googleServicesFile": "./google-services.json",
@@ -40,6 +29,11 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.eventez.mobile",
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ],
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
@@ -90,6 +84,11 @@
               "scheme": "https",
               "host": "eventez.online",
               "pathPrefix": "/transfer/"
+            },
+            {
+              "scheme": "https",
+              "host": "eventez.online",
+              "pathPrefix": "/team-invitation/"
             }
           ],
           "category": [
@@ -124,6 +123,7 @@
         }
       ],
       "./plugins/withNetworkSecurity",
+      "./plugins/withRemoveProblematicPermissions",
       "./plugins/withNotificationServiceExtension",
       "./plugins/withNotifeeMavenRepo",
       "expo-web-browser",

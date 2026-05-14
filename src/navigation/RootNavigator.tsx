@@ -118,6 +118,9 @@ import ReferralScreen from '../screens/dashboard/ReferralScreen';
 // New Feature Screens — rare (lazy)
 const LiveEventScreen = withSuspense(lazy(() => import('../screens/events/LiveEventScreen')));
 const VolunteerScreen = withSuspense(lazy(() => import('../screens/organizer/VolunteerScreen')));
+const TeamManagementScreen = withSuspense(lazy(() => import('../screens/organizer/TeamManagementScreen')));
+const TeamInvitationAcceptScreen = withSuspense(lazy(() => import('../screens/events/TeamInvitationAcceptScreen')));
+const MyTeamEventsScreen = withSuspense(lazy(() => import('../screens/dashboard/MyTeamEventsScreen')));
 const SubscriptionScreen = withSuspense(lazy(() => import('../screens/dashboard/SubscriptionScreen')));
 
 // Help Screen
@@ -394,6 +397,10 @@ export default function RootNavigator() {
       <Stack.Screen name="LiveEvent" component={LiveEventScreen} />
       <Stack.Screen name="Referrals" component={ReferralScreen} />
       <Stack.Screen name="Volunteers" component={VolunteerScreen} />
+      {/* Equipe d'event : gestion organisateur + ecran d'acceptation invitation */}
+      <Stack.Screen name="TeamManagement" component={TeamManagementScreen} />
+      <Stack.Screen name="TeamInvitation" component={TeamInvitationAcceptScreen} />
+      <Stack.Screen name="MyTeamEvents" component={MyTeamEventsScreen} />
       <Stack.Screen name="Subscription" component={SubscriptionScreen} />
 
       {/* Help Screen */}

@@ -11,6 +11,7 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  Share,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
@@ -19,6 +20,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { volunteersAPI } from '../../api';
+import { getVolunteerSignupUrl } from '../../constants/urls';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { Colors, FontSizes, FontFamily, Spacing, BorderRadius, Shadows } from '../../constants/theme';
@@ -50,7 +52,8 @@ interface VolunteerApplication {
   motivation?: string;
   availability?: string;
   experience?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'withdrawn';
+  // 'accepted' = nouveau status backend (model). 'approved' = legacy (compat).
+  status: 'pending' | 'approved' | 'accepted' | 'rejected' | 'withdrawn';
   created_at: string;
 }
 
@@ -69,10 +72,15 @@ export default function VolunteerScreen() {
 
   const [roles, setRoles] = useState<VolunteerRole[]>([]);
   const [applications, setApplications] = useState<VolunteerApplication[]>([]);
+  // Candidatures recues sur les events que je gere (vue organizer uniquement).
+  // Vide tant que l'onglet 'received' n'est pas active OU si je ne suis pas
+  // organisateur d'au moins un event.
+  const [receivedApps, setReceivedApps] = useState<VolunteerApplication[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'roles' | 'applications' | 'tasks'>('roles');
+  // Nouveau tab 'received' visible seulement en mode organizer (eventId + role).
+  const [activeTab, setActiveTab] = useState<'roles' | 'applications' | 'received' | 'tasks'>('roles');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Modal de création de rôle (organizer seulement)
@@ -142,15 +150,23 @@ export default function VolunteerScreen() {
   const fetchData = async () => {
     try {
       const params = eventId ? { event: eventId } : undefined;
-      const [rolesRes, appsRes, tasksRes] = await Promise.all([
+      // En mode organizer on charge aussi les candidatures recues sur cet event.
+      // Backend filtre deja sur "events que je gere", donc 403 silencieux si
+      // l'utilisateur n'est en realite pas organizer (defense en profondeur).
+      const receivedPromise = isOrganizerView && eventId
+        ? volunteersAPI.getReceivedApplications({ event: eventId }).catch(() => ({ data: [] }))
+        : Promise.resolve({ data: [] } as any);
+      const [rolesRes, appsRes, receivedRes, tasksRes] = await Promise.all([
         volunteersAPI.getRoles(params),
         volunteersAPI.getMyApplications(),
+        receivedPromise,
         // my_tasks ne renvoie que celles assignées au user courant — utile
         // uniquement si l'utilisateur a au moins une candidature acceptée.
         volunteersAPI.getMyTasks().catch(() => ({ data: [] })),
       ]);
       setRoles(rolesRes.data.results || rolesRes.data || []);
       setApplications(appsRes.data.results || appsRes.data || []);
+      setReceivedApps(receivedRes.data?.results || receivedRes.data || []);
       setTasks(tasksRes.data?.results || tasksRes.data || []);
     } catch (error) {
       if (__DEV__) console.error('Erreur volunteers:', error);
@@ -215,6 +231,69 @@ export default function VolunteerScreen() {
           },
         },
       ]
+    );
+  };
+
+  // Organizer accepte une candidature recue
+  const handleAcceptApplication = (application: VolunteerApplication) => {
+    Alert.alert(
+      t('organizer.volunteer.acceptTitle', { defaultValue: 'Accepter la candidature' }),
+      t('organizer.volunteer.acceptMessage', {
+        defaultValue: 'Confirmer l\'acceptation de cette candidature ? Le benevole sera notifie.',
+      }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('organizer.volunteer.accept', { defaultValue: 'Accepter' }),
+          onPress: async () => {
+            setActionLoading(application.id);
+            try {
+              await volunteersAPI.acceptApplication(application.id);
+              setReceivedApps((prev) =>
+                prev.map((a) =>
+                  a.id === application.id ? { ...a, status: 'accepted' } : a,
+                ),
+              );
+            } catch (err: any) {
+              Alert.alert(t('common.error'), err?.response?.data?.detail || 'Erreur');
+            } finally {
+              setActionLoading(null);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  // Organizer rejette une candidature recue (avec raison optionnelle)
+  const handleRejectApplication = (application: VolunteerApplication) => {
+    Alert.alert(
+      t('organizer.volunteer.rejectTitle', { defaultValue: 'Refuser la candidature' }),
+      t('organizer.volunteer.rejectMessage', {
+        defaultValue: 'Confirmer le refus ? Le benevole sera notifie.',
+      }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('organizer.volunteer.reject', { defaultValue: 'Refuser' }),
+          style: 'destructive',
+          onPress: async () => {
+            setActionLoading(application.id);
+            try {
+              await volunteersAPI.rejectApplication(application.id);
+              setReceivedApps((prev) =>
+                prev.map((a) =>
+                  a.id === application.id ? { ...a, status: 'rejected' } : a,
+                ),
+              );
+            } catch (err: any) {
+              Alert.alert(t('common.error'), err?.response?.data?.detail || 'Erreur');
+            } finally {
+              setActionLoading(null);
+            }
+          },
+        },
+      ],
     );
   };
 
@@ -513,14 +592,42 @@ export default function VolunteerScreen() {
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('organizer.volunteer.headerTitle')}</Text>
         </View>
         {isOrganizerView ? (
-          <TouchableOpacity
-            onPress={() => setCreateOpen(true)}
-            style={[styles.backButton, { backgroundColor: `${colors.primary}15` }]}
-            accessibilityRole="button"
-            accessibilityLabel={t('organizer.volunteer.createRoleA11y')}
-          >
-            <Ionicons name="add" size={22} color={colors.primary} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {/* Bouton Partager : copie un lien public vers la page volunteer
+                de cet event (OpenGraph + deep link mobile). */}
+            {eventId && (
+              <TouchableOpacity
+                onPress={async () => {
+                  try {
+                    await Share.share({
+                      message: t('organizer.volunteer.shareMessage', {
+                        defaultValue: 'Devenez benevole pour cet evenement : {{url}}',
+                        url: getVolunteerSignupUrl(eventId),
+                      }),
+                      url: getVolunteerSignupUrl(eventId),
+                    });
+                  } catch {
+                    // user cancelled
+                  }
+                }}
+                style={[styles.backButton, { backgroundColor: `${colors.primary}15` }]}
+                accessibilityRole="button"
+                accessibilityLabel={t('organizer.volunteer.shareLinkA11y', {
+                  defaultValue: 'Partager le lien d\'inscription benevole',
+                })}
+              >
+                <Ionicons name="share-outline" size={20} color={colors.primary} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={() => setCreateOpen(true)}
+              style={[styles.backButton, { backgroundColor: `${colors.primary}15` }]}
+              accessibilityRole="button"
+              accessibilityLabel={t('organizer.volunteer.createRoleA11y')}
+            >
+              <Ionicons name="add" size={22} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
         ) : (
           <View style={{ width: 40 }} />
         )}
@@ -556,6 +663,27 @@ export default function VolunteerScreen() {
             {t('organizer.volunteer.tabApplications', { count: applications.length })}
           </Text>
         </TouchableOpacity>
+        {/* Tab "Recues" : organizer-only, candidatures sur mes events. Visible
+            meme si vide pour signaler la fonction. Permet d'accept/reject. */}
+        {isOrganizerView && (
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'received' && [styles.activeTab, { backgroundColor: colors.card }]]}
+            onPress={() => setActiveTab('received')}
+          >
+            <Ionicons
+              name="mail-unread-outline"
+              size={16}
+              color={activeTab === 'received' ? colors.primary : colors.textLight}
+              style={{ marginRight: 4 }}
+            />
+            <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'received' && { color: colors.primary }]}>
+              {t('organizer.volunteer.tabReceived', {
+                defaultValue: 'Recues ({{count}})',
+                count: receivedApps.length,
+              })}
+            </Text>
+          </TouchableOpacity>
+        )}
         {/* Tab Tâches : visible uniquement si l'utilisateur a des tâches assignées
             (il faut une candidature acceptée + un task assigné par l'organisateur).
             On évite de polluer la nav pour les volontaires qui n'ont rien à faire. */}
@@ -616,6 +744,150 @@ export default function VolunteerScreen() {
             </View>
           }
           renderItem={renderApplicationCard}
+        />
+      )}
+      {activeTab === 'received' && (
+        <FlatList
+          data={receivedApps}
+          contentContainerStyle={styles.listContent}
+          keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="mail-outline" size={48} color={colors.textLight} />
+              <Text style={[styles.emptyText, { color: colors.textLight }]}>
+                {t('organizer.volunteer.emptyReceivedTitle', {
+                  defaultValue: 'Aucune candidature recue',
+                })}
+              </Text>
+              <Text style={[styles.emptySubtext, { color: colors.textLight }]}>
+                {t('organizer.volunteer.emptyReceivedText', {
+                  defaultValue: 'Les benevoles qui postuleront a vos roles apparaitront ici.',
+                })}
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => {
+            const applicantName =
+              item.applicant_name || item.applicant_email || 'Anonyme';
+            const isProcessing = actionLoading === item.id;
+            const canAct = item.status === 'pending';
+            const statusColor =
+              item.status === 'pending' ? '#F59E0B' :
+              item.status === 'approved' || item.status === 'accepted' ? '#10B981' :
+              item.status === 'rejected' ? '#EF4444' : colors.gray500;
+            return (
+              <View style={[
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.gray100,
+                  borderWidth: 1,
+                  borderRadius: 16,
+                  padding: 16,
+                  marginBottom: 12,
+                },
+              ]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                  <Ionicons name="person-circle-outline" size={28} color={colors.primary} />
+                  <View style={{ flex: 1, marginLeft: 8 }}>
+                    <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 14, color: colors.gray900 }}>
+                      {applicantName}
+                    </Text>
+                    {item.applicant_email && (
+                      <Text style={{ fontSize: 12, color: colors.gray500 }} numberOfLines={1}>
+                        {item.applicant_email}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: `${statusColor}18` }}>
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: statusColor, textTransform: 'uppercase' }}>
+                      {item.status}
+                    </Text>
+                  </View>
+                </View>
+                {(item.role_title || item.role_name) && (
+                  <Text style={{ fontSize: 12, color: colors.gray600, marginBottom: 6 }}>
+                    {t('organizer.volunteer.appliedFor', {
+                      defaultValue: 'Pour le role :',
+                    })}{' '}
+                    <Text style={{ color: colors.primary, fontFamily: FontFamily.semiBold }}>
+                      {item.role_title || item.role_name}
+                    </Text>
+                  </Text>
+                )}
+                {item.motivation && (
+                  <View style={{ marginTop: 6 }}>
+                    <Text style={{ fontSize: 11, color: colors.gray500, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                      Motivation
+                    </Text>
+                    <Text style={{ fontSize: 13, color: colors.gray700, marginTop: 2 }}>
+                      {item.motivation}
+                    </Text>
+                  </View>
+                )}
+                {item.availability && (
+                  <View style={{ marginTop: 6 }}>
+                    <Text style={{ fontSize: 11, color: colors.gray500, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                      Disponibilite
+                    </Text>
+                    <Text style={{ fontSize: 13, color: colors.gray700, marginTop: 2 }}>
+                      {item.availability}
+                    </Text>
+                  </View>
+                )}
+                {item.experience && (
+                  <View style={{ marginTop: 6 }}>
+                    <Text style={{ fontSize: 11, color: colors.gray500, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                      Experience
+                    </Text>
+                    <Text style={{ fontSize: 13, color: colors.gray700, marginTop: 2 }}>
+                      {item.experience}
+                    </Text>
+                  </View>
+                )}
+                {canAct && (
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                    <TouchableOpacity
+                      onPress={() => handleAcceptApplication(item)}
+                      disabled={isProcessing}
+                      style={{
+                        flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+                        gap: 6, paddingVertical: 10, borderRadius: 999,
+                        backgroundColor: '#D1FAE5', borderWidth: 1, borderColor: '#6EE7B7',
+                      }}
+                    >
+                      {isProcessing ? (
+                        <ActivityIndicator size="small" color="#047857" />
+                      ) : (
+                        <>
+                          <Ionicons name="checkmark-circle" size={16} color="#047857" />
+                          <Text style={{ color: '#047857', fontFamily: FontFamily.semiBold, fontSize: 13 }}>
+                            {t('organizer.volunteer.accept', { defaultValue: 'Accepter' })}
+                          </Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleRejectApplication(item)}
+                      disabled={isProcessing}
+                      style={{
+                        flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+                        gap: 6, paddingVertical: 10, borderRadius: 999,
+                        backgroundColor: '#FEE2E2', borderWidth: 1, borderColor: '#FCA5A5',
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={16} color="#991B1B" />
+                      <Text style={{ color: '#991B1B', fontFamily: FontFamily.semiBold, fontSize: 13 }}>
+                        {t('organizer.volunteer.reject', { defaultValue: 'Refuser' })}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            );
+          }}
         />
       )}
       {activeTab === 'tasks' && (

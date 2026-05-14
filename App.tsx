@@ -121,6 +121,10 @@ const linking: LinkingOptions<RootStackParamList> = {
   config: {
     screens: {
       EventDetails: 'events/:eventId',
+      // Deep link de partage "devenir benevole" pour un event. Ouvre
+      // VolunteerScreen avec eventId pre-rempli.
+      // Cf. eventez-frontend/src/app/events/[id]/volunteer/page.tsx (web).
+      Volunteers: 'events/:eventId/volunteer',
       OrganizerProfile: 'organizers/:organizerId',
       SpeakerDetails: 'speakers/:speakerId',
       PaymentSuccess: 'payment-success/:paymentId',
@@ -135,6 +139,16 @@ const linking: LinkingOptions<RootStackParamList> = {
       // Deep link consommé après clic sur le lien de transfert de billet.
       // Correspond à https://eventez.online/transfer/{token}/accept|decline
       TransferAccept: 'transfer/:token/:action',
+      // Deep link d'invitation d'equipe : recu par email/SMS avec un token
+      // unique. Ouvre TeamInvitationAcceptScreen qui affiche les details et
+      // permet d'accepter ou decliner.
+      TeamInvitation: 'team-invitation/:token',
+      // Deep link de retour après souscription web (Play Billing compliance —
+      // cf. SubscriptionScreen.tsx). Le web appelle eventez://subscription
+      // ou https://eventez.online/dashboard/subscription a la fin du paiement,
+      // ce qui ramene l'utilisateur ici. openAuthSessionAsync intercepte le
+      // redirect et ferme automatiquement le navigateur in-app.
+      Subscription: 'subscription',
       Main: {
         screens: {
           Discover: 'discover',

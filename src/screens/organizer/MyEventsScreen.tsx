@@ -566,6 +566,15 @@ export default function MyEventsScreen() {
     if (event.status === 'validated') {
       configActions.push(
         {
+          label: t('organizer.myEvents.actions.team', { defaultValue: 'Equipe' }),
+          icon: 'people-outline',
+          onPress: () =>
+            navigation.navigate('TeamManagement', {
+              eventId: event.id,
+              eventTitle: event.title,
+            }),
+        },
+        {
           label: t('organizer.myEvents.actions.volunteers'),
           icon: 'hand-left-outline',
           onPress: () => navigation.navigate('Volunteers', { eventId: event.id }),
