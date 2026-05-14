@@ -447,6 +447,14 @@ export default function ProfileScreen() {
               onPress={() => navigation.navigate('FollowingUsers')}
             />
             <MenuItem
+              icon="people-circle-outline"
+              title={t('profile.myTeamEventsMenu', { defaultValue: 'Mon equipe' })}
+              subtitle={t('profile.myTeamEventsSubtitle', {
+                defaultValue: 'Events ou je suis invite a aider',
+              })}
+              onPress={() => navigation.navigate('MyTeamEvents')}
+            />
+            <MenuItem
               icon="trophy-outline"
               title={t('profile.badgesPointsMenu')}
               onPress={() => navigation.navigate('Gamification')}

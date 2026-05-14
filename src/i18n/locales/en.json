@@ -1373,7 +1373,7 @@
     "rowWhoCanContact": "Who can contact you?",
     "rowWhoCanContactSubtitle": "LinkedIn-style spam filter for direct messages",
     "whoCanContactPickerTitle": "Who can contact you?",
-    "whoCanContactPickerMessage": "Pick who can send you a direct message without a prior request.",
+    "whoCanContactPickerMessage": "Pick who can send you a direct message without a prior request. Note: your connections (QR, mutual follow) and event co-attendees can always message you, regardless of your choice.",
     "whoCanContactEveryone": "Everyone",
     "whoCanContactEveryoneDesc": "Messages from strangers go to your « Requests » inbox",
     "whoCanContactConnections": "Connections & event peers",
@@ -2912,13 +2912,24 @@
     "dmBlocked": {
       "title": "Cannot send",
       "pendingTitle": "Request pending",
+      "dailyLimitTitle": "Limit reached",
+      "conversationFullTitle": "Conversation full",
       "messagingDisabled": "This user has disabled their messaging.",
       "blocked": "You can no longer message this user.",
       "recipientAcceptsNobody": "This user does not accept any direct messages.",
       "recipientRequiresConnection": "This user only accepts messages from connections (QR or mutual follow) or event co-attendees.",
+      "recipientPendingQuotaExceeded": "This user has received too many requests today. Try again tomorrow.",
       "previouslyDeclined": "This person already declined your previous request.",
       "conversationDeclined": "This conversation was declined and no longer accepts messages.",
-      "pendingMessageCap": "Your request has been sent. Wait for a reply before sending another message."
+      "pendingMessageCap": "Your request has been sent. Wait for a reply before sending another message.",
+      "dailyDmLimitReached": "You've reached your daily direct message quota. Try again tomorrow.",
+      "dailyUploadQuotaExceeded": "You've reached your daily file upload quota (100 MB). Try again tomorrow.",
+      "conversationMessageCap": "This conversation has reached its message limit (10,000). Delete the conversation or start a new one to continue.",
+      "conversationQuotaExceeded": "This conversation has reached its storage limit (500 MB). Delete the conversation or some files to continue."
+    },
+    "cleanupActions": {
+      "deleteConversation": "Delete conversation",
+      "deleteFailed": "Could not delete the conversation."
     },
     "pendingBanner": {
       "title": "Awaiting acceptance",

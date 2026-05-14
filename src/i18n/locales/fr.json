@@ -1373,7 +1373,7 @@
     "rowWhoCanContact": "Qui peut te contacter ?",
     "rowWhoCanContactSubtitle": "Filtre anti-spam à la LinkedIn pour les messages directs",
     "whoCanContactPickerTitle": "Qui peut te contacter ?",
-    "whoCanContactPickerMessage": "Choisis qui peut t'envoyer un message direct sans demande préalable.",
+    "whoCanContactPickerMessage": "Choisis qui peut t'envoyer un message direct sans demande préalable. Note : tes connexions (QR, follow mutuel) et co-participants d'événements pourront toujours t'écrire, peu importe ton choix.",
     "whoCanContactEveryone": "Tout le monde",
     "whoCanContactEveryoneDesc": "Les messages d'inconnus arrivent en « Demandes »",
     "whoCanContactConnections": "Connexions & événements",
@@ -3201,13 +3201,24 @@
     "dmBlocked": {
       "title": "Envoi impossible",
       "pendingTitle": "Demande en attente",
+      "dailyLimitTitle": "Limite atteinte",
+      "conversationFullTitle": "Conversation pleine",
       "messagingDisabled": "Cet utilisateur a désactivé sa messagerie.",
       "blocked": "Vous ne pouvez plus écrire à cet utilisateur.",
       "recipientAcceptsNobody": "Cet utilisateur n'accepte aucun message direct.",
       "recipientRequiresConnection": "Cet utilisateur n'accepte que ses connexions (QR ou follow mutuel) ou ses co-participants à des événements.",
+      "recipientPendingQuotaExceeded": "Cet utilisateur a reçu trop de demandes aujourd'hui. Réessayez demain.",
       "previouslyDeclined": "Cette personne a déjà refusé votre demande précédente.",
       "conversationDeclined": "Cette conversation a été refusée et n'accepte plus de message.",
-      "pendingMessageCap": "Votre demande a été envoyée. Attendez la réponse avant d'envoyer un autre message."
+      "pendingMessageCap": "Votre demande a été envoyée. Attendez la réponse avant d'envoyer un autre message.",
+      "dailyDmLimitReached": "Vous avez atteint votre quota journalier de messages directs. Reprenez demain.",
+      "dailyUploadQuotaExceeded": "Vous avez atteint votre quota journalier d'envoi de fichiers (100 Mo). Reprenez demain.",
+      "conversationMessageCap": "Cette conversation a atteint sa limite de messages (10 000). Supprimez la conversation ou créez-en une nouvelle pour continuer.",
+      "conversationQuotaExceeded": "Cette conversation a atteint sa limite de stockage (500 Mo). Supprimez la conversation ou des fichiers pour continuer."
+    },
+    "cleanupActions": {
+      "deleteConversation": "Supprimer la conversation",
+      "deleteFailed": "Impossible de supprimer la conversation."
     },
     "pendingBanner": {
       "title": "En attente d'acceptation",

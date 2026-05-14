@@ -1678,6 +1678,11 @@ export type RootStackParamList = {
   Gamification: undefined;
   LiveEvent: { eventId: string };
   Volunteers: { eventId?: string };
+  // Equipe d'evenement (organisateur invite scanner/moderateur/etc.)
+  TeamManagement: { eventId: string; eventTitle?: string };
+  TeamInvitation: { token: string };
+  // Vue user-side : "Mes events en equipe" — events ou je suis staff actif
+  MyTeamEvents: undefined;
   DiscountManagement: { eventId: string };
   DiscountForm: { eventId: string; discountId?: number };
   EventSessionsLink: { eventId: string };

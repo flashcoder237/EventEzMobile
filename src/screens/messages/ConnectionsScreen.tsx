@@ -118,7 +118,7 @@ export default function ConnectionsScreen() {
       t('connections.removeDetail', { name: conn.user.full_name }),
       async () => {
         try {
-          await connectionsAPI.remove(conn.user.id);
+          await connectionsAPI.remove(conn.id);
           setConnections(prev => prev.filter(c => c.id !== conn.id));
           showSuccess(t('connections.removeSuccess'));
         } catch (error: any) {

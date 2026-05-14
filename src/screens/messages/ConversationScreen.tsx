@@ -121,7 +121,7 @@ export default function ConversationScreen() {
   const insets = useSafeAreaInsets();
   const { conversationId: initialConversationId, userId, userName } = route.params;
   const { user } = useAuth();
-  const { showError, showSuccess, showConfirm } = useAlert();
+  const { showError, showSuccess, showConfirm, showAlert } = useAlert();
   const { isMuted: isConvMuted, toggle: toggleConvMute } = useMutedConversations();
   const { colors, isDark } = useTheme();
   const { t, i18n } = useTranslation();
@@ -1643,12 +1643,14 @@ export default function ConversationScreen() {
       // Cleanup des overlays loader si on a interrompu un upload
       setUploadingIds(new Set());
 
-      // Anti-spam DM : si le backend a refuse l'envoi avec un `reason`
-      // explicite, on affiche un message clair au lieu de l'erreur generique.
+      // Backend a refuse l'envoi avec un code explicite : on affiche un
+      // message clair au lieu de l'erreur generique. Couvre 403 (PermissionDenied)
+      // ET 429 (Throttled) car les caps abuse retournent 429.
       const httpStatus = error?.response?.status;
-      const reason = error?.response?.data?.reason;
-      if (httpStatus === 403 && reason) {
-        const reasonI18nMap: Record<string, { title: string; message: string }> = {
+      const errData = error?.response?.data || {};
+      const reason = errData.reason || errData.code;
+      if ((httpStatus === 403 || httpStatus === 429) && reason) {
+        const reasonI18nMap: Record<string, { title: string; message: string; cleanupCTA?: boolean }> = {
           messaging_disabled: {
             title: t('conversation.dmBlocked.title'),
             message: t('conversation.dmBlocked.messagingDisabled'),
@@ -1665,6 +1667,10 @@ export default function ConversationScreen() {
             title: t('conversation.dmBlocked.title'),
             message: t('conversation.dmBlocked.recipientRequiresConnection'),
           },
+          recipient_pending_quota_exceeded: {
+            title: t('conversation.dmBlocked.title'),
+            message: t('conversation.dmBlocked.recipientPendingQuotaExceeded'),
+          },
           previously_declined: {
             title: t('conversation.dmBlocked.title'),
             message: t('conversation.dmBlocked.previouslyDeclined'),
@@ -1677,6 +1683,24 @@ export default function ConversationScreen() {
             title: t('conversation.dmBlocked.pendingTitle'),
             message: t('conversation.dmBlocked.pendingMessageCap'),
           },
+          daily_dm_limit_reached: {
+            title: t('conversation.dmBlocked.dailyLimitTitle'),
+            message: t('conversation.dmBlocked.dailyDmLimitReached'),
+          },
+          daily_upload_quota_exceeded: {
+            title: t('conversation.dmBlocked.dailyLimitTitle'),
+            message: t('conversation.dmBlocked.dailyUploadQuotaExceeded'),
+          },
+          conversation_message_cap: {
+            title: t('conversation.dmBlocked.conversationFullTitle'),
+            message: t('conversation.dmBlocked.conversationMessageCap'),
+            cleanupCTA: true,
+          },
+          conversation_quota_exceeded: {
+            title: t('conversation.dmBlocked.conversationFullTitle'),
+            message: t('conversation.dmBlocked.conversationQuotaExceeded'),
+            cleanupCTA: true,
+          },
           conversation_read_only: {
             title: t('conversation.readOnlyDiscussionTitle'),
             message: t('conversation.readOnlyDiscussionMessage'),
@@ -1685,6 +1709,32 @@ export default function ConversationScreen() {
         const entry = reasonI18nMap[reason];
         if (entry) {
           actions.setNewMessage(messageContent);
+          if (entry.cleanupCTA) {
+            // CTA "Faire du menage" : proposer de supprimer la conv ou des messages
+            showAlert(
+              entry.title,
+              entry.message,
+              [
+                { text: t('common.cancel'), style: 'cancel' as const },
+                {
+                  text: t('conversation.cleanupActions.deleteConversation'),
+                  style: 'destructive' as const,
+                  onPress: async () => {
+                    try {
+                      if (state.conversationId) {
+                        await messagesAPI.deleteConversation(String(state.conversationId));
+                        navigation.goBack();
+                      }
+                    } catch (e: any) {
+                      showError(t('common.error'), t('conversation.cleanupActions.deleteFailed'));
+                    }
+                  },
+                },
+              ],
+              'warning' as const,
+            );
+            return;
+          }
           showError(entry.title, entry.message);
           return;
         }

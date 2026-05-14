@@ -110,10 +110,11 @@ export const messagesAPI = {
     settingsId: string,
     data: {
       messaging_enabled?: boolean;
-      blocked_users?: string[];
+      blocked_users?: number[];
       muted_conversations?: (string | number)[];
       read_receipts_enabled?: boolean;
       presence_visible?: boolean;
+      who_can_contact?: 'everyone' | 'connections' | 'connections_strict' | 'nobody';
     },
   ) =>
     api.patch(`/user-messaging-settings/${settingsId}/`, data),

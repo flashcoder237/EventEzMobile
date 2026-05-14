@@ -170,6 +170,12 @@ export const volunteersAPI = {
   getMyApplications: () =>
     api.get('/volunteer-applications/my_applications/'),
 
+  // Candidatures recues sur mes events (vue organizer).
+  // Filtres : ?event=<id>, ?status=pending|accepted|rejected
+  // Sans event : renvoie pending de tous mes events.
+  getReceivedApplications: (params?: { event?: string; status?: string }) =>
+    api.get('/volunteer-applications/received/', { params }),
+
   withdrawApplication: (id: string) =>
     api.post(`/volunteer-applications/${id}/withdraw/`),
 
@@ -185,6 +191,113 @@ export const volunteersAPI = {
 
   completeTask: (id: string) =>
     api.post(`/volunteer-tasks/${id}/complete/`),
+};
+
+// ============================================
+// EVENT TEAM API
+// ============================================
+// Equipe d'evenement : organisateur invite des co-organisateurs, moderateurs,
+// scanners, analystes. Cf. apps/event_team backend.
+//
+// Difference avec volunteers : un staff agit AU NOM de l'organisateur avec ses
+// droits (scan, moderation chat, analytics). Un volontaire = aide bras-fort.
+
+export type EventStaffRole = 'co_organizer' | 'moderator' | 'scanner' | 'analyst';
+
+export interface EventStaffMember {
+  id: string;
+  event: string;
+  event_title: string;
+  user: {
+    id: string;
+    email: string;
+    first_name?: string;
+    last_name?: string;
+    full_name?: string;
+    avatar_url?: string | null;
+  } | null;
+  invited_email?: string;
+  invited_phone?: string;
+  invited_by: {
+    id: string;
+    email: string;
+    full_name?: string;
+  } | null;
+  role: EventStaffRole;
+  role_display: string;
+  permissions: string[];
+  invitation_status: 'pending' | 'accepted' | 'declined' | 'revoked' | 'expired';
+  status_display: string;
+  invitation_message?: string;
+  invitation_expires_at: string;
+  // Token expose en lecture seulement (organizer-only). Permet de generer
+  // l'URL publique partagee. invitation_url est pre-construit cote backend
+  // a partir de FRONTEND_URL.
+  invitation_token?: string;
+  invitation_url?: string | null;
+  invited_at: string;
+  accepted_at?: string | null;
+  declined_at?: string | null;
+  revoked_at?: string | null;
+  last_activity_at?: string | null;
+  is_expired: boolean;
+}
+
+export interface EventStaffInvitationLookup extends Omit<EventStaffMember, 'event'> {
+  event: {
+    id: string;
+    title: string;
+    start_date: string | null;
+    end_date: string | null;
+    banner_url: string | null;
+    organizer_name: string;
+  };
+  can_accept: boolean;
+}
+
+export const eventTeamAPI = {
+  // GET /event-team/ ?event=<id> (organizer view) | ?mine=true (defaut, mes invitations)
+  list: (params?: { event?: string; mine?: boolean; status?: string }) =>
+    api.get('/event-team/', { params }),
+
+  // GET catalog des roles + permissions atomiques (alimente l'UI selecteur)
+  getRolesCatalog: () =>
+    api.get('/event-team/roles-catalog/'),
+
+  // GET les events ou je suis staff actif (avec mon role)
+  getMyTeamEvents: () =>
+    api.get('/event-team/my_events/'),
+
+  // POST inviter un membre (organizer)
+  invite: (data: {
+    event: string;
+    role: EventStaffRole;
+    invited_email?: string;
+    invited_phone?: string;
+    invitation_message?: string;
+  }) => api.post('/event-team/', data),
+
+  // POST renvoyer l'invitation (reset expiration + email/SMS)
+  resend: (id: string) =>
+    api.post(`/event-team/${id}/resend/`),
+
+  // POST revoquer un acces (organizer). DELETE est aussi accepte.
+  revoke: (id: string) =>
+    api.post(`/event-team/${id}/revoke/`),
+
+  // POST accepter l'invitation (invite)
+  accept: (id: string) =>
+    api.post(`/event-team/${id}/accept/`),
+
+  // POST decliner l'invitation (invite)
+  decline: (id: string) =>
+    api.post(`/event-team/${id}/decline/`),
+
+  // GET preview public d'une invitation par token (avant acceptation)
+  // Pas d'auth requise cote API ; resolu depuis le deep link
+  // eventez://team-invitation/{token} (cf. App.tsx linking config).
+  lookupByToken: (token: string) =>
+    api.get(`/event-team/invitation/${token}/`),
 };
 
 // ============================================

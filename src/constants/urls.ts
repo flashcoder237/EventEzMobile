@@ -27,3 +27,18 @@ export function getVerificationUrl(registrationId: string): string {
 export function getTicketVerificationUrl(ticketId: string | number): string {
   return `${WEB_BASE_URL}/verify/t/${ticketId}`;
 }
+
+// URL de la page publique "devenir benevole" pour un event. Cible des
+// boutons de partage. La page web a OpenGraph + bouton "Ouvrir dans l'app"
+// qui declenche le deep link `eventez://events/{id}/volunteer`.
+export function getVolunteerSignupUrl(eventId: string): string {
+  return `${WEB_BASE_URL}/events/${eventId}/volunteer`;
+}
+
+// URL de la page publique d'invitation d'equipe (token). Cible du bouton
+// "Partager le lien" sur une invitation pending. La page web a OpenGraph
+// + bouton "Ouvrir dans l'app" qui declenche le deep link
+// `eventez://team-invitation/{token}`.
+export function getTeamInvitationUrl(token: string): string {
+  return `${WEB_BASE_URL}/team-invitation/${token}`;
+}

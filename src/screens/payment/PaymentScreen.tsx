@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
 import { calculateServiceFee, getServiceFeeLabel } from '../../constants/payment';
+import { DEEP_LINK_SCHEME } from '../../constants/urls';
 import ConvertedPrice from '../../components/common/ConvertedPrice';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAuth } from '../../contexts/AuthContext';
@@ -798,7 +799,14 @@ export default function PaymentScreen() {
         const cinetpayTxnId = (payload.transaction_id as string) || cinetpayPaymentId;
         setPaymentId(cinetpayPaymentId);
 
-        const result = await WebBrowser.openBrowserAsync(payload.payment_url, {
+        // openAuthSessionAsync : ouvre le navigateur et ATTEND le redirect vers
+        // `eventez://payment-success/{id}`. Quand la page web /payment/callback/{id}
+        // detecte ?source=mobile, elle execute window.location.href = ce deep link
+        // → la session se ferme automatiquement et on reprend le controle ici.
+        // Si le redirect ne survient pas (vieux web), result.type === 'cancel'
+        // ou 'dismiss' → fallback comportement actuel (alerte + polling).
+        const returnUrl = `${DEEP_LINK_SCHEME}://payment-success/${cinetpayPaymentId}`;
+        const result = await WebBrowser.openAuthSessionAsync(payload.payment_url, returnUrl, {
           dismissButtonStyle: 'close',
           presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
           toolbarColor: colors.primary,
@@ -907,8 +915,11 @@ export default function PaymentScreen() {
         if (authUrl) {
           if (__DEV__) console.log('[Payment] Opening authorization URL:', authUrl);
 
-          // Ouvrir la page de paiement dans le navigateur in-app
-          const result = await WebBrowser.openBrowserAsync(authUrl, {
+          // openAuthSessionAsync : meme principe que pour CinetPay ci-dessus.
+          // La page web /payment/callback/{id} redirige vers ce deep link
+          // apres reception du webhook NotchPay → la session se ferme auto.
+          const returnUrl = `${DEEP_LINK_SCHEME}://payment-success/${newPaymentId}`;
+          const result = await WebBrowser.openAuthSessionAsync(authUrl, returnUrl, {
             dismissButtonStyle: 'close',
             presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
             toolbarColor: colors.primary,

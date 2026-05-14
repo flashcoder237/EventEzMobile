@@ -32,9 +32,10 @@ export const connectionsAPI = {
   /** Liste mes connections (l'autre user dans chaque pair). */
   list: () => api.get<{ results: Connection[]; count: number }>('/connections/'),
 
-  /** Retire la connection avec un autre user. pk = user_id de l'autre. */
-  remove: (otherUserId: number | string) =>
-    api.delete(`/connections/${otherUserId}/`),
+  /** Retire une connection. `connectionId` = Connection.id (champ `id` retourne
+   * par `list()`), pas l'user_id de l'autre. */
+  remove: (connectionId: number | string) =>
+    api.delete(`/connections/${connectionId}/`),
 
   /**
    * Genere un token QR temporaire (10 minutes) pour partager via QR code.
