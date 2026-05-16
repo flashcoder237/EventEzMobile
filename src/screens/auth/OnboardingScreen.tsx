@@ -39,6 +39,9 @@ import {
   OnlinePayments,
   SaveToBookmarks,
   WellDone,
+  NewMessage,
+  Conference,
+  MyNotifications,
   type EntryPreset,
   type IdlePreset,
 } from '../../components/illustrations';
@@ -89,6 +92,30 @@ const SLIDES: FeatureSlide[] = [
     Illustration: WellDone,
     illustrationEntry: 'bounce',
     illustrationIdle: 'breathe',
+  },
+  {
+    id: '5',
+    numeral: '05',
+    i18nKey: 'onboardingSlide5',
+    Illustration: NewMessage,
+    illustrationEntry: 'slideUp',
+    illustrationIdle: 'breathe',
+  },
+  {
+    id: '6',
+    numeral: '06',
+    i18nKey: 'onboardingSlide6',
+    Illustration: Conference,
+    illustrationEntry: 'scaleIn',
+    illustrationIdle: 'float',
+  },
+  {
+    id: '7',
+    numeral: '07',
+    i18nKey: 'onboardingSlide7',
+    Illustration: MyNotifications,
+    illustrationEntry: 'fadeIn',
+    illustrationIdle: 'sway',
   },
 ];
 
