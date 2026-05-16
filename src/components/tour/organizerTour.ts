@@ -11,7 +11,10 @@ import type { TFunction } from 'i18next';
 import type { TourStep } from './FeatureTourContext';
 
 export const ORGANIZER_TOUR_STORAGE_KEY = 'eventez_tour_organizer_v1_seen';
-export const ORGANIZER_TOUR_DELAY_MS = 800;
+// 2s to give layout + ref registration time on slower devices. The targets
+// live in the header which is rendered even during the loading state, but
+// 800ms was occasionally racing the TourTarget useEffect registration.
+export const ORGANIZER_TOUR_DELAY_MS = 2000;
 
 export function getOrganizerTourSteps(t: TFunction): TourStep[] {
   return [

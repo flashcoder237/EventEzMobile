@@ -78,16 +78,6 @@ export default function QRScannerScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const tour = useTour();
-  // First-launch tour explaining the scan UX and offline fallback.
-  // Single step pointing at the scan frame — the offline badge is conditional
-  // and not visible to first-time users, so we cover it verbally instead.
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      tour.start(getScannerTourSteps(t), { seenKey: SCANNER_TOUR_STORAGE_KEY });
-    }, SCANNER_TOUR_DELAY_MS);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
@@ -105,6 +95,19 @@ export default function QRScannerScreen() {
   // Manual entry modal
   const [manualOpen, setManualOpen] = useState(false);
   const [manualCode, setManualCode] = useState('');
+
+  // Scanner tour fires once the camera permission is granted — before that,
+  // the screen renders a loading spinner or permission-denied page and the
+  // scan-frame target isn't mounted (would error "élément introuvable").
+  useEffect(() => {
+    if (!permission?.granted) return;
+    const timer = setTimeout(() => {
+      if (tour.isActive) return;
+      tour.start(getScannerTourSteps(t), { seenKey: SCANNER_TOUR_STORAGE_KEY });
+    }, SCANNER_TOUR_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permission?.granted]);
 
   // Mode de scan : entrée principale (registration check-in) ou session (présence)
   // Géré par un sélecteur en haut de l'écran. Les sessions sont chargées au mount.

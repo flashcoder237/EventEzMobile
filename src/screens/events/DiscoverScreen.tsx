@@ -200,25 +200,6 @@ export default function DiscoverScreen() {
   const { isSlowCellular, isOffline } = useNetworkSpeed();
   const tour = useTour();
 
-  // Fire the discover mini-tour ONCE, but only after the main tabs tour has
-  // been dismissed (otherwise we'd race the intro tour on the landing tab).
-  // If main tour is still running or unseen at delay-time, skip this session
-  // — seenKey isn't written so we'll retry on next app launch.
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (tour.isActive) return;
-      try {
-        const mainSeen = await AsyncStorage.getItem(MAIN_TABS_TOUR_STORAGE_KEY);
-        if (mainSeen !== 'true') return;
-        tour.start(getDiscoverTourSteps(t), { seenKey: DISCOVER_TOUR_STORAGE_KEY });
-      } catch {
-        // Non-fatal — silent skip
-      }
-    }, DISCOVER_TOUR_DELAY_MS);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // === State ===
   const [initialLoading, setInitialLoading] = useState(true);
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
@@ -241,6 +222,25 @@ export default function DiscoverScreen() {
     visibleIdsRef.current = next;
     setVisibleVersion((v) => v + 1);
   }).current;
+
+  // Discover mini-tour — fires after main-tabs-tour AND once initial data has
+  // loaded (both targets are inside `{!initialLoading && ...}`; the categories
+  // chip is additionally gated on `categories.length > 0`).
+  useEffect(() => {
+    if (initialLoading || categories.length === 0) return;
+    const timer = setTimeout(async () => {
+      if (tour.isActive) return;
+      try {
+        const mainSeen = await AsyncStorage.getItem(MAIN_TABS_TOUR_STORAGE_KEY);
+        if (mainSeen !== 'true') return;
+        tour.start(getDiscoverTourSteps(t), { seenKey: DISCOVER_TOUR_STORAGE_KEY });
+      } catch {
+        // Non-fatal — silent skip
+      }
+    }, DISCOVER_TOUR_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialLoading, categories.length]);
 
   // === "Pour vous" : section paginée infinite-scroll en bas du feed ===
   // Distincte de `recommendations` (top, limit=10) — celle-ci pagine sans

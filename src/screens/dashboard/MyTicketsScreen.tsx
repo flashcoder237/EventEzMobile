@@ -301,23 +301,6 @@ export default function MyTicketsScreen() {
   const { cacheMultipleTickets, cachedTicketCount } = useOfflineTickets();
   const { isOffline } = useNetworkSpeed();
   const tour = useTour();
-
-  // Mini-tour fires after main tabs tour. Single step pointing at the
-  // pending-transfers button (commonly missed icon in the header).
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (tour.isActive) return;
-      try {
-        const mainSeen = await AsyncStorage.getItem(MAIN_TABS_TOUR_STORAGE_KEY);
-        if (mainSeen !== 'true') return;
-        tour.start(getTicketsTourSteps(t), { seenKey: TICKETS_TOUR_STORAGE_KEY });
-      } catch {
-        // Non-fatal
-      }
-    }, TICKETS_TOUR_DELAY_MS);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   // Tracks one-shot auto-redirect to OfflineTickets per offline session.
   // Reset quand l'utilisateur repasse online — si la connexion retombe,
   // on re-redirige une fois.
@@ -341,6 +324,24 @@ export default function MyTicketsScreen() {
 
   // Canvas: warm light gray in light mode, dark slate in dark mode
   const canvasBg = isDark ? colors.background : CANVAS_LIGHT;
+
+  // Mini-tour fires after main-tabs-tour AND once the header is rendered
+  // (the target lives in the header which is hidden while `loading` is true).
+  useEffect(() => {
+    if (loading) return;
+    const timer = setTimeout(async () => {
+      if (tour.isActive) return;
+      try {
+        const mainSeen = await AsyncStorage.getItem(MAIN_TABS_TOUR_STORAGE_KEY);
+        if (mainSeen !== 'true') return;
+        tour.start(getTicketsTourSteps(t), { seenKey: TICKETS_TOUR_STORAGE_KEY });
+      } catch {
+        // Non-fatal
+      }
+    }, TICKETS_TOUR_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   // Reset le drapeau d'auto-redirect quand on repasse online — comme ca si la
   // connexion retombe plus tard, on redirige a nouveau.

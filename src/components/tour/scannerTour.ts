@@ -10,7 +10,9 @@ import type { TFunction } from 'i18next';
 import type { TourStep } from './FeatureTourContext';
 
 export const SCANNER_TOUR_STORAGE_KEY = 'eventez_tour_scanner_v1_seen';
-export const SCANNER_TOUR_DELAY_MS = 600;
+// 1.5s after permission granted. The CameraView itself takes a moment to
+// initialize on Android; firing too early would race the scan-frame layout.
+export const SCANNER_TOUR_DELAY_MS = 1500;
 
 export function getScannerTourSteps(t: TFunction): TourStep[] {
   return [
