@@ -17,3 +17,18 @@ export {
   SCANNER_TOUR_DELAY_MS,
   getScannerTourSteps,
 } from './scannerTour';
+export {
+  DISCOVER_TOUR_STORAGE_KEY,
+  DISCOVER_TOUR_DELAY_MS,
+  getDiscoverTourSteps,
+} from './discoverTour';
+export {
+  TICKETS_TOUR_STORAGE_KEY,
+  TICKETS_TOUR_DELAY_MS,
+  getTicketsTourSteps,
+} from './ticketsTour';
+export {
+  PROFILE_TOUR_STORAGE_KEY,
+  PROFILE_TOUR_DELAY_MS,
+  getProfileTourSteps,
+} from './profileTour';

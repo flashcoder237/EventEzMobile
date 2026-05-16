@@ -42,6 +42,15 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { MyTicketsScreenSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem } from '../../components/ui/Animations';
+import {
+  TourTarget,
+  useTour,
+  getTicketsTourSteps,
+  TICKETS_TOUR_STORAGE_KEY,
+  TICKETS_TOUR_DELAY_MS,
+  MAIN_TABS_TOUR_STORAGE_KEY,
+} from '../../components/tour';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useOfflineTickets } from '../../hooks/useOfflineTickets';
 import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
 import CacheService from '../../services/CacheService';
@@ -291,6 +300,24 @@ export default function MyTicketsScreen() {
   const { colors, isDark } = useTheme();
   const { cacheMultipleTickets, cachedTicketCount } = useOfflineTickets();
   const { isOffline } = useNetworkSpeed();
+  const tour = useTour();
+
+  // Mini-tour fires after main tabs tour. Single step pointing at the
+  // pending-transfers button (commonly missed icon in the header).
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (tour.isActive) return;
+      try {
+        const mainSeen = await AsyncStorage.getItem(MAIN_TABS_TOUR_STORAGE_KEY);
+        if (mainSeen !== 'true') return;
+        tour.start(getTicketsTourSteps(t), { seenKey: TICKETS_TOUR_STORAGE_KEY });
+      } catch {
+        // Non-fatal
+      }
+    }, TICKETS_TOUR_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Tracks one-shot auto-redirect to OfflineTickets per offline session.
   // Reset quand l'utilisateur repasse online — si la connexion retombe,
   // on re-redirige une fois.
@@ -1164,22 +1191,24 @@ export default function MyTicketsScreen() {
               </View>
             </View>
             <View style={styles.headerActions}>
-              <TouchableOpacity
-                style={[styles.headerBtn, { backgroundColor: colors.gray100 }]}
-                onPress={() => navigation.navigate('PendingTransfers')}
-                activeOpacity={0.7}
-                accessibilityRole="button"
-                accessibilityLabel="Transferts reçus"
-              >
-                <Ionicons name="swap-horizontal-outline" size={18} color={colors.gray600} />
-                {pendingTransferCount > 0 && (
-                  <View style={[styles.filterCountBadge, { backgroundColor: colors.primary }]}>
-                    <Text style={styles.filterCountBadgeText}>
-                      {pendingTransferCount > 9 ? '9+' : pendingTransferCount}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
+              <TourTarget id="tickets-transfers-btn">
+                <TouchableOpacity
+                  style={[styles.headerBtn, { backgroundColor: colors.gray100 }]}
+                  onPress={() => navigation.navigate('PendingTransfers')}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="Transferts reçus"
+                >
+                  <Ionicons name="swap-horizontal-outline" size={18} color={colors.gray600} />
+                  {pendingTransferCount > 0 && (
+                    <View style={[styles.filterCountBadge, { backgroundColor: colors.primary }]}>
+                      <Text style={styles.filterCountBadgeText}>
+                        {pendingTransferCount > 9 ? '9+' : pendingTransferCount}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </TourTarget>
               <TouchableOpacity
                 style={[styles.headerBtn, { backgroundColor: colors.gray100 }]}
                 onPress={() => dispatch({ type: 'SET_SEARCH_OPEN', payload: !searchOpen })}

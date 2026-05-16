@@ -2104,6 +2104,30 @@
       }
     }
   },
+  "discoverTour": {
+    "searchEyebrow": "01 · SEARCH",
+    "searchTitle": "Find the event that speaks to you.",
+    "searchBody": "Search by keyword, city, category. The rotating placeholder gives you ideas if you're not sure where to start.",
+    "categoriesEyebrow": "02 · CATEGORIES",
+    "categoriesTitle": "Filter with one tap.",
+    "categoriesBody": "Concert, workshop, conference, sport... Tap a category to see only what interests you."
+  },
+  "ticketsTour": {
+    "transfersEyebrow": "01 · TRANSFERS",
+    "transfersTitle": "Tickets land here.",
+    "transfersBody": "When a friend transfers a ticket to you, the counter lights up — tap to accept or decline."
+  },
+  "profileTour": {
+    "becomeOrganizerEyebrow": "01 · ORGANIZE",
+    "becomeOrganizerTitle": "Create your own events.",
+    "becomeOrganizerBody": "Becoming an organizer takes 2 minutes. You can sell tickets, receive Mobile Money payments and manage everything from the app.",
+    "helpEyebrow": "02 · HELP",
+    "helpTitle": "Everything is explained here.",
+    "helpBody": "Full help center: messaging, payments, transfers, security. Over 40 questions answered.",
+    "settingsEyebrow": "03 · SETTINGS",
+    "settingsTitle": "Customize your experience.",
+    "settingsBody": "Notifications, language, dark theme, privacy — everything is set here."
+  },
   "organizerTour": {
     "myeventsCreateEyebrow": "01 · CREATE",
     "myeventsCreateTitle": "Launch your first event.",

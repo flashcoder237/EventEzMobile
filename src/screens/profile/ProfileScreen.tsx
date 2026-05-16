@@ -29,7 +29,16 @@ import {
 } from '../../components/profile';
 import { eventsAPI, feedbacksAPI, registrationsAPI, walletAPI } from '../../api';
 import { RootStackParamList } from '../../types';
-import { useTour, getMainTabsTourSteps } from '../../components/tour';
+import {
+  TourTarget,
+  useTour,
+  getMainTabsTourSteps,
+  getProfileTourSteps,
+  PROFILE_TOUR_STORAGE_KEY,
+  PROFILE_TOUR_DELAY_MS,
+  MAIN_TABS_TOUR_STORAGE_KEY,
+} from '../../components/tour';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Colors,
   FontFamily,
@@ -67,6 +76,25 @@ export default function ProfileScreen() {
     fetchStats();
     if (isOrganizer) fetchWallet();
   }, [isOrganizer]);
+
+  // Profile mini-tour. Skipped for organizers because step 1 targets the
+  // "Devenir organisateur" card which isn't rendered for them. They get
+  // the organizerTour on MyEventsScreen instead.
+  useEffect(() => {
+    if (isOrganizer || isModerator) return;
+    const timer = setTimeout(async () => {
+      if (tour.isActive) return;
+      try {
+        const mainSeen = await AsyncStorage.getItem(MAIN_TABS_TOUR_STORAGE_KEY);
+        if (mainSeen !== 'true') return;
+        tour.start(getProfileTourSteps(t), { seenKey: PROFILE_TOUR_STORAGE_KEY });
+      } catch {
+        // Non-fatal
+      }
+    }, PROFILE_TOUR_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOrganizer, isModerator]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -271,24 +299,26 @@ export default function ProfileScreen() {
 
         {/* Become Organizer CTA - Only for regular users */}
         {!isOrganizer && !isModerator && (
-          <TouchableOpacity
-            style={[styles.becomeOrganizerCard, { backgroundColor: colors.secondary + '15', borderColor: colors.secondary + '30' }]}
-            onPress={() => navigation.navigate('BecomeOrganizer')}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={t('profile.becomeOrganizerCard')}
-          >
-            <View style={styles.becomeOrganizerIcon}>
-              <Ionicons name="megaphone" size={28} color={Colors.white} />
-            </View>
-            <View style={styles.becomeOrganizerText}>
-              <Text style={[styles.becomeOrganizerTitle, { color: colors.gray900 }]}>{t('profile.becomeOrganizerCard')}</Text>
-              <Text style={[styles.becomeOrganizerSubtitle, { color: colors.gray600 }]}>
-                {t('profile.becomeOrganizerCardSubtitle')}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color={colors.secondary} />
-          </TouchableOpacity>
+          <TourTarget id="profile-become-organizer">
+            <TouchableOpacity
+              style={[styles.becomeOrganizerCard, { backgroundColor: colors.secondary + '15', borderColor: colors.secondary + '30' }]}
+              onPress={() => navigation.navigate('BecomeOrganizer')}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={t('profile.becomeOrganizerCard')}
+            >
+              <View style={styles.becomeOrganizerIcon}>
+                <Ionicons name="megaphone" size={28} color={Colors.white} />
+              </View>
+              <View style={styles.becomeOrganizerText}>
+                <Text style={[styles.becomeOrganizerTitle, { color: colors.gray900 }]}>{t('profile.becomeOrganizerCard')}</Text>
+                <Text style={[styles.becomeOrganizerSubtitle, { color: colors.gray600 }]}>
+                  {t('profile.becomeOrganizerCardSubtitle')}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color={colors.secondary} />
+            </TouchableOpacity>
+          </TourTarget>
         )}
 
         {/* Moderator Section */}
@@ -464,13 +494,15 @@ export default function ProfileScreen() {
               title={t('profile.referralMenu')}
               onPress={() => navigation.navigate('Referrals')}
             />
-            <MenuItem
-              icon="language-outline"
-              title={t('profile.languageMenu')}
-              subtitle={t('profile.languageFrench')}
-              onPress={() => navigation.navigate('Settings')}
-              isLast
-            />
+            <TourTarget id="profile-settings">
+              <MenuItem
+                icon="language-outline"
+                title={t('profile.languageMenu')}
+                subtitle={t('profile.languageFrench')}
+                onPress={() => navigation.navigate('Settings')}
+                isLast
+              />
+            </TourTarget>
           </View>
         </View>
 
@@ -522,11 +554,13 @@ export default function ProfileScreen() {
         <View style={styles.menuSection}>
           <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>{t('profile.supportSection')}</Text>
           <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
-            <MenuItem
-              icon="help-circle-outline"
-              title={t('profile.helpCenterMenu')}
-              onPress={() => navigation.navigate('Help')}
-            />
+            <TourTarget id="profile-help">
+              <MenuItem
+                icon="help-circle-outline"
+                title={t('profile.helpCenterMenu')}
+                onPress={() => navigation.navigate('Help')}
+              />
+            </TourTarget>
             <MenuItem
               icon="compass-outline"
               title={t('profile.tutorialMenu')}

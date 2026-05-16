@@ -34,6 +34,15 @@ import { eventsAPI, categoriesAPI, recommendationsAPI, advertisementsAPI, getMed
 import type { AdvertisementPublic } from '../../api';
 import { Event, Category, RootStackParamList, MainTabParamList } from '../../types';
 import AdvertisementCard from '../../components/common/AdvertisementCard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  TourTarget,
+  useTour,
+  getDiscoverTourSteps,
+  DISCOVER_TOUR_STORAGE_KEY,
+  DISCOVER_TOUR_DELAY_MS,
+  MAIN_TABS_TOUR_STORAGE_KEY,
+} from '../../components/tour';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useUnreadCounts } from '../../contexts/NotificationContext';
@@ -189,6 +198,26 @@ export default function DiscoverScreen() {
   const { currency: platformCurrency } = useCommissionConfig();
   const { unreadNotificationCount } = useUnreadCounts();
   const { isSlowCellular, isOffline } = useNetworkSpeed();
+  const tour = useTour();
+
+  // Fire the discover mini-tour ONCE, but only after the main tabs tour has
+  // been dismissed (otherwise we'd race the intro tour on the landing tab).
+  // If main tour is still running or unseen at delay-time, skip this session
+  // — seenKey isn't written so we'll retry on next app launch.
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (tour.isActive) return;
+      try {
+        const mainSeen = await AsyncStorage.getItem(MAIN_TABS_TOUR_STORAGE_KEY);
+        if (mainSeen !== 'true') return;
+        tour.start(getDiscoverTourSteps(t), { seenKey: DISCOVER_TOUR_STORAGE_KEY });
+      } catch {
+        // Non-fatal — silent skip
+      }
+    }, DISCOVER_TOUR_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // === State ===
   const [initialLoading, setInitialLoading] = useState(true);
@@ -1289,39 +1318,41 @@ export default function DiscoverScreen() {
 
                 {/* === SEARCH PILL (Option A) — simple, calme, captante via le
                     placeholder rotatif qui change toutes les 3s. */}
-                <TouchableOpacity
-                  style={[
-                    styles.searchTrigger,
-                    {
-                      backgroundColor: isDark ? colors.gray100 : '#F2F1ED',
-                      borderColor: isDark ? colors.gray200 : 'rgba(17,17,16,0.05)',
-                    },
-                  ]}
-                  onPress={() => activateSearch()}
-                  activeOpacity={0.85}
-                  accessibilityRole="search"
-                  accessibilityLabel={t('discover.searchAccessibility')}
-                >
-                  <Ionicons
-                    name="search"
-                    size={18}
-                    color={isDark ? colors.gray400 : colors.gray500}
-                  />
-                  <Text
+                <TourTarget id="discover-search">
+                  <TouchableOpacity
                     style={[
-                      styles.searchTriggerText,
-                      { color: isDark ? colors.gray300 : colors.gray600 },
+                      styles.searchTrigger,
+                      {
+                        backgroundColor: isDark ? colors.gray100 : '#F2F1ED',
+                        borderColor: isDark ? colors.gray200 : 'rgba(17,17,16,0.05)',
+                      },
                     ]}
-                    numberOfLines={1}
+                    onPress={() => activateSearch()}
+                    activeOpacity={0.85}
+                    accessibilityRole="search"
+                    accessibilityLabel={t('discover.searchAccessibility')}
                   >
-                    {placeholderSuggestions[placeholderIndex]}
-                  </Text>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={isDark ? colors.gray400 : colors.gray400}
-                  />
-                </TouchableOpacity>
+                    <Ionicons
+                      name="search"
+                      size={18}
+                      color={isDark ? colors.gray400 : colors.gray500}
+                    />
+                    <Text
+                      style={[
+                        styles.searchTriggerText,
+                        { color: isDark ? colors.gray300 : colors.gray600 },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {placeholderSuggestions[placeholderIndex]}
+                    </Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color={isDark ? colors.gray400 : colors.gray400}
+                    />
+                  </TouchableOpacity>
+                </TourTarget>
 
                 {/* Category chips row */}
                 {categories.length > 0 && (
@@ -1330,17 +1361,19 @@ export default function DiscoverScreen() {
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.chipsRow}
                   >
-                    <TouchableOpacity
-                      style={[
-                        styles.chip,
-                        { backgroundColor: colors.primary, ...Shadows.buttonPrimary },
-                      ]}
-                      onPress={() => activateSearch()}
-                      activeOpacity={0.75}
-                    >
-                      <Ionicons name="flash" size={13} color={Colors.white} />
-                      <Text style={[styles.chipText, { color: Colors.white }]}>{t('common.all')}</Text>
-                    </TouchableOpacity>
+                    <TourTarget id="discover-categories">
+                      <TouchableOpacity
+                        style={[
+                          styles.chip,
+                          { backgroundColor: colors.primary, ...Shadows.buttonPrimary },
+                        ]}
+                        onPress={() => activateSearch()}
+                        activeOpacity={0.75}
+                      >
+                        <Ionicons name="flash" size={13} color={Colors.white} />
+                        <Text style={[styles.chipText, { color: Colors.white }]}>{t('common.all')}</Text>
+                      </TouchableOpacity>
+                    </TourTarget>
                     {categories.slice(0, 8).map((cat) => (
                       <TouchableOpacity
                         key={cat.id}
