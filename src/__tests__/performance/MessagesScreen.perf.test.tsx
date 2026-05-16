@@ -15,7 +15,7 @@ jest.mock('@react-navigation/native', () => ({
   }),
   // useFocusEffect : exécute le callback immédiatement (équivalent useEffect
   // pour les tests, sans dépendre du focus de navigation).
-  useFocusEffect: (cb) => {
+  useFocusEffect: (cb: () => void | (() => void)) => {
     const React = require('react');
     React.useEffect(() => {
       const cleanup = cb();

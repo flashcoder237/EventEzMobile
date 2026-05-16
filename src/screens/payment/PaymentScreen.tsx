@@ -758,17 +758,34 @@ export default function PaymentScreen() {
         throw new Error('Email utilisateur non disponible. Reconnecte-toi.');
       }
 
-      // ===== Branche CinetPay : tout passe par /api/payments/initiate/ =====
-      // CinetPay heberge sa propre page de paiement (Mobile Money + carte +
-      // wallet). On cree le Payment ET on initie en une seule requete, puis
-      // on ouvre la page dans WebBrowser. Apres fermeture, on polle le statut
-      // via verifyPayment (identique au flow Stripe / NotchPay carte).
+      // ===== Branche /api/payments/initiate/ unifie =====
+      // CinetPay ET Stripe utilisent le meme flow : un seul POST qui cree le
+      // Payment + initie chez le PSP, retourne payment_url, puis WebBrowser.
+      // NotchPay garde son flow historique (createPayment + initialize) en
+      // dessous pour la compat retro (Mobile Money native + redirect carte).
+      //
+      // Bug fix mai 2026 : avant ce cond, les events Stripe (FR/DE/US/EUR/USD)
+      // tombaient sur le flow NotchPay legacy qui rejetait avec 400
+      // "notchpay_unsupported". Cf. log payeur DE/EUR.
       const methodConfig = dynamicMethods.find((m) => m.id === selectedMethod);
-      const isCinetPayMethod =
-        (methodConfig as any)?.selected_provider === 'cinetpay'
-        || CINETPAY_ONLY_METHODS.has(selectedMethod);
+      const selectedProvider = (methodConfig as any)?.selected_provider;
 
-      if (isCinetPayMethod) {
+      // Devise event = source de verite. Si elle n'est PAS dans l'allowlist
+      // NotchPay, le flow NotchPay legacy plantera systematiquement avec 400.
+      // On force donc le flow unifie (qui route via PaymentProviderFactory cote
+      // backend, donc bien vers Stripe/CinetPay).
+      const NOTCHPAY_CURRENCIES = new Set(['XAF', 'XOF', 'KES', 'GHS', 'UGX', 'NGN']);
+      const eventCurrencyNotInNotchpay = !NOTCHPAY_CURRENCIES.has(eventCurrencyCode);
+
+      const useUnifiedInitiate =
+        selectedProvider === 'cinetpay'
+        || selectedProvider === 'stripe'
+        || CINETPAY_ONLY_METHODS.has(selectedMethod)
+        // Fallback safety : si la devise event n'est pas dans NotchPay, le
+        // legacy flow est garanti de planter → on bascule sur /initiate/.
+        || eventCurrencyNotInNotchpay;
+
+      if (useUnifiedInitiate) {
         const initiateResponse = await paymentsAPI.initiate({
           registration_id: registrationId,
           payment_method: selectedMethod,
@@ -806,21 +823,25 @@ export default function PaymentScreen() {
 
         // Apres fermeture du WebBrowser (dismiss OU succes), on tente UNE lecture
         // rapide via /payments/cinetpay/return/?transaction_id=... pour avoir un
-        // statut "frais" avant de retomber sur le polling complet (qui peut prendre
-        // jusqu'a 7.5 min). Le backend lit juste le Payment en DB (pas d'appel
-        // CinetPay) donc c'est tres rapide. Le webhook fait foi pour la transition
-        // pending → completed, on lit juste l'etat courant.
-        try {
-          const ret = await paymentsAPI.cinetpayReturn(cinetpayTxnId);
-          const retStatus = (ret?.data?.status || '').toLowerCase();
-          if (ret?.data?.is_successful || retStatus === 'completed') {
-            // Statut deja confirme cote serveur (webhook arrive avant
-            // que l'utilisateur ne ferme WebBrowser). On peut sauter le polling.
-            startVerification(cinetpayPaymentId);
-            return;
+        // statut "frais" avant de retomber sur le polling complet. Le backend
+        // lit juste le Payment en DB (pas d'appel CinetPay) donc c'est tres
+        // rapide. Le webhook fait foi pour la transition pending → completed.
+        //
+        // Specifique CinetPay : Stripe a son propre webhook qui met Payment.status
+        // a `completed` via le serveur — le polling /verify suffit cote mobile.
+        if (selectedProvider === 'cinetpay') {
+          try {
+            const ret = await paymentsAPI.cinetpayReturn(cinetpayTxnId);
+            const retStatus = (ret?.data?.status || '').toLowerCase();
+            if (ret?.data?.is_successful || retStatus === 'completed') {
+              // Statut deja confirme cote serveur (webhook arrive avant
+              // que l'utilisateur ne ferme WebBrowser). On peut sauter le polling.
+              startVerification(cinetpayPaymentId);
+              return;
+            }
+          } catch (e) {
+            if (__DEV__) console.log('[CinetPay] return lookup failed (non-bloquant):', e);
           }
-        } catch (e) {
-          if (__DEV__) console.log('[CinetPay] return lookup failed (non-bloquant):', e);
         }
 
         if (result.type === 'dismiss' || result.type === 'cancel') {

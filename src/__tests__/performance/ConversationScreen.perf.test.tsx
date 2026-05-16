@@ -22,7 +22,7 @@ jest.mock('@react-navigation/native', () => ({
   useRoute: () => ({
     params: { conversationId: 'conv-1', userId: '2', userName: 'Bob' },
   }),
-  useFocusEffect: (cb) => {
+  useFocusEffect: (cb: () => void | (() => void)) => {
     const React = require('react');
     React.useEffect(() => {
       const cleanup = cb();

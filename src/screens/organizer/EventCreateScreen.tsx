@@ -109,6 +109,7 @@ export default function EventCreateScreen() {
     removeFormField,
     setShowFormFieldsForBilletterie,
     setFormFields,
+    setTicketTypes,
     addSession,
     updateSession,
     removeSession,
@@ -612,6 +613,49 @@ export default function EventCreateScreen() {
                   if (template.category != null) setCategoryId(template.category);
                   if (Array.isArray(template.tags) && template.tags.length > 0) {
                     template.tags.forEach((t) => handleCustomTagAdd(t));
+                  }
+                  // Tickets : on remplace uniquement si l'utilisateur n'a pas
+                  // encore ajouté de ticket personnalisé.
+                  if (
+                    Array.isArray(template.suggested_tickets) &&
+                    template.suggested_tickets.length > 0 &&
+                    form.ticketTypes.length === 0
+                  ) {
+                    const baseStart = form.startDate ? new Date(form.startDate) : new Date();
+                    const salesStart = new Date(baseStart);
+                    salesStart.setDate(salesStart.getDate() - 7);
+                    setTicketTypes(
+                      template.suggested_tickets.map((tk) => ({
+                        name: tk.name || '',
+                        description: tk.description || '',
+                        price: String(tk.price ?? 0),
+                        quantity_total: '100',
+                        sales_start: salesStart,
+                        sales_end: baseStart,
+                        is_visible: true,
+                        max_per_order: '10',
+                        min_per_order: '1',
+                      })),
+                    );
+                  }
+                  // Form fields (custom registration) : idem, on ne remplace que
+                  // si vide. Mapping `type` → `field_type` côté mobile.
+                  if (
+                    Array.isArray(template.suggested_form_fields) &&
+                    template.suggested_form_fields.length > 0 &&
+                    form.formFields.length === 0
+                  ) {
+                    setFormFields(
+                      template.suggested_form_fields.map((f, idx) => ({
+                        label: f.label || '',
+                        field_type: f.type || 'text',
+                        required: !!f.required,
+                        placeholder: '',
+                        help_text: '',
+                        options: '',
+                        order: idx,
+                      })),
+                    );
                   }
                 }}
               />
