@@ -2104,6 +2104,19 @@
       }
     }
   },
+  "organizerTour": {
+    "myeventsCreateEyebrow": "01 · CREATE",
+    "myeventsCreateTitle": "Launch your first event.",
+    "myeventsCreateBody": "The + button at the top right opens the wizard — templates, tickets, form fields, it's all there.",
+    "myeventsDraftsEyebrow": "02 · DRAFTS",
+    "myeventsDraftsTitle": "Your drafts live here.",
+    "myeventsDraftsBody": "Pick up an event left in progress. All drafts are auto-saved."
+  },
+  "scannerTour": {
+    "scanEyebrow": "01 · SCAN",
+    "scanTitle": "Point at the ticket QR.",
+    "scanBody": "Scan is instant and works offline — check-ins are saved locally and synced as soon as connection returns."
+  },
   "privacyLegal": {
     "headerEyebrow": "PRIVACY • RGPD",
     "headerTitle": "Privacy policy",

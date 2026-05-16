@@ -36,6 +36,13 @@ import {
 import { MyEventsScreenSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem } from '../../components/ui/Animations';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import {
+  TourTarget,
+  useTour,
+  getOrganizerTourSteps,
+  ORGANIZER_TOUR_STORAGE_KEY,
+  ORGANIZER_TOUR_DELAY_MS,
+} from '../../components/tour';
 import EventActionsSheet, {
   EventActionSection,
   EventAction,
@@ -74,6 +81,18 @@ export default function MyEventsScreen() {
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
+  const tour = useTour();
+  // Fire the organizer tour on first arrival. The seenKey persists in
+  // AsyncStorage, so it won't replay on subsequent visits. The mainTabs tour
+  // covers the bottom nav separately; this one focuses on this screen's
+  // organizer-specific actions.
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      tour.start(getOrganizerTourSteps(t), { seenKey: ORGANIZER_TOUR_STORAGE_KEY });
+    }, ORGANIZER_TOUR_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const statusConfig: Record<string, { color: string; label: string; icon: keyof typeof Ionicons.glyphMap }> = useMemo(() => ({
     draft: { ...statusColorIcon.draft, label: t('organizer.myEvents.statusDraft') },
     submitted: { ...statusColorIcon.submitted, label: t('organizer.myEvents.statusSubmitted') },
@@ -1081,30 +1100,34 @@ export default function MyEventsScreen() {
           </Text>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('organizer.myEvents.title')}</Text>
         </View>
-        <TouchableOpacity
-          style={[styles.iconDisc, { backgroundColor: colors.gray100, marginRight: 8 }]}
-          onPress={() => navigation.navigate('Drafts' as any)}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel={t('organizer.myEvents.draftsA11y')}
-        >
-          <Ionicons name="document-text-outline" size={18} color={colors.gray600} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.headerCreateBtn, Shadows.buttonPrimary]}
-          onPress={() => navigation.navigate('EventCreate')}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-          accessibilityLabel={t('organizer.myEvents.createA11y')}
-        >
-          <LinearGradient
-            colors={[colors.primary, colors.primaryDark]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-          <Ionicons name="add" size={20} color={Colors.white} />
-        </TouchableOpacity>
+        <TourTarget id="organizer-drafts-btn">
+          <TouchableOpacity
+            style={[styles.iconDisc, { backgroundColor: colors.gray100, marginRight: 8 }]}
+            onPress={() => navigation.navigate('Drafts' as any)}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t('organizer.myEvents.draftsA11y')}
+          >
+            <Ionicons name="document-text-outline" size={18} color={colors.gray600} />
+          </TouchableOpacity>
+        </TourTarget>
+        <TourTarget id="organizer-create-btn">
+          <TouchableOpacity
+            style={[styles.headerCreateBtn, Shadows.buttonPrimary]}
+            onPress={() => navigation.navigate('EventCreate')}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={t('organizer.myEvents.createA11y')}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.primaryDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <Ionicons name="add" size={20} color={Colors.white} />
+          </TouchableOpacity>
+        </TourTarget>
       </View>
     </View>
   );

@@ -7,3 +7,13 @@ export {
   MAIN_TABS_TOUR_DELAY_MS,
   getMainTabsTourSteps,
 } from './mainTabsTour';
+export {
+  ORGANIZER_TOUR_STORAGE_KEY,
+  ORGANIZER_TOUR_DELAY_MS,
+  getOrganizerTourSteps,
+} from './organizerTour';
+export {
+  SCANNER_TOUR_STORAGE_KEY,
+  SCANNER_TOUR_DELAY_MS,
+  getScannerTourSteps,
+} from './scannerTour';

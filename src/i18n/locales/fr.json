@@ -2104,6 +2104,19 @@
       }
     }
   },
+  "organizerTour": {
+    "myeventsCreateEyebrow": "01 · CRÉER",
+    "myeventsCreateTitle": "Lance ton premier événement.",
+    "myeventsCreateBody": "Le bouton + en haut à droite ouvre l'assistant — modèles, billets, formulaire, tout y est.",
+    "myeventsDraftsEyebrow": "02 · BROUILLONS",
+    "myeventsDraftsTitle": "Tes brouillons sont ici.",
+    "myeventsDraftsBody": "Reprends un événement laissé en plan. Tous les brouillons sont sauvegardés automatiquement."
+  },
+  "scannerTour": {
+    "scanEyebrow": "01 · SCAN",
+    "scanTitle": "Vise le QR du billet.",
+    "scanBody": "Le scan est instantané et fonctionne hors-ligne — les check-ins sont sauvegardés localement et synchronisés dès le retour de la connexion."
+  },
   "privacyLegal": {
     "headerEyebrow": "VIE PRIVÉE • PRIVACY",
     "headerTitle": "Politique de confidentialité",

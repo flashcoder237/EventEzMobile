@@ -25,6 +25,13 @@ import { useTranslation } from 'react-i18next';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import {
+  TourTarget,
+  useTour,
+  getScannerTourSteps,
+  SCANNER_TOUR_STORAGE_KEY,
+  SCANNER_TOUR_DELAY_MS,
+} from '../../components/tour';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { useCheckinQueue } from '../../hooks/useCheckinQueue';
 import { registrationsAPI, eventsAPI, sessionsAPI } from '../../api';
@@ -70,6 +77,17 @@ export default function QRScannerScreen() {
   const { showError } = useAlert();
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const tour = useTour();
+  // First-launch tour explaining the scan UX and offline fallback.
+  // Single step pointing at the scan frame — the offline badge is conditional
+  // and not visible to first-time users, so we cover it verbally instead.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      tour.start(getScannerTourSteps(t), { seenKey: SCANNER_TOUR_STORAGE_KEY });
+    }, SCANNER_TOUR_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
@@ -652,20 +670,22 @@ export default function QRScannerScreen() {
 
         {/* Scan Area */}
         <View style={styles.scanAreaContainer}>
-          <View style={styles.scanArea}>
-            {/* Corner markers */}
-            <View style={[styles.corner, styles.topLeft]} />
-            <View style={[styles.corner, styles.topRight]} />
-            <View style={[styles.corner, styles.bottomLeft]} />
-            <View style={[styles.corner, styles.bottomRight]} />
+          <TourTarget id="scanner-frame">
+            <View style={styles.scanArea}>
+              {/* Corner markers */}
+              <View style={[styles.corner, styles.topLeft]} />
+              <View style={[styles.corner, styles.topRight]} />
+              <View style={[styles.corner, styles.bottomLeft]} />
+              <View style={[styles.corner, styles.bottomRight]} />
 
-            {processing && (
-              <View style={styles.processingOverlay}>
-                <ActivityIndicator size="large" color={colors.white} />
-                <Text style={styles.processingText}>{t('organizer.qrScanner.verifying')}</Text>
-              </View>
-            )}
-          </View>
+              {processing && (
+                <View style={styles.processingOverlay}>
+                  <ActivityIndicator size="large" color={colors.white} />
+                  <Text style={styles.processingText}>{t('organizer.qrScanner.verifying')}</Text>
+                </View>
+              )}
+            </View>
+          </TourTarget>
           <Text style={styles.scanHint}>
             {t('organizer.qrScanner.scanHint')}
           </Text>
