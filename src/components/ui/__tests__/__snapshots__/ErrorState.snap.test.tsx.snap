@@ -2,7 +2,7 @@
 
 exports[`ErrorState snapshots renders default (no retry callback) 1`] = `
 <View
-  accessibilityLabel="Oups !. Une erreur est survenue. Veuillez reessayer."
+  accessibilityLabel="Oups !. Une erreur est survenue. Veuillez réessayer."
   accessibilityRole="alert"
   style={
     [
@@ -76,7 +76,7 @@ exports[`ErrorState snapshots renders default (no retry callback) 1`] = `
       ]
     }
   >
-    Une erreur est survenue. Veuillez reessayer.
+    Une erreur est survenue. Veuillez réessayer.
   </Text>
 </View>
 `;
@@ -248,7 +248,7 @@ exports[`ErrorState snapshots renders with retry button 1`] = `
     }
   >
     <View
-      accessibilityLabel="Reessayer"
+      accessibilityLabel="Réessayer"
       accessibilityRole="button"
       accessibilityState={
         {
@@ -319,7 +319,7 @@ exports[`ErrorState snapshots renders with retry button 1`] = `
           ]
         }
       >
-        Reessayer
+        Réessayer
       </Text>
     </View>
   </View>

@@ -56,6 +56,9 @@ jest.mock('../../api', () => ({
   registrationsAPI: {
     getMyRegistrations: () => Promise.resolve({ data: { results: [] } }),
   },
+  ticketTransfersAPI: {
+    getPendingTransfers: () => Promise.resolve({ data: { results: [] } }),
+  },
 }));
 
 jest.mock('../../hooks/useOfflineTickets', () => ({

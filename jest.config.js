@@ -22,7 +22,10 @@ module.exports = {
     '/__tests__/integration/',
   ],
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|expo-modules-core|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/.*|sentry-expo|native-base|react-native-svg|@testing-library/react-native|@notifee/.*)/)',
+    // Pattern `expo-[a-z-]+` couvre tous les modules expo-XXX (expo-av, expo-image,
+    // expo-camera, etc.). Pattern `react-native-[a-z-]+` couvre les libs RN tierces
+    // (react-native-image-viewing, etc.) qui exportent en ESM.
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|react-native-[a-z-]+|expo(nent)?|expo-modules-core|expo-[a-z-]+|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/.*|sentry-expo|native-base|react-native-svg|@testing-library/react-native|@notifee/.*)/)',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   testMatch: ['**/__tests__/**/*.test.(ts|tsx|js|jsx)'],

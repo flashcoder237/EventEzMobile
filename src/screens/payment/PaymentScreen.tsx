@@ -460,32 +460,18 @@ export default function PaymentScreen() {
     })();
   }, []);
 
-  // Le pays SELECTIONNE par defaut suit le pays de l'event (cohérence avec
-  // Currency Strategy : Payment.currency = Event.currency = methodes du pays
-  // event). Le payeur peut basculer sur "Autre pays" (INTL) ou choisir un
-  // autre pays via le selecteur s'il veut explicitement une autre option.
+  // payerCountry représente le PAYS DU PAYEUR (pas celui de l'event). Source :
+  //   1. AsyncStorage (choix manuel persisté) — gagne toujours
+  //   2. Locale device (détectée au mount)
+  //   3. Fallback 'CM'
   //
-  // Avant le fix : la locale du device gagnait → un Camerounais voyait
-  // MTN/Orange CM proposes pour un event francais EUR (incoherent + paiement
-  // refuse par le backend a cause de la mismatch de devise).
+  // ⚠️ Ne PLUS forcer payerCountry = eventCountry. Le payeur peut être dans
+  // un pays différent de l'event (ex : Sénégalais paie event ivoirien en XOF
+  // via Wave SN). Le backend gère désormais le routage cross-pays via les
+  // params séparés `country` (payeur) + `event_country`.
+  //
+  // Cf. docs/PSP_IMPLEMENTATION_STATUS.md (gaps G1, G2, G3).
   const manualCountryChoiceRef = useRef(false);
-  useEffect(() => {
-    if (!countryHydrated) return;
-    if (manualCountryChoiceRef.current) return;
-    if (!registration) return;
-    const eventObj = registration.event_detail
-      || (typeof registration.event === 'object' ? registration.event : null);
-    const eventCountry = eventObj?.location_country_code || eventObj?.location_country;
-    if (eventCountry) {
-      const upper = String(eventCountry).toUpperCase();
-      // On force le pays event si supporte, peu importe la locale device.
-      // Le payeur peut toujours overrider via le CountryBadgeSelector.
-      if (SUPPORTED_CODES.has(upper) && upper !== payerCountry) {
-        setPayerCountry(upper);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countryHydrated, registration]);
 
   // Callback pour changer le pays depuis la UI
   const handleCountryChange = useCallback(async (code: string) => {
@@ -503,38 +489,39 @@ export default function PaymentScreen() {
     }
   }, []);
 
-  // Fetch les methodes de paiement compatibles avec la DEVISE DE L'EVENT.
+  // Fetch les méthodes de paiement.
   //
-  // Currency Strategy "Event mono-devise" : `Payment.currency = Event.currency`,
-  // pas de conversion au moment du paiement. Un Camerounais ne peut PAS payer
-  // un event EUR via MTN Mobile Money (qui est XAF) — la plateforme refuse
-  // les payments cross-currency.
+  // Sémantique (mai 2026) :
+  // - `country` envoyé = pays du PAYEUR (= payerCountry)
+  // - `event_country` envoyé = pays de l'EVENT (= eventCountry)
+  // - `currency` envoyé = devise event
   //
-  // Donc les methodes doivent etre celles du PAYS EVENT (qui determine la
-  // devise event = methodes compatibles), pas celles du payeur.
+  // Backend renvoie :
+  // - Méthodes Mobile Money du payeur, FILTRÉES par compatibilité de devise
+  //   avec l'event (MoMo XOF apparaissent si event est en XOF, sinon non).
+  // - Carte + PayPal via Stripe en fallback automatique si la devise event
+  //   est supportée par Stripe (135+ devises).
   //
-  // Cas "INTL" : si le payeur explicite "Autre pays" via le selecteur, on
-  // bascule sur la config internationale (cartes Visa/MC + PayPal) cote
-  // backend, qui doit aussi etre compatible event.currency.
+  // Ainsi un Sénégalais voit Wave SN pour un event ivoirien (XOF), et un
+  // Français voit Carte pour un event camerounais (XAF→EUR via Stripe).
   useEffect(() => {
     if (!countryHydrated) return;
     let cancelled = false;
     const fetchPaymentMethods = async () => {
       setMethodsLoading(true);
-      // Reset selection : les methodes peuvent etre differentes.
       setSelectedMethod(null);
       setDynamicMethods([]);
       try {
         const eventObj = registration?.event_detail
           || (registration && typeof registration.event === 'object' ? registration.event : null);
-        const eventCountry = eventObj?.location_country_code || eventObj?.location_country;
+        const eventCountry = (eventObj?.location_country_code || eventObj?.location_country || '').toString().toUpperCase();
         const eventCurrency = getEventCurrency(eventCountry);
 
-        // Si le payeur a explicitement choisi "Autre pays" (INTL), on garde
-        // ce signal mais on passe quand meme la devise event pour le filtrage.
-        // Sinon : eventCountry est la source de verite.
-        const fetchCountry = payerCountry === INTL_CODE ? INTL_CODE : (eventCountry || payerCountry);
-        const response = await paymentsAPI.getPaymentMethods(fetchCountry, eventCurrency);
+        const response = await paymentsAPI.getPaymentMethods(
+          payerCountry,         // pays du payeur (ne plus écraser par eventCountry)
+          eventCurrency,        // devise event
+          eventCountry || undefined,  // pays event (NOUVEAU param)
+        );
         if (cancelled) return;
         const config: CountryPaymentConfig = response.data;
         setCountryConfig(config);
@@ -787,6 +774,10 @@ export default function PaymentScreen() {
           payment_method: selectedMethod,
           billing_email: userEmail,
           billing_phone: formattedPhone,
+          // Pays du PAYEUR (≠ pays event). Permet au backend de router
+          // vers le channel CinetPay local du payeur (ex: OMSN pour un
+          // Sénégalais qui paie un event ivoirien).
+          payer_country: payerCountry,
         });
         const payload = initiateResponse.data;
         if (!payload?.success || !payload?.payment_url) {
@@ -870,6 +861,9 @@ export default function PaymentScreen() {
         billing_phone: formattedPhone,
         billing_email: userEmail,
         idempotency_key: idempotencyKey,
+        // Pays du PAYEUR transmis aussi au flow NotchPay/Stripe — utilisé
+        // côté backend pour résoudre le channel local et le PSP cible.
+        payer_country: payerCountry,
       });
 
       // Extraire l'ID du paiement de la réponse de manière sécurisée

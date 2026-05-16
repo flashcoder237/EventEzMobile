@@ -75,9 +75,24 @@ export const paymentsAPI = {
   cancelPayment: (id: string) =>
     api.post(`/payments/${id}/cancel_payment/`),
 
-  getPaymentMethods: (countryCode: string, currency?: string) => {
+  /**
+   * Récupère la liste des méthodes de paiement disponibles.
+   *
+   * Sémantique (mai 2026) :
+   * - `countryCode` (param `country` côté API) = pays du PAYEUR. Détermine
+   *   les Mobile Money locaux que le payeur peut utiliser.
+   * - `eventCountry` (optionnel) = pays de l'EVENT. Si distinct du payeur,
+   *   détermine la devise event qui filtre les MoMo compatibles + active
+   *   le fallback Stripe (carte/PayPal) si la devise event ∈ Stripe.
+   * - `currency` (optionnel) = devise event. Si absente, dérivée de eventCountry.
+   *
+   * Compat retro : si eventCountry absent, `countryCode` joue les deux rôles
+   * (= ancien comportement).
+   */
+  getPaymentMethods: (countryCode: string, currency?: string, eventCountry?: string) => {
     const params: Record<string, string> = { country: countryCode };
     if (currency) params.currency = currency;
+    if (eventCountry) params.event_country = eventCountry;
     return api.get('/payments/methods/', { params });
   },
 
@@ -103,6 +118,12 @@ export const paymentsAPI = {
     billing_email?: string;
     billing_phone?: string;
     billing_name?: string;
+    /**
+     * Pays ISO 2 lettres du PAYEUR. Distinct du pays event. Permet au backend
+     * de router via le channel local du payeur (ex: OMSN pour un Sénégalais
+     * qui paie un event ivoirien en XOF).
+     */
+    payer_country?: string;
     customer?: {
       name?: string;
       surname?: string;

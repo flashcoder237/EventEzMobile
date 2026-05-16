@@ -30,6 +30,18 @@ jest.mock('../../../contexts/ThemeContext', () => ({
   useTheme: () => ({ colors: lightColors, isDark: false }),
 }));
 
+// MessageBubble utilise useAlert() depuis 2026-04 : mock pour éviter le
+// throw "useAlert must be used within an AlertProvider" dans les tests.
+jest.mock('../../../contexts/AlertContext', () => ({
+  useAlert: () => ({
+    showAlert: jest.fn(),
+    showError: jest.fn(),
+    showSuccess: jest.fn(),
+    showInfo: jest.fn(),
+    showConfirm: jest.fn(),
+  }),
+}));
+
 jest.mock('expo-image', () => {
   const RN = require('react-native');
   return { Image: RN.Image };

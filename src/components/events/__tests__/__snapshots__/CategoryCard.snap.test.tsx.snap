@@ -478,9 +478,7 @@ exports[`CategoryCard snapshots renders large variant with image 1`] = `
           }
         }
       >
-        12
-         evenement
-        s
+        12 événement
       </Text>
     </View>
   </View>

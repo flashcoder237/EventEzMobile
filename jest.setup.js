@@ -132,6 +132,34 @@ jest.mock('expo-secure-store', () => {
   };
 });
 
+// expo-av : stub pour les tests qui rendent <Video /> ou <Audio.Sound />.
+// Le module natif ExponentAV n'existe pas en env Jest → mock minimal.
+jest.mock('expo-av', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    Video: React.forwardRef((props, ref) =>
+      React.createElement(View, { ...props, ref, testID: props.testID || 'expo-av-video' }),
+    ),
+    Audio: {
+      Sound: class MockSound {
+        async loadAsync() { return {}; }
+        async unloadAsync() { return {}; }
+        async playAsync() { return {}; }
+        async pauseAsync() { return {}; }
+        async stopAsync() { return {}; }
+      },
+      setAudioModeAsync: jest.fn(() => Promise.resolve()),
+    },
+    ResizeMode: {
+      CONTAIN: 'contain',
+      COVER: 'cover',
+      STRETCH: 'stretch',
+    },
+    AVPlaybackStatus: {},
+  };
+});
+
 // expo-notifications : stub pour les tests qui font require() sur push service
 jest.mock('expo-notifications', () => ({
   getPermissionsAsync: jest.fn(() => Promise.resolve({ granted: true, status: 'granted' })),
@@ -204,6 +232,65 @@ jest.mock('@notifee/react-native', () => ({
   AndroidVisibility: { PUBLIC: 1, PRIVATE: 0 },
   AndroidColor: { RED: '#EF4444', WHITE: '#FFFFFF' },
 }));
+
+// react-native-webview : stub. Sans ce mock le module natif RNCWebViewModule
+// crash en env Jest via TurboModuleRegistry.getEnforcing().
+jest.mock('react-native-webview', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    WebView: React.forwardRef((props, ref) =>
+      React.createElement(View, { ...props, ref, testID: props.testID || 'webview-mock' }),
+    ),
+    default: React.forwardRef((props, ref) =>
+      React.createElement(View, { ...props, ref, testID: props.testID || 'webview-mock' }),
+    ),
+  };
+});
+
+// @react-native-community/netinfo : stub global. Sans ce mock, le module
+// natif essaie d'accéder à une connexion réseau réelle et plante en env Jest.
+// `addEventListener` retourne une FONCTION unsubscribe (pas un objet) — c'est
+// le contrat officiel de NetInfo, attendu par les useEffect cleanup.
+jest.mock('@react-native-community/netinfo', () => {
+  const unsubscribe = jest.fn();
+  const netInfoState = {
+    isConnected: true,
+    isInternetReachable: true,
+    type: 'wifi',
+    details: {},
+  };
+  return {
+    __esModule: true,
+    default: {
+      fetch: jest.fn(() => Promise.resolve(netInfoState)),
+      addEventListener: jest.fn(() => unsubscribe),
+      configure: jest.fn(),
+    },
+    fetch: jest.fn(() => Promise.resolve(netInfoState)),
+    addEventListener: jest.fn(() => unsubscribe),
+    useNetInfo: () => netInfoState,
+  };
+});
+
+// AlertContext : mock global pour les tests qui rendent des composants utilisant
+// useAlert() sans wrapper AlertProvider (snapshots, perf tests, etc.).
+// Les tests qui ont besoin du vrai contexte peuvent override via wrapper local.
+jest.mock('./src/contexts/AlertContext', () => {
+  const React = require('react');
+  return {
+    AlertProvider: ({ children }) => children,
+    useAlert: () => ({
+      showAlert: jest.fn(),
+      showError: jest.fn(),
+      showSuccess: jest.fn(),
+      showInfo: jest.fn(),
+      showConfirm: jest.fn(),
+      hideAlert: jest.fn(),
+    }),
+  };
+});
 
 // react-native-keyboard-controller : stubs
 jest.mock('react-native-keyboard-controller', () => {

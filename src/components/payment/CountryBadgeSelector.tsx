@@ -27,14 +27,15 @@ export interface SupportedCountry {
 export const INTL_CODE = 'INTL';
 
 export const SUPPORTED_COUNTRIES: SupportedCountry[] = [
-  // Pays NotchPay (et CinetPay pour CM/CI/SN)
+  // ===== Pays NotchPay (Mobile Money africain) =====
   { code: 'CM',       name: 'Cameroun',       currency: 'XAF', flag: '🇨🇲' },
   { code: 'CI',       name: "Côte d'Ivoire",  currency: 'XOF', flag: '🇨🇮' },
   { code: 'SN',       name: 'Sénégal',        currency: 'XOF', flag: '🇸🇳' },
   { code: 'KE',       name: 'Kenya',          currency: 'KES', flag: '🇰🇪' },
   { code: 'GH',       name: 'Ghana',          currency: 'GHS', flag: '🇬🇭' },
   { code: 'UG',       name: 'Ouganda',        currency: 'UGX', flag: '🇺🇬' },
-  // Pays CinetPay uniquement (UEMOA + Congo + Guinee)
+  { code: 'NG',       name: 'Nigeria',        currency: 'NGN', flag: '🇳🇬' },
+  // ===== Pays CinetPay uniquement (UEMOA + Congo + Guinée) =====
   { code: 'BF',       name: 'Burkina Faso',   currency: 'XOF', flag: '🇧🇫' },
   { code: 'ML',       name: 'Mali',           currency: 'XOF', flag: '🇲🇱' },
   { code: 'TG',       name: 'Togo',           currency: 'XOF', flag: '🇹🇬' },
@@ -42,7 +43,56 @@ export const SUPPORTED_COUNTRIES: SupportedCountry[] = [
   { code: 'NE',       name: 'Niger',          currency: 'XOF', flag: '🇳🇪' },
   { code: 'CD',       name: 'RD Congo',       currency: 'CDF', flag: '🇨🇩' },
   { code: 'GN',       name: 'Guinée',         currency: 'GNF', flag: '🇬🇳' },
-  // Payeur international (cartes + PayPal via redirect)
+  // ===== Pays Stripe Connect (cartes + PayPal) — zone euro =====
+  { code: 'FR',       name: 'France',         currency: 'EUR', flag: '🇫🇷' },
+  { code: 'DE',       name: 'Allemagne',      currency: 'EUR', flag: '🇩🇪' },
+  { code: 'ES',       name: 'Espagne',        currency: 'EUR', flag: '🇪🇸' },
+  { code: 'IT',       name: 'Italie',         currency: 'EUR', flag: '🇮🇹' },
+  { code: 'PT',       name: 'Portugal',       currency: 'EUR', flag: '🇵🇹' },
+  { code: 'NL',       name: 'Pays-Bas',       currency: 'EUR', flag: '🇳🇱' },
+  { code: 'BE',       name: 'Belgique',       currency: 'EUR', flag: '🇧🇪' },
+  { code: 'AT',       name: 'Autriche',       currency: 'EUR', flag: '🇦🇹' },
+  { code: 'IE',       name: 'Irlande',        currency: 'EUR', flag: '🇮🇪' },
+  { code: 'FI',       name: 'Finlande',       currency: 'EUR', flag: '🇫🇮' },
+  { code: 'LU',       name: 'Luxembourg',     currency: 'EUR', flag: '🇱🇺' },
+  { code: 'GR',       name: 'Grèce',          currency: 'EUR', flag: '🇬🇷' },
+  { code: 'SK',       name: 'Slovaquie',      currency: 'EUR', flag: '🇸🇰' },
+  { code: 'SI',       name: 'Slovénie',       currency: 'EUR', flag: '🇸🇮' },
+  { code: 'EE',       name: 'Estonie',        currency: 'EUR', flag: '🇪🇪' },
+  { code: 'LT',       name: 'Lituanie',       currency: 'EUR', flag: '🇱🇹' },
+  { code: 'LV',       name: 'Lettonie',       currency: 'EUR', flag: '🇱🇻' },
+  { code: 'CY',       name: 'Chypre',         currency: 'EUR', flag: '🇨🇾' },
+  { code: 'MT',       name: 'Malte',          currency: 'EUR', flag: '🇲🇹' },
+  { code: 'HR',       name: 'Croatie',        currency: 'EUR', flag: '🇭🇷' },
+  // ===== Stripe Connect — reste Europe =====
+  { code: 'GB',       name: 'Royaume-Uni',    currency: 'GBP', flag: '🇬🇧' },
+  { code: 'CH',       name: 'Suisse',         currency: 'CHF', flag: '🇨🇭' },
+  { code: 'SE',       name: 'Suède',          currency: 'SEK', flag: '🇸🇪' },
+  { code: 'NO',       name: 'Norvège',        currency: 'NOK', flag: '🇳🇴' },
+  { code: 'DK',       name: 'Danemark',       currency: 'DKK', flag: '🇩🇰' },
+  { code: 'PL',       name: 'Pologne',        currency: 'PLN', flag: '🇵🇱' },
+  { code: 'CZ',       name: 'Rép. tchèque',   currency: 'CZK', flag: '🇨🇿' },
+  { code: 'HU',       name: 'Hongrie',        currency: 'HUF', flag: '🇭🇺' },
+  { code: 'RO',       name: 'Roumanie',       currency: 'RON', flag: '🇷🇴' },
+  { code: 'BG',       name: 'Bulgarie',       currency: 'BGN', flag: '🇧🇬' },
+  // ===== Stripe Connect — Amérique du Nord =====
+  { code: 'US',       name: 'États-Unis',     currency: 'USD', flag: '🇺🇸' },
+  { code: 'CA',       name: 'Canada',         currency: 'CAD', flag: '🇨🇦' },
+  { code: 'MX',       name: 'Mexique',        currency: 'MXN', flag: '🇲🇽' },
+  // ===== Stripe Connect — Asie / Pacifique =====
+  { code: 'JP',       name: 'Japon',          currency: 'JPY', flag: '🇯🇵' },
+  { code: 'AU',       name: 'Australie',      currency: 'AUD', flag: '🇦🇺' },
+  { code: 'NZ',       name: 'Nouvelle-Zélande', currency: 'NZD', flag: '🇳🇿' },
+  { code: 'SG',       name: 'Singapour',      currency: 'SGD', flag: '🇸🇬' },
+  { code: 'HK',       name: 'Hong Kong',      currency: 'HKD', flag: '🇭🇰' },
+  { code: 'MY',       name: 'Malaisie',       currency: 'MYR', flag: '🇲🇾' },
+  { code: 'TH',       name: 'Thaïlande',      currency: 'THB', flag: '🇹🇭' },
+  { code: 'ID',       name: 'Indonésie',      currency: 'IDR', flag: '🇮🇩' },
+  { code: 'IN',       name: 'Inde',           currency: 'INR', flag: '🇮🇳' },
+  // ===== Stripe Connect — Moyen-Orient + Amérique latine =====
+  { code: 'AE',       name: 'Émirats AU',     currency: 'AED', flag: '🇦🇪' },
+  { code: 'BR',       name: 'Brésil',         currency: 'BRL', flag: '🇧🇷' },
+  // ===== Payeur international (cartes + PayPal via Stripe) =====
   { code: INTL_CODE,  name: 'Autre pays',     currency: '',    flag: '🌍' },
 ];
 

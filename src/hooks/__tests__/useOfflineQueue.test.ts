@@ -262,8 +262,13 @@ describe('useOfflineQueue', () => {
       expect(onMessageFailed).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'queued-dead' }),
       );
-      // dead message dropped from queue (no infinite re-enqueue)
-      await waitFor(() => expect(fresh.result.current.queueLength).toBe(0));
+      // Comportement actuel (mai 2026) : le message dépassé n'est PAS drop, il
+      // est marqué `failed=true` pour que l'UI affiche "Échec — réessayer/
+      // supprimer". L'utilisateur garde la main sur ses données. Voir
+      // useOfflineQueue.ts:158-168 (markFailed plutôt que dequeue).
+      await waitFor(() => expect(fresh.result.current.queueLength).toBe(1));
+      const failedMsg = fresh.result.current.queue.find((m: any) => m.id === 'queued-dead');
+      expect(failedMsg?.failed).toBe(true);
       // onSendMessage NOT called for the dead message
       expect(onSendMessage).not.toHaveBeenCalled();
 

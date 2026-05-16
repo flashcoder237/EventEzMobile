@@ -51,7 +51,8 @@ describe('paymentsAPI', () => {
   it('createPayment(data) → POST /payments/', async () => {
     const data = { amount: 1000, method: 'mtn' };
     await paymentsAPI.createPayment(data);
-    expect(api.post).toHaveBeenCalledWith('/payments/', data);
+    // L'implémentation ajoute `source: 'mobile'` au body (telemetry backend).
+    expect(api.post).toHaveBeenCalledWith('/payments/', { source: 'mobile', ...data });
     expect(api.post).toHaveBeenCalledTimes(1);
     expect(api.get).not.toHaveBeenCalled();
     expect(api.put).not.toHaveBeenCalled();
@@ -72,7 +73,7 @@ describe('paymentsAPI', () => {
 
   it('initializePayment(id) → POST /payments/:id/initialize_payment/', async () => {
     await paymentsAPI.initializePayment('p-1');
-    expect(api.post).toHaveBeenCalledWith('/payments/p-1/initialize_payment/');
+    expect(api.post).toHaveBeenCalledWith('/payments/p-1/initialize_payment/', { source: 'mobile' });
     expect(api.post).toHaveBeenCalledTimes(1);
     expect(api.get).not.toHaveBeenCalled();
     expect(api.put).not.toHaveBeenCalled();
@@ -152,10 +153,47 @@ describe('paymentsAPI', () => {
     expect(api.delete).not.toHaveBeenCalled();
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Refacto mai 2026 — payer_country / event_country dissociés (G1, G3)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('getPaymentMethods(country, currency, eventCountry) → params incluent event_country', async () => {
+    await paymentsAPI.getPaymentMethods('SN', 'XOF', 'CI');
+    expect(api.get).toHaveBeenCalledWith('/payments/methods/', {
+      params: { country: 'SN', currency: 'XOF', event_country: 'CI' },
+    });
+    expect(api.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('getPaymentMethods sans eventCountry → param event_country absent (compat retro)', async () => {
+    await paymentsAPI.getPaymentMethods('CM');
+    expect(api.get).toHaveBeenCalledWith('/payments/methods/', {
+      params: { country: 'CM' },
+    });
+    // Vérifie qu'event_country n'est PAS injecté quand undefined
+    const callArgs = (api.get as jest.Mock).mock.calls[0][1];
+    expect(callArgs.params).not.toHaveProperty('event_country');
+  });
+
+  it('initiate avec payer_country → POST /payments/initiate/ inclut payer_country', async () => {
+    const data = {
+      registration_id: 'reg-1',
+      payment_method: 'wave',
+      billing_email: 'aminata@test.com',
+      billing_phone: '+221770000000',
+      payer_country: 'SN',
+    };
+    await paymentsAPI.initiate(data);
+    expect(api.post).toHaveBeenCalledWith('/payments/initiate/', { source: 'mobile', ...data });
+    // Vérifie spécifiquement que payer_country est bien transmis
+    const callArgs = (api.post as jest.Mock).mock.calls[0][1];
+    expect(callArgs.payer_country).toBe('SN');
+  });
+
   it('processMobileMoney(id, data) → POST /payments/:id/process_mobile_money/', async () => {
     const data = { phone: '+237zzz', channel: 'cm.mtn' };
     await paymentsAPI.processMobileMoney('p-1', data);
-    expect(api.post).toHaveBeenCalledWith('/payments/p-1/process_mobile_money/', data);
+    expect(api.post).toHaveBeenCalledWith('/payments/p-1/process_mobile_money/', { source: 'mobile', ...data });
     expect(api.post).toHaveBeenCalledTimes(1);
     expect(api.get).not.toHaveBeenCalled();
     expect(api.put).not.toHaveBeenCalled();
@@ -171,7 +209,7 @@ describe('paymentsAPI', () => {
       billing_phone: '+22697123456',
     };
     await paymentsAPI.initiate(data);
-    expect(api.post).toHaveBeenCalledWith('/payments/initiate/', data);
+    expect(api.post).toHaveBeenCalledWith('/payments/initiate/', { source: 'mobile', ...data });
     expect(api.post).toHaveBeenCalledTimes(1);
     expect(api.get).not.toHaveBeenCalled();
     expect(api.put).not.toHaveBeenCalled();

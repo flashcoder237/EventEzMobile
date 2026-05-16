@@ -2,7 +2,7 @@
 
 exports[`MessageBubble snapshots renders deleted message placeholder 1`] = `
 <View
-  accessibilityLabel="Message supprime"
+  accessibilityLabel="Message supprimé"
   accessibilityState={
     {
       "busy": undefined,
@@ -310,7 +310,7 @@ exports[`MessageBubble snapshots renders edited message with edited label 1`] = 
           ]
         }
       >
-        modifie
+        modifié
       </Text>
       <Text
         style={
@@ -537,7 +537,7 @@ exports[`MessageBubble snapshots renders message with image attachment 1`] = `
     }
   >
     <View
-      accessibilityLabel="Piece jointe"
+      accessibilityLabel="Pièce jointe"
       style={
         {
           "marginBottom": 4,
@@ -545,8 +545,39 @@ exports[`MessageBubble snapshots renders message with image attachment 1`] = `
       }
     >
       <View
+        accessibilityHint="Touchez pour agrandir, restez appuyé pour plus d'options"
+        accessibilityLabel="Image en pièce jointe"
+        accessibilityRole="imagebutton"
+        accessibilityState={
+          {
+            "busy": undefined,
+            "checked": undefined,
+            "disabled": undefined,
+            "expanded": undefined,
+            "selected": undefined,
+          }
+        }
+        accessibilityValue={
+          {
+            "max": undefined,
+            "min": undefined,
+            "now": undefined,
+            "text": undefined,
+          }
+        }
+        accessible={true}
+        collapsable={false}
+        focusable={true}
+        onClick={[Function]}
+        onResponderGrant={[Function]}
+        onResponderMove={[Function]}
+        onResponderRelease={[Function]}
+        onResponderTerminate={[Function]}
+        onResponderTerminationRequest={[Function]}
+        onStartShouldSetResponder={[Function]}
         style={
           {
+            "opacity": 1,
             "position": "relative",
           }
         }
@@ -554,6 +585,7 @@ exports[`MessageBubble snapshots renders message with image attachment 1`] = `
         <Image
           cachePolicy="memory-disk"
           contentFit="cover"
+          placeholderContentFit="cover"
           source="https://test.local/media/img.jpg"
           style={
             [
