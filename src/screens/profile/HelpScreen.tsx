@@ -87,6 +87,48 @@ const FAQ_STATIC = [
     color: '#6366F1',
     itemKeys: ['appNotWorking', 'noNotifications', 'deleteAccount'],
   },
+  {
+    id: 'messaging',
+    eyebrow: 'CAT 06',
+    icon: 'chatbubble-ellipses-outline' as const,
+    color: '#EC4899',
+    itemKeys: ['sendMessage', 'messageRequests', 'reportBlock', 'attachments', 'encryption'],
+  },
+  {
+    id: 'organizer',
+    eyebrow: 'CAT 07',
+    icon: 'briefcase-outline' as const,
+    color: '#F97316',
+    itemKeys: ['requirements', 'validation', 'firstEvent', 'drafts', 'platformFees'],
+  },
+  {
+    id: 'wallet',
+    eyebrow: 'CAT 08',
+    icon: 'wallet-outline' as const,
+    color: '#14B8A6',
+    itemKeys: ['walletBasics', 'mobileMoneyWithdraw', 'withdrawTime', 'minWithdraw', 'kyc'],
+  },
+  {
+    id: 'sessions',
+    eyebrow: 'CAT 09',
+    icon: 'time-outline' as const,
+    color: '#8B5CF6',
+    itemKeys: ['whatAreSessions', 'registerSession', 'parallelSessions', 'sessionReminders'],
+  },
+  {
+    id: 'transfers',
+    eyebrow: 'CAT 10',
+    icon: 'swap-horizontal-outline' as const,
+    color: '#06B6D4',
+    itemKeys: ['sendTicket', 'receiverAccount', 'transferExpiry', 'cancelTransfer', 'transferFees'],
+  },
+  {
+    id: 'security',
+    eyebrow: 'CAT 11',
+    icon: 'shield-checkmark-outline' as const,
+    color: '#DC2626',
+    itemKeys: ['blockUser', 'deleteAccountFull', 'dataSharing', 'exportData', 'twoFactor'],
+  },
 ];
 
 const SUPPORT_EMAIL = 'support@eventez.app';

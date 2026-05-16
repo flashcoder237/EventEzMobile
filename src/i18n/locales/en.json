@@ -1886,7 +1886,13 @@
       "events": "Events",
       "payments": "Payments",
       "tickets": "Tickets & Registrations",
-      "technical": "Technical"
+      "technical": "Technical",
+      "messaging": "Messaging",
+      "organizer": "Becoming an Organizer",
+      "wallet": "Wallet & Payouts",
+      "sessions": "Sessions & Agenda",
+      "transfers": "Ticket Transfers",
+      "security": "Security & Privacy"
     },
     "articleLabel": "ARTICLE {{num}}",
     "faq": {
@@ -1966,6 +1972,134 @@
         "deleteAccount": {
           "question": "How do I delete my account?",
           "answer": "Go to Profile > Settings > Account > Delete my account. This action is irreversible. All your data will be deleted in accordance with our privacy policy."
+        }
+      },
+      "messaging": {
+        "sendMessage": {
+          "question": "How do I send a message to an organizer?",
+          "answer": "On the event page, tap \"Contact organizer\" or open their organizer profile and tap the message icon. Your first message arrives as a \"request\" — the organizer must accept it to start the conversation."
+        },
+        "messageRequests": {
+          "question": "Why is my message a \"request\"?",
+          "answer": "To prevent spam, the first message sent to someone you've never chatted with goes to their \"Message requests\". Once accepted, your follow-up messages arrive directly in the normal conversation."
+        },
+        "reportBlock": {
+          "question": "How do I report or block a user?",
+          "answer": "In a conversation, tap the person's name at the top, then \"Block\" or \"Report\". A report is reviewed by our moderation team within 24-48h. Blocking prevents any further communication."
+        },
+        "attachments": {
+          "question": "How do I share a file or photo?",
+          "answer": "In the conversation, tap the paperclip icon to the left of the text field. You can send images (max 5 MB), files (max 10 MB) or voice messages (max 5 minutes). Group conversations have a total quota of 500 MB."
+        },
+        "encryption": {
+          "question": "Are my messages encrypted?",
+          "answer": "Messages are encrypted in transit (HTTPS/WSS) between your phone and our servers. They are securely stored and accessible only to you and your recipient. We're working on end-to-end encryption for 2026."
+        }
+      },
+      "organizer": {
+        "requirements": {
+          "question": "What are the requirements to become an organizer?",
+          "answer": "You must be of legal age, have a verified EventEz account (email + phone), and provide valid contact information. To sell tickets, a valid Mobile Money number is required for payouts. No signup fee."
+        },
+        "validation": {
+          "question": "How long does validation take?",
+          "answer": "Organizer account validation is usually instant for individuals. For organizations (companies, NGOs), we ask for a proof document (business registry) — count on 24-48 business hours."
+        },
+        "firstEvent": {
+          "question": "How do I create my first event?",
+          "answer": "From the \"My events\" tab, tap the \"+\" button. Pick a template (concert, workshop, conference...), fill in the info (title, date, location, tickets or form), then submit for validation. Our team validates within 1-2h during business hours."
+        },
+        "drafts": {
+          "question": "Can I save a draft?",
+          "answer": "Yes, at any point during creation you can leave — your work is auto-saved as a draft. Find your drafts in \"My events\" > \"Drafts\" tab. No time limit."
+        },
+        "platformFees": {
+          "question": "What are the platform fees?",
+          "answer": "For free events: 0 fees. For paid events: 5% commission + 100 XAF per ticket sold (Mobile Money) or 3% + 200 XAF (cards). Fees are deducted automatically before wallet credit."
+        }
+      },
+      "wallet": {
+        "walletBasics": {
+          "question": "How does the wallet work?",
+          "answer": "Your wallet accumulates revenue from your ticket sales (minus platform fees). Funds are available immediately after customer payment confirmation. You can withdraw at any time to your Mobile Money number or bank account."
+        },
+        "mobileMoneyWithdraw": {
+          "question": "How do I withdraw to Mobile Money?",
+          "answer": "From the Wallet, tap \"Withdraw\". Select Mobile Money, choose the operator (MTN/Orange), enter the amount. The withdrawal is processed automatically to the number linked to your account (the same one used for signup)."
+        },
+        "withdrawTime": {
+          "question": "What are the payout delays?",
+          "answer": "Mobile Money: instant to 15 minutes on average, up to 24h in case of network congestion. Bank transfer: 1-3 business days. You get a notification as soon as the transfer is confirmed."
+        },
+        "minWithdraw": {
+          "question": "What's the minimum withdrawal threshold?",
+          "answer": "The minimum depends on your country and payment method. For Cameroon: 1,000 XAF for Mobile Money, 10,000 XAF for bank transfer. Per-country thresholds are visible in Wallet > \"Limits\" tab."
+        },
+        "kyc": {
+          "question": "What is KYC and why do it?",
+          "answer": "KYC (Know Your Customer) is an identity verification required by regulation for withdrawals above a certain threshold. Upload an ID document (national ID or passport) from Profile > Verification. Validation within 24-48h."
+        }
+      },
+      "sessions": {
+        "whatAreSessions": {
+          "question": "What's a \"session\" in an event?",
+          "answer": "A session is a specific activity inside a larger event: conference, workshop, panel, performance... A multi-track event can contain dozens of parallel sessions. Each session has its own time, room (track) and speakers."
+        },
+        "registerSession": {
+          "question": "How do I register for a specific session?",
+          "answer": "From the event page, \"Agenda\" tab, browse available sessions and tap \"Register\" on those you're interested in. Some sessions have limited capacity — first come, first served."
+        },
+        "parallelSessions": {
+          "question": "Can I register for parallel sessions?",
+          "answer": "No, the app prevents registration to two overlapping sessions. You must first unregister from one to join the other. This frees up the spot for someone on the waitlist."
+        },
+        "sessionReminders": {
+          "question": "How do I get reminders before a session?",
+          "answer": "Reminders are automatic for all your registered sessions: notification 24h before, then 1h before the start. You can adjust this frequency in Profile > Settings > Notifications > Session reminders."
+        }
+      },
+      "transfers": {
+        "sendTicket": {
+          "question": "How do I send a ticket to a friend?",
+          "answer": "From My Tickets, open the ticket to transfer and tap \"Transfer\". Enter the recipient's phone number or email. They get a notification — they have 7 days to accept, otherwise the ticket returns to you."
+        },
+        "receiverAccount": {
+          "question": "Does the recipient need an EventEz account?",
+          "answer": "Not necessarily. If the recipient has no account, they receive an SMS/email with a link to quickly create a guest account and retrieve the ticket. No password required for guest accounts."
+        },
+        "transferExpiry": {
+          "question": "How long do they have to accept?",
+          "answer": "7 days by default. If the transfer isn't accepted in time, the ticket automatically returns to you and you get a notification. You can re-send the transfer to the same person or someone else."
+        },
+        "cancelTransfer": {
+          "question": "Can I cancel a sent transfer?",
+          "answer": "Yes, as long as the recipient hasn't accepted. Go to My Tickets > Pending transfers, select the transfer and tap \"Cancel\". The ticket becomes immediately active on your account again."
+        },
+        "transferFees": {
+          "question": "Are there transfer fees?",
+          "answer": "No fees for transfers between individuals. Some organizers may disable transfers for their events (anti-resale) — in that case, the \"Transfer\" option won't be visible on the ticket."
+        }
+      },
+      "security": {
+        "blockUser": {
+          "question": "How do I block a user?",
+          "answer": "In a conversation, tap the name at the top, then \"Block\". The person can no longer send you messages or see your followed events. Find the list of blocked users in Profile > Settings > Privacy."
+        },
+        "deleteAccountFull": {
+          "question": "How do I permanently delete my account?",
+          "answer": "Profile > Settings > Account > Delete my account. Your data will be anonymized within 30 days (GDPR), except for invoices and accounting records kept for 10 years for legal reasons. This action is irreversible."
+        },
+        "dataSharing": {
+          "question": "Is my data shared with organizers?",
+          "answer": "Only data necessary for your registration: name, email, and form answers if applicable. Organizers NEVER see your phone number, date of birth or other followed events."
+        },
+        "exportData": {
+          "question": "How do I export my data (GDPR)?",
+          "answer": "Profile > Settings > Privacy > Export my data. You'll receive a ZIP file by email within 48h containing all your personal data, tickets, messages and payment history in JSON and CSV format."
+        },
+        "twoFactor": {
+          "question": "How do I enable 2-step verification?",
+          "answer": "Profile > Settings > Security > 2-step verification. Choose SMS or authenticator app (Google Authenticator, Authy). Once enabled, a 6-digit code will be required for every new login."
         }
       }
     }
