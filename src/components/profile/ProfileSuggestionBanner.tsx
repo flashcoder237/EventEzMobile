@@ -24,8 +24,27 @@ interface Suggestion {
 interface Props {
   user: User | null;
   /** Wallet de l'organisateur, si disponible (pour suggerer config payout) */
-  wallet?: { bank_name?: string; mobile_money_number?: string } | null;
+  wallet?: {
+    bank_name?: string;
+    bank_account_number?: string;
+    mobile_money_number?: string;
+  } | null;
   isOrganizer: boolean;
+}
+
+/**
+ * "Configured" = au moins un moyen de payout renseigne. Sur le wallet,
+ * un user peut renseigner soit du Mobile Money, soit un compte bancaire
+ * (bank_name ET/OU bank_account_number suffit). On considere donc le wallet
+ * configure des qu'un seul de ces 3 champs est rempli.
+ */
+function hasPayoutConfigured(wallet: Props['wallet']): boolean {
+  if (!wallet) return false;
+  return Boolean(
+    wallet.bank_name?.trim() ||
+    wallet.bank_account_number?.trim() ||
+    wallet.mobile_money_number?.trim()
+  );
 }
 
 /**
@@ -43,12 +62,7 @@ function buildSuggestions(
   const list: Suggestion[] = [];
 
   // Critique : organisateur sans wallet configure → ne peut pas recevoir d'argent
-  if (
-    isOrganizer &&
-    wallet &&
-    !wallet.bank_name?.trim() &&
-    !wallet.mobile_money_number?.trim()
-  ) {
+  if (isOrganizer && wallet && !hasPayoutConfigured(wallet)) {
     list.push({
       id: 'wallet-config',
       icon: 'wallet-outline',
@@ -120,7 +134,7 @@ function profileCompleteness(user: User | null, wallet: Props['wallet'], isOrgan
   ];
 
   if (isOrganizer) {
-    checks.push(!!(wallet?.bank_name?.trim() || wallet?.mobile_money_number?.trim()));
+    checks.push(hasPayoutConfigured(wallet));
   }
 
   return {

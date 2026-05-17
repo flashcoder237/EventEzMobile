@@ -41,6 +41,24 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 // ─────────────────────────────────────────────────────────
+// Search helper — case-insensitive, accent-insensitive substring match.
+// Empty query matches everything (no filter applied). Used to filter both
+// individual settings rows and entire sections at once.
+// ─────────────────────────────────────────────────────────
+const normalize = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+
+function matchesQuery(query: string, terms: (string | undefined)[]): boolean {
+  const trimmed = query.trim();
+  if (!trimmed) return true;
+  const q = normalize(trimmed);
+  return terms.some((term) => term && normalize(term).includes(q));
+}
+
+// ─────────────────────────────────────────────────────────
 // Soft toggle — uses platform Switch tinted with theme colors
 // ─────────────────────────────────────────────────────────
 const SoftToggle = ({
@@ -317,6 +335,13 @@ export default function SettingsScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteReason, setDeleteReason] = useState('');
+
+  // Search bar — filters both individual settings rows and entire sections.
+  // `isSearching` is just a convenience for conditional rendering downstream.
+  // `hasAnyMatch` is the OR of all section-level term aggregates; we use it
+  // to decide whether to show the "no results" empty state.
+  const [searchQuery, setSearchQuery] = useState('');
+  const isSearching = searchQuery.trim().length > 0;
 
   // Effets sonores
   const { enabled: soundsEnabled, setEnabled: setSoundsEnabled, play: playSound } = useSoundEffect();
@@ -644,6 +669,35 @@ export default function SettingsScreen() {
   const eyebrowColor = colors.gray500;
   const sectionHairline = isDark ? colors.gray200 : colors.gray100;
 
+  // Union of all section-level term aggregates — used to drive the "no
+  // results" empty state. If this returns false, none of the sections
+  // below render and the empty state takes over.
+  const hasAnyMatch = matchesQuery(searchQuery, [
+    t('settings.notificationsSectionEyebrow'),
+    t('settings.rowEmailNotifs'), t('settings.rowPushNotifs'), t('settings.rowSmsNotifs'),
+    t('settings.rowEventUpdates'), t('settings.rowEventUpdatesSubtitle'),
+    t('settings.rowPaymentConfirmations'), t('settings.rowNewConversations'), t('settings.rowMarketing'),
+    t('settings.preferencesSectionEyebrow'),
+    t('settings.languageEyebrow'), t('eyebrow.theme'), t('eyebrow.timezoneSoon'),
+    t('settings.rowSounds'), t('settings.rowSoundsSubtitle'),
+    t('settings.securitySectionEyebrow'),
+    t('settings.rowTwoFA'), t('settings.rowAppLock'), t('settings.rowTicketLock'),
+    t('settings.rowPaymentLock'), t('settings.rowAccountLock'), t('settings.rowAdminLock'),
+    t('settings.rowLoginAlerts'), t('settings.rowPublicProfile'), t('settings.rowShowInGoing'),
+    t('settings.rowReadConfirmations'), t('settings.rowReadConfirmationsSubtitle'),
+    'CONFIDENTIALITÉ MESSAGERIE', 'MESSAGING PRIVACY',
+    t('settings.rowMessagingEnabled'), t('settings.rowMessagingEnabledSubtitle'),
+    t('settings.rowReadReceipts'), t('settings.rowReadReceiptsSubtitle'),
+    t('settings.rowPresenceVisible'), t('settings.rowPresenceVisibleSubtitle'),
+    t('settings.rowWhoCanContact'),
+    t('settings.rowBlockedUsers'), t('settings.rowBlockedUsersSubtitle'),
+    t('settings.aboutSection'),
+    t('settings.rowHelpCenter'), t('settings.rowTermsOfUse'),
+    t('settings.rowPrivacyPolicy'), t('settings.rowAppVersion'),
+    t('settings.dangerZone'),
+    t('settings.rowLogout'), t('settings.rowDeleteAccount'),
+  ]);
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       {/* Header: back disc + eyebrow (rounded bottom card style) */}
@@ -681,6 +735,40 @@ export default function SettingsScreen() {
         <Text style={[styles.headerLead, { color: colors.gray500 }]}>
           {t('settings.headerLead')}
         </Text>
+
+        {/* Search input — type-ahead filter across all sections and rows */}
+        <View
+          style={[
+            styles.searchBar,
+            {
+              backgroundColor: isDark ? colors.gray100 : '#F2F1ED',
+              borderColor: isDark ? colors.gray200 : 'rgba(17,17,16,0.06)',
+            },
+          ]}
+        >
+          <Ionicons name="search" size={16} color={colors.gray500} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={t('settings.searchPlaceholder')}
+            placeholderTextColor={colors.gray400}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            accessibilityLabel={t('settings.searchA11y')}
+          />
+          {isSearching && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.clear')}
+            >
+              <Ionicons name="close-circle" size={16} color={colors.gray400} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <ScrollView
@@ -722,12 +810,24 @@ export default function SettingsScreen() {
         </View>
 
         {/* Section: Notifications */}
+        {matchesQuery(searchQuery, [
+          t('settings.notificationsSectionEyebrow'),
+          t('settings.rowEmailNotifs'),
+          t('settings.rowPushNotifs'),
+          t('settings.rowSmsNotifs'),
+          t('settings.rowEventUpdates'),
+          t('settings.rowEventUpdatesSubtitle'),
+          t('settings.rowPaymentConfirmations'),
+          t('settings.rowNewConversations'),
+          t('settings.rowMarketing'),
+        ]) && (
         <View style={styles.sectionBlock}>
           <View style={styles.sectionHeaderRow}>
             <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>{t('settings.notificationsSectionEyebrow')}</Text>
             <View style={[styles.dashLine, { backgroundColor: sectionHairline }]} />
           </View>
 
+          {matchesQuery(searchQuery, [t('settings.notificationsSectionEyebrow'), t('settings.rowEmailNotifs'), t('eyebrow.email')]) && (
           <OptionCard
             icon="mail-outline"
             eyebrow={t('eyebrow.email')}
@@ -739,6 +839,8 @@ export default function SettingsScreen() {
               />
             }
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.notificationsSectionEyebrow'), t('settings.rowPushNotifs'), t('eyebrow.pushSoon')]) && (
           <OptionCard
             icon="phone-portrait-outline"
             eyebrow={t('eyebrow.pushSoon')}
@@ -746,6 +848,8 @@ export default function SettingsScreen() {
             disabled
             right={<SoftToggle value={pushNotifications} onToggle={() => {}} disabled />}
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.notificationsSectionEyebrow'), t('settings.rowSmsNotifs'), t('eyebrow.smsSoon')]) && (
           <OptionCard
             icon="chatbubble-outline"
             eyebrow={t('eyebrow.smsSoon')}
@@ -753,9 +857,11 @@ export default function SettingsScreen() {
             disabled
             right={<SoftToggle value={smsNotifications} onToggle={() => {}} disabled />}
           />
+          )}
           {/* === Catégories : s'appliquent en plus des canaux globaux ci-dessus.
               Si email_notifications=false, aucun email même si notify_event_updates=true.
               Les notifs transactionnelles critiques (vérif compte, sécurité) passent toujours. */}
+          {matchesQuery(searchQuery, [t('settings.notificationsSectionEyebrow'), t('settings.rowEventUpdates'), t('settings.rowEventUpdatesSubtitle'), t('eyebrow.events')]) && (
           <OptionCard
             icon="calendar-outline"
             eyebrow={t('eyebrow.events')}
@@ -768,6 +874,8 @@ export default function SettingsScreen() {
               />
             }
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.notificationsSectionEyebrow'), t('settings.rowPaymentConfirmations'), t('eyebrow.payments')]) && (
           <OptionCard
             icon="card-outline"
             eyebrow={t('eyebrow.payments')}
@@ -779,6 +887,8 @@ export default function SettingsScreen() {
               />
             }
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.notificationsSectionEyebrow'), t('settings.rowNewConversations'), t('eyebrow.messages')]) && (
           <OptionCard
             icon="chatbubbles-outline"
             eyebrow={t('eyebrow.messages')}
@@ -790,6 +900,8 @@ export default function SettingsScreen() {
               />
             }
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.notificationsSectionEyebrow'), t('settings.rowMarketing'), t('eyebrow.suggestions')]) && (
           <OptionCard
             icon="sparkles-outline"
             eyebrow={t('eyebrow.suggestions')}
@@ -801,14 +913,24 @@ export default function SettingsScreen() {
               />
             }
           />
+          )}
         </View>
+        )}
 
         {/* Section: Préférences */}
+        {matchesQuery(searchQuery, [
+          t('settings.preferencesSectionEyebrow'),
+          t('settings.languageEyebrow'), getLanguageLabel(),
+          t('eyebrow.theme'), getThemeLabel(),
+          t('eyebrow.timezoneSoon'), getTimezoneLabel(),
+          t('settings.rowSounds'), t('settings.rowSoundsSubtitle'), t('eyebrow.soundEffects'),
+        ]) && (
         <View style={styles.sectionBlock}>
           <View style={styles.sectionHeaderRow}>
             <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>{t('settings.preferencesSectionEyebrow')}</Text>
             <View style={[styles.dashLine, { backgroundColor: sectionHairline }]} />
           </View>
+          {matchesQuery(searchQuery, [t('settings.preferencesSectionEyebrow'), t('settings.languageEyebrow'), getLanguageLabel()]) && (
           <OptionCard
             icon="language-outline"
             eyebrow={t('settings.languageEyebrow')}
@@ -817,6 +939,8 @@ export default function SettingsScreen() {
             tone="primary"
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.preferencesSectionEyebrow'), t('eyebrow.theme'), getThemeLabel()]) && (
           <OptionCard
             icon={isDark ? 'moon-outline' : 'sunny-outline'}
             eyebrow={t('eyebrow.theme')}
@@ -825,6 +949,8 @@ export default function SettingsScreen() {
             tone="primary"
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.preferencesSectionEyebrow'), t('eyebrow.timezoneSoon'), getTimezoneLabel()]) && (
           <OptionCard
             icon="time-outline"
             eyebrow={t('eyebrow.timezoneSoon')}
@@ -833,6 +959,8 @@ export default function SettingsScreen() {
             disabled
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.preferencesSectionEyebrow'), t('settings.rowSounds'), t('settings.rowSoundsSubtitle'), t('eyebrow.soundEffects')]) && (
           <OptionCard
             icon="musical-note-outline"
             eyebrow={t('eyebrow.soundEffects')}
@@ -848,15 +976,31 @@ export default function SettingsScreen() {
               />
             }
           />
+          )}
         </View>
+        )}
 
         {/* Section: Sécurité */}
+        {matchesQuery(searchQuery, [
+          t('settings.securitySectionEyebrow'),
+          t('settings.rowTwoFA'),
+          t('settings.rowAppLock'),
+          t('settings.rowTicketLock'),
+          t('settings.rowPaymentLock'),
+          t('settings.rowAccountLock'),
+          t('settings.rowAdminLock'),
+          t('settings.rowLoginAlerts'),
+          t('settings.rowPublicProfile'),
+          t('settings.rowShowInGoing'),
+          t('settings.rowReadConfirmations'), t('settings.rowReadConfirmationsSubtitle'),
+        ]) && (
         <View style={styles.sectionBlock}>
           <View style={styles.sectionHeaderRow}>
             <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>{t('settings.securitySectionEyebrow')}</Text>
             <View style={[styles.dashLine, { backgroundColor: sectionHairline }]} />
           </View>
 
+          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowTwoFA'), t('eyebrow.authSoon')]) && (
           <OptionCard
             icon="shield-checkmark-outline"
             eyebrow={t('eyebrow.authSoon')}
@@ -878,6 +1022,8 @@ export default function SettingsScreen() {
               )
             }
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowAppLock'), t('settings.biometricEyebrow')]) && (
           <OptionCard
             icon="finger-print"
             eyebrow={appLockSupported ? t('settings.biometricEyebrow') : t('settings.biometricUnavailable')}
@@ -898,6 +1044,8 @@ export default function SettingsScreen() {
               />
             }
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowTicketLock'), t('settings.biometricTicketsEyebrow')]) && (
           <OptionCard
             icon="qr-code-outline"
             eyebrow={appLockSupported ? t('settings.biometricTicketsEyebrow') : t('settings.biometricUnavailable')}
@@ -918,6 +1066,8 @@ export default function SettingsScreen() {
               />
             }
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowPaymentLock'), t('settings.biometricPaymentsEyebrow')]) && (
           <OptionCard
             icon="card-outline"
             eyebrow={appLockSupported ? t('settings.biometricPaymentsEyebrow') : t('settings.biometricUnavailable')}
@@ -936,6 +1086,8 @@ export default function SettingsScreen() {
               />
             }
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowAccountLock'), t('settings.biometricAccountEyebrow')]) && (
           <OptionCard
             icon="person-outline"
             eyebrow={appLockSupported ? t('settings.biometricAccountEyebrow') : t('settings.biometricUnavailable')}
@@ -954,7 +1106,8 @@ export default function SettingsScreen() {
               />
             }
           />
-          {(user?.role === 'admin' || user?.role === 'moderator' || (user as any)?.is_staff) && (
+          )}
+          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowAdminLock'), t('settings.biometricAdminEyebrow')]) && (user?.role === 'admin' || user?.role === 'moderator' || (user as any)?.is_staff) && (
             <OptionCard
               icon="shield-checkmark-outline"
               eyebrow={appLockSupported ? t('settings.biometricAdminEyebrow') : t('settings.biometricUnavailable')}
@@ -974,6 +1127,7 @@ export default function SettingsScreen() {
               }
             />
           )}
+          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowLoginAlerts'), t('eyebrow.connectionsSoon')]) && (
           <OptionCard
             icon="notifications-outline"
             eyebrow={t('eyebrow.connectionsSoon')}
@@ -981,6 +1135,8 @@ export default function SettingsScreen() {
             disabled
             right={<SoftToggle value={loginNotifications} onToggle={() => {}} disabled />}
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowPublicProfile'), t('eyebrow.visibility')]) && (
           <OptionCard
             icon="eye-outline"
             eyebrow={t('eyebrow.visibility')}
@@ -992,6 +1148,8 @@ export default function SettingsScreen() {
               />
             }
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowShowInGoing'), t('eyebrow.events')]) && (
           <OptionCard
             icon="people-outline"
             eyebrow={t('eyebrow.events')}
@@ -1003,6 +1161,8 @@ export default function SettingsScreen() {
               />
             }
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowReadConfirmations'), t('settings.rowReadConfirmationsSubtitle'), t('eyebrow.messages')]) && (
           <OptionCard
             icon="checkmark-done-outline"
             eyebrow={t('eyebrow.messages')}
@@ -1015,9 +1175,19 @@ export default function SettingsScreen() {
               />
             }
           />
+          )}
         </View>
+        )}
 
         {/* Section: Confidentialité messagerie */}
+        {matchesQuery(searchQuery, [
+          'CONFIDENTIALITÉ MESSAGERIE', 'MESSAGING PRIVACY',
+          t('settings.rowMessagingEnabled'), t('settings.rowMessagingEnabledSubtitle'),
+          t('settings.rowReadReceipts'), t('settings.rowReadReceiptsSubtitle'),
+          t('settings.rowPresenceVisible'), t('settings.rowPresenceVisibleSubtitle'),
+          t('settings.rowWhoCanContact'),
+          t('settings.rowBlockedUsers'), t('settings.rowBlockedUsersSubtitle'),
+        ]) && (
         <View style={styles.sectionBlock}>
           <View style={styles.sectionHeaderRow}>
             <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>
@@ -1026,6 +1196,7 @@ export default function SettingsScreen() {
             <View style={[styles.dashLine, { backgroundColor: sectionHairline }]} />
           </View>
 
+          {matchesQuery(searchQuery, ['CONFIDENTIALITÉ MESSAGERIE', t('settings.rowMessagingEnabled'), t('settings.rowMessagingEnabledSubtitle'), t('eyebrow.messaging')]) && (
           <OptionCard
             icon="chatbubbles-outline"
             eyebrow={t('eyebrow.messaging')}
@@ -1042,6 +1213,8 @@ export default function SettingsScreen() {
               />
             }
           />
+          )}
+          {matchesQuery(searchQuery, ['CONFIDENTIALITÉ MESSAGERIE', t('settings.rowReadReceipts'), t('settings.rowReadReceiptsSubtitle'), t('eyebrow.reading')]) && (
           <OptionCard
             icon="checkmark-done-outline"
             eyebrow={t('eyebrow.reading')}
@@ -1057,6 +1230,8 @@ export default function SettingsScreen() {
               />
             }
           />
+          )}
+          {matchesQuery(searchQuery, ['CONFIDENTIALITÉ MESSAGERIE', t('settings.rowPresenceVisible'), t('settings.rowPresenceVisibleSubtitle'), t('eyebrow.presence')]) && (
           <OptionCard
             icon="radio-outline"
             eyebrow={t('eyebrow.presence')}
@@ -1072,6 +1247,8 @@ export default function SettingsScreen() {
               />
             }
           />
+          )}
+          {matchesQuery(searchQuery, ['CONFIDENTIALITÉ MESSAGERIE', t('settings.rowWhoCanContact')]) && (
           <OptionCard
             icon="shield-checkmark-outline"
             eyebrow={t('settings.whoCanContactCurrent', { defaultValue: 'ANTI-SPAM' })}
@@ -1086,6 +1263,8 @@ export default function SettingsScreen() {
             onPress={() => openWhoCanContactPicker()}
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
+          )}
+          {matchesQuery(searchQuery, ['CONFIDENTIALITÉ MESSAGERIE', t('settings.rowBlockedUsers'), t('settings.rowBlockedUsersSubtitle')]) && (
           <OptionCard
             icon="ban-outline"
             eyebrow={blockedCount > 0 ? t('settings.blockedSection', { count: blockedCount, plural: blockedCount > 1 ? 'S' : '' }) : t('settings.blockedSectionNone')}
@@ -1095,14 +1274,24 @@ export default function SettingsScreen() {
             onPress={() => navigation.navigate('BlockedUsers')}
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
+          )}
         </View>
+        )}
 
         {/* Section: À propos */}
+        {matchesQuery(searchQuery, [
+          t('settings.aboutSection'),
+          t('settings.rowHelpCenter'),
+          t('settings.rowTermsOfUse'),
+          t('settings.rowPrivacyPolicy'),
+          t('settings.rowAppVersion'),
+        ]) && (
         <View style={styles.sectionBlock}>
           <View style={styles.sectionHeaderRow}>
             <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>{t('settings.aboutSection')}</Text>
             <View style={[styles.dashLine, { backgroundColor: sectionHairline }]} />
           </View>
+          {matchesQuery(searchQuery, [t('settings.aboutSection'), t('settings.rowHelpCenter'), t('eyebrow.support')]) && (
           <OptionCard
             icon="help-circle-outline"
             eyebrow={t('eyebrow.support')}
@@ -1110,6 +1299,8 @@ export default function SettingsScreen() {
             onPress={() => {}}
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.aboutSection'), t('settings.rowTermsOfUse'), t('eyebrow.legal')]) && (
           <OptionCard
             icon="document-text-outline"
             eyebrow={t('eyebrow.legal')}
@@ -1117,6 +1308,8 @@ export default function SettingsScreen() {
             onPress={() => navigation.navigate('Terms')}
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.aboutSection'), t('settings.rowPrivacyPolicy'), t('eyebrow.gdpr')]) && (
           <OptionCard
             icon="shield-outline"
             eyebrow={t('eyebrow.gdpr')}
@@ -1124,6 +1317,8 @@ export default function SettingsScreen() {
             onPress={() => {}}
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.aboutSection'), t('settings.rowAppVersion'), t('eyebrow.version')]) && (
           <OptionCard
             icon="information-outline"
             eyebrow={t('eyebrow.version')}
@@ -1134,14 +1329,22 @@ export default function SettingsScreen() {
               </View>
             }
           />
+          )}
         </View>
+        )}
 
         {/* Zone sensible — Déconnexion + Suppression */}
+        {matchesQuery(searchQuery, [
+          t('settings.dangerZone'),
+          t('settings.rowLogout'),
+          t('settings.rowDeleteAccount'),
+        ]) && (
         <View style={styles.sectionBlock}>
           <View style={styles.sectionHeaderRow}>
             <Text style={[styles.eyebrowSection, { color: colors.accent }]}>{t('settings.dangerZone')}</Text>
             <View style={[styles.dashLine, { backgroundColor: `${colors.accent}40` }]} />
           </View>
+          {matchesQuery(searchQuery, [t('settings.dangerZone'), t('settings.rowLogout'), t('eyebrow.session')]) && (
           <OptionCard
             icon="log-out-outline"
             eyebrow={t('eyebrow.session')}
@@ -1150,6 +1353,8 @@ export default function SettingsScreen() {
             danger
             right={<Ionicons name="chevron-forward" size={18} color={colors.accent} />}
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.dangerZone'), t('settings.rowDeleteAccount'), t('eyebrow.irreversible')]) && (
           <OptionCard
             icon="trash-outline"
             eyebrow={t('eyebrow.irreversible')}
@@ -1158,7 +1363,25 @@ export default function SettingsScreen() {
             danger
             right={<Ionicons name="chevron-forward" size={18} color={colors.accent} />}
           />
+          )}
         </View>
+        )}
+
+        {/* No results — shown when search yields nothing across all sections */}
+        {isSearching && !hasAnyMatch && (
+          <View style={styles.noResultsBlock}>
+            <Ionicons name="search" size={32} color={colors.gray300} />
+            <Text style={[styles.noResultsEyebrow, { color: colors.accent }]}>
+              {t('settings.noResultsEyebrow')}
+            </Text>
+            <Text style={[styles.noResultsTitle, { color: colors.text }]}>
+              {t('settings.noResultsTitle')}
+            </Text>
+            <Text style={[styles.noResultsBody, { color: colors.gray500 }]}>
+              {t('settings.noResultsBody')}
+            </Text>
+          </View>
+        )}
 
         {/* Footer */}
         <View style={styles.footerBlock}>
@@ -1354,6 +1577,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 8,
+  },
+
+  // Search bar
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginTop: Spacing.md,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: FontFamily.medium,
+    fontSize: 14,
+    padding: 0,
+  },
+  noResultsBlock: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xl * 2,
+    alignItems: 'center',
+    gap: 8,
+  },
+  noResultsEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  noResultsTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 18,
+    letterSpacing: -0.4,
+    marginTop: 4,
+  },
+  noResultsBody: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 4,
   },
 
   // Section

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -66,7 +66,11 @@ export default function ProfileScreen() {
     favorites: 0,
     reviews: 0,
   });
-  const [wallet, setWallet] = useState<{ bank_name?: string; mobile_money_number?: string } | null>(null);
+  const [wallet, setWallet] = useState<{
+    bank_name?: string;
+    bank_account_number?: string;
+    mobile_money_number?: string;
+  } | null>(null);
 
   const isOrganizer = user?.role === 'organizer';
   const isModerator = user?.role === 'moderator' || user?.role === 'admin';
@@ -76,6 +80,17 @@ export default function ProfileScreen() {
     fetchStats();
     if (isOrganizer) fetchWallet();
   }, [isOrganizer]);
+
+  // Refetch stats + wallet whenever Profile regains focus — fixes the stale
+  // "configure ton wallet" banner persisting after the user has actually
+  // configured payout info on WalletScreen and navigated back.
+  useFocusEffect(
+    useCallback(() => {
+      fetchStats();
+      if (isOrganizer) fetchWallet();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOrganizer])
+  );
 
   // Profile mini-tour. Skipped for organizers because step 1 targets the
   // "Devenir organisateur" card which isn't rendered for them. They get
@@ -107,6 +122,7 @@ export default function ProfileScreen() {
       const res = await walletAPI.getMyWallet();
       setWallet({
         bank_name: res.data?.bank_name,
+        bank_account_number: res.data?.bank_account_number,
         mobile_money_number: res.data?.mobile_money_number,
       });
     } catch (error) {
@@ -357,7 +373,10 @@ export default function ProfileScreen() {
                 title={t('profile.myWalletMenu')}
                 onPress={() => navigation.navigate('Wallet')}
                 alert={
-                  wallet && !wallet.bank_name?.trim() && !wallet.mobile_money_number?.trim()
+                  wallet &&
+                  !wallet.bank_name?.trim() &&
+                  !wallet.bank_account_number?.trim() &&
+                  !wallet.mobile_money_number?.trim()
                     ? { type: 'warning', label: t('profile.withdrawalMethodWarning') }
                     : undefined
                 }
