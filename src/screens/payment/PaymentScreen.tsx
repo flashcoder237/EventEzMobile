@@ -308,16 +308,18 @@ export default function PaymentScreen() {
   const [methodsLoading, setMethodsLoading] = useState(false);
 
   // Payment tour fires once methods are loaded — targets the first method
-  // card and the bottom pay CTA.
+  // card and the bottom pay CTA. Skip while processing/cancelling because
+  // the form (including both targets) is swapped out for a status screen.
   useEffect(() => {
     if (loading || methodsLoading || dynamicMethods.length === 0) return;
+    if (processing || cancelling) return;
     const timer = setTimeout(() => {
       if (tour.isActive) return;
       tour.start(getPaymentTourSteps(t), { seenKey: PAYMENT_TOUR_STORAGE_KEY });
     }, PAYMENT_TOUR_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, methodsLoading, dynamicMethods.length]);
+  }, [loading, methodsLoading, dynamicMethods.length, processing, cancelling]);
   // Pays du payeur : choix manuel (AsyncStorage) > locale device > pays événement
   const [payerCountry, setPayerCountry] = useState<string>(() => {
     const detected = detectUserCountry();

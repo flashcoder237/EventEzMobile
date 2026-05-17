@@ -1892,7 +1892,13 @@
       "wallet": "Wallet & Payouts",
       "sessions": "Sessions & Agenda",
       "transfers": "Ticket Transfers",
-      "security": "Security & Privacy"
+      "security": "Security & Privacy",
+      "events_management": "Manage your events",
+      "discounts_promos": "Promo codes",
+      "team_management": "Co-organizers & team",
+      "analytics": "Stats & reports",
+      "notifications_prefs": "Notifications",
+      "reviews_ratings": "Reviews & ratings"
     },
     "articleLabel": "ARTICLE {{num}}",
     "faq": {
@@ -2100,6 +2106,122 @@
         "twoFactor": {
           "question": "How do I enable 2-step verification?",
           "answer": "Profile > Settings > Security > 2-step verification. Choose SMS or authenticator app (Google Authenticator, Authy). Once enabled, a 6-digit code will be required for every new login."
+        }
+      },
+      "events_management": {
+        "publishEvent": {
+          "question": "How do I publish my event?",
+          "answer": "From My Events, open the draft and tap \"Publish\". Our team moderates within 1-2h during business hours. Once approved, the event becomes visible on the platform and you can share it."
+        },
+        "editAfterPublish": {
+          "question": "Can I edit my event after publication?",
+          "answer": "Yes — most fields (description, images, fine schedules) stay editable without re-validation. Structural changes (date, price, location) trigger new moderation and a notification to registrants."
+        },
+        "duplicateEvent": {
+          "question": "How do I duplicate an existing event?",
+          "answer": "My Events > tap the 3 dots on the event > \"Duplicate\". The event is cloned as a draft with a new date to define. Useful for recurring events (classes, weekly parties)."
+        },
+        "cancelEvent": {
+          "question": "How do I cancel an event?",
+          "answer": "My Events > 3 dots > \"Cancel\". All registrants are notified automatically and paid tickets are refunded within 7 days. You can add an explanation message that will be included in the notification."
+        },
+        "archiveEvent": {
+          "question": "How do I archive a past event?",
+          "answer": "Past events are automatically moved to the \"Completed\" tab 24h after they end. You can still check their stats and registration history without them cluttering your main view."
+        }
+      },
+      "discounts_promos": {
+        "createDiscount": {
+          "question": "How do I create a promo code?",
+          "answer": "From your event, open the \"Promo codes\" tab and tap \"+\". Choose the type (percentage, fixed amount, free ticket), the code, the usage limit and the expiration date. You can create as many codes as you want."
+        },
+        "discountTypes": {
+          "question": "What types of discounts can I offer?",
+          "answer": "Three types: percentage (e.g. -20%), fixed amount (e.g. -2000 XAF), or free ticket (early access). You can limit to a specific ticket type, a period, or a total usage count."
+        },
+        "codeNotWorking": {
+          "question": "Why isn't my promo code working?",
+          "answer": "Check: (1) the code is in uppercase, (2) the expiration date hasn't passed, (3) the usage limit isn't reached, (4) the code is compatible with the selected ticket type. Otherwise contact the organizer."
+        },
+        "deactivateCode": {
+          "question": "How do I deactivate a promo code?",
+          "answer": "\"Promo codes\" tab of your event > tap the code > \"Deactivate\". Already used codes stay valid, but the code can no longer be used. You can reactivate it at any time."
+        }
+      },
+      "team_management": {
+        "inviteCoOrganizer": {
+          "question": "How do I invite a co-organizer?",
+          "answer": "From your event, \"Team\" tab > \"Invite\". Enter the co-organizer's email or phone number and choose their role (admin, manager, scanner). They'll receive an email with an acceptance link valid for 7 days."
+        },
+        "teamRoles": {
+          "question": "What roles exist in the team?",
+          "answer": "Admin (all rights), Manager (manages registrations and communications), Scanner (can only scan QR at the door), Analyst (read-only stats). Each role has precise permissions."
+        },
+        "removeMember": {
+          "question": "How do I remove a team member?",
+          "answer": "\"Team\" tab > tap the member > \"Remove from team\". Access is revoked immediately. Actions they performed (check-ins, edits) remain tracked in the audit history."
+        },
+        "permissionMatrix": {
+          "question": "Who can do what exactly?",
+          "answer": "Admin: everything except deleting the owner account. Manager: view/edit registrations, send messages, edit non-critical info. Scanner: scan QR + view attendees list. Analyst: stats + exports only, no writes."
+        }
+      },
+      "analytics": {
+        "viewSales": {
+          "question": "Where do I see my sales in real time?",
+          "answer": "My Events > tap an event > \"Stats\" tab. You see total sold, breakdown by ticket type, registration curve, and conversion rate (visits → registrations). Updates every 5 minutes."
+        },
+        "exportData": {
+          "question": "How do I export my registrants' data?",
+          "answer": "\"Registrations\" tab of your event > \"Export\" button top right. Choose format (CSV, Excel, PDF) and columns (name, email, phone if provided, ticket purchased, status). GDPR: use only for the event."
+        },
+        "attendeeDemographics": {
+          "question": "Can I see the demographics of my registrants?",
+          "answer": "\"Stats\" tab > \"Audience\" section. You see breakdown by city, age group (if registrants provided their date of birth), and acquisition source (organic, share, promo code)."
+        },
+        "scheduledReports": {
+          "question": "Can I receive automatic reports?",
+          "answer": "Yes — My Events > Settings > \"Scheduled reports\". Schedule a weekly or monthly email report with sales, registrations and revenue. Ideal for pro accounts tracking multiple events."
+        }
+      },
+      "notifications_prefs": {
+        "notificationTypes": {
+          "question": "What types of notifications can I receive?",
+          "answer": "Three channels: email (daily digest, ticket, payment), push (real-time for messages and followed events), SMS (security codes and critical reminders only). Each channel configures independently."
+        },
+        "manageEmail": {
+          "question": "How do I manage my emails?",
+          "answer": "Profile > Settings > Notifications > Email. You can enable/disable by category: followed events, new messages, payments, marketing. Transactional emails (tickets, invoices) are always sent."
+        },
+        "pushNotifs": {
+          "question": "How do I enable push notifications?",
+          "answer": "On first use, the app asks for permission. If you declined, go to your phone's system Settings > EventEz > Notifications > Allow. Then in the app: Profile > Settings > Notifications > Push."
+        },
+        "smsCharges": {
+          "question": "Are SMS charged to me?",
+          "answer": "No, all SMS sent by EventEz are free for you. The platform covers the costs. SMS are limited to critical uses (phone verification, D-1 event reminders)."
+        },
+        "unsubscribe": {
+          "question": "How do I unsubscribe from marketing emails?",
+          "answer": "Every marketing email contains an \"Unsubscribe\" link at the bottom. Or directly in Profile > Settings > Notifications > Email > disable \"Marketing\". Transactional emails are still sent (they're necessary for the service)."
+        }
+      },
+      "reviews_ratings": {
+        "leaveReview": {
+          "question": "How do I leave a review on an event?",
+          "answer": "Once the event is past, you receive a notification inviting you to leave a review. You can also access it via My Tickets > past event > \"Leave a review\". Rate 1 to 5 stars + optional comment."
+        },
+        "editReview": {
+          "question": "Can I edit or delete my review?",
+          "answer": "Yes — for 7 days after publication, you can edit or delete your review. After that delay, contact support if you want to modify it (legal reasons/defamation for example)."
+        },
+        "organizerResponse": {
+          "question": "Can the organizer reply to my review?",
+          "answer": "Yes — the organizer can publish a public reply to your review. You receive a notification when this happens. Replies are moderated by our team to avoid open conflicts."
+        },
+        "reportReview": {
+          "question": "How do I report an abusive review?",
+          "answer": "Tap the 3 dots to the right of the review > \"Report\". Choose the reason (spam, defamation, off-topic). Our moderation team reviews within 24-48h and may hide or delete the review if justified."
         }
       }
     }

@@ -129,6 +129,48 @@ const FAQ_STATIC = [
     color: '#DC2626',
     itemKeys: ['blockUser', 'deleteAccountFull', 'dataSharing', 'exportData', 'twoFactor'],
   },
+  {
+    id: 'events_management',
+    eyebrow: 'CAT 12',
+    icon: 'create-outline' as const,
+    color: '#0EA5E9',
+    itemKeys: ['publishEvent', 'editAfterPublish', 'duplicateEvent', 'cancelEvent', 'archiveEvent'],
+  },
+  {
+    id: 'discounts_promos',
+    eyebrow: 'CAT 13',
+    icon: 'pricetag-outline' as const,
+    color: '#EAB308',
+    itemKeys: ['createDiscount', 'discountTypes', 'codeNotWorking', 'deactivateCode'],
+  },
+  {
+    id: 'team_management',
+    eyebrow: 'CAT 14',
+    icon: 'people-outline' as const,
+    color: '#7C3AED',
+    itemKeys: ['inviteCoOrganizer', 'teamRoles', 'removeMember', 'permissionMatrix'],
+  },
+  {
+    id: 'analytics',
+    eyebrow: 'CAT 15',
+    icon: 'analytics-outline' as const,
+    color: '#0891B2',
+    itemKeys: ['viewSales', 'exportData', 'attendeeDemographics', 'scheduledReports'],
+  },
+  {
+    id: 'notifications_prefs',
+    eyebrow: 'CAT 16',
+    icon: 'notifications-outline' as const,
+    color: '#F59E0B',
+    itemKeys: ['notificationTypes', 'manageEmail', 'pushNotifs', 'smsCharges', 'unsubscribe'],
+  },
+  {
+    id: 'reviews_ratings',
+    eyebrow: 'CAT 17',
+    icon: 'star-outline' as const,
+    color: '#E11D48',
+    itemKeys: ['leaveReview', 'editReview', 'organizerResponse', 'reportReview'],
+  },
 ];
 
 const SUPPORT_EMAIL = 'support@eventez.app';

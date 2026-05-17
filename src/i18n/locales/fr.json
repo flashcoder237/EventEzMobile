@@ -1892,7 +1892,13 @@
       "wallet": "Wallet & Retraits",
       "sessions": "Sessions & Agenda",
       "transfers": "Transferts de billets",
-      "security": "Sécurité & Confidentialité"
+      "security": "Sécurité & Confidentialité",
+      "events_management": "Gérer ses événements",
+      "discounts_promos": "Codes promo",
+      "team_management": "Co-organisateurs & équipe",
+      "analytics": "Statistiques & rapports",
+      "notifications_prefs": "Notifications",
+      "reviews_ratings": "Avis & notes"
     },
     "articleLabel": "ARTICLE {{num}}",
     "faq": {
@@ -2100,6 +2106,122 @@
         "twoFactor": {
           "question": "Comment activer la vérification en 2 étapes ?",
           "answer": "Profil > Paramètres > Sécurité > Vérification en 2 étapes. Choisissez SMS ou application authenticator (Google Authenticator, Authy). Une fois activée, un code à 6 chiffres sera demandé à chaque nouvelle connexion."
+        }
+      },
+      "events_management": {
+        "publishEvent": {
+          "question": "Comment publier mon événement ?",
+          "answer": "Depuis Mes événements, ouvre le brouillon et touche \"Publier\". Notre équipe modère sous 1-2h en journée. Une fois validé, l'événement devient visible sur la plateforme et tu peux le partager."
+        },
+        "editAfterPublish": {
+          "question": "Puis-je modifier mon événement après publication ?",
+          "answer": "Oui — la plupart des champs (description, images, horaires fins) restent modifiables sans re-validation. Les changements structurels (date, prix, lieu) déclenchent une nouvelle modération et une notification aux inscrits."
+        },
+        "duplicateEvent": {
+          "question": "Comment dupliquer un événement existant ?",
+          "answer": "Mes événements > touche les 3 points sur l'événement > \"Dupliquer\". L'événement est cloné comme brouillon avec une nouvelle date à définir. Pratique pour les événements récurrents (cours, soirées hebdo)."
+        },
+        "cancelEvent": {
+          "question": "Comment annuler un événement ?",
+          "answer": "Mes événements > 3 points > \"Annuler\". Tous les inscrits sont notifiés automatiquement et les billets payés sont remboursés sous 7 jours. Tu peux ajouter un message d'explication qui sera inclus dans la notification."
+        },
+        "archiveEvent": {
+          "question": "Comment archiver un événement passé ?",
+          "answer": "Les événements passés sont automatiquement déplacés dans l'onglet \"Terminés\" 24h après leur fin. Tu peux toujours consulter leurs statistiques et l'historique des inscriptions sans qu'ils encombrent ta vue principale."
+        }
+      },
+      "discounts_promos": {
+        "createDiscount": {
+          "question": "Comment créer un code promo ?",
+          "answer": "Depuis ton événement, ouvre l'onglet \"Codes promo\" puis touche \"+\". Choisis le type (pourcentage, montant fixe, billet gratuit), le code, la limite d'usages et la date d'expiration. Tu peux créer autant de codes que tu veux."
+        },
+        "discountTypes": {
+          "question": "Quels types de réduction puis-je proposer ?",
+          "answer": "Trois types : pourcentage (ex: -20%), montant fixe (ex: -2000 XAF), ou billet gratuit (early access). Tu peux limiter à un type de billet précis, à une période, ou à un nombre d'usages total."
+        },
+        "codeNotWorking": {
+          "question": "Pourquoi mon code promo ne fonctionne pas ?",
+          "answer": "Vérifie : (1) le code est en majuscules, (2) la date d'expiration n'est pas passée, (3) la limite d'usages n'est pas atteinte, (4) le code est compatible avec le type de billet sélectionné. Sinon contacte l'organisateur."
+        },
+        "deactivateCode": {
+          "question": "Comment désactiver un code promo ?",
+          "answer": "Onglet \"Codes promo\" de ton événement > touche le code > \"Désactiver\". Les usages déjà effectués restent valides, mais le code ne pourra plus être utilisé. Tu peux le réactiver à tout moment."
+        }
+      },
+      "team_management": {
+        "inviteCoOrganizer": {
+          "question": "Comment inviter un co-organisateur ?",
+          "answer": "Depuis ton événement, onglet \"Équipe\" > \"Inviter\". Entre l'email ou le numéro du co-organisateur et choisis son rôle (admin, manager, scanner). Il recevra un email avec un lien d'acceptation valide 7 jours."
+        },
+        "teamRoles": {
+          "question": "Quels rôles existent dans l'équipe ?",
+          "answer": "Admin (tous droits), Manager (gère inscriptions et communications), Scanner (peut uniquement scanner les QR à l'entrée), Analyste (lecture seule des stats). Chaque rôle a des permissions précises."
+        },
+        "removeMember": {
+          "question": "Comment retirer un membre de l'équipe ?",
+          "answer": "Onglet \"Équipe\" > touche le membre > \"Retirer de l'équipe\". L'accès est révoqué immédiatement. Les actions qu'il avait effectuées (check-ins, modifs) restent tracées dans l'historique d'audit."
+        },
+        "permissionMatrix": {
+          "question": "Qui peut faire quoi exactement ?",
+          "answer": "Admin : tout sauf supprimer le compte propriétaire. Manager : voir/éditer inscriptions, envoyer messages, modifier infos non-critiques. Scanner : scan QR + voir liste des présents. Analyste : stats + exports seulement, aucune écriture."
+        }
+      },
+      "analytics": {
+        "viewSales": {
+          "question": "Où voir mes ventes en temps réel ?",
+          "answer": "Mes événements > touche un événement > onglet \"Stats\". Tu vois le total vendu, la répartition par type de billet, la courbe des inscriptions, et le taux de conversion (visites → inscriptions). Mise à jour toutes les 5 minutes."
+        },
+        "exportData": {
+          "question": "Comment exporter les données de mes inscrits ?",
+          "answer": "Onglet \"Inscriptions\" de ton événement > bouton \"Exporter\" en haut à droite. Choisis le format (CSV, Excel, PDF) et les colonnes (nom, email, téléphone si fourni, billet acheté, statut). RGPD : à utiliser uniquement pour l'événement."
+        },
+        "attendeeDemographics": {
+          "question": "Puis-je voir la démographie de mes inscrits ?",
+          "answer": "Onglet \"Stats\" > section \"Public\". Tu vois la répartition par ville, par groupe d'âge (si les inscrits ont renseigné leur date de naissance), et par source d'acquisition (organique, partage, code promo)."
+        },
+        "scheduledReports": {
+          "question": "Puis-je recevoir des rapports automatiques ?",
+          "answer": "Oui — Mes événements > Paramètres > \"Rapports planifiés\". Programme un rapport hebdomadaire ou mensuel par email avec les ventes, inscriptions et revenus. Idéal pour les comptes pro qui suivent plusieurs événements."
+        }
+      },
+      "notifications_prefs": {
+        "notificationTypes": {
+          "question": "Quels types de notifications je peux recevoir ?",
+          "answer": "Trois canaux : email (récap journalier, billet, paiement), push (en temps réel pour messages et événements suivis), SMS (codes de sécurité et rappels critiques uniquement). Chaque canal se configure indépendamment."
+        },
+        "manageEmail": {
+          "question": "Comment gérer mes emails ?",
+          "answer": "Profil > Paramètres > Notifications > Email. Tu peux activer/désactiver par catégorie : événements suivis, nouveaux messages, paiements, marketing. Les emails transactionnels (billets, factures) sont toujours envoyés."
+        },
+        "pushNotifs": {
+          "question": "Comment activer les notifications push ?",
+          "answer": "À la première utilisation, l'app te demande la permission. Si tu as refusé, va dans Réglages système de ton téléphone > EventEz > Notifications > Autoriser. Puis dans l'app : Profil > Paramètres > Notifications > Push."
+        },
+        "smsCharges": {
+          "question": "Les SMS sont-ils payants pour moi ?",
+          "answer": "Non, tous les SMS envoyés par EventEz sont gratuits pour toi. C'est la plateforme qui prend les frais en charge. Les SMS sont limités aux usages critiques (vérification téléphone, rappels J-1 d'événement)."
+        },
+        "unsubscribe": {
+          "question": "Comment me désabonner des emails marketing ?",
+          "answer": "Tout email marketing contient un lien \"Se désabonner\" en bas. Ou directement dans Profil > Paramètres > Notifications > Email > désactive \"Marketing\". Les emails transactionnels restent envoyés (ils sont nécessaires au service)."
+        }
+      },
+      "reviews_ratings": {
+        "leaveReview": {
+          "question": "Comment laisser un avis sur un événement ?",
+          "answer": "Une fois l'événement passé, tu reçois une notification t'invitant à laisser un avis. Tu peux aussi y accéder via Mes Billets > événement passé > \"Laisser un avis\". Note de 1 à 5 étoiles + commentaire optionnel."
+        },
+        "editReview": {
+          "question": "Puis-je modifier ou supprimer mon avis ?",
+          "answer": "Oui — pendant 7 jours après publication, tu peux éditer ou supprimer ton avis. Après ce délai, contacte le support si tu veux le modifier (raisons légales/diffamation par exemple)."
+        },
+        "organizerResponse": {
+          "question": "L'organisateur peut-il répondre à mon avis ?",
+          "answer": "Oui — l'organisateur peut publier une réponse publique à ton avis. Tu reçois une notification quand c'est le cas. Les réponses sont modérées par notre équipe pour éviter les conflits ouverts."
+        },
+        "reportReview": {
+          "question": "Comment signaler un avis abusif ?",
+          "answer": "Touche les 3 points à droite de l'avis > \"Signaler\". Choisis la raison (spam, diffamation, hors-sujet). Notre équipe de modération examine sous 24-48h et peut masquer ou supprimer l'avis si justifié."
         }
       }
     }
