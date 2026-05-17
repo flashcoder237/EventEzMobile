@@ -229,7 +229,7 @@ export default function EventDetailsScreen() {
           <View style={{ marginTop: 24, flexDirection: 'row', alignSelf: 'stretch' }}>
             <EditorialPillCTA
               eyebrow={t('eyebrow.back')}
-              label="Revenir en arriere"
+              label="Revenir en arrière"
               icon="arrow-back"
               onPress={() => navigation.goBack()}
             />
@@ -259,7 +259,7 @@ export default function EventDetailsScreen() {
           <View style={{ marginTop: 16, flexDirection: 'row', alignSelf: 'stretch' }}>
             <EditorialPillCTA
               eyebrow={t('eyebrow.back')}
-              label="Revenir a l'accueil"
+              label="Revenir à l'accueil"
               icon="arrow-back"
               onPress={() => navigation.goBack()}
             />

@@ -170,8 +170,10 @@ export default function MapPickerModal({
     setSearchResults([]);
 
     try {
+      // Recherche mondiale : pas de countrycodes=cm sinon les events hors
+      // Cameroun ne trouvent jamais leur lieu.
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=cm&limit=5`,
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=8`,
         {
           headers: {
             'User-Agent': 'EventEz Mobile App',

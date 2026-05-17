@@ -24,12 +24,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import * as Haptics from 'expo-haptics';
 import {
   ticketTransfersAPI,
   usersAPI,
   registrationsAPI,
   ticketPurchasesAPI,
   sessionsAPI,
+  connectionsAPI,
 } from '../../api';
 import { RootStackParamList, Registration } from '../../types';
 import {
@@ -54,28 +56,41 @@ type QRParseResult =
   | { type: 'user'; userId: string }
   | { type: 'ticket_purchase'; ticketId: string; raw: string }
   | { type: 'ticket'; registrationId: string; raw: string }
+  | { type: 'connection'; token: string }
   | { type: 'unknown' };
 
+// Pattern token connection (cf. backend services.generate_qr_token) :
+// id.timestamp.hmac16 → "42.1715000000.a1b2c3d4e5f60718"
+const CONNECTION_TOKEN_RE = /^\d+\.\d+\.[a-f0-9]{16}$/;
+
 function parseQRCode(data: string): QRParseResult {
-  const transferMatch = data.match(/^EVENTEZ-TRANSFER-(.+)$/);
+  const trimmed = (data || '').trim();
+
+  const transferMatch = trimmed.match(/^EVENTEZ-TRANSFER-(.+)$/);
   if (transferMatch) return { type: 'transfer', token: transferMatch[1] };
 
-  const userMatch = data.match(/^EVENTEZ-USER-(.+)$/);
+  const userMatch = trimmed.match(/^EVENTEZ-USER-(.+)$/);
   if (userMatch) return { type: 'user', userId: userMatch[1] };
+
+  // Token connection (mise en relation user-to-user via QR profil).
+  // Teste avant ticket-level pour eviter qu'un token court ressemble a un id.
+  if (CONNECTION_TOKEN_RE.test(trimmed)) {
+    return { type: 'connection', token: trimmed };
+  }
 
   // Nouveau format ticket-level : .../verify/t/{ticket_purchase_id}
   // Testé AVANT le format registration-level pour matcher le pattern le plus
   // spécifique d'abord (sinon /verify/{...} attraperait aussi les URLs t/...).
-  const ticketMatch = data.match(/\/verify\/t\/([a-f0-9-]+)/i);
-  if (ticketMatch) return { type: 'ticket_purchase', ticketId: ticketMatch[1], raw: data };
+  const ticketMatch = trimmed.match(/\/verify\/t\/([a-f0-9-]+)/i);
+  if (ticketMatch) return { type: 'ticket_purchase', ticketId: ticketMatch[1], raw: trimmed };
 
   // Format legacy registration-level : .../verify/{registrationId}
-  const verifyMatch = data.match(/\/verify\/([a-f0-9-]+)/i);
-  if (verifyMatch) return { type: 'ticket', registrationId: verifyMatch[1], raw: data };
+  const verifyMatch = trimmed.match(/\/verify\/([a-f0-9-]+)/i);
+  if (verifyMatch) return { type: 'ticket', registrationId: verifyMatch[1], raw: trimmed };
 
   // UUID brut → considéré comme registration_id (legacy)
-  const uuidMatch = data.match(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i);
-  if (uuidMatch) return { type: 'ticket', registrationId: data, raw: data };
+  const uuidMatch = trimmed.match(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i);
+  if (uuidMatch) return { type: 'ticket', registrationId: trimmed, raw: trimmed };
 
   return { type: 'unknown' };
 }
@@ -137,7 +152,14 @@ interface TicketData {
   scanRaw?: string;
 }
 
-type ResultType = 'transfer' | 'user' | 'ticket' | 'error';
+type ResultType = 'transfer' | 'user' | 'ticket' | 'connection' | 'error';
+
+interface ConnectionResultData {
+  user: UserData;
+  // ID de la Connection cree (pour navigation eventuelle vers la conversation
+  // directe ou le profil enrichi).
+  connectionId?: number | string;
+}
 
 interface ScanResult {
   type: ResultType;
@@ -146,6 +168,7 @@ interface ScanResult {
   user?: UserData;
   isFollowing?: boolean;
   ticket?: TicketData;
+  connection?: ConnectionResultData;
   errorMessage?: string;
 }
 
@@ -270,14 +293,58 @@ export default function ScanScreen() {
             scanRaw: parsed.raw,
           },
         });
+      } else if (parsed.type === 'connection') {
+        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { /* ignore */ }
+        const response = await connectionsAPI.fromQr(parsed.token);
+        const conn = response.data as any;
+        const cu = conn?.user || {};
+        setResult({
+          type: 'connection',
+          connection: {
+            connectionId: conn?.id,
+            user: {
+              id: String(cu.id ?? ''),
+              first_name: cu.first_name,
+              last_name: cu.last_name,
+              email: cu.email,
+              profile_picture: cu.profile_picture,
+              // ConnectionUser ne contient pas first_name/last_name → on derive
+              // depuis full_name si fourni par le backend.
+              ...(cu.full_name && !cu.first_name
+                ? (() => {
+                    const parts = String(cu.full_name).trim().split(/\s+/);
+                    return { first_name: parts[0] || '', last_name: parts.slice(1).join(' ') };
+                  })()
+                : {}),
+            },
+          },
+        });
       } else {
         setResult({ type: 'error', errorMessage: t('scanForm.unknownQR') });
       }
     } catch (error: any) {
       if (__DEV__) console.error('Scan error:', error);
-      let msg = t('scanForm.scanFailed');
-      if (error.response?.status === 404) msg = t('scanForm.notFound');
-      else if (error.response?.data?.detail) msg = error.response.data.detail;
+      // Cas connexion : le backend renvoie un code typed (cf. FromQrError)
+      const connCode = error?.response?.data?.code;
+      const connMessages: Record<string, string> = {
+        invalid_format: t('connections.scanErrorInvalidFormat'),
+        expired: t('connections.scanErrorExpired'),
+        invalid_signature: t('connections.scanErrorInvalidSignature'),
+        self_scan: t('connections.scanErrorSelfScan'),
+        user_not_found: t('connections.scanErrorUserNotFound'),
+      };
+      let msg: string;
+      if (connCode && connMessages[connCode]) {
+        msg = connMessages[connCode];
+      } else if (error.response?.status === 404) {
+        msg = t('scanForm.notFound');
+      } else if (error.response?.data?.detail) {
+        msg = error.response.data.detail;
+      } else if (error.response?.data?.error) {
+        msg = error.response.data.error;
+      } else {
+        msg = t('scanForm.scanFailed');
+      }
       setResult({ type: 'error', errorMessage: msg });
     }
 
@@ -514,8 +581,8 @@ export default function ScanScreen() {
             <Text style={styles.hintChipText}>{t('scanForm.hintTransfer')}</Text>
           </View>
           <View style={styles.hintChip}>
-            <Ionicons name="person-outline" size={14} color="#FFFFFF" />
-            <Text style={styles.hintChipText}>{t('scanForm.hintProfile')}</Text>
+            <Ionicons name="people-outline" size={14} color="#FFFFFF" />
+            <Text style={styles.hintChipText}>{t('scanForm.hintConnection')}</Text>
           </View>
         </SafeAreaView>
       </View>
@@ -578,6 +645,18 @@ export default function ScanScreen() {
                   getUserDisplayName={getUserDisplayName}
                   getUserInitials={getUserInitials}
                   getRoleBadge={getRoleBadge}
+                />
+              )}
+
+              {/* Connection result (QR profil → mise en relation acceptee) */}
+              {result?.type === 'connection' && result.connection && (
+                <ConnectionResult
+                  data={result.connection}
+                  onSendMessage={() =>
+                    handleSendMessage(String(result.connection!.user.id), getUserDisplayName(result.connection!.user))
+                  }
+                  getUserDisplayName={getUserDisplayName}
+                  getUserInitials={getUserInitials}
                 />
               )}
 
@@ -917,6 +996,61 @@ function UserResult({
           <Text style={[styles.statusInfoText, { color: colors.gray600 }]}>{t('scanForm.ownProfile')}</Text>
         </View>
       )}
+    </>
+  );
+}
+
+// ── Connection Result Sub-component ──
+
+function ConnectionResult({
+  data,
+  onSendMessage,
+  getUserDisplayName,
+  getUserInitials,
+}: {
+  data: ConnectionResultData;
+  onSendMessage: () => void;
+  getUserDisplayName: (u: UserData) => string;
+  getUserInitials: (u: UserData) => string;
+}) {
+  const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
+  const avatarUri = data.user.profile_picture || data.user.image;
+
+  return (
+    <>
+      <View style={styles.resultHeader}>
+        <View style={[styles.resultIconBg, { backgroundColor: isDark ? 'rgba(255,107,107,0.15)' : '#FFE4E4' }]}>
+          <Ionicons name="people" size={32} color={colors.accent || '#FF6B6B'} />
+        </View>
+        <Text style={[styles.resultTitle, { color: colors.gray900 }]}>
+          {t('connections.scanSuccessTitle')}
+        </Text>
+      </View>
+
+      <View style={styles.userResultHeader}>
+        {avatarUri ? (
+          <Image source={avatarUri} style={[styles.userAvatar, { borderColor: colors.gray200 }]} cachePolicy="memory-disk" transition={200} />
+        ) : (
+          <View style={[styles.userAvatarPlaceholder, { backgroundColor: colors.gray200, borderColor: colors.white }]}>
+            <Text style={[styles.userAvatarText, { color: colors.gray600 }]}>{getUserInitials(data.user)}</Text>
+          </View>
+        )}
+        <Text style={[styles.userName, { color: colors.gray900 }]}>{getUserDisplayName(data.user)}</Text>
+        {data.user.email ? (
+          <Text style={[styles.userEmail, { color: colors.gray500 }]}>{data.user.email}</Text>
+        ) : null}
+      </View>
+
+      <View style={styles.userActions}>
+        <TouchableOpacity
+          style={[styles.acceptBtn, { backgroundColor: colors.primary }]}
+          onPress={onSendMessage}
+        >
+          <Ionicons name="chatbubble-outline" size={18} color={Colors.white} />
+          <Text style={styles.acceptBtnText}>{t('scanForm.message')}</Text>
+        </TouchableOpacity>
+      </View>
     </>
   );
 }

@@ -1161,6 +1161,34 @@ export default function MessagesScreen() {
   const unreadCount = conversations.filter(c => (c.unread_count || 0) > 0 && !c.is_archived).length;
   const filteredUsers = availableUsers;
 
+  // Compte de messages non lus par tab (somme des unread_count des conversations
+  // matchant chaque tab). Affiche un badge sur chaque chip quand > 0 pour
+  // signaler instantanement ou sont les nouveaux messages, sans avoir a
+  // changer de tab.
+  const tabUnreadCounts = useMemo(() => {
+    const counts: Record<TabType, number> = {
+      all: 0,
+      unread: 0,
+      events: 0,
+      requests: 0,
+      archived: 0,
+    };
+    for (const conv of conversations) {
+      const unread = conv.unread_count || 0;
+      if (unread <= 0) continue;
+      if (conv.is_archived) {
+        counts.archived += unread;
+      } else {
+        counts.all += unread;
+        counts.unread += unread;
+        if ((conv as any).conversation_type === 'event') {
+          counts.events += unread;
+        }
+      }
+    }
+    return counts;
+  }, [conversations]);
+
   // ── Pending message requests count — pour le badge sur le bouton header ──
   // Fetch au mount + au focus de l'ecran (pour refresh apres accept/decline
   // depuis MessageRequestsScreen). Lightweight : un seul appel GET, pas de WS.
@@ -1424,7 +1452,7 @@ export default function MessagesScreen() {
 
   type ChipDef = { key: TabType; label: string };
   const chips: ChipDef[] = [
-    { key: 'all', label: 'Tous' },
+    { key: 'all', label: t('messages.filterAll') },
     { key: 'unread', label: t('messages.filterUnread') },
     { key: 'events', label: t('messages.filterEvents') },
     { key: 'archived', label: t('messages.filterArchived') },
@@ -1593,6 +1621,8 @@ export default function MessagesScreen() {
         <View style={styles.chipsRow}>
           {chips.map((c) => {
             const active = activeTab === c.key;
+            const count = tabUnreadCounts[c.key] || 0;
+            const showBadge = count > 0;
             return (
               <TouchableOpacity
                 key={c.key}
@@ -1612,6 +1642,7 @@ export default function MessagesScreen() {
                 ]}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
+                accessibilityLabel={showBadge ? `${c.label}, ${count} non lu${count > 1 ? 's' : ''}` : c.label}
               >
                 <Text
                   style={[
@@ -1621,6 +1652,25 @@ export default function MessagesScreen() {
                 >
                   {c.label}
                 </Text>
+                {showBadge && (
+                  <View
+                    style={[
+                      styles.chipBadge,
+                      {
+                        backgroundColor: active ? 'rgba(255,255,255,0.25)' : colors.accent,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipBadgeText,
+                        { color: '#FFFFFF' },
+                      ]}
+                    >
+                      {count > 99 ? '99+' : count}
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
             );
           })}
@@ -1974,6 +2024,9 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
   },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: BorderRadius.full,
@@ -1982,6 +2035,19 @@ const styles = StyleSheet.create({
   chipText: {
     fontFamily: FontFamily.bold,
     fontSize: 12,
+    letterSpacing: 0.2,
+  },
+  chipBadge: {
+    minWidth: 20,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  chipBadgeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
     letterSpacing: 0.2,
   },
 

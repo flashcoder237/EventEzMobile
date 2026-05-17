@@ -6,6 +6,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -35,6 +38,11 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'VerifyEmail
 type RoutePropType = RouteProp<RootStackParamList, 'VerifyEmail'>;
 
 const RESEND_COOLDOWN = 60;
+
+// Activer LayoutAnimation sur Android (no-op iOS)
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 // ─── 6-digit OTP input ────────────────────────────────────────────────────────
 function OTPInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -121,6 +129,13 @@ export default function VerifyEmailScreen() {
   // Phone OTP
   type PhoneStep = 'idle' | 'sending' | 'otp' | 'verifying' | 'done';
   const [phoneStep, setPhoneStep] = useState<PhoneStep>('idle');
+  // Section SMS collapsed par defaut — email reste la voie principale. L'user
+  // tape "Verifier par SMS" pour expand le flow phone inline.
+  const [phoneExpanded, setPhoneExpanded] = useState(false);
+  const togglePhoneSection = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setPhoneExpanded((prev) => !prev);
+  }, []);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [otpPhone, setOtpPhone] = useState('');
@@ -309,7 +324,34 @@ export default function VerifyEmailScreen() {
           </View>
           )}
 
-          {/* ── Phone OTP card ── */}
+          {/* ── Bouton secondaire "Verifier par SMS" — collapsed par defaut.
+                 Au tap, expand inline pour reveler le flow phone (input → OTP). ── */}
+          {phoneStep !== 'done' && !phoneExpanded && (
+            <AnimatedPressable
+              onPress={togglePhoneSection}
+              style={[styles.smsToggle, { backgroundColor: colors.card, borderColor: colors.gray200 }]}
+              animationType="scale"
+              scaleValue={0.97}
+              accessibilityRole="button"
+              accessibilityLabel={t('auth.verifyByPhoneSwitchToSms')}
+            >
+              <View style={[styles.smsToggleIcon, { backgroundColor: '#4F46E515' }]}>
+                <Ionicons name="phone-portrait" size={20} color="#4F46E5" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.smsToggleTitle, { color: colors.gray900 }]}>
+                  {t('auth.verifyByPhoneSwitchToSms')}
+                </Text>
+                <Text style={[styles.smsToggleHint, { color: colors.gray500 }]}>
+                  {t('auth.verifyByPhoneSwitchToSmsHint')}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
+            </AnimatedPressable>
+          )}
+
+          {/* ── Phone OTP card — visible quand expanded OU verification reussie ── */}
+          {(phoneExpanded || phoneStep === 'done') && (
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
             {phoneStep === 'done' ? (
               /* Success */
@@ -457,6 +499,23 @@ export default function VerifyEmailScreen() {
               </>
             )}
           </View>
+          )}
+
+          {/* Lien "Revenir a l'email" : visible quand phone expanded mais pas
+              encore verifie — permet de collapse pour revenir au flow principal. */}
+          {phoneExpanded && phoneStep !== 'done' && (
+            <TouchableOpacity
+              style={styles.collapsePhoneBtn}
+              onPress={togglePhoneSection}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+            >
+              <Ionicons name="arrow-back" size={14} color={colors.gray500} />
+              <Text style={[styles.collapsePhoneText, { color: colors.gray500 }]}>
+                {t('auth.verifyByPhoneBackToEmail')}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {/* Mauvais email → Register (pour le corriger) ; sinon Login (#6) */}
           <TouchableOpacity
@@ -702,6 +761,43 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
+  },
+  smsToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    ...Shadows.sm,
+  },
+  smsToggleIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  smsToggleTitle: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+  },
+  smsToggleHint: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+    marginTop: 2,
+  },
+  collapsePhoneBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  collapsePhoneText: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.medium,
   },
   wrongEmailRow: {
     flexDirection: 'row',

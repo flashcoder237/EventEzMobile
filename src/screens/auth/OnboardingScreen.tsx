@@ -33,6 +33,7 @@ import Animated, {
 import { FontFamily } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import { getRegionalSlideHints } from '../../lib/utils/regionalSlideHints';
 import {
   AnimatedIllustration,
   PeopleSearch,
@@ -129,6 +130,11 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const { t } = useTranslation();
   const [index, setIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+
+  // Hints regionaux lus une seule fois au mount — la region device ne change
+  // pas en cours de session. `null` = pas de mapping pour cette region → on
+  // affichera le body neutre par defaut.
+  const regionalHints = useRef(getRegionalSlideHints()).current;
 
   // Pulsing coral dot in header (was the only animation on the original screen)
   const pulseScale = useSharedValue(1);
@@ -234,8 +240,14 @@ export default function OnboardingScreen({ onComplete }: Props) {
             {t(`auth.${item.i18nKey}TitleEnd`)}
           </Text>
 
-          {/* Caption */}
-          <Text style={[styles.caption, { color: colors.gray500 }]}>{t(`auth.${item.i18nKey}Body`)}</Text>
+          {/* Caption — slide 1 utilise la variante "BodyCities" avec
+              interpolation {{cityA}}/{{cityB}} si la region est mappee. Sinon
+              fallback sur le body neutre. */}
+          <Text style={[styles.caption, { color: colors.gray500 }]}>
+            {item.id === '1' && regionalHints
+              ? t(`auth.${item.i18nKey}BodyCities`, { cityA: regionalHints.cityA, cityB: regionalHints.cityB })
+              : t(`auth.${item.i18nKey}Body`)}
+          </Text>
         </View>
       </View>
     );

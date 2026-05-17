@@ -1502,6 +1502,7 @@
     "archivedEmpty": "Nothing here",
     "noConversationsYet": "Not yet",
     "newMessageCTA": "NEW MESSAGE",
+    "filterAll": "All",
     "filterUnread": "Unread",
     "filterEvents": "Events",
     "filterArchived": "Archived",

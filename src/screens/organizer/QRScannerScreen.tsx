@@ -11,6 +11,9 @@ import {
   TextInput,
   Pressable,
   Linking,
+  Animated,
+  Easing,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
@@ -95,6 +98,35 @@ export default function QRScannerScreen() {
   // Manual entry modal
   const [manualOpen, setManualOpen] = useState(false);
   const [manualCode, setManualCode] = useState('');
+
+  // Animations (alignées sur ScanScreen)
+  const scanLineAnim = useRef(new Animated.Value(0)).current;
+  const liveDotAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanLineAnim, {
+          toValue: 1,
+          duration: 1800,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scanLineAnim, {
+          toValue: 0,
+          duration: 1800,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(liveDotAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(liveDotAnim, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+      ]),
+    ).start();
+  }, []);
 
   // Scanner tour fires once the camera permission is granted — before that,
   // the screen renders a loading spinner or permission-denied page and the
@@ -559,179 +591,203 @@ export default function QRScannerScreen() {
 
       {/* Overlay */}
       <View style={styles.overlay}>
-        {/* Header */}
-        <SafeAreaView style={styles.header}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => {
-              // Récap de session si l'utilisateur a fait au moins un scan
-              if (stats.scanned > 0) {
-                const elapsedMs = Date.now() - sessionStartedAtRef.current;
-                const elapsedMin = Math.max(1, Math.floor(elapsedMs / 60000));
-                const recapBody = t('organizer.qrScanner.sessionRecapBody', {
-                  scanned: stats.scanned,
-                  minutes: elapsedMin,
-                  success: stats.success,
-                  failed: stats.failed,
-                });
-                const queueSuffix = pendingCount > 0
-                  ? t('organizer.qrScanner.sessionRecapQueue', { count: pendingCount })
-                  : '';
-                showError(
-                  t('organizer.qrScanner.sessionRecapTitle'),
-                  recapBody + queueSuffix,
-                );
-              }
-              navigation.goBack();
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={t('organizer.qrScanner.closeA11y')}
-          >
-            <Ionicons name="close" size={24} color={colors.white} />
-          </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerEyebrow}>{t('organizer.qrScanner.headerEyebrow')}</Text>
-            <Text style={styles.headerTitle}>{t('organizer.qrScanner.headerTitle')}</Text>
+        {/* Top zone — EN DIRECT tag + editorial header (style ScanScreen) */}
+        <SafeAreaView style={styles.topZone}>
+          <View style={styles.topRow}>
+            <TouchableOpacity
+              style={styles.closeDisc}
+              onPress={() => {
+                if (stats.scanned > 0) {
+                  const elapsedMs = Date.now() - sessionStartedAtRef.current;
+                  const elapsedMin = Math.max(1, Math.floor(elapsedMs / 60000));
+                  const recapBody = t('organizer.qrScanner.sessionRecapBody', {
+                    scanned: stats.scanned,
+                    minutes: elapsedMin,
+                    success: stats.success,
+                    failed: stats.failed,
+                  });
+                  const queueSuffix = pendingCount > 0
+                    ? t('organizer.qrScanner.sessionRecapQueue', { count: pendingCount })
+                    : '';
+                  showError(
+                    t('organizer.qrScanner.sessionRecapTitle'),
+                    recapBody + queueSuffix,
+                  );
+                }
+                navigation.goBack();
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={t('organizer.qrScanner.closeA11y')}
+            >
+              <Ionicons name="close" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            <View style={styles.liveTag}>
+              <Animated.View style={[styles.liveDot, { opacity: liveDotAnim }]} />
+              <Text style={styles.liveTagText}>{t('organizer.qrScanner.headerEyebrow')}</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.closeDisc}
+              onPress={() => setFlashOn(!flashOn)}
+              accessibilityRole="button"
+              accessibilityLabel={flashOn ? t('organizer.qrScanner.flashOffA11y') : t('organizer.qrScanner.flashOnA11y')}
+            >
+              <Ionicons
+                name={flashOn ? 'flash' : 'flash-outline'}
+                size={18}
+                color={flashOn ? '#FCD34D' : '#FFFFFF'}
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.editorialHeader}>
+            <Text style={styles.editorialEyebrow}>{t('organizer.qrScanner.headerEyebrow')}</Text>
+            <Text style={styles.editorialTitle}>{t('organizer.qrScanner.headerTitle')}</Text>
             {event && (
-              <Text style={styles.headerSubtitle} numberOfLines={1}>
+              <Text style={styles.editorialSubtitle} numberOfLines={1}>
                 {event.title}
               </Text>
             )}
           </View>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setFlashOn(!flashOn)}
-            accessibilityRole="button"
-            accessibilityLabel={flashOn ? t('organizer.qrScanner.flashOffA11y') : t('organizer.qrScanner.flashOnA11y')}
-          >
-            <Ionicons
-              name={flashOn ? 'flash' : 'flash-outline'}
-              size={24}
-              color={flashOn ? colors.warning : '#FFFFFF'}
-            />
-          </TouchableOpacity>
         </SafeAreaView>
 
-        {/* Sélecteur de mode : entrée principale OU session précise.
-            Visible uniquement si l'event a au moins une session. */}
-        {sessions.length > 0 && (
-          <View style={styles.modeSelectorRow}>
-            <TouchableOpacity
-              style={[
-                styles.modePill,
-                scanMode.kind === 'main' && styles.modePillActive,
-              ]}
-              onPress={() => setScanMode({ kind: 'main' })}
-              accessibilityRole="button"
-              accessibilityLabel={t('organizer.qrScanner.scanMainA11y')}
-            >
-              <Ionicons
-                name="enter-outline"
-                size={14}
-                color={scanMode.kind === 'main' ? colors.primary : '#FFFFFF'}
-              />
-              <Text
-                style={[
-                  styles.modePillText,
-                  scanMode.kind === 'main' && { color: colors.primary },
-                ]}
-              >
-                {t('organizer.qrScanner.scanMain')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.modePill,
-                scanMode.kind === 'session' && styles.modePillActive,
-              ]}
-              onPress={() => setSessionPickerOpen(true)}
-              accessibilityRole="button"
-              accessibilityLabel={t('organizer.qrScanner.scanSessionA11y')}
-            >
-              <Ionicons
-                name="layers-outline"
-                size={14}
-                color={scanMode.kind === 'session' ? colors.primary : '#FFFFFF'}
-              />
-              <Text
-                style={[
-                  styles.modePillText,
-                  scanMode.kind === 'session' && { color: colors.primary },
-                ]}
-                numberOfLines={1}
-              >
-                {scanMode.kind === 'session' ? scanMode.sessionTitle : t('organizer.qrScanner.scanSession')}
-              </Text>
-              <Ionicons
-                name="chevron-down"
-                size={12}
-                color={scanMode.kind === 'session' ? colors.primary : '#FFFFFF'}
-              />
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Scan Area */}
+        {/* Scan Area — viewfinder + brackets + ligne animée (style ScanScreen) */}
         <View style={styles.scanAreaContainer}>
+          {/* Mode pill flottant : entrée principale / session (si dispo) */}
+          {sessions.length > 0 ? (
+            <View style={styles.modeRow}>
+              <TouchableOpacity
+                style={[styles.modePill, scanMode.kind === 'main' && styles.modePillActive]}
+                onPress={() => setScanMode({ kind: 'main' })}
+                accessibilityRole="button"
+                accessibilityLabel={t('organizer.qrScanner.scanMainA11y')}
+              >
+                <Ionicons
+                  name="enter-outline"
+                  size={12}
+                  color={scanMode.kind === 'main' ? '#111110' : '#FFFFFF'}
+                />
+                <Text
+                  style={[
+                    styles.modePillText,
+                    scanMode.kind === 'main' && { color: '#111110' },
+                  ]}
+                >
+                  {t('organizer.qrScanner.scanMain')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modePill, scanMode.kind === 'session' && styles.modePillActive]}
+                onPress={() => setSessionPickerOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t('organizer.qrScanner.scanSessionA11y')}
+              >
+                <Ionicons
+                  name="layers-outline"
+                  size={12}
+                  color={scanMode.kind === 'session' ? '#111110' : '#FFFFFF'}
+                />
+                <Text
+                  style={[
+                    styles.modePillText,
+                    scanMode.kind === 'session' && { color: '#111110' },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {scanMode.kind === 'session' ? scanMode.sessionTitle : t('organizer.qrScanner.scanSession')}
+                </Text>
+                <Ionicons
+                  name="chevron-down"
+                  size={10}
+                  color={scanMode.kind === 'session' ? '#111110' : '#FFFFFF'}
+                />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.modePillSingle}>
+              <Text style={styles.modePillText}>{t('organizer.qrScanner.scanMain')}</Text>
+              <View style={styles.modePillDivider} />
+              <Ionicons name="flash" size={12} color="#FCD34D" />
+            </View>
+          )}
+
           <TourTarget id="scanner-frame">
             <View style={styles.scanArea}>
-              {/* Corner markers */}
-              <View style={[styles.corner, styles.topLeft]} />
-              <View style={[styles.corner, styles.topRight]} />
-              <View style={[styles.corner, styles.bottomLeft]} />
-              <View style={[styles.corner, styles.bottomRight]} />
+              {/* Brackets indigo style ScanScreen */}
+              <View style={[styles.bracket, styles.bracketTL]} />
+              <View style={[styles.bracket, styles.bracketTR]} />
+              <View style={[styles.bracket, styles.bracketBL]} />
+              <View style={[styles.bracket, styles.bracketBR]} />
+
+              {/* Ligne de scan animée */}
+              <Animated.View
+                style={[
+                  styles.scanLine,
+                  {
+                    transform: [
+                      {
+                        translateY: scanLineAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [12, SCAN_AREA_SIZE - 12],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              />
 
               {processing && (
                 <View style={styles.processingOverlay}>
-                  <ActivityIndicator size="large" color={colors.white} />
+                  <ActivityIndicator size="large" color={colors.primary} />
                   <Text style={styles.processingText}>{t('organizer.qrScanner.verifying')}</Text>
                 </View>
               )}
             </View>
           </TourTarget>
-          <Text style={styles.scanHint}>
-            {t('organizer.qrScanner.scanHint')}
-          </Text>
 
-          {/* Offline badge — visible quand pas de réseau ou queue non vide */}
-          {(!isOnline || pendingCount > 0) && (
+          <Text style={styles.scanHint}>{t('organizer.qrScanner.scanHint')}</Text>
+
+          {/* Hint chips bas du viewfinder : offline + saisie manuelle */}
+          <View style={styles.chipRow}>
+            {(!isOnline || pendingCount > 0) && (
+              <TouchableOpacity
+                style={[styles.hintChip, styles.hintChipDanger]}
+                onPress={() => isOnline && pendingCount > 0 && flushQueue()}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  !isOnline
+                    ? t('organizer.qrScanner.offlineA11y', { count: pendingCount })
+                    : t('organizer.qrScanner.syncCountA11y', { count: pendingCount })
+                }
+              >
+                <Ionicons
+                  name={!isOnline ? 'cloud-offline' : isFlushing ? 'sync' : 'cloud-upload'}
+                  size={14}
+                  color="#fff"
+                />
+                <Text style={styles.hintChipText}>
+                  {!isOnline
+                    ? t('organizer.qrScanner.offlineTitle', { count: pendingCount })
+                    : isFlushing
+                    ? t('organizer.qrScanner.syncingTitle')
+                    : t('organizer.qrScanner.syncCount', { count: pendingCount })}
+                </Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
-              style={styles.offlineBadge}
-              onPress={() => isOnline && pendingCount > 0 && flushQueue()}
+              style={styles.hintChip}
+              onPress={() => setManualOpen(true)}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel={
-                !isOnline
-                  ? t('organizer.qrScanner.offlineA11y', { count: pendingCount })
-                  : t('organizer.qrScanner.syncCountA11y', { count: pendingCount })
-              }
+              accessibilityLabel={t('organizer.qrScanner.manualBtnA11y')}
             >
-              <Ionicons
-                name={!isOnline ? 'cloud-offline' : isFlushing ? 'sync' : 'cloud-upload'}
-                size={14}
-                color="#fff"
-              />
-              <Text style={styles.offlineBadgeText}>
-                {!isOnline
-                  ? t('organizer.qrScanner.offlineTitle', { count: pendingCount })
-                  : isFlushing
-                  ? t('organizer.qrScanner.syncingTitle')
-                  : t('organizer.qrScanner.syncCount', { count: pendingCount })}
-              </Text>
+              <Ionicons name="keypad-outline" size={14} color="#FFFFFF" />
+              <Text style={styles.hintChipText}>{t('organizer.qrScanner.manualBtn')}</Text>
             </TouchableOpacity>
-          )}
-
-          {/* Bouton saisie manuelle — visible toujours, pour les billets sans QR */}
-          <TouchableOpacity
-            style={styles.manualEntryBtn}
-            onPress={() => setManualOpen(true)}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel={t('organizer.qrScanner.manualBtnA11y')}
-          >
-            <Ionicons name="keypad-outline" size={14} color="#fff" />
-            <Text style={styles.manualEntryBtnText}>{t('organizer.qrScanner.manualBtn')}</Text>
-          </TouchableOpacity>
+          </View>
         </View>
 
         {/* Bottom Controls */}
@@ -783,7 +839,7 @@ export default function QRScannerScreen() {
         </SafeAreaView>
       </View>
 
-      {/* Result Modal */}
+      {/* Result Modal — pattern ScanScreen : header circle + cards gray50 */}
       <Modal
         visible={showResult}
         animationType="slide"
@@ -792,76 +848,101 @@ export default function QRScannerScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            {scanResult?.success ? (
-              <>
-                <View style={[styles.resultIcon, { backgroundColor: colors.successLight }]}>
-                  <Ionicons name="checkmark-circle" size={64} color={colors.success} />
-                </View>
-                <Text style={[styles.resultTitle, { color: colors.text }]}>
-                  {scanResult.alreadyCheckedIn ? t('organizer.qrScanner.alreadyCheckedIn') : t('organizer.qrScanner.success')}
-                </Text>
-                <Text style={[styles.resultMessage, { color: colors.gray500 }]}>{scanResult.message}</Text>
+            <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+              {scanResult?.success ? (
+                <>
+                  <View style={styles.resultHeader}>
+                    <View
+                      style={[
+                        styles.resultIconBg,
+                        { backgroundColor: scanResult.alreadyCheckedIn ? colors.warningLight : colors.successLight },
+                      ]}
+                    >
+                      <Ionicons
+                        name={scanResult.alreadyCheckedIn ? 'time' : 'checkmark-circle'}
+                        size={32}
+                        color={scanResult.alreadyCheckedIn ? colors.warning : colors.success}
+                      />
+                    </View>
+                    <Text style={[styles.resultTitle, { color: colors.gray900 }]}>
+                      {scanResult.alreadyCheckedIn
+                        ? t('organizer.qrScanner.alreadyCheckedIn')
+                        : t('organizer.qrScanner.success')}
+                    </Text>
+                  </View>
 
-                {scanResult.registration && (
-                  <View style={[styles.ticketDetails, { backgroundColor: colors.gray50 }]}>
-                    <View style={[styles.ticketDetailRow, { borderBottomColor: colors.gray200 }]}>
-                      <Text style={[styles.ticketDetailLabel, { color: colors.gray500 }]}>{t('organizer.qrScanner.fieldParticipant')}</Text>
-                      <Text style={[styles.ticketDetailValue, { color: colors.gray900 }]}>
+                  {scanResult.registration && (
+                    <View style={[styles.resultCard, { backgroundColor: colors.gray50 }]}>
+                      <Text style={[styles.cardLabel, { color: colors.gray500 }]}>
+                        {t('organizer.qrScanner.fieldParticipant')}
+                      </Text>
+                      <Text style={[styles.cardTitle, { color: colors.gray900 }]}>
                         {scanResult.registration.user_name ||
                           `${scanResult.registration.user?.first_name || ''} ${scanResult.registration.user?.last_name || ''}`.trim() ||
                           scanResult.registration.user_email ||
                           'N/A'}
                       </Text>
+                      <View style={styles.cardRow}>
+                        <Ionicons name="mail-outline" size={16} color={colors.gray500} />
+                        <Text style={[styles.cardRowText, { color: colors.gray600 }]}>
+                          {scanResult.registration.user_email || scanResult.registration.user?.email || 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={styles.cardRow}>
+                        <Ionicons name="pricetag-outline" size={16} color={colors.gray500} />
+                        <Text style={[styles.cardRowText, { color: colors.gray600 }]}>
+                          {scanResult.registration.registration_type || 'Standard'}
+                        </Text>
+                      </View>
+                      <View style={styles.cardRow}>
+                        <Ionicons name="document-text-outline" size={16} color={colors.gray500} />
+                        <Text style={[styles.cardRowText, { color: colors.gray600 }]}>
+                          {scanResult.registration.reference_code || scanResult.registration.id?.slice(0, 8).toUpperCase()}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={[styles.ticketDetailRow, { borderBottomColor: colors.gray200 }]}>
-                      <Text style={[styles.ticketDetailLabel, { color: colors.gray500 }]}>{t('organizer.qrScanner.fieldEmail')}</Text>
-                      <Text style={[styles.ticketDetailValue, { color: colors.gray900 }]}>
-                        {scanResult.registration.user_email || scanResult.registration.user?.email || 'N/A'}
-                      </Text>
-                    </View>
-                    <View style={[styles.ticketDetailRow, { borderBottomColor: colors.gray200 }]}>
-                      <Text style={[styles.ticketDetailLabel, { color: colors.gray500 }]}>{t('organizer.qrScanner.fieldType')}</Text>
-                      <Text style={[styles.ticketDetailValue, { color: colors.gray900 }]}>
-                        {scanResult.registration.registration_type || 'Standard'}
-                      </Text>
-                    </View>
-                    <View style={[styles.ticketDetailRow, { borderBottomColor: colors.gray200 }]}>
-                      <Text style={[styles.ticketDetailLabel, { color: colors.gray500 }]}>{t('organizer.qrScanner.fieldReference')}</Text>
-                      <Text style={[styles.ticketDetailValue, { color: colors.gray900 }]}>
-                        {scanResult.registration.reference_code || scanResult.registration.id?.slice(0, 8).toUpperCase()}
-                      </Text>
-                    </View>
-                  </View>
-                )}
+                  )}
 
-                {scanResult.alreadyCheckedIn && !autoCheckIn && (
-                  <TouchableOpacity
-                    style={styles.manualCheckInButton}
-                    onPress={handleManualCheckIn}
-                    disabled={processing}
-                    accessibilityRole="button"
-                    accessibilityLabel={t('organizer.qrScanner.manualCheckInA11y')}
-                  >
-                    {processing ? (
-                      <ActivityIndicator size="small" color={colors.white} />
-                    ) : (
-                      <>
-                        <Ionicons name="checkmark-done" size={20} color={colors.white} />
-                        <Text style={styles.manualCheckInText}>{t('organizer.qrScanner.manualCheckIn')}</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                )}
-              </>
-            ) : (
-              <>
-                <View style={[styles.resultIcon, { backgroundColor: colors.errorLight }]}>
-                  <Ionicons name="close-circle" size={64} color={colors.error} />
+                  <View style={[styles.statusBadge, { backgroundColor: colors.successLight }]}>
+                    <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                    <Text style={[styles.statusBadgeText, { color: colors.success }]} numberOfLines={2}>
+                      {scanResult.message}
+                    </Text>
+                  </View>
+
+                  {scanResult.alreadyCheckedIn && !autoCheckIn && (
+                    <TouchableOpacity
+                      style={[styles.primaryActionBtn, { backgroundColor: colors.success }]}
+                      onPress={handleManualCheckIn}
+                      disabled={processing}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('organizer.qrScanner.manualCheckInA11y')}
+                    >
+                      {processing ? (
+                        <ActivityIndicator size="small" color={Colors.white} />
+                      ) : (
+                        <>
+                          <Ionicons name="checkmark-done" size={20} color={Colors.white} />
+                          <Text style={styles.primaryActionText}>{t('organizer.qrScanner.manualCheckIn')}</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                </>
+              ) : (
+                <View style={styles.resultHeader}>
+                  <View style={[styles.resultIconBg, { backgroundColor: colors.errorLight }]}>
+                    <Ionicons name="close-circle" size={32} color={colors.error} />
+                  </View>
+                  <Text style={[styles.resultTitle, { color: colors.gray900 }]}>
+                    {t('organizer.qrScanner.failure')}
+                  </Text>
+                  <Text style={[styles.resultMessage, { color: colors.gray500 }]}>
+                    {scanResult?.message}
+                  </Text>
                 </View>
-                <Text style={[styles.resultTitle, { color: colors.text }]}>{t('organizer.qrScanner.failure')}</Text>
-                <Text style={[styles.resultMessage, { color: colors.gray500 }]}>{scanResult?.message}</Text>
-              </>
-            )}
+              )}
+            </ScrollView>
 
             <TouchableOpacity
               style={[styles.continueButton, { backgroundColor: colors.primary }]}
@@ -869,7 +950,7 @@ export default function QRScannerScreen() {
               accessibilityRole="button"
               accessibilityLabel={t('organizer.qrScanner.scanAnotherA11y')}
             >
-              <Ionicons name="scan-outline" size={20} color={colors.white} />
+              <Ionicons name="scan-outline" size={20} color={Colors.white} />
               <Text style={styles.continueButtonText}>{t('organizer.qrScanner.scanAnother')}</Text>
             </TouchableOpacity>
           </View>
@@ -998,6 +1079,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+
+  // Permission screen (inchangé)
   permissionContainer: {
     flex: 1,
     alignItems: 'center',
@@ -1032,94 +1115,186 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
     color: Colors.gray500,
   },
+
+  // Editorial camera overlay (aligné sur ScanScreen)
   overlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'space-between',
   },
-  header: {
+  topZone: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    paddingBottom: Spacing.md,
+  },
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    marginBottom: Spacing.md,
   },
-  headerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  closeDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerCenter: {
-    flex: 1,
+  liveTag: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
   },
-  headerEyebrow: {
-    fontSize: 10,
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF4444',
+  },
+  liveTagText: {
     fontFamily: FontFamily.bold,
-    color: 'rgba(255,255,255,0.85)',
+    fontSize: 10,
     letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    color: '#FFFFFF',
+  },
+  editorialHeader: {
+    alignItems: 'flex-start',
+  },
+  editorialEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: 'rgba(255,255,255,0.75)',
     marginBottom: 2,
   },
-  headerTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.lg,
-    color: Colors.white,
-    letterSpacing: -0.3,
+  editorialTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 32,
+    letterSpacing: -1.1,
+    color: '#FFFFFF',
+    lineHeight: 36,
   },
-  headerSubtitle: {
-    fontSize: FontSizes.xs,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
+  editorialSubtitle: {
+    marginTop: 4,
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
+    color: 'rgba(255,255,255,0.85)',
   },
+
+  // Scan area + brackets indigo
   scanAreaContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+  },
+  modeRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    marginBottom: -12,
+    zIndex: 2,
+    maxWidth: '100%',
+  },
+  modePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    maxWidth: 200,
+  },
+  modePillActive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
+  },
+  modePillSingle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: BorderRadius.full,
+    marginBottom: -12,
+    zIndex: 2,
+  },
+  modePillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: '#FFFFFF',
+  },
+  modePillDivider: {
+    width: 1,
+    height: 10,
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
   scanArea: {
     width: SCAN_AREA_SIZE,
     height: SCAN_AREA_SIZE,
-    borderRadius: BorderRadius.xl,
+    borderRadius: 28,
+    backgroundColor: 'transparent',
     overflow: 'hidden',
   },
-  corner: {
+  bracket: {
     position: 'absolute',
-    width: 30,
-    height: 30,
-    borderColor: Colors.white,
-    borderWidth: 3,
+    width: 36,
+    height: 36,
+    borderColor: '#FFFFFF',
   },
-  topLeft: {
-    top: 0,
-    left: 0,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-    borderTopLeftRadius: BorderRadius.lg,
+  bracketTL: {
+    top: 10,
+    left: 10,
+    borderTopWidth: 3,
+    borderLeftWidth: 3,
+    borderTopLeftRadius: 16,
   },
-  topRight: {
-    top: 0,
-    right: 0,
-    borderLeftWidth: 0,
-    borderBottomWidth: 0,
-    borderTopRightRadius: BorderRadius.lg,
+  bracketTR: {
+    top: 10,
+    right: 10,
+    borderTopWidth: 3,
+    borderRightWidth: 3,
+    borderTopRightRadius: 16,
   },
-  bottomLeft: {
-    bottom: 0,
-    left: 0,
-    borderRightWidth: 0,
-    borderTopWidth: 0,
-    borderBottomLeftRadius: BorderRadius.lg,
+  bracketBL: {
+    bottom: 10,
+    left: 10,
+    borderBottomWidth: 3,
+    borderLeftWidth: 3,
+    borderBottomLeftRadius: 16,
   },
-  bottomRight: {
-    bottom: 0,
-    right: 0,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    borderBottomRightRadius: BorderRadius.lg,
+  bracketBR: {
+    bottom: 10,
+    right: 10,
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderBottomRightRadius: 16,
+  },
+  scanLine: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    height: 2,
+    backgroundColor: '#4F46E5',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+    elevation: 3,
   },
   processingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -1128,43 +1303,81 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   processingText: {
-    fontSize: FontSizes.base,
-    color: Colors.white,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
+    color: '#FFFFFF',
     marginTop: Spacing.md,
   },
   scanHint: {
-    fontSize: FontSizes.base,
-    color: Colors.white,
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
+    color: 'rgba(255,255,255,0.8)',
     marginTop: Spacing.lg,
     textAlign: 'center',
   },
+
+  // Hint chips (offline / saisie manuelle)
+  chipRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  hintChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+  },
+  hintChipDanger: {
+    backgroundColor: 'rgba(220, 38, 38, 0.85)',
+    borderColor: 'rgba(220, 38, 38, 0.9)',
+  },
+  hintChipText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: 0.3,
+    color: '#FFFFFF',
+  },
+
+  // Bottom controls (stats + toggles) — fond éditorial
   bottomControls: {
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.lg,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: Spacing.md,
-    marginBottom: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   statItem: {
     alignItems: 'center',
   },
   statValue: {
-    fontFamily: FontFamily.displayBold,
+    fontFamily: FontFamily.displayExtraBold,
     fontSize: FontSizes['2xl'],
-    color: Colors.white,
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
   statLabel: {
-    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.2,
     color: 'rgba(255,255,255,0.7)',
     marginTop: 2,
+    textTransform: 'uppercase',
   },
   statDivider: {
     width: 1,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.18)',
   },
   autoCheckInToggle: {
     flexDirection: 'row',
@@ -1188,8 +1401,10 @@ const styles = StyleSheet.create({
   },
   autoCheckInText: {
     fontSize: FontSizes.sm,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.85)',
   },
+
+  // Result modal (pattern ScanScreen)
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -1200,117 +1415,103 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: BorderRadius['2xl'],
     borderTopRightRadius: BorderRadius['2xl'],
     padding: Spacing.xl,
-    alignItems: 'center',
+    maxHeight: '85%',
   },
-  resultIcon: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  resultHeader: {
     alignItems: 'center',
-    justifyContent: 'center',
     marginBottom: Spacing.lg,
   },
-  resultIconSuccess: {
-    backgroundColor: Colors.successLight,
-  },
-  resultIconError: {
-    backgroundColor: Colors.errorLight,
+  resultIconBg: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
   },
   resultTitle: {
     ...TextStyles.h3,
-    marginBottom: Spacing.sm,
+    textAlign: 'center',
   },
   resultMessage: {
     fontSize: FontSizes.base,
     color: Colors.gray500,
     textAlign: 'center',
-    marginBottom: Spacing.lg,
+    marginTop: Spacing.sm,
   },
-  ticketDetails: {
-    width: '100%',
+  resultCard: {
     backgroundColor: Colors.gray50,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
-  ticketDetailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray200,
-  },
-  ticketDetailLabel: {
-    fontSize: FontSizes.sm,
+  cardLabel: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray500,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: Spacing.xs,
   },
-  ticketDetailValue: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
+  cardTitle: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
-    maxWidth: '60%',
-    textAlign: 'right',
+    marginBottom: Spacing.sm,
   },
-  manualCheckInButton: {
+  cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.success,
-    paddingHorizontal: Spacing.xl,
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  cardRowText: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+    flex: 1,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.lg,
+  },
+  statusBadgeText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    flex: 1,
+  },
+  primaryActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
     gap: Spacing.sm,
     marginBottom: Spacing.md,
   },
-  manualCheckInText: {
+  primaryActionText: {
     ...TextStyles.button,
   },
   continueButton: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    backgroundColor: Colors.primary,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
     justifyContent: 'center',
     gap: Spacing.sm,
+    marginTop: Spacing.sm,
   },
   continueButtonText: {
     ...TextStyles.button,
   },
-  // Offline / queue badge en bas du scan area
-  offlineBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(220, 38, 38, 0.85)',
-    marginTop: Spacing.sm,
-  },
-  offlineBadgeText: {
-    color: '#fff',
-    fontFamily: FontFamily.bold,
-    fontSize: 11,
-    letterSpacing: 0.3,
-  },
-  // Manual entry button
-  manualEntryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
-    marginTop: Spacing.sm,
-  },
-  manualEntryBtnText: {
-    color: '#fff',
-    fontFamily: FontFamily.semiBold,
-    fontSize: 12,
-    letterSpacing: 0.2,
-  },
+
   // Manual entry modal
   manualBackdrop: {
     flex: 1,
@@ -1368,37 +1569,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: 14,
     letterSpacing: 0.2,
-  },
-
-  // Sélecteur de mode de scan (entrée principale / session) au-dessus du cadre
-  modeSelectorRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.sm,
-  },
-  modePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: BorderRadius.full,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-    maxWidth: 200,
-  },
-  modePillActive: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#FFFFFF',
-  },
-  modePillText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 12,
-    color: '#FFFFFF',
-    letterSpacing: -0.1,
   },
 
   // Picker de session — réutilise manualHint et manualActions du modal saisie

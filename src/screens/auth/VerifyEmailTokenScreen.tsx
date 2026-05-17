@@ -15,7 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTranslation } from 'react-i18next';
-import { authAPI } from '../../api';
+import { authAPI, setTokens } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -40,7 +40,10 @@ export default function VerifyEmailTokenScreen() {
   const route = useRoute<RoutePropType>();
   const { token } = route.params || {};
   const { colors } = useTheme();
-  const { isAuthenticated, user, refreshUser } = useAuth();
+  const { isAuthenticated, user, refreshUser, setUser } = useAuth();
+  // Devient true quand le backend nous a renvoye une paire JWT apres verif :
+  // l'utilisateur est maintenant logue automatiquement (auto-login).
+  const [autoLogged, setAutoLogged] = useState(false);
   const { showError, showSuccess } = useAlert();
   const { t } = useTranslation();
 
@@ -55,36 +58,56 @@ export default function VerifyEmailTokenScreen() {
       return;
     }
     try {
-      await authAPI.verifyEmail(token);
+      const response = await authAPI.verifyEmail(token);
       setState('success');
-      // Rafraîchir l'état local du user si connecté (#2) — évite que les
-      // prochains dispatchAfterAuth redirigent encore vers VerifyEmail.
-      if (isAuthenticated) {
+
+      // Auto-login : le backend renvoie {access, refresh, user} apres une
+      // verification reussie. Si on n'est PAS deja authentifie sur cet
+      // appareil (cas typique : user s'est inscrit depuis le mobile, est alle
+      // ouvrir l'email puis a clique sur le lien qui a ouvert l'app via deep
+      // link — pas de session active), on stocke les tokens et on logue
+      // l'utilisateur sans qu'il ait a retaper ses credentials.
+      const data: any = response?.data;
+      if (!isAuthenticated && data?.access && data?.refresh && data?.user) {
+        try {
+          await setTokens(data.access, data.refresh, true);
+          await setUser(data.user);
+          setAutoLogged(true);
+        } catch (e) {
+          if (__DEV__) console.warn('[VerifyEmailToken] auto-login failed', e);
+        }
+      } else if (isAuthenticated) {
+        // Deja connecte : on raffraichit l'etat user pour eviter que les
+        // prochains dispatchAfterAuth redirigent encore vers VerifyEmail.
         await refreshUser();
       }
     } catch (err: any) {
       const code = err?.response?.data?.code;
       setState(code === 'token_expired' ? 'expired' : 'invalid');
     } finally {
-      // Sécurité : on retire le token des route.params dès qu'il a été consommé
-      // (succès, expiré ou invalide — peu importe). Sans ça, le token persiste
+      // Securite : on retire le token des route.params des qu'il a ete consomme
+      // (succes, expire ou invalide — peu importe). Sans ca, le token persiste
       // dans la navigation state et donc dans le back stack — accessible si
-      // l'app est laissée ouverte sur un device volé. Voir AUDIT §3.4.
+      // l'app est laissee ouverte sur un device vole. Voir AUDIT §3.4.
       navigation.setParams({ token: undefined } as never);
     }
-  }, [token, isAuthenticated, refreshUser, navigation]);
+  }, [token, isAuthenticated, refreshUser, setUser, navigation]);
 
   useEffect(() => {
     verify();
   }, [verify]);
 
   const goHome = useCallback(() => {
-    if (isAuthenticated) {
+    // Si l'utilisateur etait deja connecte OU vient d'etre auto-logue grace
+    // a la verif (auto-login JWT renvoyes par le backend), on reset vers Main.
+    // Seul cas restant : pas de session du tout (token consommé sur un autre
+    // device par ex) → redirige vers Login.
+    if (isAuthenticated || autoLogged) {
       navigation.reset({ index: 0, routes: [{ name: 'Main' as never }] });
     } else {
       navigation.navigate('Login');
     }
-  }, [navigation, isAuthenticated]);
+  }, [navigation, isAuthenticated, autoLogged]);
 
   const handleResend = useCallback(async () => {
     // Priorité : email du user connecté, sinon email saisi dans le champ inline.
@@ -130,12 +153,12 @@ export default function VerifyEmailTokenScreen() {
               <Text style={[styles.eyebrow, { color: '#10B981' }]}>{t('auth.verifyTokenSuccessEyebrow')}</Text>
               <Text style={[styles.title, { color: colors.gray900 }]}>{t('auth.verifyTokenSuccessTitleShort')}</Text>
               <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-                {isAuthenticated ? t('auth.verifyTokenSuccessSubtitleAuth') : t('auth.verifyTokenSuccessSubtitleNoAuth')}
+                {(isAuthenticated || autoLogged) ? t('auth.verifyTokenSuccessSubtitleAuth') : t('auth.verifyTokenSuccessSubtitleNoAuth')}
               </Text>
               <View style={styles.ctaWrap}>
                 <EditorialPillCTA
                   eyebrow={t('auth.verifyTokenSuccessAction')}
-                  label={isAuthenticated ? t('auth.verifyTokenSuccessHomeAuth') : t('auth.verifyTokenSuccessHomeNoAuth')}
+                  label={(isAuthenticated || autoLogged) ? t('auth.verifyTokenSuccessHomeAuth') : t('auth.verifyTokenSuccessHomeNoAuth')}
                   onPress={goHome}
                   icon="arrow-forward"
                   tone="primary"

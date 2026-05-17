@@ -106,9 +106,15 @@ export default function LoginScreen() {
       }
     };
     loadRememberMe();
-    // Auto-focus du champ email à l'arrivée sur l'onglet email
-    const focusTimer = setTimeout(() => emailInputRef.current?.focus(), 250);
+    // Auto-focus du champ email à l'arrivée sur l'onglet email.
+    // Ne focus QUE si l'utilisateur n'a pas déjà basculé sur Phone entre temps :
+    // sans ce garde, le clavier saute sur Email même si l'user a tapé "Phone"
+    // dans les 250ms (race condition d'UX).
+    const focusTimer = setTimeout(() => {
+      if (activeTab === 'email') emailInputRef.current?.focus();
+    }, 250);
     return () => clearTimeout(focusTimer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleGuestCheckout = useCallback(async () => {

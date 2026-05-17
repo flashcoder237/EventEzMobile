@@ -286,7 +286,10 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
   const [locationName, setLocationName] = useState('');
   const [locationCity, setLocationCity] = useState('');
   const [locationAddress, setLocationAddress] = useState('');
-  const [locationCountry, setLocationCountry] = useState('Cameroun');
+  // Vide par défaut : sera auto-rempli par le geocoding / MapPicker quand
+  // l'utilisateur choisit un lieu. Évite d'imposer Cameroun à un orga
+  // international qui crée un event sans toucher au pays.
+  const [locationCountry, setLocationCountry] = useState('');
   const [onlineUrl, setOnlineUrl] = useState('');
   const [onlinePlatform, setOnlinePlatform] = useState('');
   const [onlineInstructions, setOnlineInstructions] = useState('');
@@ -787,7 +790,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
           locationName: event.location_name || '',
           locationCity: event.location_city || '',
           locationAddress: event.location_address || '',
-          locationCountry: event.location_country || 'Cameroun',
+          locationCountry: event.location_country || '',
           locationLatitude: event.location_latitude ? String(event.location_latitude) : '',
           locationLongitude: event.location_longitude ? String(event.location_longitude) : '',
           onlineUrl: event.online_url || '',

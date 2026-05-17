@@ -101,7 +101,9 @@ export default function EditProfileScreen() {
   // Le state local garde le nom court pour la lisibilité du JSX.
   const [address, setAddress] = useState(user?.billing_address || '');
   const [city, setCity] = useState(user?.city || '');
-  const [country, setCountry] = useState(user?.country || 'Cameroun');
+  // Pas de default 'Cameroun' : on laisse vide pour ne pas imposer un pays à
+  // un user venant de l'international ; le placeholder du champ guide la saisie.
+  const [country, setCountry] = useState(user?.country || '');
   const [bio, setBio] = useState(user?.bio || '');
 
   const [companyName, setCompanyName] = useState(user?.company_name || '');
@@ -120,7 +122,7 @@ export default function EditProfileScreen() {
     dateOfBirth !== (user?.date_of_birth || '') ||
     address !== (user?.billing_address || '') ||
     city !== (user?.city || '') ||
-    country !== (user?.country || 'Cameroun') ||
+    country !== (user?.country || '') ||
     bio !== (user?.bio || '') ||
     companyName !== (user?.company_name || '');
 
@@ -224,7 +226,7 @@ export default function EditProfileScreen() {
       if (dateOfBirth !== (user?.date_of_birth || '')) updateData.date_of_birth = dateOfBirth;
       if (address !== (user?.billing_address || '')) updateData.billing_address = address;
       if (city !== (user?.city || '')) updateData.city = city;
-      if (country !== (user?.country || 'Cameroun')) updateData.country = country;
+      if (country !== (user?.country || '')) updateData.country = country;
       if (bio !== (user?.bio || '')) updateData.bio = bio;
       if (companyName !== (user?.company_name || '')) updateData.company_name = companyName;
 

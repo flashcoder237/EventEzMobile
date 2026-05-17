@@ -146,7 +146,7 @@ const FormField = memo(function FormField({
 export default function BecomeOrganizerScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { user, updateUser } = useAuth();
+  const { user, syncUser } = useAuth();
   const { showError, showSuccess } = useAlert();
   const { colors } = useTheme();
   const { t } = useTranslation();
@@ -257,7 +257,11 @@ export default function BecomeOrganizerScreen() {
       await usersAPI.becomeOrganizer(data);
 
       const userResponse = await usersAPI.getCurrentUser();
-      await updateUser(userResponse.data);
+      // syncUser (et NON updateUser) : updateUser re-PATCH /users/me/ avec
+      // l'objet complet, qui inclut profile_picture sous forme d'URL string
+      // → le backend renvoie 400 ("La donnée soumise n'est pas un fichier").
+      // syncUser met juste à jour le contexte local sans appel API.
+      syncUser(userResponse.data);
 
       showSuccess(
         t('becomeOrganizerForm.successTitle'),
