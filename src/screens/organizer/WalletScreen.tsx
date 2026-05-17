@@ -27,6 +27,13 @@ import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { getServiceFeeLabel } from '../../constants/payment';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { WalletScreenSkeleton } from '../../components/ui/Skeleton';
+import {
+  TourTarget,
+  useTour,
+  getWalletTourSteps,
+  WALLET_TOUR_STORAGE_KEY,
+  WALLET_TOUR_DELAY_MS,
+} from '../../components/tour';
 import { walletAPI, payoutsAPI } from '../../api';
 import { useSupportedCountries } from '../../hooks/useSupportedCountries';
 import StripeOnboardingBanner from '../../components/organizer/StripeOnboardingBanner';
@@ -94,6 +101,19 @@ export default function WalletScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
+
+  // Wallet tour fires once wallet data has loaded — the 3 targets all live
+  // inside the overview tab so we also gate on `activeTab === 'overview'`.
+  const tour = useTour();
+  useEffect(() => {
+    if (loading || !wallet || activeTab !== 'overview') return;
+    const timer = setTimeout(() => {
+      if (tour.isActive) return;
+      tour.start(getWalletTourSteps(t), { seenKey: WALLET_TOUR_STORAGE_KEY });
+    }, WALLET_TOUR_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, !!wallet, activeTab]);
 
   // Payout modal states
   const [showPayoutModal, setShowPayoutModal] = useState(false);
@@ -587,6 +607,7 @@ export default function WalletScreen() {
           }
         >
         {/* === BLACK CARD HERO (premium credit-card vibe) === */}
+        <TourTarget id="wallet-balance">
         <View style={styles.creditCardWrap}>
           <View style={[styles.creditCard, Shadows.lg]}>
             <LinearGradient
@@ -627,8 +648,10 @@ export default function WalletScreen() {
             </View>
           </View>
         </View>
+        </TourTarget>
 
         {/* === PRIMARY CTA: PILL WITHDRAW === */}
+        <TourTarget id="wallet-withdraw">
         <View style={styles.withdrawWrap}>
           <TouchableOpacity
             style={[
@@ -660,6 +683,7 @@ export default function WalletScreen() {
             </View>
           </TouchableOpacity>
         </View>
+        </TourTarget>
 
         {/* === STAT STRIP (mini) === */}
         <View style={[styles.miniStatRow, { backgroundColor: colors.card, borderColor: softBorder }]}>
@@ -747,6 +771,7 @@ export default function WalletScreen() {
               />
             </View>
 
+            <TourTarget id="wallet-transactions">
             <View style={styles.section}>
               <View style={styles.sectionHeaderE}>
                 <View style={{ flex: 1 }}>
@@ -768,6 +793,7 @@ export default function WalletScreen() {
                 </View>
               )}
             </View>
+            </TourTarget>
 
             <View style={styles.section}>
               <View style={styles.sectionHeaderE}>

@@ -2128,6 +2128,46 @@
     "settingsTitle": "Customize your experience.",
     "settingsBody": "Notifications, language, dark theme, privacy — everything is set here."
   },
+  "eventDetailsTour": {
+    "followEyebrow": "01 · SAVE",
+    "followTitle": "Keep it handy.",
+    "followBody": "Tap to follow this event. Find it in Saved and get a reminder before the date.",
+    "ctaEyebrow": "02 · BOOK",
+    "ctaTitle": "It all happens at the bottom.",
+    "ctaBody": "The sticky button stays visible — book, pay, or find your ticket in one tap from anywhere on the page."
+  },
+  "ticketPurchaseTour": {
+    "typesEyebrow": "01 · TICKETS",
+    "typesTitle": "Pick your ticket type.",
+    "typesBody": "Standard, VIP, Early Bird... Tap + or − on each card to adjust the quantity.",
+    "promoEyebrow": "02 · PROMO CODE",
+    "promoTitle": "Got a code?",
+    "promoBody": "Enter it here to apply a discount. If the organizer shared a code, this is where it goes."
+  },
+  "paymentTour": {
+    "methodsEyebrow": "01 · METHOD",
+    "methodsTitle": "How do you want to pay?",
+    "methodsBody": "Mobile Money (MTN, Orange), bank card or PayPal — pick what works for you. The total adjusts if fees apply.",
+    "ctaEyebrow": "02 · CONFIRM",
+    "ctaTitle": "Review and pay.",
+    "ctaBody": "The summary shows the breakdown. Once confirmed, you get your ticket by email and in the Tickets tab within seconds."
+  },
+  "eventCreateTour": {
+    "progressEyebrow": "01 · STEPS",
+    "progressTitle": "5 steps, that's it.",
+    "progressBody": "Follow the bar at the top: info, tickets, form, agenda, review. Start from a template (concert, workshop...) or customize. You can leave at any time — your work is auto-saved as a draft."
+  },
+  "walletTour": {
+    "balanceEyebrow": "01 · BALANCE",
+    "balanceTitle": "Your live revenue.",
+    "balanceBody": "Balance updates with every ticket sold, platform fees already deducted. This is what you can withdraw now.",
+    "withdrawEyebrow": "02 · WITHDRAW",
+    "withdrawTitle": "Withdraw to Mobile Money.",
+    "withdrawBody": "Mobile Money instant, bank transfer 1-3 days. The number is the one linked to your account — locked for security.",
+    "transactionsEyebrow": "03 · HISTORY",
+    "transactionsTitle": "Track your movements.",
+    "transactionsBody": "Sales, withdrawals, adjustments — all listed chronologically with fee breakdown."
+  },
   "organizerTour": {
     "myeventsCreateEyebrow": "01 · CREATE",
     "myeventsCreateTitle": "Launch your first event.",
@@ -3174,6 +3214,7 @@
     "hintTicket": "TICKET",
     "hintTransfer": "TRANSFER",
     "hintProfile": "PROFILE",
+    "hintConnection": "CONNECT",
     "unknownQR": "Unrecognized QR code",
     "scanFailed": "Could not process this QR code",
     "notFound": "Item not found",

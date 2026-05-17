@@ -32,3 +32,28 @@ export {
   PROFILE_TOUR_DELAY_MS,
   getProfileTourSteps,
 } from './profileTour';
+export {
+  EVENT_DETAILS_TOUR_STORAGE_KEY,
+  EVENT_DETAILS_TOUR_DELAY_MS,
+  getEventDetailsTourSteps,
+} from './eventDetailsTour';
+export {
+  TICKET_PURCHASE_TOUR_STORAGE_KEY,
+  TICKET_PURCHASE_TOUR_DELAY_MS,
+  getTicketPurchaseTourSteps,
+} from './ticketPurchaseTour';
+export {
+  PAYMENT_TOUR_STORAGE_KEY,
+  PAYMENT_TOUR_DELAY_MS,
+  getPaymentTourSteps,
+} from './paymentTour';
+export {
+  EVENT_CREATE_TOUR_STORAGE_KEY,
+  EVENT_CREATE_TOUR_DELAY_MS,
+  getEventCreateTourSteps,
+} from './eventCreateTour';
+export {
+  WALLET_TOUR_STORAGE_KEY,
+  WALLET_TOUR_DELAY_MS,
+  getWalletTourSteps,
+} from './walletTour';

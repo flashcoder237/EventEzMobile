@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -65,6 +65,13 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Badge } from '../../components/ui/Badge';
 import ConvertedPrice from '../../components/common/ConvertedPrice';
 import { EditorialCanvas, WatermarkNumeral, EditorialPillCTA, EditorialColors } from '../../components/ui/editorial';
+import {
+  TourTarget,
+  useTour,
+  getEventDetailsTourSteps,
+  EVENT_DETAILS_TOUR_STORAGE_KEY,
+  EVENT_DETAILS_TOUR_DELAY_MS,
+} from '../../components/tour';
 import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
 
@@ -349,6 +356,20 @@ export default function EventDetailsScreen() {
     setFollowersCount(prev => following ? prev + 1 : Math.max(0, prev - 1));
   };
 
+  // Event details mini-tour. Skipped in preview mode (organizer previewing
+  // their own event doesn't need the tour). Gated on loaded event so the
+  // sticky CTA target exists.
+  const tour = useTour();
+  useEffect(() => {
+    if (isPreview || loading || !event) return;
+    const timer = setTimeout(() => {
+      if (tour.isActive) return;
+      tour.start(getEventDetailsTourSteps(t), { seenKey: EVENT_DETAILS_TOUR_STORAGE_KEY });
+    }, EVENT_DETAILS_TOUR_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPreview, loading, !!event]);
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -478,12 +499,14 @@ export default function EventDetailsScreen() {
                 <Ionicons name="arrow-back" size={22} color="#0F172A" />
               </TouchableOpacity>
               <View pointerEvents="box-none" style={styles.headerActions}>
-                <FollowEventButton
-                  eventId={eventId}
-                  variant="icon-only"
-                  initialFollowing={isFollowing}
-                  onFollowChange={handleFollowChange}
-                />
+                <TourTarget id="event-details-follow">
+                  <FollowEventButton
+                    eventId={eventId}
+                    variant="icon-only"
+                    initialFollowing={isFollowing}
+                    onFollowChange={handleFollowChange}
+                  />
+                </TourTarget>
                 <TouchableOpacity
                   style={styles.floatingHeaderBtn}
                   onPress={handleShare}
@@ -1090,6 +1113,7 @@ export default function EventDetailsScreen() {
         {Platform.OS === 'android' && (
           <View style={[styles.bottomBarAndroidBg, { backgroundColor: `${colors.card}F2` }]} />
         )}
+      <TourTarget id="event-details-cta" style={{ flex: 1 }}>
       <View style={[styles.bottomBarContent, { borderTopColor: colors.gray100, paddingBottom: insets.bottom + Spacing.md }]}>
         <View style={styles.priceContainer}>
           {userRegistration ? (
@@ -1226,6 +1250,7 @@ export default function EventDetailsScreen() {
           </TouchableOpacity>
         )}
       </View>
+      </TourTarget>
       </BlurView> : null}
 
       {/* Image Viewer — pinch-to-zoom + swipe-to-close natifs via react-native-image-viewing */}

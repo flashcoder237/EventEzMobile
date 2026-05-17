@@ -2128,6 +2128,46 @@
     "settingsTitle": "Personnalise ton expérience.",
     "settingsBody": "Notifications, langue, thème sombre, vie privée — tout se règle ici."
   },
+  "eventDetailsTour": {
+    "followEyebrow": "01 · SAUVEGARDER",
+    "followTitle": "Garde-le sous le coude.",
+    "followBody": "Touche pour suivre cet événement. Tu le retrouves dans Sauvegardes et reçois un rappel avant la date.",
+    "ctaEyebrow": "02 · RÉSERVER",
+    "ctaTitle": "Tout se passe en bas.",
+    "ctaBody": "Le bouton sticky reste toujours visible — réserve, paie ou retrouve ton billet en un tap depuis n'importe où sur la page."
+  },
+  "ticketPurchaseTour": {
+    "typesEyebrow": "01 · BILLETS",
+    "typesTitle": "Choisis ton type de billet.",
+    "typesBody": "Standard, VIP, Early Bird... Touche + ou − sur chaque carte pour ajuster la quantité.",
+    "promoEyebrow": "02 · CODE PROMO",
+    "promoTitle": "Tu as un code ?",
+    "promoBody": "Entre-le ici pour appliquer une réduction. Si l'organisateur a partagé un code, c'est le moment de l'utiliser."
+  },
+  "paymentTour": {
+    "methodsEyebrow": "01 · MÉTHODE",
+    "methodsTitle": "Comment veux-tu payer ?",
+    "methodsBody": "Mobile Money (MTN, Orange), carte bancaire ou PayPal — choisis selon ce qui t'arrange. Le total s'ajuste si des frais s'appliquent.",
+    "ctaEyebrow": "02 · CONFIRMER",
+    "ctaTitle": "Vérifie et paie.",
+    "ctaBody": "Le récapitulatif montre le détail. Une fois validé, tu reçois ton billet par email et dans l'onglet Billets en quelques secondes."
+  },
+  "eventCreateTour": {
+    "progressEyebrow": "01 · ÉTAPES",
+    "progressTitle": "5 étapes, c'est tout.",
+    "progressBody": "Suis la barre du haut : infos, billets, formulaire, agenda, revue. Pars d'un modèle (concert, atelier...) ou personnalise. Tu peux quitter à tout moment — ton travail est sauvegardé en brouillon."
+  },
+  "walletTour": {
+    "balanceEyebrow": "01 · SOLDE",
+    "balanceTitle": "Tes revenus en direct.",
+    "balanceBody": "Le solde se met à jour à chaque billet vendu, frais de plateforme déjà déduits. C'est ce que tu peux retirer maintenant.",
+    "withdrawEyebrow": "02 · RETRAIT",
+    "withdrawTitle": "Retire vers Mobile Money.",
+    "withdrawBody": "Mobile Money instantané, virement bancaire 1-3 jours. Le numéro est celui lié à ton compte — pas modifiable pour ta sécurité.",
+    "transactionsEyebrow": "03 · HISTORIQUE",
+    "transactionsTitle": "Suis tes mouvements.",
+    "transactionsBody": "Ventes, retraits, ajustements — tout est listé chronologiquement avec le détail des frais."
+  },
   "organizerTour": {
     "myeventsCreateEyebrow": "01 · CRÉER",
     "myeventsCreateTitle": "Lance ton premier événement.",
@@ -3463,6 +3503,7 @@
     "hintTicket": "BILLET",
     "hintTransfer": "TRANSFERT",
     "hintProfile": "PROFIL",
+    "hintConnection": "CONNEXION",
     "unknownQR": "QR code non reconnu",
     "scanFailed": "Impossible de traiter ce QR code",
     "notFound": "Élément non trouvé",

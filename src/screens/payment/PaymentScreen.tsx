@@ -13,6 +13,13 @@ import { Image, ImageSource } from 'expo-image';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EditorialCanvas, WatermarkNumeral, EditorialButton } from '../../components/ui/editorial';
+import {
+  TourTarget,
+  useTour,
+  getPaymentTourSteps,
+  PAYMENT_TOUR_STORAGE_KEY,
+  PAYMENT_TOUR_DELAY_MS,
+} from '../../components/tour';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -284,6 +291,8 @@ export default function PaymentScreen() {
   // Mode billets supplémentaires: on a des newTickets passés en params
   const isAdditionalTicketsMode = !!(newTickets && newTickets.length > 0);
 
+  const tour = useTour();
+
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -297,6 +306,18 @@ export default function PaymentScreen() {
   // Loader pendant le refetch sur changement de pays — sinon les anciennes
   // methodes restent affichees jusqu'au swap brutal.
   const [methodsLoading, setMethodsLoading] = useState(false);
+
+  // Payment tour fires once methods are loaded — targets the first method
+  // card and the bottom pay CTA.
+  useEffect(() => {
+    if (loading || methodsLoading || dynamicMethods.length === 0) return;
+    const timer = setTimeout(() => {
+      if (tour.isActive) return;
+      tour.start(getPaymentTourSteps(t), { seenKey: PAYMENT_TOUR_STORAGE_KEY });
+    }, PAYMENT_TOUR_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, methodsLoading, dynamicMethods.length]);
   // Pays du payeur : choix manuel (AsyncStorage) > locale device > pays événement
   const [payerCountry, setPayerCountry] = useState<string>(() => {
     const detected = detectUserCountry();
@@ -1535,7 +1556,7 @@ export default function PaymentScreen() {
                 const isSelected = selectedMethod === method.id;
                 const overLimit =
                   method.maxAmount != null && finalTotal > method.maxAmount;
-                return (
+                const cardInner = (
                   <AnimatedPressable
                     key={method.id}
                     style={[
@@ -1601,6 +1622,13 @@ export default function PaymentScreen() {
                     </View>
                   </AnimatedPressable>
                 );
+                // Only the first method carries the TourTarget — pointing at
+                // every option would create visual noise during the tour.
+                return idx === 0 ? (
+                  <TourTarget key={method.id} id="payment-methods">
+                    {cardInner}
+                  </TourTarget>
+                ) : cardInner;
               })}
             </View>
 
@@ -1742,6 +1770,7 @@ export default function PaymentScreen() {
                 <ConvertedPrice amount={finalTotal} eventCurrency={eventCurrencyCode} style={{ fontSize: 10 }} />
               )}
             </View>
+            <TourTarget id="payment-cta">
             <TouchableOpacity
               onPress={handlePayment}
               disabled={!selectedMethod}
@@ -1765,6 +1794,7 @@ export default function PaymentScreen() {
                 <Ionicons name="arrow-forward" size={14} color={Colors.white} />
               </View>
             </TouchableOpacity>
+            </TourTarget>
           </View>
         </>
       )}

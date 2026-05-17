@@ -21,6 +21,13 @@ import { RootStackParamList } from '../../types';
 import MapPickerModal from '../../components/common/MapPickerModal';
 import AIUsageBadge from '../../components/events/AIUsageBadge';
 import {
+  TourTarget,
+  useTour,
+  getEventCreateTourSteps,
+  EVENT_CREATE_TOUR_STORAGE_KEY,
+  EVENT_CREATE_TOUR_DELAY_MS,
+} from '../../components/tour';
+import {
   EventStep1Info,
   EventStep2DateTime,
   EventStep3Pricing,
@@ -55,6 +62,20 @@ export default function EventCreateScreen() {
   const alertActions = useAlert();
   const { showAlert, showConfirm } = alertActions;
   const { colors, isDark } = useTheme();
+  const tour = useTour();
+
+  // Event create tour — skipped in edit mode (existing event being edited)
+  // and when hydrating from a draft (user has been here before). Single step
+  // pointing at the progress bar to communicate the wizard structure.
+  useEffect(() => {
+    if (isEditing || draftId) return;
+    const timer = setTimeout(() => {
+      if (tour.isActive) return;
+      tour.start(getEventCreateTourSteps(t), { seenKey: EVENT_CREATE_TOUR_STORAGE_KEY });
+    }, EVENT_CREATE_TOUR_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing, draftId]);
   const canvasBg = isDark ? colors.background : CANVAS_LIGHT;
   const watermarkColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(17,17,16,0.04)';
   const barDim = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(17,17,16,0.08)';
@@ -466,6 +487,7 @@ export default function EventCreateScreen() {
         </View>
 
         {/* Progress — editorial 4-bar indicator (replaces numbered nodes) */}
+        <TourTarget id="event-create-progress">
         <View style={styles.progressContainer}>
           {STEPS.map((step) => {
             const isActive = form.currentStep === step.id;
@@ -497,6 +519,7 @@ export default function EventCreateScreen() {
             );
           })}
         </View>
+        </TourTarget>
 
         {/* Content with watermark step numeral behind */}
         <View style={styles.scrollWrap}>

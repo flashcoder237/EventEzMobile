@@ -22,6 +22,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import ConvertedPrice from '../../components/common/ConvertedPrice';
+import {
+  TourTarget,
+  useTour,
+  getTicketPurchaseTourSteps,
+  TICKET_PURCHASE_TOUR_STORAGE_KEY,
+  TICKET_PURCHASE_TOUR_DELAY_MS,
+} from '../../components/tour';
 import { eventsAPI, ticketTypesAPI, registrationsAPI, discountsAPI } from '../../api';
 import { Event, TicketType, RootStackParamList, FormField, Discount } from '../../types';
 import GradientButton from '../../components/ui/GradientButton';
@@ -110,6 +117,8 @@ export default function TicketPurchaseScreen() {
   // Mode d'édition: modifier une inscription existante (sauf si on est en mode "ajout supplémentaire")
   const isEditMode = !!registrationId && !isAdditionalMode;
 
+  const tour = useTour();
+
   const [event, setEvent] = useState<Event | null>(null);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   const [formFields, setFormFields] = useState<FormField[]>([]);
@@ -119,6 +128,19 @@ export default function TicketPurchaseScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [existingRegistration, setExistingRegistration] = useState<any>(null);
+
+  // Purchase tour fires once tickets are loaded — targets the first ticket
+  // card and the discount input. Skipped in edit/additional modes where
+  // the user already knows the screen.
+  useEffect(() => {
+    if (loading || ticketTypes.length === 0 || isEditMode || isAdditionalMode) return;
+    const timer = setTimeout(() => {
+      if (tour.isActive) return;
+      tour.start(getTicketPurchaseTourSteps(t), { seenKey: TICKET_PURCHASE_TOUR_STORAGE_KEY });
+    }, TICKET_PURCHASE_TOUR_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, ticketTypes.length, isEditMode, isAdditionalMode]);
 
   // Commission config dynamique par pays — la commission backend varie selon la
   // zone (CommissionConfig par country_code), il faut donc fournir le pays de
@@ -829,7 +851,7 @@ export default function TicketPurchaseScreen() {
               const isSelected = quantity > 0;
               const isFree = ticketType.price === 0;
 
-              return (
+              const cardInner = (
                 <View
                   key={ticketType.id}
                   style={[
@@ -936,6 +958,13 @@ export default function TicketPurchaseScreen() {
                   </View>
                 </View>
               );
+              // Only the first card carries the TourTarget — pointing at
+              // every card would create visual noise during the tour.
+              return idx === 0 ? (
+                <TourTarget key={ticketType.id} id="ticket-purchase-types">
+                  {cardInner}
+                </TourTarget>
+              ) : cardInner;
             })
           )}
         </View>
@@ -969,6 +998,7 @@ export default function TicketPurchaseScreen() {
                 </TouchableOpacity>
               </View>
             ) : (
+              <TourTarget id="ticket-purchase-promo">
               <View style={styles.discountInputRowE}>
                 <TextInput
                   style={[
@@ -1005,6 +1035,7 @@ export default function TicketPurchaseScreen() {
                   )}
                 </TouchableOpacity>
               </View>
+              </TourTarget>
             )}
             {discountError && (
               <View style={[styles.discountErrorBox, { backgroundColor: '#FEF2F2' }]}>
