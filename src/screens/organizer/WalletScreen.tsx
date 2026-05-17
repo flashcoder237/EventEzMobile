@@ -168,7 +168,12 @@ export default function WalletScreen() {
         });
 
         try {
-          const methodsRes = await payoutsAPI.getAvailableMethods();
+          // Pass walletData.country explicitly — the backend falls back to
+          // wallet.country if no query param is given, but being explicit
+          // here guarantees the right operator list even if the wallet
+          // country was set after creation (e.g. organizer moved countries)
+          // or if the wallet doesn't exist yet.
+          const methodsRes = await payoutsAPI.getAvailableMethods(walletData?.country);
           const methods = (methodsRes.data?.methods || []).filter(
             (m: any) => m.type === 'mobile_money' || m.type === 'bank_transfer'
           );
@@ -1118,34 +1123,58 @@ export default function WalletScreen() {
                 </View>
 
                 <View style={styles.inputGroupE}>
-                  <Text style={[styles.inputLabelE, { color: colors.gray600 }]}>{t('organizer.wallet.operatorLabel')}</Text>
-                  <View style={styles.methodsRowE}>
-                    {availableMethods
-                      .filter((m: any) => m.type === 'mobile_money')
-                      .map((option: any) => {
-                        const isActive = bankDetails.mobile_money_provider === option.id;
-                        return (
-                          <TouchableOpacity
-                            key={option.id}
-                            style={[
-                              styles.methodChip,
-                              isActive
-                                ? { backgroundColor: colors.primary, borderColor: colors.primary, ...Shadows.buttonPrimary }
-                                : { backgroundColor: colors.card, borderColor: softBorder },
-                            ]}
-                            onPress={() => setBankDetails({ ...bankDetails, mobile_money_provider: option.id })}
-                            activeOpacity={0.85}
-                          >
-                            <Text style={[
-                              styles.methodChipText,
-                              { color: isActive ? Colors.white : colors.gray700 },
-                            ]}>
-                              {option.name}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
+                  <View style={styles.operatorLabelRow}>
+                    <Text style={[styles.inputLabelE, { color: colors.gray600 }]}>{t('organizer.wallet.operatorLabel')}</Text>
+                    {wallet?.country && (
+                      <View style={[styles.operatorCountryPill, { backgroundColor: colors.primary + '15' }]}>
+                        <Ionicons name="flag" size={9} color={colors.primary} />
+                        <Text style={[styles.operatorCountryText, { color: colors.primary }]}>
+                          {wallet.country}
+                        </Text>
+                      </View>
+                    )}
                   </View>
+                  {(() => {
+                    const mmOptions = availableMethods.filter((m: any) => m.type === 'mobile_money');
+                    if (mmOptions.length === 0) {
+                      return (
+                        <View style={[styles.operatorEmptyHint, { borderColor: softBorder }]}>
+                          <Text style={[styles.operatorEmptyText, { color: colors.gray500 }]}>
+                            {t('organizer.wallet.operatorNoneForCountry', {
+                              country: wallet?.country || '—',
+                            })}
+                          </Text>
+                        </View>
+                      );
+                    }
+                    return (
+                      <View style={styles.methodsRowE}>
+                        {mmOptions.map((option: any) => {
+                          const isActive = bankDetails.mobile_money_provider === option.id;
+                          return (
+                            <TouchableOpacity
+                              key={option.id}
+                              style={[
+                                styles.methodChip,
+                                isActive
+                                  ? { backgroundColor: colors.primary, borderColor: colors.primary, ...Shadows.buttonPrimary }
+                                  : { backgroundColor: colors.card, borderColor: softBorder },
+                              ]}
+                              onPress={() => setBankDetails({ ...bankDetails, mobile_money_provider: option.id })}
+                              activeOpacity={0.85}
+                            >
+                              <Text style={[
+                                styles.methodChipText,
+                                { color: isActive ? Colors.white : colors.gray700 },
+                              ]}>
+                                {option.name}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    );
+                  })()}
                 </View>
               </View>
 
@@ -2497,6 +2526,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+  },
+  operatorLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    // Note: marginBottom est porté par inputLabelE — ne pas dupliquer ici
+    // sinon le label opérateur a un gap plus grand que les autres.
+  },
+  operatorCountryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  operatorCountryText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 0.5,
+  },
+  operatorEmptyHint: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  operatorEmptyText: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    lineHeight: 16,
   },
   methodChip: {
     flexDirection: 'row',
