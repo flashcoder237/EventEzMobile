@@ -85,9 +85,11 @@ export default function MyEventsScreen() {
   // Fire the organizer tour on first arrival. The seenKey persists in
   // AsyncStorage, so it won't replay on subsequent visits. The mainTabs tour
   // covers the bottom nav separately; this one focuses on this screen's
-  // organizer-specific actions.
+  // organizer-specific actions. The isActive check avoids stomping on the
+  // mainTabs tour if a deep link brings the user straight here.
   React.useEffect(() => {
     const timer = setTimeout(() => {
+      if (tour.isActive) return;
       tour.start(getOrganizerTourSteps(t), { seenKey: ORGANIZER_TOUR_STORAGE_KEY });
     }, ORGANIZER_TOUR_DELAY_MS);
     return () => clearTimeout(timer);
