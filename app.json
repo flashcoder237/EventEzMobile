@@ -105,6 +105,12 @@
       "expo-secure-store",
       "expo-apple-authentication",
       [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.163496687935-9nv0q3dgrktseukr4meoomb8rk5lqd6g"
+        }
+      ],
+      [
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Permet à EventEz d'accéder à votre position pour trouver des événements à proximité."
