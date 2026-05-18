@@ -29,6 +29,11 @@ export interface SupportedCountry {
 
 export const INTL_CODE = 'INTL';
 
+/**
+ * Liste des pays supportes. Les `name` ici servent de fallback (locales non
+ * couvertes par i18n) — l'affichage passe TOUJOURS par `t('country.${code}')`
+ * pour respecter la langue active. Voir `getCountryDisplayName()` ci-dessous.
+ */
 export const SUPPORTED_COUNTRIES: SupportedCountry[] = [
   // ===== Pays NotchPay (Mobile Money africain) =====
   { code: 'CM',       name: 'Cameroun',       currency: 'XAF', flag: '🇨🇲' },
@@ -101,6 +106,18 @@ export const SUPPORTED_COUNTRIES: SupportedCountry[] = [
 
 export function getCountryByCode(code: string): SupportedCountry | undefined {
   return SUPPORTED_COUNTRIES.find((c) => c.code === code.toUpperCase());
+}
+
+/**
+ * Resolveur de nom localise pour un pays. Lit la traduction `country.${code}`
+ * et fallback sur le `name` historique si la cle manque dans la locale.
+ */
+export function getCountryDisplayName(
+  country: SupportedCountry,
+  t: (key: string, opts?: any) => string,
+): string {
+  const translated = t(`country.${country.code}`, { defaultValue: '' });
+  return translated || country.name;
 }
 
 /**
@@ -191,12 +208,12 @@ export default function CountryBadgeSelector({
             },
           ]}
           accessibilityRole="button"
-          accessibilityLabel={t('componentsPayment.countryA11y', { name: current.name })}
+          accessibilityLabel={t('componentsPayment.countryA11y', { name: getCountryDisplayName(current, t) })}
         >
           <Text style={styles.flag}>{current.flag}</Text>
           <View style={styles.badgeText}>
             <Text style={[styles.badgeName, { color: colors.gray900 }]} numberOfLines={1}>
-              {current.name}
+              {getCountryDisplayName(current, t)}
             </Text>
             {current.currency ? (
               <Text style={[styles.badgeCurrency, { color: colors.gray500 }]}>
@@ -264,12 +281,12 @@ export default function CountryBadgeSelector({
                   onPress={() => handleSelect(homeCode)}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: homeCode === current.code }}
-                  accessibilityLabel={homeCountryObj.name}
+                  accessibilityLabel={getCountryDisplayName(homeCountryObj, t)}
                 >
                   <Text style={styles.quickFlag}>{homeCountryObj.flag}</Text>
                   <View style={styles.quickInfo}>
                     <Text style={[styles.quickName, { color: colors.gray900 }]}>
-                      {homeCountryObj.name}
+                      {getCountryDisplayName(homeCountryObj, t)}
                     </Text>
                     <Text style={[styles.quickHint, { color: colors.gray500 }]}>
                       {t('componentsPayment.currencyLabel', { currency: homeCountryObj.currency })}
@@ -307,17 +324,16 @@ export default function CountryBadgeSelector({
               </>
             )}
 
-            {/* Liste complete triee : pays par ordre alphabetique (locale-aware
-                via Intl.Collator pour gerer correctement les accents : Bénin,
-                Côte d'Ivoire, Émirats, etc.), INTL "Autre pays" toujours en
-                fin. On trie a chaque render — le coût est negligeable (~50
-                items) et evite de figer l'ordre dans un useMemo qui devrait
-                etre invalidé sur changement de locale. */}
+            {/* Liste complete triee : pays par ordre alphabetique selon la
+                LANGUE COURANTE (le tri suit le nom traduit, pas le `name`
+                statique FR). INTL "Autre pays" toujours en fin. */}
             {showFullList && [...SUPPORTED_COUNTRIES]
               .sort((a, b) => {
                 if (a.code === INTL_CODE) return 1;
                 if (b.code === INTL_CODE) return -1;
-                return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+                const nameA = getCountryDisplayName(a, t);
+                const nameB = getCountryDisplayName(b, t);
+                return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
               })
               .map((country) => {
               const selected = country.code === current.code;
@@ -334,12 +350,12 @@ export default function CountryBadgeSelector({
                   onPress={() => handleSelect(country.code)}
                   accessibilityRole="radio"
                   accessibilityState={{ selected }}
-                  accessibilityLabel={country.name}
+                  accessibilityLabel={getCountryDisplayName(country, t)}
                 >
                   <Text style={styles.itemFlag}>{country.flag}</Text>
                   <View style={styles.itemInfo}>
                     <Text style={[styles.itemName, { color: colors.gray900 }]}>
-                      {country.name}
+                      {getCountryDisplayName(country, t)}
                     </Text>
                     <Text style={[styles.itemCurrency, { color: colors.gray500 }]}>
                       {country.code === INTL_CODE

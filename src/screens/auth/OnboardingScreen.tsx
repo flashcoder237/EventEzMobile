@@ -127,14 +127,15 @@ interface Props {
 export default function OnboardingScreen({ onComplete }: Props) {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [index, setIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
   // Hints regionaux lus une seule fois au mount — la region device ne change
-  // pas en cours de session. `null` = pas de mapping pour cette region → on
-  // affichera le body neutre par defaut.
-  const regionalHints = useRef(getRegionalSlideHints()).current;
+  // pas en cours de session. La langue actuelle est passee pour selectionner
+  // les variantes FR/EN (Hambourg/Hamburg, Lisbonne/Lisbon, etc.).
+  // `null` = pas de mapping pour cette region → body neutre par defaut.
+  const regionalHints = useRef(getRegionalSlideHints(i18n.language)).current;
 
   // Pulsing coral dot in header (was the only animation on the original screen)
   const pulseScale = useSharedValue(1);

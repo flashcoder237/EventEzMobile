@@ -782,7 +782,7 @@ export default function PaymentScreen() {
       // Valider l'email (requis par le backend)
       const userEmail = user?.email;
       if (!userEmail) {
-        throw new Error('Email utilisateur non disponible. Reconnecte-toi.');
+        throw new Error(t('payment.errorEmailMissing'));
       }
 
       // ===== Branche /api/payments/initiate/ unifie =====
@@ -1045,7 +1045,7 @@ export default function PaymentScreen() {
       // Même si l'annulation échoue côté serveur, on arrête le processing
       setProcessing(false);
 
-      const errorMessage = extractErrorMessage(error.response?.data, 'Impossible d\'annuler le paiement');
+      const errorMessage = extractErrorMessage(error.response?.data, t('payment.errorCancelFailed'));
       showError(t('common.error'), errorMessage);
     }
   };
