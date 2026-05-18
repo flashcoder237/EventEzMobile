@@ -134,6 +134,12 @@ export default function EventCreateScreen() {
     addSession,
     updateSession,
     removeSession,
+    addTrack,
+    updateTrack,
+    removeTrack,
+    addSpeaker,
+    updateSpeaker,
+    removeSpeaker,
     handleAIGenerate,
     handleAIApply,
     handleOptimizeTitle,
@@ -758,6 +764,14 @@ export default function EventCreateScreen() {
                 onAddSession={addSession}
                 onUpdateSession={updateSession}
                 onRemoveSession={removeSession}
+                tracks={form.tracks}
+                onAddTrack={addTrack}
+                onUpdateTrack={updateTrack}
+                onRemoveTrack={removeTrack}
+                speakers={form.speakers}
+                onAddSpeaker={addSpeaker}
+                onUpdateSpeaker={updateSpeaker}
+                onRemoveSpeaker={removeSpeaker}
               />
             )}
           </KeyboardAwareScrollView>

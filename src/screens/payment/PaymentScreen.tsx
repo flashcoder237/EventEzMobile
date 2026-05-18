@@ -238,6 +238,9 @@ interface PaymentMethodOption {
   type?: string;
   /** Plafond par transaction ou null si pas de limite. */
   maxAmount?: number | null;
+  /** Passerelle qui traitera ce paiement (parite admin → user pour
+      transparence). Lue depuis `selected_provider` du backend. */
+  provider?: 'notchpay' | 'cinetpay' | 'stripe' | null;
 }
 
 function formatMoney(amount: number, currency: string): string {
@@ -564,6 +567,7 @@ export default function PaymentScreen() {
               channel: m.channel,
               type: m.type,
               maxAmount: m.max_amount != null ? Number(m.max_amount) : null,
+              provider: (m as any).selected_provider ?? null,
             };
           });
           setDynamicMethods(methods);
@@ -1495,6 +1499,9 @@ export default function PaymentScreen() {
                 countryCode={payerCountry}
                 onChange={handleCountryChange}
                 disabled={processing || cancelling}
+                // Pays "home" du payeur pour la card rapide en tete de
+                // bottom sheet — locale device, sinon fallback CM.
+                homeCountry={detectUserCountry() || 'CM'}
               />
 
               {methodsFetchFailed && (
@@ -1598,7 +1605,46 @@ export default function PaymentScreen() {
 
                     {/* Info */}
                     <View style={styles.methodInfoE}>
-                      <Text style={[styles.methodNameE, { color: colors.text }]}>{method.name}</Text>
+                      <View style={styles.methodNameRowE}>
+                        <Text style={[styles.methodNameE, { color: colors.text }]} numberOfLines={1}>
+                          {method.name}
+                        </Text>
+                        {/* Badge passerelle : transparence sur quelle plateforme
+                            traite la transaction. 3 couleurs alignees avec
+                            l'admin (emerald/violet/indigo). */}
+                        {method.provider && (
+                          <View
+                            style={[
+                              styles.providerBadgeE,
+                              method.provider === 'cinetpay'
+                                ? { backgroundColor: '#EDE9FE' }
+                                : method.provider === 'stripe'
+                                  ? { backgroundColor: '#E0E7FF' }
+                                  : { backgroundColor: '#D1FAE5' },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.providerBadgeTextE,
+                                {
+                                  color:
+                                    method.provider === 'cinetpay'
+                                      ? '#6D28D9'
+                                      : method.provider === 'stripe'
+                                        ? '#4338CA'
+                                        : '#047857',
+                                },
+                              ]}
+                            >
+                              {method.provider === 'cinetpay'
+                                ? 'CinetPay'
+                                : method.provider === 'stripe'
+                                  ? 'Stripe'
+                                  : 'NotchPay'}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                       {overLimit ? (
                         <Text style={[styles.methodDescriptionE, { color: '#B45309' }]} numberOfLines={2}>
                           Plafond&nbsp;: {formatMoney(method.maxAmount!, eventCurrencyCode)} {eventCurrencyLabel}. Utilisez une carte.
@@ -2558,11 +2604,29 @@ const styles = StyleSheet.create({
   methodInfoE: {
     flex: 1,
   },
+  methodNameRowE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
   methodNameE: {
     fontFamily: FontFamily.displayExtraBold,
     fontSize: 14,
     letterSpacing: -0.4,
     lineHeight: 18,
+    flexShrink: 1,
+  },
+  providerBadgeE: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  providerBadgeTextE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
   methodDescriptionE: {
     fontFamily: FontFamily.regular,

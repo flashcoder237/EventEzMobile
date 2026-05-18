@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,9 @@ import {
   TouchableWithoutFeedback,
   Pressable,
   ScrollView,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Reanimated from 'react-native-reanimated';
@@ -110,28 +113,60 @@ export function getEventCurrency(eventCountryCode: string | undefined): string {
   return match?.currency || 'EUR';
 }
 
+// Activer LayoutAnimation sur Android (no-op iOS)
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 interface CountryBadgeSelectorProps {
   countryCode: string;
   onChange: (code: string) => void;
   disabled?: boolean;
+  /** Pays "home" du payeur (detecte depuis la locale device ou le profil
+      utilisateur). Affiche en premier dans la bottom sheet pour minimiser
+      le scroll dans 95% des cas. Si non fourni, fallback sur countryCode. */
+  homeCountry?: string;
 }
 
 export default function CountryBadgeSelector({
   countryCode,
   onChange,
   disabled = false,
+  homeCountry,
 }: CountryBadgeSelectorProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [visible, setVisible] = useState(false);
+  // Mode liste complete : false par defaut, l'user voit 2 cards rapides
+  // (son pays + Autre pays). Au tap sur Autre pays → expand vers la liste.
+  const [showFullList, setShowFullList] = useState(false);
   const { modalOpen, sheetAnim, backdropAnim } = useBottomSheetAnim(visible);
 
   const current = getCountryByCode(countryCode) || SUPPORTED_COUNTRIES[0];
+  // Pays "home" : prop fournie, sinon fallback sur le code actuel. Si ce
+  // dernier est INTL (donc l'user a deja choisi "Autre pays"), on retombe
+  // sur CM par defaut pour ne pas afficher une card INTL en premiere place.
+  const homeCode = (homeCountry || (current.code !== INTL_CODE ? current.code : 'CM')).toUpperCase();
+  const homeCountryObj = getCountryByCode(homeCode) || SUPPORTED_COUNTRIES[0];
+
+  // Reset le mode liste quand la bottom sheet se ferme.
+  useEffect(() => {
+    if (!visible) {
+      // Petit delai pour ne pas voir le toggle pendant l'animation de fermeture.
+      const t = setTimeout(() => setShowFullList(false), 250);
+      return () => clearTimeout(t);
+    }
+  }, [visible]);
 
   const handleSelect = (code: string) => {
     onChange(code);
     setVisible(false);
+  };
+
+  const handleExpandFullList = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowFullList(true);
   };
 
   return (
@@ -212,7 +247,79 @@ export default function CountryBadgeSelector({
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
           >
-            {SUPPORTED_COUNTRIES.map((country) => {
+            {/* Mode rapide : 2 grosses cards (pays detecte + Autre pays).
+                Quand l'user tape Autre pays, la liste complete se deroule
+                en dessous via LayoutAnimation. */}
+            {!showFullList && (
+              <>
+                {/* Card 1 : pays "home" (detecte) */}
+                <TouchableOpacity
+                  style={[
+                    styles.quickCard,
+                    {
+                      backgroundColor: homeCode === current.code ? colors.primaryBg : colors.card,
+                      borderColor: homeCode === current.code ? colors.primary : colors.gray200,
+                    },
+                  ]}
+                  onPress={() => handleSelect(homeCode)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: homeCode === current.code }}
+                  accessibilityLabel={homeCountryObj.name}
+                >
+                  <Text style={styles.quickFlag}>{homeCountryObj.flag}</Text>
+                  <View style={styles.quickInfo}>
+                    <Text style={[styles.quickName, { color: colors.gray900 }]}>
+                      {homeCountryObj.name}
+                    </Text>
+                    <Text style={[styles.quickHint, { color: colors.gray500 }]}>
+                      {t('componentsPayment.currencyLabel', { currency: homeCountryObj.currency })}
+                    </Text>
+                  </View>
+                  {homeCode === current.code && (
+                    <Ionicons name="checkmark-circle" size={26} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+
+                {/* Card 2 : Autre pays — expand la liste complete au tap */}
+                <TouchableOpacity
+                  style={[
+                    styles.quickCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.gray200,
+                    },
+                  ]}
+                  onPress={handleExpandFullList}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('componentsPayment.otherCountryCta')}
+                >
+                  <Text style={styles.quickFlag}>🌍</Text>
+                  <View style={styles.quickInfo}>
+                    <Text style={[styles.quickName, { color: colors.gray900 }]}>
+                      {t('componentsPayment.otherCountryCta')}
+                    </Text>
+                    <Text style={[styles.quickHint, { color: colors.gray500 }]}>
+                      {t('componentsPayment.otherCountryHint')}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={22} color={colors.gray400} />
+                </TouchableOpacity>
+              </>
+            )}
+
+            {/* Liste complete triee : pays par ordre alphabetique (locale-aware
+                via Intl.Collator pour gerer correctement les accents : Bénin,
+                Côte d'Ivoire, Émirats, etc.), INTL "Autre pays" toujours en
+                fin. On trie a chaque render — le coût est negligeable (~50
+                items) et evite de figer l'ordre dans un useMemo qui devrait
+                etre invalidé sur changement de locale. */}
+            {showFullList && [...SUPPORTED_COUNTRIES]
+              .sort((a, b) => {
+                if (a.code === INTL_CODE) return 1;
+                if (b.code === INTL_CODE) return -1;
+                return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+              })
+              .map((country) => {
               const selected = country.code === current.code;
               return (
                 <TouchableOpacity
@@ -355,6 +462,31 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 1.5,
     gap: Spacing.md,
+  },
+  quickCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    gap: Spacing.md,
+  },
+  quickFlag: {
+    fontSize: 36,
+  },
+  quickInfo: {
+    flex: 1,
+  },
+  quickName: {
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.bold,
+    letterSpacing: -0.3,
+    marginBottom: 4,
+  },
+  quickHint: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
   },
   itemFlag: {
     fontSize: 28,

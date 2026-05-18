@@ -95,6 +95,9 @@ export function useEventFormCollections({
       tags: [],
       level: 'all',
       language: 'fr',
+      track_index: null,
+      speaker_indices: [],
+      moderator_index: null,
     }]);
   }, [setSessions]);
 

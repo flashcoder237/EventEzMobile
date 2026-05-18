@@ -3,9 +3,11 @@ import {
   eventsAPI,
   ticketTypesAPI,
   sessionsAPI,
+  tracksAPI,
+  speakersAPI,
 } from '../api';
 import { Tag } from '../types';
-import type { EventFormState, AlertActions } from './useEventForm';
+import type { EventFormState, AlertActions, TrackForm, SpeakerForm } from './useEventForm';
 
 export function useEventFormSubmit(
   form: EventFormState,
@@ -23,11 +25,19 @@ export function useEventFormSubmit(
         : await eventsAPI.createEvent(formData);
       const eventId = response.data.id;
 
+      // Tracks et Speakers doivent etre crees AVANT les sessions (qui les
+      // referencent par UUID). On les fait en parallele pour gagner du temps,
+      // puis on resout les UUIDs et on POST les sessions.
+      const [trackIdMap, speakerIdMap] = await Promise.all([
+        createTracks(eventId, form.tracks),
+        createSpeakers(eventId, form.speakers),
+      ]);
+
       await Promise.all([
         uploadGalleryImages(eventId, form.galleryImages),
         createTicketTypes(eventId, form),
         createFormFields(eventId, form),
-        createSessions(eventId, form.sessions),
+        createSessions(eventId, form.sessions, trackIdMap, speakerIdMap),
       ]);
 
       // Soumettre pour validation uniquement à la création (pas à l'édition).
@@ -183,10 +193,98 @@ async function createFormFields(eventId: string, form: EventFormState): Promise<
   ));
 }
 
-async function createSessions(eventId: string, sessions: EventFormState['sessions']): Promise<void> {
+/**
+ * Cree les tracks de l'event en parallele et retourne un mapping
+ * index_local → UUID serveur. Permet aux sessions de referencer le bon
+ * track_id via leur `track_index` cote form state.
+ */
+async function createTracks(eventId: string, tracks: TrackForm[]): Promise<Record<number, string>> {
+  if (tracks.length === 0) return {};
+  // On garde l'ordre via le couple (index, promise) pour pouvoir mapper apres.
+  const responses = await Promise.all(tracks.map((track, idx) =>
+    tracksAPI.createTrack({
+      event: eventId,
+      name: track.name,
+      description: track.description || '',
+      color: track.color || '#4F46E5',
+      order: idx,
+    }).then(res => ({ idx, id: String((res.data as any).id) }))
+  ));
+  const map: Record<number, string> = {};
+  for (const { idx, id } of responses) map[idx] = id;
+  return map;
+}
+
+/**
+ * Idem pour les speakers : POST en parallele + retour mapping
+ * index_local → UUID serveur (pour speaker_indices et moderator_index).
+ */
+async function createSpeakers(eventId: string, speakers: SpeakerForm[]): Promise<Record<number, string>> {
+  if (speakers.length === 0) return {};
+  const responses = await Promise.all(speakers.map((speaker, idx) =>
+    speakersAPI.createSpeaker({
+      event: eventId,
+      first_name: speaker.first_name,
+      last_name: speaker.last_name,
+      title: speaker.title || '',
+      company: speaker.company || '',
+      bio: speaker.bio || '',
+      email: speaker.email || '',
+      phone: speaker.phone || '',
+      website: speaker.website || '',
+      linkedin: speaker.linkedin || '',
+      twitter: speaker.twitter || '',
+      order: idx,
+    }).then(res => ({ idx, id: String((res.data as any).id), speaker }))
+  ));
+
+  const map: Record<number, string> = {};
+  for (const { idx, id } of responses) map[idx] = id;
+
+  // Upload photos en parallele apres creation. Une photo absente ou
+  // pre-existante (URL https) n'est pas re-uploadee. Un echec n'arrete
+  // pas le submit — le speaker est cree, juste sans photo.
+  await Promise.all(responses.map(({ id, speaker }) => {
+    const uri = speaker.photo;
+    if (!uri || !uri.startsWith('file:')) return Promise.resolve();
+    const formData = new FormData();
+    // RN-style file payload : { uri, name, type }
+    formData.append('photo', {
+      uri,
+      name: `speaker_${id}.jpg`,
+      type: 'image/jpeg',
+    } as any);
+    return speakersAPI.uploadPhoto(id, formData).catch((err) => {
+      if (__DEV__) console.warn('[Speaker] photo upload failed', id, err);
+    });
+  }));
+
+  return map;
+}
+
+async function createSessions(
+  eventId: string,
+  sessions: EventFormState['sessions'],
+  trackIdMap: Record<number, string>,
+  speakerIdMap: Record<number, string>,
+): Promise<void> {
   if (sessions.length === 0) return;
-  await Promise.all(sessions.map(session =>
-    sessionsAPI.createSession({
+  await Promise.all(sessions.map(session => {
+    // Resoudre les refs locales → UUIDs serveur. Si un index est null/undefined
+    // ou hors-bornes (= entite supprimee entretemps mais ref non nettoyee, ou
+    // session chargee en mode edition sans ces champs), on tombe sur null/[]
+    // proprement. `!= null` (et non `!== null`) couvre aussi le cas undefined.
+    const trackId = session.track_index != null
+      ? (trackIdMap[session.track_index] || null)
+      : null;
+    const speakerIds = (session.speaker_indices || [])
+      .map(i => speakerIdMap[i])
+      .filter((id): id is string => !!id);
+    const moderatorId = session.moderator_index != null
+      ? (speakerIdMap[session.moderator_index] || null)
+      : null;
+
+    return sessionsAPI.createSession({
       event: eventId,
       title: session.title,
       description: session.description,
@@ -206,6 +304,11 @@ async function createSessions(eventId: string, sessions: EventFormState['session
       tags: session.tags || [],
       level: session.level || 'all',
       language: session.language || 'fr',
-    })
-  ));
+      // Nouveaux liens agenda : seulement si non-null pour eviter d'ecraser
+      // avec null cote serveur quand l'organisateur ne les utilise pas.
+      ...(trackId ? { track: trackId } : {}),
+      ...(speakerIds.length > 0 ? { speakers: speakerIds } : {}),
+      ...(moderatorId ? { moderator: moderatorId } : {}),
+    });
+  }));
 }

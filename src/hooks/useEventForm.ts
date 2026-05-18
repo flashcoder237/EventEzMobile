@@ -63,10 +63,43 @@ export interface SessionForm {
   is_featured: boolean;
   slides_url: string;
   recording_url: string;
-  resources: string[];
+  // resources : liste de {title, url} (backend Session.resources JSONField).
+  // Format aligne sur ce que /sessions/ accepte directement (pas SessionResource
+  // qui est un modele distinct avec download tracking).
+  resources: SessionResourceForm[];
   tags: string[];
   level: string;
   language: string;
+  // Reference locale (index de tracks[]/speakers[] cote form) → resolue au
+  // submit en vraies UUIDs serveur. null = pas de track / pas de moderator.
+  track_index: number | null;
+  speaker_indices: number[];
+  moderator_index: number | null;
+}
+
+export interface TrackForm {
+  name: string;
+  description: string;
+  color: string;
+}
+
+export interface SpeakerForm {
+  first_name: string;
+  last_name: string;
+  title: string;       // poste (CEO, Lead Designer, ...)
+  company: string;
+  bio: string;
+  email: string;
+  phone: string;
+  website: string;
+  linkedin: string;
+  twitter: string;     // handle sans @
+  photo: string;       // URI local (file://...) → upload via PATCH au submit
+}
+
+export interface SessionResourceForm {
+  title: string;
+  url: string;
 }
 
 export interface EventFormState {
@@ -119,7 +152,9 @@ export interface EventFormState {
   visibility: 'public' | 'unlisted' | 'invite_only';
   accessCode: string;
 
-  // Step 4 - Sessions
+  // Step 4 - Sessions (avec entites agenda : tracks et speakers)
+  tracks: TrackForm[];
+  speakers: SpeakerForm[];
   sessions: SessionForm[];
 
   // Reference Data
@@ -214,6 +249,12 @@ export interface UseEventFormReturn {
   addSession: () => void;
   updateSession: (index: number, field: string, value: any) => void;
   removeSession: (index: number) => void;
+  addTrack: () => void;
+  updateTrack: (index: number, field: string, value: any) => void;
+  removeTrack: (index: number) => void;
+  addSpeaker: () => void;
+  updateSpeaker: (index: number, field: string, value: any) => void;
+  removeSpeaker: (index: number) => void;
   handleAIGenerate: (prompt: string) => Promise<void>;
   handleAIApply: (data: AIGeneratedEvent) => void;
   handleOptimizeTitle: () => Promise<void>;
@@ -312,7 +353,9 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
   const [visibility, setVisibility] = useState<'public' | 'unlisted' | 'invite_only'>('public');
   const [accessCode, setAccessCode] = useState('');
 
-  // Step 4 - Sessions
+  // Step 4 - Sessions + agenda entities
+  const [tracks, setTracks] = useState<TrackForm[]>([]);
+  const [speakers, setSpeakers] = useState<SpeakerForm[]>([]);
   const [sessions, setSessions] = useState<SessionForm[]>([]);
 
   // Step validation errors — populated when goToNextStep fails. Les
@@ -344,7 +387,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
     locationLatitude, locationLongitude, showMapPicker,
     isFree, maxParticipants, autoApproveRegistrations, feeBearer,
     ticketTypes, formFields, showFormFieldsForBilletterie,
-    visibility, accessCode, sessions, categories, availableTags,
+    visibility, accessCode, sessions, tracks, speakers, categories, availableTags,
     aiEnabled, aiLoading, aiResult, aiError, aiUsage,
     aiTitleLoading, aiDescLoading, aiPricingLoading,
     stepErrors,
@@ -680,6 +723,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
       requires_registration: true, is_featured: false,
       slides_url: '', recording_url: '', resources: [], tags: [],
       level: 'all', language: 'fr',
+      track_index: null, speaker_indices: [], moderator_index: null,
     }]);
   }, []);
 
@@ -689,6 +733,54 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
 
   const removeSession = useCallback((index: number) => {
     setSessions(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  // ── Tracks ──
+  const addTrack = useCallback(() => {
+    setTracks(prev => [...prev, {
+      name: '', description: '', color: '#4F46E5',
+    }]);
+  }, []);
+  const updateTrack = useCallback((index: number, field: string, value: any) => {
+    setTracks(prev => { const u = [...prev]; u[index] = { ...u[index], [field]: value }; return u; });
+  }, []);
+  const removeTrack = useCallback((index: number) => {
+    // Quand on retire un track, on doit aussi reset track_index sur les
+    // sessions qui le referencaient (sinon UUID dangling au submit).
+    setTracks(prev => prev.filter((_, i) => i !== index));
+    setSessions(prev => prev.map(s => {
+      if (s.track_index === index) return { ...s, track_index: null };
+      // Reindex : si le track supprime etait avant celui pointe, decremente.
+      if (s.track_index !== null && s.track_index > index) {
+        return { ...s, track_index: s.track_index - 1 };
+      }
+      return s;
+    }));
+  }, []);
+
+  // ── Speakers ──
+  const addSpeaker = useCallback(() => {
+    setSpeakers(prev => [...prev, {
+      first_name: '', last_name: '', title: '', company: '',
+      bio: '', email: '', phone: '', website: '', linkedin: '', twitter: '',
+      photo: '',
+    }]);
+  }, []);
+  const updateSpeaker = useCallback((index: number, field: string, value: any) => {
+    setSpeakers(prev => { const u = [...prev]; u[index] = { ...u[index], [field]: value }; return u; });
+  }, []);
+  const removeSpeaker = useCallback((index: number) => {
+    // Idem : retirer les references dans toutes les sessions.
+    setSpeakers(prev => prev.filter((_, i) => i !== index));
+    setSessions(prev => prev.map(s => {
+      const nextSpeakerIndices = s.speaker_indices
+        .filter(i => i !== index)
+        .map(i => (i > index ? i - 1 : i));
+      let nextModeratorIndex: number | null = s.moderator_index;
+      if (nextModeratorIndex === index) nextModeratorIndex = null;
+      else if (nextModeratorIndex !== null && nextModeratorIndex > index) nextModeratorIndex -= 1;
+      return { ...s, speaker_indices: nextSpeakerIndices, moderator_index: nextModeratorIndex };
+    }));
   }, []);
 
   // ============================================
@@ -760,7 +852,21 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
     if (data.showFormFieldsForBilletterie !== undefined) setShowFormFieldsForBilletterie(data.showFormFieldsForBilletterie);
     if (data.visibility !== undefined) setVisibility(data.visibility);
     if (data.accessCode !== undefined) setAccessCode(data.accessCode);
-    if (data.sessions !== undefined) setSessions(data.sessions);
+    if (data.sessions !== undefined) {
+      // Normalisation defensive : un draft AsyncStorage cree avant l'ajout
+      // des champs track_index/speaker_indices/moderator_index/resources peut
+      // ne pas les contenir. Sans defaut explicite, le rendu crash sur
+      // `.includes()` ou `.length` d'undefined dans EventStep4Sessions.
+      setSessions(data.sessions.map(s => ({
+        ...s,
+        track_index: s.track_index ?? null,
+        speaker_indices: Array.isArray(s.speaker_indices) ? s.speaker_indices : [],
+        moderator_index: s.moderator_index ?? null,
+        resources: Array.isArray(s.resources) ? s.resources : [],
+      })));
+    }
+    if (data.tracks !== undefined) setTracks(data.tracks);
+    if (data.speakers !== undefined) setSpeakers(data.speakers);
   }, []);
 
   // Load event data for edit mode
@@ -837,6 +943,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
     setOnlineMeetingId(''); setOnlinePasscode('');
     setIsFree(false); setFeeBearer('participant'); setMaxParticipants('');
     setTicketTypes([]); setFormFields([]); setSessions([]);
+    setTracks([]); setSpeakers([]);
     setShowFormFieldsForBilletterie(false);
   }, []);
 
@@ -866,6 +973,8 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
     addFormField, updateFormField, removeFormField,
     setShowFormFieldsForBilletterie, setFormFields, setTicketTypes,
     addSession, updateSession, removeSession,
+    addTrack, updateTrack, removeTrack,
+    addSpeaker, updateSpeaker, removeSpeaker,
     handleAIGenerate, handleAIApply, handleOptimizeTitle, handleGenerateDescription, handleSuggestPricing,
     handleSubmit: handleSubmitWithLoading,
     resetForm, hydrateForm,
