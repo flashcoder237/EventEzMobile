@@ -159,8 +159,11 @@ interface MessageBubbleProps {
   playingVoiceId?: string | null;
   voicePlayback?: VoicePlaybackState | null;
   uploadingAttachmentIds?: Set<string>;
+  /** Sous-ensemble des uploads jugés lents (> 5s). Overlay affiche un message
+      "Connexion lente" pour rassurer l'user que l'envoi est encore en cours. */
+  slowUploadAttachmentIds?: Set<string>;
   onLongPress: (message: Message) => void;
-  onPlayVoice?: (uri: string, messageId: string) => void;
+  onPlayVoice?: (uri: string, messageId: string, attachmentId?: string) => void;
   /** Seek a une position 0..1 dans le voice en cours de lecture (meme message
       uniquement — sinon, lance la lecture). */
   onSeekVoice?: (messageId: string, ratio: number) => void;
@@ -307,7 +310,7 @@ const VoiceAttachment = memo(function VoiceAttachment({
         activeOpacity={0.85}
         onPress={onSeek ? handleWaveformPress : onPress}
         onLayout={(e) => { waveformWidthRef.current = e.nativeEvent.layout.width; }}
-        accessibilityLabel={t('componentsMessages.voiceSeek') || 'Seek'}
+        accessibilityLabel={t('componentsMessages.voiceSeek')}
       >
         {waveformHeights.map((h, i) => {
           const barRatio = (i + 0.5) / WAVEFORM_BARS;
@@ -342,7 +345,7 @@ const VoiceAttachment = memo(function VoiceAttachment({
           onPress={onSkipForward}
           style={[styles.voiceSkipBtn, { borderColor: textColor }]}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-          accessibilityLabel={t('componentsMessages.voiceSkip15') || 'Skip 15s'}
+          accessibilityLabel={t('componentsMessages.voiceSkip15')}
         >
           <Text style={[styles.voiceSkipText, { color: textColor }]}>+15</Text>
         </TouchableOpacity>
@@ -368,6 +371,7 @@ function MessageBubble({
   playingVoiceId,
   voicePlayback,
   uploadingAttachmentIds,
+  slowUploadAttachmentIds,
   onLongPress,
   onSeekVoice,
   onSkipForward,
@@ -676,6 +680,9 @@ function MessageBubble({
   // Render Attachment
   const renderAttachment = (attachment: any, index: number) => {
     const isUploading = !!(attachment.id && uploadingAttachmentIds?.has(String(attachment.id)));
+    // C. Si l'upload est jugé lent, on affiche un message rassurant en plus
+    // du spinner — sinon l'user se demande si quelque chose se passe vraiment.
+    const isSlow = isUploading && !!(attachment.id && slowUploadAttachmentIds?.has(String(attachment.id)));
 
     if (attachment.attachment_type === 'image') {
       // Index dans le tableau d'images (pour ouvrir le viewer au bon endroit)
@@ -704,6 +711,11 @@ function MessageBubble({
           {isUploading && (
             <View style={styles.uploadOverlay}>
               <ActivityIndicator size="small" color={Colors.white} />
+              {isSlow && (
+                <Text style={styles.uploadSlowText}>
+                  {t('conversation.voiceUploadSlow')}
+                </Text>
+              )}
             </View>
           )}
         </TouchableOpacity>
@@ -739,7 +751,7 @@ function MessageBubble({
             progressRatio={progressRatio}
             currentSeconds={currentSeconds}
             totalSeconds={totalSeconds}
-            onPress={() => onPlayVoice?.(attachment.file, String(message.id))}
+            onPress={() => onPlayVoice?.(attachment.file, String(message.id), attachment.id != null ? String(attachment.id) : undefined)}
             onSeek={isCurrent && onSeekVoice
               ? (ratio) => onSeekVoice(String(message.id), ratio)
               : undefined}
@@ -756,6 +768,11 @@ function MessageBubble({
           {isUploading && (
             <View style={styles.uploadOverlay}>
               <ActivityIndicator size="small" color={Colors.white} />
+              {isSlow && (
+                <Text style={styles.uploadSlowText}>
+                  {t('conversation.voiceUploadSlow')}
+                </Text>
+              )}
             </View>
           )}
         </View>
@@ -1030,6 +1047,11 @@ function arePropsEqual(prevProps: MessageBubbleProps, nextProps: MessageBubblePr
   if (isMyVoiceListenedNow !== isMyVoiceListenedBefore) return false;
   // playbackRate uniquement si on est le voice courant
   if (nextConcernsUs && prevProps.playbackRate !== nextProps.playbackRate) return false;
+  // C. Track les transitions normal-upload -> slow-upload pour MES attachments
+  const myAttIds = (nextProps.message.attachments || []).map((a: any) => String(a.id));
+  const prevSlowMe = myAttIds.some((id) => prevProps.slowUploadAttachmentIds?.has(id));
+  const nextSlowMe = myAttIds.some((id) => nextProps.slowUploadAttachmentIds?.has(id));
+  if (prevSlowMe !== nextSlowMe) return false;
 
   return (
     prevProps.message.id === nextProps.message.id &&
@@ -1190,6 +1212,15 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 8,
+    gap: 6,
+  },
+  uploadSlowText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontFamily: FontFamily.medium,
+    textAlign: 'center',
+    letterSpacing: 0.2,
   },
   voiceAttachmentMine: {
     backgroundColor: 'rgba(255,255,255,0.2)',

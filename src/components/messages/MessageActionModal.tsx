@@ -30,6 +30,7 @@ import { useBottomSheetAnim } from '../../hooks/useBottomSheetAnim';
 
 export type MessageActionType =
   | 'reply'
+  | 'reply_voice'
   | 'react'
   | 'forward'
   | 'edit'
@@ -68,8 +69,9 @@ interface ActionItem {
 }
 
 const ACTIONS: ActionItem[] = [
-  { type: 'reply',   icon: 'arrow-undo-outline', labelKey: 'componentsMessages.actionReply',                                                hideOnSystem: true },
-  { type: 'react',   icon: 'happy-outline',      labelKey: 'componentsMessages.actionReact',                                                hideOnSystem: true },
+  { type: 'reply',       icon: 'arrow-undo-outline', labelKey: 'componentsMessages.actionReply',                                                hideOnSystem: true },
+  { type: 'reply_voice', icon: 'mic-outline',        labelKey: 'componentsMessages.replyByVoice',                                               hideOnSystem: true },
+  { type: 'react',       icon: 'happy-outline',      labelKey: 'componentsMessages.actionReact',                                                hideOnSystem: true },
   { type: 'forward', icon: 'arrow-redo-outline', labelKey: 'componentsMessages.actionForward',                                              hideOnSystem: true },
   { type: 'copy',    icon: 'copy-outline',       labelKey: 'componentsMessages.actionCopy' },
   // Le label + l'icône sont remplacés dynamiquement par `unstar` quand le

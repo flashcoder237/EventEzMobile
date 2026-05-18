@@ -162,6 +162,17 @@ export default function ConversationScreen() {
   const [pendingVoiceDuration, setPendingVoiceDuration] = useState<number>(0);
   const [voicePreviewPlaying, setVoicePreviewPlaying] = useState(false);
   const previewPlayerRef = useRef<AudioPlayer | null>(null);
+  // A. Detection du silence en debut d'enregistrement : on track la date du
+  // premier sample > seuil. Le delta est ensuite stocke comme silence skipper
+  // a appliquer au playback (start_offset_ms). Si on n'a jamais depasse le
+  // seuil, on garde 0 (probablement un voice tres bas ou un enregistrement
+  // sans son — on ne risque pas de trimmer du contenu reel).
+  const SILENCE_DB_THRESHOLD = -45;
+  const recordingStartedAtRef = useRef<number | null>(null);
+  const firstSoundAtRef = useRef<number | null>(null);
+  // L'offset de demarrage (ms) calcule au stop, persiste sur le voice envoye
+  // pour que la lecture skip le silence d'ouverture.
+  const [pendingVoiceStartOffsetMs, setPendingVoiceStartOffsetMs] = useState<number>(0);
 
   // Feature: message search
   const [searchOpen, setSearchOpen] = useState(false);
@@ -208,6 +219,12 @@ export default function ConversationScreen() {
   // d'afficher un overlay de chargement sur le tempMessage avant que l'upload
   // ne se termine.
   const [uploadingIds, setUploadingIds] = React.useState<Set<string>>(new Set());
+  // C. Track quand chaque upload a commence, pour basculer l'overlay vers
+  // "Connexion lente" si ca depasse SLOW_UPLOAD_THRESHOLD_MS. Sans ca, l'user
+  // se demande "mon voice part vraiment ?" sans aucun feedback.
+  const SLOW_UPLOAD_THRESHOLD_MS = 5000;
+  const uploadStartTimesRef = useRef<Map<string, number>>(new Map());
+  const [slowUploadIds, setSlowUploadIds] = useState<Set<string>>(new Set());
 
   // WebSocket
   const {
@@ -470,6 +487,43 @@ export default function ConversationScreen() {
       interruptionMode: 'mixWithOthers',
     }).catch(() => { /* ignore — mode optionnel */ });
   }, []);
+
+  // C. Tick toutes les 1s pendant qu'au moins un upload est en cours pour
+  // basculer les uploads "vieux" dans slowUploadIds. Auto-stop quand plus rien
+  // a uploader pour eviter de cycler en idle.
+  useEffect(() => {
+    if (uploadingIds.size === 0) {
+      if (slowUploadIds.size > 0) setSlowUploadIds(new Set());
+      return;
+    }
+    const interval = setInterval(() => {
+      const now = Date.now();
+      let needsUpdate = false;
+      const newSlow = new Set(slowUploadIds);
+      uploadingIds.forEach((id) => {
+        const startedAt = uploadStartTimesRef.current.get(id);
+        if (startedAt && now - startedAt >= SLOW_UPLOAD_THRESHOLD_MS && !newSlow.has(id)) {
+          newSlow.add(id);
+          needsUpdate = true;
+        }
+      });
+      if (needsUpdate) setSlowUploadIds(newSlow);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [uploadingIds, slowUploadIds]);
+
+  // A. Track du premier son pendant l'enregistrement. On detecte le moment
+  // ou le metering depasse le seuil pour la 1ere fois et on enregistre le
+  // timestamp. C'est appele a chaque tick du metering tant qu'on enregistre.
+  useEffect(() => {
+    if (!state.isRecording) return;
+    const level = recorderState?.metering;
+    if (typeof level !== 'number') return;
+    if (firstSoundAtRef.current !== null) return; // deja detecte
+    if (level > SILENCE_DB_THRESHOLD) {
+      firstSoundAtRef.current = Date.now();
+    }
+  }, [state.isRecording, recorderState?.metering]);
 
   // ============================================
   // DATA FETCHING
@@ -1043,6 +1097,9 @@ export default function ConversationScreen() {
 
       actions.setRecording(true);
       actions.setRecordingDuration(0);
+      // A. Reset les refs de detection silence pour ce nouvel enregistrement.
+      recordingStartedAtRef.current = Date.now();
+      firstSoundAtRef.current = null;
 
       recordingIntervalRef.current = setInterval(() => {
         actions.incrementRecordingDuration();
@@ -1065,6 +1122,17 @@ export default function ConversationScreen() {
 
       actions.setRecording(false);
       setIsRecordingLocked(false);
+
+      // A. Calcule le silence d'ouverture detecte. On clamp a 1500ms max et
+      // on soustrait 250ms pour ne jamais couper le tout debut du son lui-meme.
+      let startOffsetMs = 0;
+      if (recordingStartedAtRef.current && firstSoundAtRef.current) {
+        const detected = firstSoundAtRef.current - recordingStartedAtRef.current;
+        startOffsetMs = Math.max(0, Math.min(1500, detected - 250));
+      }
+      setPendingVoiceStartOffsetMs(startOffsetMs);
+      recordingStartedAtRef.current = null;
+      firstSoundAtRef.current = null;
 
       // Instead of immediately attaching the file, store it for preview
       if (uri && duration >= 1) {
@@ -1231,7 +1299,7 @@ export default function ConversationScreen() {
     } catch { return null; }
   }, [state.conversationId]);
 
-  const playVoiceMessage = async (uri: string, messageId: string) => {
+  const playVoiceMessage = async (uri: string, messageId: string, attachmentId?: string) => {
     try {
       // Cas 1 : tap sur le message déjà chargé → toggle pause / play sans
       // détruire le player (préserve la position de lecture).
@@ -1270,7 +1338,16 @@ export default function ConversationScreen() {
       const playableUri = getMediaUrl(uri) || uri;
       // Charge la position sauvegardee pour ce voice — si > 1s on reprendra la
       // lecture a cette position au premier status callback.
-      const savedPosMs = await loadVoicePosition(messageId);
+      // Fallback : si pas de position sauvee, on regarde le silence d'ouverture
+      // detecte au record (feature A) pour skip directement au debut du son.
+      let savedPosMs = await loadVoicePosition(messageId);
+      if (!savedPosMs && attachmentId) {
+        try {
+          const offsetRaw = await AsyncStorage.getItem(`voice_start_offset:${attachmentId}`);
+          const offset = Number(offsetRaw);
+          if (Number.isFinite(offset) && offset > 0) savedPosMs = offset;
+        } catch { /* ignore */ }
+      }
 
       // Loading visible immédiatement (entre tap et premier sample).
       setVoicePlayback({
@@ -1547,6 +1624,17 @@ export default function ConversationScreen() {
     switch (action) {
       case 'reply':
         actions.startReply(message);
+        break;
+
+      case 'reply_voice':
+        // B. Raccourci : cite le message + lance l'enregistrement vocal
+        // immediatement. Le user voit le pill reply au-dessus de l'input
+        // + l'UI recording active en bas. Quand il tap "Envoyer", le voice
+        // part avec reply_to deja set.
+        actions.startReply(message);
+        // Leger delai pour laisser le state replyToMessage propager avant
+        // que startRecording configure le mode audio.
+        setTimeout(() => { startRecording(); }, 50);
         break;
 
       case 'edit':
@@ -1955,11 +2043,18 @@ export default function ConversationScreen() {
       // ou WS aura confirme).
       armUndoSend(tempMessageId);
 
-      // Marquer tous les attachments en upload pour l'overlay loader
+      // Marquer tous les attachments en upload pour l'overlay loader.
+      // C. On enregistre aussi le timestamp de debut pour pouvoir basculer
+      // vers l'overlay "Connexion lente" si l'upload tarde.
       if (tempAttachments.length > 0) {
+        const now = Date.now();
         setUploadingIds(prev => {
           const next = new Set(prev);
-          tempAttachments.forEach(a => next.add(String(a.id)));
+          tempAttachments.forEach(a => {
+            const id = String(a.id);
+            next.add(id);
+            uploadStartTimesRef.current.set(id, now);
+          });
           return next;
         });
       }
@@ -2014,10 +2109,19 @@ export default function ConversationScreen() {
             };
           } finally {
             // Lever l'overlay loader sur cet attachment dès qu'il est résolu
+            const id = `tmp:${tempMessageId}:${idx}`;
             setUploadingIds(prev => {
-              if (!prev.has(`tmp:${tempMessageId}:${idx}`)) return prev;
+              if (!prev.has(id)) return prev;
               const next = new Set(prev);
-              next.delete(`tmp:${tempMessageId}:${idx}`);
+              next.delete(id);
+              return next;
+            });
+            // C. Cleanup du tracking "slow upload"
+            uploadStartTimesRef.current.delete(id);
+            setSlowUploadIds(prev => {
+              if (!prev.has(id)) return prev;
+              const next = new Set(prev);
+              next.delete(id);
               return next;
             });
           }
@@ -2028,6 +2132,23 @@ export default function ConversationScreen() {
       const attachmentIds: string[] = uploadOutcomes
         .filter((o): o is Extract<UploadOutcome, { ok: true }> => o.ok)
         .map(o => o.id);
+
+      // A. Si on a un voice avec un silence d'ouverture detecte, on persiste
+      // l'offset par attachment_id pour que la lecture (du moins cote
+      // expediteur) skip le silence automatiquement. Le destinataire n'a pas
+      // l'info sans un champ backend dedie — limitation acceptee pour l'MVP.
+      if (pendingVoiceStartOffsetMs > 0) {
+        const voiceOutcome = uploadOutcomes.find(
+          (o): o is Extract<UploadOutcome, { ok: true }> => o.ok && o.fileType === 'voice',
+        );
+        if (voiceOutcome) {
+          AsyncStorage.setItem(
+            `voice_start_offset:${voiceOutcome.id}`,
+            String(pendingVoiceStartOffsetMs),
+          ).catch(() => {});
+        }
+        setPendingVoiceStartOffsetMs(0);
+      }
 
       // Surface des erreurs d'upload à l'utilisateur. On distingue :
       //   - Tous échouent + pas de texte : envoi annulé (rollback complet)
@@ -2303,6 +2424,7 @@ export default function ConversationScreen() {
           playingVoiceId={state.playingVoiceId}
           voicePlayback={voicePlayback}
           uploadingAttachmentIds={uploadingIds}
+          slowUploadAttachmentIds={slowUploadIds}
           onLongPress={handleMessageLongPress}
           onPlayVoice={playVoiceMessage}
           onSeekVoice={seekVoiceMessage}
@@ -2316,7 +2438,7 @@ export default function ConversationScreen() {
     );
   }, [
     state.messages, state.otherUserId, state.playingVoiceId, voicePlayback,
-    uploadingIds, user?.id, handleMessageLongPress, seekVoiceMessage,
+    uploadingIds, slowUploadIds, user?.id, handleMessageLongPress, seekVoiceMessage,
     skipForward15s, cyclePlaybackRate, playbackRate, listenedVoiceIds,
   ]);
 
@@ -2988,14 +3110,14 @@ export default function ConversationScreen() {
                 ]}
               >
                 <Text style={[styles.undoSnackbarText, { color: '#FFFFFF' }]}>
-                  {t('conversation.messageSent') || 'Message envoyé'}
+                  {t('conversation.messageSent')}
                 </Text>
                 <TouchableOpacity
                   onPress={performUndoSend}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Text style={[styles.undoSnackbarAction, { color: colors.accent }]}>
-                    {t('conversation.undo') || 'Annuler'}
+                    {t('conversation.undo')}
                   </Text>
                 </TouchableOpacity>
               </Animated.View>

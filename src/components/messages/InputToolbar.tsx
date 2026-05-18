@@ -270,7 +270,7 @@ function InputToolbar({
         <TouchableOpacity
           onPress={onCancelRecording}
           style={[styles.recordingCancelButton, { backgroundColor: colors.error + '15' }]}
-          accessibilityLabel={t('componentsMessages.recordingCancel') || 'Annuler'}
+          accessibilityLabel={t('componentsMessages.recordingCancel')}
         >
           <Ionicons name="trash-outline" size={24} color={colors.error} />
         </TouchableOpacity>
@@ -295,7 +295,7 @@ function InputToolbar({
           <TouchableOpacity
             onPress={onLockRecording}
             style={[styles.recordingLockButton, { backgroundColor: colors.gray100 }]}
-            accessibilityLabel={t('componentsMessages.recordingLock') || 'Verrouiller'}
+            accessibilityLabel={t('componentsMessages.recordingLock')}
           >
             <Ionicons name="lock-closed-outline" size={20} color={colors.gray700} />
           </TouchableOpacity>
@@ -304,7 +304,7 @@ function InputToolbar({
         <TouchableOpacity
           onPress={onStopRecording}
           style={[styles.recordingSendButton, { backgroundColor: colors.primary }]}
-          accessibilityLabel={t('componentsMessages.recordingSend') || 'Envoyer'}
+          accessibilityLabel={t('componentsMessages.recordingSend')}
         >
           <Ionicons name="send" size={24} color={Colors.white} />
         </TouchableOpacity>
