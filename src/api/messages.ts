@@ -78,6 +78,28 @@ export const messagesAPI = {
   deleteMessage: (id: string) =>
     api.delete(`/messages/${id}/`),
 
+  /**
+   * Soft-delete plusieurs messages en une requete. Cap 100.
+   * Retourne { deleted: [ids], rejected: [{id, reason}] }.
+   */
+  bulkDeleteMessages: (messageIds: (string | number)[]) =>
+    api.post('/messages/bulk_delete/', { message_ids: messageIds }),
+
+  /**
+   * Forward N messages vers M conversations cibles. Cap 50 × 20.
+   * Backend clone le contenu + attachments dans chaque target. Le
+   * forwarded_from pointe sur le message source.
+   * Retourne { created: [{message_id, conversation_id, source_id}], rejected: [] }.
+   */
+  forwardMessages: (
+    messageIds: (string | number)[],
+    targetConversationIds: (string | number)[],
+  ) =>
+    api.post('/messages/forward/', {
+      message_ids: messageIds,
+      target_conversation_ids: targetConversationIds,
+    }),
+
   markMessageAsRead: (id: string) =>
     api.post(`/messages/${id}/mark_as_read/`),
 

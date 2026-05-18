@@ -18,6 +18,7 @@ import {
   FlatList,
   ActivityIndicator,
   TouchableOpacity,
+  Pressable,
   Clipboard,
   TextInput,
   Modal,
@@ -1784,6 +1785,14 @@ export default function ConversationScreen() {
         handleForwardMessage(message);
         break;
 
+      case 'select':
+        // Entre en mode selection avec ce message deja coche. Le bouton
+        // "Selectionner" du menu d'actions sert d'entree au bulk delete /
+        // bulk forward. Tap suivant sur d'autres messages = toggle.
+        setSelectionMode(true);
+        setSelectedIds(new Set([Number(message.id)]));
+        break;
+
       case 'react':
         actions.showReactionPicker();
         break;
@@ -1915,6 +1924,111 @@ export default function ConversationScreen() {
   // silencieusement.
   const forwardSourceMessageRef = useRef<Message | null>(null);
 
+  // ─────────────────────────────────────────────────────────────────────
+  // Bulk selection mode (long-press → entree mode, tap pour toggle).
+  // En selection mode : action bar en haut avec count + delete + forward.
+  // ─────────────────────────────────────────────────────────────────────
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  // Au passage en selection multi-cible, on memorise quel set forwarder
+  // (sinon le state.selectionMode disparait avant que le user clique Envoyer)
+  const bulkForwardSourceIdsRef = useRef<number[]>([]);
+
+  const exitSelectionMode = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const toggleMessageSelection = useCallback((messageId: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(messageId)) {
+        next.delete(messageId);
+      } else {
+        next.add(messageId);
+      }
+      // Si l'user deselectionne le dernier, on sort du mode
+      if (next.size === 0) {
+        setSelectionMode(false);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleBulkDelete = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    // Filtrer cote client : on ne propose pas le delete sur des messages
+    // qui ne sont pas a nous. Backend re-verifie de toute facon.
+    const ownIds = ids.filter((id) => {
+      const m = state.messages.find((x: any) => x.id === id);
+      return m && isMyMessage(m, user?.id) && !m.is_deleted;
+    });
+    if (ownIds.length === 0) {
+      showError(
+        t('common.error'),
+        t('conversation.bulkDeleteNoOwn'),
+      );
+      return;
+    }
+    showConfirm(
+      t('conversation.bulkDeleteConfirmTitle'),
+      t('conversation.bulkDeleteConfirmMessage', { count: ownIds.length }),
+      async () => {
+        try {
+          await messagesAPI.bulkDeleteMessages(ownIds);
+          // Optimistic : on tag is_deleted dans le state local. Le WS arrivera
+          // confirmer mais l'UI est deja a jour.
+          for (const id of ownIds) {
+            actions.updateMessage(String(id), {
+              is_deleted: true,
+              content: '',
+              attachments: [],
+            });
+          }
+          exitSelectionMode();
+        } catch (err: any) {
+          showError(
+            t('common.error'),
+            err?.response?.data?.detail || t('conversation.bulkDeleteError'),
+          );
+        }
+      },
+    );
+  }, [selectedIds, state.messages, user?.id, t, showError, showConfirm, actions, exitSelectionMode]);
+
+  const handleBulkForward = useCallback(async () => {
+    const ids = Array.from(selectedIds).filter((id) => {
+      const m = state.messages.find((x: any) => x.id === id);
+      return m && !m.is_deleted;
+    });
+    if (ids.length === 0) return;
+    // Memo et reutilise le flow forward existant : meme modale, mais
+    // handleForwardToTargets detectera bulkForwardSourceIdsRef pour partir
+    // sur le bulk endpoint au lieu du forward 1-msg.
+    bulkForwardSourceIdsRef.current = ids;
+    forwardSourceMessageRef.current = null; // pour disambiguer single vs bulk
+    actions.showForwardModal();
+    actions.setLoadingForwardTargets(true);
+    try {
+      const response = await messagesAPI.getConversations();
+      const conversations = response.data.results || response.data || [];
+      const targets: User[] = [];
+      conversations.forEach((conv: any) => {
+        conv.participants?.forEach((p: any) => {
+          if (p.id !== user?.id && !targets.find(t => t.id === p.id)) {
+            targets.push(p);
+          }
+        });
+      });
+      actions.setForwardTargets(targets);
+    } catch {
+      showError(t('common.error'), t('conversation.forwardTargetsError'));
+    } finally {
+      actions.setLoadingForwardTargets(false);
+    }
+  }, [selectedIds, state.messages, user?.id, t, showError, actions]);
+
   const handleForwardMessage = async (message: Message) => {
     forwardSourceMessageRef.current = message;
     actions.showForwardModal();
@@ -1942,34 +2056,45 @@ export default function ConversationScreen() {
   };
 
   const handleForwardToTargets = async (targetUserIds: string[]) => {
-    // On lit la source du transfert depuis la ref dédiée — `selectedMessage`
-    // a déjà été remis à null par hideActionMenu au moment où le user a tapé
-    // "Forward" dans le menu d'actions. Sans cette ref → bouton inactif.
+    // Deux modes :
+    //  - Bulk (selection mode) : bulkForwardSourceIdsRef.current contient les
+    //    IDs source ; on boucle sur (message × destinataire) via l'endpoint
+    //    individuel (le bulk endpoint backend prend des conversation_ids mais
+    //    le picker retourne des user_ids — boucle pour rester compatible).
+    //  - Single : forwardSourceMessageRef.current contient le message.
+    const bulkIds = bulkForwardSourceIdsRef.current;
+    const isBulk = bulkIds && bulkIds.length > 0;
     const sourceMessage = forwardSourceMessageRef.current;
-    if (!sourceMessage || targetUserIds.length === 0) return;
-    const messageId = String(sourceMessage.id);
-    // Forward en parallèle vers tous les destinataires. On collecte les
-    // résultats pour signaler les échecs sans bloquer les autres.
+    if (!isBulk && !sourceMessage) return;
+    if (targetUserIds.length === 0) return;
+
+    const sourceIds = isBulk ? bulkIds.map(String) : [String(sourceMessage!.id)];
+    const callCount = sourceIds.length * targetUserIds.length;
+
     const results = await Promise.allSettled(
-      targetUserIds.map(uid =>
-        messagesAPI.forwardMessage({ message_id: messageId, target_user_id: uid }),
+      sourceIds.flatMap((msgId) =>
+        targetUserIds.map((uid) =>
+          messagesAPI.forwardMessage({ message_id: msgId, target_user_id: uid }),
+        ),
       ),
     );
     const failures = results.filter(r => r.status === 'rejected').length;
     actions.hideForwardModal();
     forwardSourceMessageRef.current = null;
+    bulkForwardSourceIdsRef.current = [];
+    if (isBulk) exitSelectionMode();
+
     if (failures === 0) {
       showSuccess(
-        targetUserIds.length === 1
+        callCount === 1
           ? t('conversation.messageForwarded')
-          : t('conversation.messageForwardedMultiple', { count: targetUserIds.length }),
+          : t('conversation.messageForwardedMultiple', { count: callCount }),
         '',
       );
-    } else if (failures < targetUserIds.length) {
-      // Succès partiel : on alerte sur le mode "partiel" plutôt que d'avoir un seul toast trompeur.
+    } else if (failures < callCount) {
       showError(
         t('conversation.forwardPartialTitle'),
-        t('conversation.forwardPartialBody', { ok: targetUserIds.length - failures, ko: failures }),
+        t('conversation.forwardPartialBody', { ok: callCount - failures, ko: failures }),
       );
     } else {
       showError(t('common.error'), t('conversation.forwardError'));
@@ -2529,6 +2654,33 @@ export default function ConversationScreen() {
       senderIdOf(nextItem.sender) === senderIdOf(item.sender) &&
       (new Date(item.created_at).getTime() - new Date(nextItem.created_at).getTime()) < 120000;
 
+    const msgId = Number(item.id);
+    const isSelected = selectedIds.has(msgId);
+    // En mode selection, on intercepte les taps : la bubble interne devient
+    // visuelle uniquement, et un wrapper Pressable au-dessus toggle l'item.
+    // Long-press desactive aussi pour ne pas re-ouvrir le menu d'actions.
+    const bubble = (
+      <MessageBubble
+        message={item}
+        isMine={isMine}
+        isGrouped={!!isGrouped}
+        replyToMessage={replyToContent}
+        otherUserId={state.otherUserId}
+        playingVoiceId={state.playingVoiceId}
+        voicePlayback={voicePlayback}
+        uploadingAttachmentIds={uploadingIds}
+        slowUploadAttachmentIds={slowUploadIds}
+        onLongPress={selectionMode ? (() => {}) : handleMessageLongPress}
+        onPlayVoice={selectionMode ? () => {} : playVoiceMessage}
+        onSeekVoice={selectionMode ? () => {} : seekVoiceMessage}
+        onSkipForward={skipForward15s}
+        onCyclePlaybackRate={cyclePlaybackRate}
+        playbackRate={playbackRate}
+        listenedVoiceIds={listenedVoiceIds}
+        onForward={selectionMode ? () => {} : handleForwardMessage}
+      />
+    );
+
     return (
       <View>
         {showDate && (
@@ -2536,31 +2688,35 @@ export default function ConversationScreen() {
             <Text style={[styles.dateText, { color: colors.gray500, backgroundColor: colors.card }]}>{formatMessageDate(item.created_at)}</Text>
           </View>
         )}
-        <MessageBubble
-          message={item}
-          isMine={isMine}
-          isGrouped={!!isGrouped}
-          replyToMessage={replyToContent}
-          otherUserId={state.otherUserId}
-          playingVoiceId={state.playingVoiceId}
-          voicePlayback={voicePlayback}
-          uploadingAttachmentIds={uploadingIds}
-          slowUploadAttachmentIds={slowUploadIds}
-          onLongPress={handleMessageLongPress}
-          onPlayVoice={playVoiceMessage}
-          onSeekVoice={seekVoiceMessage}
-          onSkipForward={skipForward15s}
-          onCyclePlaybackRate={cyclePlaybackRate}
-          playbackRate={playbackRate}
-          listenedVoiceIds={listenedVoiceIds}
-          onForward={handleForwardMessage}
-        />
+        {selectionMode ? (
+          <Pressable
+            onPress={() => toggleMessageSelection(msgId)}
+            style={[
+              styles.selectionRow,
+              isSelected && { backgroundColor: colors.primary + '14' },
+            ]}
+          >
+            <View style={styles.selectionCheckCol}>
+              <Ionicons
+                name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
+                size={22}
+                color={isSelected ? colors.primary : colors.gray400}
+              />
+            </View>
+            <View style={{ flex: 1 }} pointerEvents="none">
+              {bubble}
+            </View>
+          </Pressable>
+        ) : (
+          bubble
+        )}
       </View>
     );
   }, [
     state.messages, state.otherUserId, state.playingVoiceId, voicePlayback,
     uploadingIds, slowUploadIds, user?.id, handleMessageLongPress, seekVoiceMessage,
     skipForward15s, cyclePlaybackRate, playbackRate, listenedVoiceIds,
+    selectionMode, selectedIds, toggleMessageSelection, colors.primary, colors.gray400,
   ]);
 
   const renderSearchResultItem = useCallback(({ item }: { item: Message }) => (
@@ -2695,7 +2851,54 @@ export default function ConversationScreen() {
     }
   };
 
-  const renderCustomHeader = () => (
+  const renderCustomHeader = () => {
+    // En mode selection, on remplace tout le header par une action bar :
+    // X (sortir) + count + delete + forward. Pattern WhatsApp.
+    if (selectionMode) {
+      const selCount = selectedIds.size;
+      return (
+        <View
+          style={[
+            styles.customHeader,
+            { backgroundColor: colors.primary + '14', borderBottomColor: hairline },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={exitSelectionMode}
+            style={styles.customHeaderBack}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.close')}
+          >
+            <Ionicons name="close" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.selectionCount, { color: colors.text }]}>
+            {t('conversation.selectionCount', { count: selCount })}
+          </Text>
+          <TouchableOpacity
+            style={styles.headerMenuButton}
+            onPress={handleBulkForward}
+            disabled={selCount === 0}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={t('conversation.bulkForwardA11y')}
+          >
+            <Ionicons name="arrow-redo" size={22} color={selCount === 0 ? colors.gray400 : colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerMenuButton}
+            onPress={handleBulkDelete}
+            disabled={selCount === 0}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={t('conversation.bulkDeleteA11y')}
+          >
+            <Ionicons name="trash" size={22} color={selCount === 0 ? colors.gray400 : '#DC2626'} />
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return (
     <View
       style={[
         styles.customHeader,
@@ -2798,7 +3001,8 @@ export default function ConversationScreen() {
         <View style={styles.headerMenuButton} />
       )}
     </View>
-  );
+    );
+  };
 
   if (state.loading) {
     return (
@@ -4062,6 +4266,23 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
     gap: 4,
+  },
+  // Bulk selection mode
+  selectionCount: {
+    flex: 1,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 16,
+    marginLeft: 4,
+  },
+  selectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  selectionCheckCol: {
+    width: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   customHeaderBack: {
     width: 40,

@@ -38,7 +38,8 @@ export type MessageActionType =
   | 'copy'
   | 'report'
   | 'block'
-  | 'star';
+  | 'star'
+  | 'select';
 
 interface MessageActionModalProps {
   visible: boolean;
@@ -73,6 +74,7 @@ const ACTIONS: ActionItem[] = [
   { type: 'reply_voice', icon: 'mic-outline',        labelKey: 'componentsMessages.replyByVoice',                                               hideOnSystem: true },
   { type: 'react',       icon: 'happy-outline',      labelKey: 'componentsMessages.actionReact',                                                hideOnSystem: true },
   { type: 'forward', icon: 'arrow-redo-outline', labelKey: 'componentsMessages.actionForward',                                              hideOnSystem: true },
+  { type: 'select',  icon: 'checkmark-circle-outline', labelKey: 'componentsMessages.actionSelect',                                         hideOnSystem: true },
   { type: 'copy',    icon: 'copy-outline',       labelKey: 'componentsMessages.actionCopy' },
   // Le label + l'icône sont remplacés dynamiquement par `unstar` quand le
   // message est déjà star (cf. render plus bas). Type reste 'star' côté handler
