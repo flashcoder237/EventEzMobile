@@ -1972,7 +1972,7 @@ export default function ConversationScreen() {
       return;
     }
     showConfirm(
-      t('conversation.bulkDeleteConfirmTitle'),
+      t('conversation.bulkDeleteConfirmTitle', { count: ownIds.length }),
       t('conversation.bulkDeleteConfirmMessage', { count: ownIds.length }),
       async () => {
         try {
@@ -1986,6 +1986,10 @@ export default function ConversationScreen() {
               attachments: [],
             });
           }
+          showSuccess(
+            t('conversation.bulkDeleteSuccess', { count: ownIds.length }),
+            '',
+          );
           exitSelectionMode();
         } catch (err: any) {
           showError(
@@ -1995,7 +1999,7 @@ export default function ConversationScreen() {
         }
       },
     );
-  }, [selectedIds, state.messages, user?.id, t, showError, showConfirm, actions, exitSelectionMode]);
+  }, [selectedIds, state.messages, user?.id, t, showError, showSuccess, showConfirm, actions, exitSelectionMode]);
 
   const handleBulkForward = useCallback(async () => {
     const ids = Array.from(selectedIds).filter((id) => {
