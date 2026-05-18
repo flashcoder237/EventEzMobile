@@ -100,6 +100,7 @@ import EventActionsSheet, {
   EventAction,
 } from '../../components/organizer/EventActionsSheet';
 import CacheService from '../../services/CacheService';
+import { useVoicePrefetch, getCachedVoiceUri } from '../../hooks/useVoicePrefetch';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -484,6 +485,11 @@ export default function ConversationScreen() {
     const unsubBlur = navigation.addListener('blur', pauseCurrentVoice);
     return unsubBlur;
   }, [navigation, pauseCurrentVoice]);
+
+  // Pre-fetch automatique des voice messages : telecharge en arriere-plan
+  // les .m4a/.mp3/.opus de tous les voices de la conv, pour que le tap
+  // play soit instantane (pas de spinner reseau). Skip si offline / 2G.
+  useVoicePrefetch(state.messages);
 
   // Sync state.messages -> CacheService. Toute mutation locale (nouveau
   // msg WS, edit, delete, optimistic send) passe par le reducer. Au
@@ -1405,7 +1411,11 @@ export default function ConversationScreen() {
         loadingFallbackRef.current = null;
       }
 
-      const playableUri = getMediaUrl(uri) || uri;
+      // Prefere le fichier local pre-fetche s'il existe (useVoicePrefetch
+      // tourne en arriere-plan a chaque update de messages). Sinon, fallback
+      // sur l'URL distante en streaming HTTP (comportement avant le prefetch).
+      const remoteUri = getMediaUrl(uri) || uri;
+      const playableUri = getCachedVoiceUri(remoteUri) || remoteUri;
       // Charge la position sauvegardee pour ce voice — si > 1s on reprendra la
       // lecture a cette position au premier status callback.
       // Fallback : si pas de position sauvee, on regarde le silence d'ouverture

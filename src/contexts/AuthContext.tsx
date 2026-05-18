@@ -298,6 +298,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (cacheError) {
       if (__DEV__) console.warn('Cache clearAll on logout failed:', cacheError);
     }
+    // Purge le cache fichier des voice messages — eviter qu'un autre user
+    // sur le meme device puisse acceder aux .m4a en lisant cacheDirectory.
+    try {
+      const { clearVoiceCache } = await import('../hooks/useVoicePrefetch');
+      await clearVoiceCache();
+    } catch (voiceCacheError) {
+      if (__DEV__) console.warn('clearVoiceCache on logout failed:', voiceCacheError);
+    }
     // Purge l'état de navigation persisté : sans ça, le prochain user (ou le
     // même user sur un autre compte) verrait au prochain cold start l'écran
     // organizer / paiement / autre sur lequel l'ancien user était.
