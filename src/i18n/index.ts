@@ -64,21 +64,32 @@ export async function changeLanguage(lang: 'en' | 'fr'): Promise<void> {
   await i18n.changeLanguage(lang);
 }
 
-// Override async : si l'utilisateur a déjà fait un choix (LanguagePickerScreen
-// au premier launch ou SettingsScreen), on l'applique au-dessus du default
-// device-locale. Volontairement non-bloquant : i18next.init() est synchrone
-// alors qu'AsyncStorage est async — on accepte qu'au tout premier render le
-// fallback device locale soit affiché ~10-50ms avant l'override.
-//
-// AsyncStorage est require()-é paresseusement pour éviter de le charger pendant
-// l'init du module (certains environnements de test ne mockent pas le module
-// avant que i18n soit importé transitivement par les écrans).
-(async () => {
+/**
+ * Promise resoue UNE FOIS quand l'override AsyncStorage (choix utilisateur
+ * persiste depuis LanguagePicker ou SettingsScreen) a ete applique. Le boot
+ * doit l'attendre pour eviter qu'un cold start affiche la device locale alors
+ * que l'utilisateur avait choisi une autre langue dans une session anterieure.
+ *
+ * Avant ce fix, l'override etait fait dans une IIFE fire-and-forget — un retard
+ * ou un crash silencieux d'AsyncStorage laissait l'app figee sur la device
+ * locale au lieu de la prefence utilisateur.
+ *
+ * AsyncStorage est require()-e paresseusement pour ne pas bloquer le module en
+ * environnement de test ou il pourrait ne pas etre mocke.
+ */
+export const i18nReady: Promise<void> = (async () => {
   try {
     const AsyncStorage = require('@react-native-async-storage/async-storage').default;
     const stored = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
-    if ((stored === 'fr' || stored === 'en') && stored !== initialLang) {
-      await changeLanguage(stored);
+    if (stored === 'fr' || stored === 'en') {
+      if (stored !== initialLang) {
+        await changeLanguage(stored);
+      }
+      // Si stored === initialLang : rien a faire, mais log debug pour
+      // confirmer que la preference utilisateur a bien ete trouvee.
+      if (__DEV__) console.log(`[i18n] resolved language: ${stored} (stored override)`);
+    } else if (__DEV__) {
+      console.log(`[i18n] resolved language: ${initialLang} (device locale, no stored pref)`);
     }
   } catch (err) {
     if (__DEV__) console.warn('[i18n] async override skipped', err);

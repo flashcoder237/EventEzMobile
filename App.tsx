@@ -83,7 +83,7 @@ import { RootStackParamList } from './src/types';
 // Services
 import { initAnalytics, trackScreenView } from './src/services/analyticsService';
 import { initCrashReporting } from './src/services/crashReporting';
-import './src/i18n';
+import { i18nReady } from './src/i18n';
 
 // Init Sentry au plus tôt — avant tout require de modules métier — pour
 // capturer les erreurs lors du chargement initial. No-op si EXPO_PUBLIC_SENTRY_DSN
@@ -333,20 +333,34 @@ function App() {
   });
 
   const [showSplash, setShowSplash] = useState(true);
+  // Bloque le rendu jusqu'a ce que l'override AsyncStorage de la langue ait
+  // ete applique. Sans ca, l'app peut afficher la device locale au cold start
+  // avant de basculer ~50ms plus tard sur la preference utilisateur — pire,
+  // dans certains environnements l'override silently echoue et l'app reste
+  // figee sur la device locale.
+  const [i18nResolved, setI18nResolved] = useState(false);
 
-  // Once fonts are loaded, hide the native splash and show our animated one
   useEffect(() => {
-    if (fontsLoaded) {
+    let cancelled = false;
+    i18nReady
+      .then(() => { if (!cancelled) setI18nResolved(true); })
+      .catch(() => { if (!cancelled) setI18nResolved(true); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Once fonts AND i18n are loaded, hide the native splash and show our animated one
+  useEffect(() => {
+    if (fontsLoaded && i18nResolved) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, i18nResolved]);
 
   const handleSplashFinish = useCallback(() => {
     setShowSplash(false);
   }, []);
 
-  // While fonts load, the native splash screen stays visible (preventAutoHideAsync)
-  if (!fontsLoaded) {
+  // While fonts/i18n load, the native splash screen stays visible (preventAutoHideAsync)
+  if (!fontsLoaded || !i18nResolved) {
     return null;
   }
 
