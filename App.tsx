@@ -90,6 +90,13 @@ import './src/i18n';
 // n'est pas défini ou si le module natif est absent (Expo Go).
 initCrashReporting();
 
+// Hydrate le cache memoire des tokens d'acces aux events proteges par code.
+// L'interceptor axios les lit synchroniquement pour injecter le header
+// X-Event-Access-Token, donc on doit warm AVANT toute requete.
+import('./src/lib/utils/eventAccessToken')
+  .then(({ warmEventAccessTokenCache }) => warmEventAccessTokenCache())
+  .catch(() => { /* silent */ });
+
 // Google Sign-In — configure once at module level before any component mounts.
 // Lazy require + try-catch : le module natif n'existe pas dans Expo Go,
 // l'instanciation du singleton crash à l'import si on utilise `import`.

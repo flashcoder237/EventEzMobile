@@ -62,6 +62,24 @@ api.interceptors.request.use(
         const lang = i18n.language === 'en' ? 'en' : 'fr';
         config.headers['Accept-Language'] = lang;
       }
+      // Injecte le token d'acces event si on cible un sous-chemin d'event
+      // protege par code (X-Event-Access-Token). Le token signe HMAC vient
+      // de verify_access_code et debloque les requetes suivantes pour 24h.
+      if (config.url) {
+        try {
+          const { extractEventIdFromUrl, getEventAccessTokenSync } =
+            require('../lib/utils/eventAccessToken');
+          const eventId = extractEventIdFromUrl(config.url);
+          if (eventId) {
+            const token = getEventAccessTokenSync(eventId);
+            if (token) {
+              config.headers['X-Event-Access-Token'] = token;
+            }
+          }
+        } catch {
+          // silent — module pas dispo (tests)
+        }
+      }
     }
     // En React Native, le FormData est un polyfill — Axios peut ne pas le reconnaître
     // et tenter de le JSON.stringify (résultat: {"_parts":[...]} au lieu de multipart).

@@ -208,7 +208,16 @@ export default function EventDetailsScreen() {
     try {
       const response = await eventsAPI.verifyAccessCode(eventId, accessCodeInput);
       if (response.data?.valid) {
-        // Reload the page - the event details will now show
+        // Stocke le token signe HMAC retourne par le backend. L'interceptor
+        // axios l'injectera automatiquement en header X-Event-Access-Token
+        // sur les requetes GET /events/<id>/ suivantes pendant 24h.
+        const token = response.data?.access_token;
+        if (token) {
+          const { setEventAccessToken } = await import('../../lib/utils/eventAccessToken');
+          await setEventAccessToken(eventId, token);
+        }
+        // Reload — le backend voit maintenant le token via l'interceptor
+        // et renvoie les infos completes.
         navigation.replace('EventDetails', { eventId });
       }
     } catch {
