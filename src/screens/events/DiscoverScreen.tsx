@@ -63,7 +63,6 @@ import {
 } from '../../constants/theme';
 import { getApiResults } from '../../lib/utils/apiHelpers';
 import { getEventPriceRange } from '../../lib/utils/priceFormatters';
-import { isEventInFuture } from '../../lib/utils/dateFormatters';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -333,11 +332,29 @@ export default function DiscoverScreen() {
         }
       }
 
+      // Quand la geoloc est dispo, on transmet lat/lng au backend qui prioritise
+      // la proximité dans le tri (sans filtrer par radius — on veut voir tout,
+      // juste mieux trié). Le backend filtre déjà les events passés via
+      // end_date < now, donc plus besoin de isEventInFuture côté client (qui
+      // était même bugué : utilisait start_date, masquant les events multi-jours
+      // en cours).
+      const geoParams = location ? { lat: location.lat, lng: location.lng } : {};
+
+      // Pour "upcoming" et "free", on ne passe PAS ordering=start_date quand
+      // on a une geoloc, sinon le tri par date overwrite la proximité. Sans
+      // geoloc, on garde le tri date asc historique.
+      const upcomingParams = location
+        ? { limit: 15, status: 'validated', ...geoParams }
+        : { ordering: 'start_date', limit: 15, status: 'validated' };
+      const freeParams = location
+        ? { price: 'free', limit: 10, status: 'validated', ...geoParams }
+        : { price: 'free', ordering: 'start_date', limit: 10, status: 'validated' };
+
       const fetches = [
         eventsAPI
-          .getFeaturedEvents()
+          .getFeaturedEvents(geoParams)
           .then((res) => {
-            const data = getApiResults<Event>(res).filter((e) => isEventInFuture(e.start_date));
+            const data = getApiResults<Event>(res);
             setFeaturedEvents(data);
             CacheService.set('discover:featured', data, DISCOVER_CACHE_TTL);
             setInitialLoading(false);
@@ -354,18 +371,18 @@ export default function DiscoverScreen() {
           .catch(trackFailure('categories')),
 
         eventsAPI
-          .getEvents({ ordering: 'start_date', limit: 15, status: 'validated' })
+          .getEvents(upcomingParams)
           .then((res) => {
-            const data = getApiResults<Event>(res).filter((e) => isEventInFuture(e.start_date));
+            const data = getApiResults<Event>(res);
             setUpcomingEvents(data);
             CacheService.set('discover:upcoming', data, DISCOVER_CACHE_TTL);
           })
           .catch(trackFailure('upcoming')),
 
         eventsAPI
-          .getEvents({ price: 'free', ordering: 'start_date', limit: 10, status: 'validated' })
+          .getEvents(freeParams)
           .then((res) => {
-            const data = getApiResults<Event>(res).filter((e) => isEventInFuture(e.start_date));
+            const data = getApiResults<Event>(res);
             setFreeEvents(data);
             CacheService.set('discover:free', data, DISCOVER_CACHE_TTL);
           })
@@ -384,7 +401,7 @@ export default function DiscoverScreen() {
       setFetchErrorCount((c) => c + 1);
       setInitialLoading(false);
     }
-  }, []);
+  }, [location]);
 
   const fetchRecommendations = useCallback(
     async (bypassCache: boolean = false) => {
@@ -395,7 +412,8 @@ export default function DiscoverScreen() {
           if (cached) setRecommendations(cached.data);
         }
         const response = await recommendationsAPI.getRecommendations({ limit: 10 });
-        const data = getApiResults<Event>(response).filter((e) => isEventInFuture(e.start_date));
+        // Backend filtre déjà les events passés ; pas de re-filtre côté client.
+        const data = getApiResults<Event>(response);
         setRecommendations(data);
         CacheService.set('discover:recommendations', data, DISCOVER_CACHE_TTL);
       } catch {
@@ -409,7 +427,8 @@ export default function DiscoverScreen() {
     if (!location) return;
     try {
       const response = await eventsAPI.getNearbyEvents(location.lat, location.lng, 50, 10);
-      setNearbyEvents(getApiResults<Event>(response).filter((e) => isEventInFuture(e.start_date)));
+      // Endpoint /events/nearby/ filtre déjà start_date >= now côté backend.
+      setNearbyEvents(getApiResults<Event>(response));
     } catch (error) {
       if (__DEV__) console.error('Erreur evenements proches:', error);
     }
@@ -466,17 +485,27 @@ export default function DiscoverScreen() {
           const events: Event[] = Array.isArray(raw)
             ? raw.map((r: any) => (r?.event ?? r) as Event).filter(Boolean)
             : [];
-          data = events.filter((e) => isEventInFuture(e.start_date));
+          // Backend filtre déjà les events passés (end_date < now), pas besoin
+          // de re-filtrer côté client.
+          data = events;
           hasMoreFlag = (response.data as any)?.has_more;
         } else {
-          // Guest : events à venir paginés (DRF page-based)
-          const response = await eventsAPI.getEvents({
+          // Guest : events à venir paginés (DRF page-based).
+          // Si geoloc dispo : on retire ordering=start_date pour laisser le
+          // backend prioriser la proximité.
+          const guestParams: any = {
             page: nextPage,
             page_size: PAGE_SIZE,
-            ordering: 'start_date',
             status: 'validated',
-          });
-          data = getApiResults<Event>(response).filter((e) => isEventInFuture(e.start_date));
+          };
+          if (location) {
+            guestParams.lat = location.lat;
+            guestParams.lng = location.lng;
+          } else {
+            guestParams.ordering = 'start_date';
+          }
+          const response = await eventsAPI.getEvents(guestParams);
+          data = getApiResults<Event>(response);
           hasMoreFlag = (response.data as any)?.next != null;
         }
 
@@ -497,7 +526,7 @@ export default function DiscoverScreen() {
         setForYouLoading(false);
       }
     },
-    [user],
+    [user, location],
   );
 
   // Détection scroll-to-end pour infinite scroll. On utilise onMomentumScrollEnd
@@ -582,8 +611,17 @@ export default function DiscoverScreen() {
       fetchNearbyEvents();
       // Re-fetch ads avec coords précises (radius matching)
       fetchAds();
+      // Re-fetch discovery (featured/upcoming/free) avec lat/lng pour que
+      // le backend trie par proximité — l'initial fetch s'est fait sans geoloc.
+      // bypassCache=true pour ne pas afficher les anciens résultats triés par récence.
+      fetchDiscoveryData(true);
+      // "Pour vous" guest aussi : page 1 paginée par proximité backend.
+      if (!user) {
+        loadMoreForYou(true);
+      }
     }
-  }, [location, fetchNearbyEvents, fetchAds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location]);
 
   // === Handlers ===
   const onRefresh = async () => {

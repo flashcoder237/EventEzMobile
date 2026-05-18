@@ -3,7 +3,7 @@
  * Affiche une bulle de message avec contenu, attachments, reactions
  */
 
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -161,6 +161,18 @@ interface MessageBubbleProps {
   uploadingAttachmentIds?: Set<string>;
   onLongPress: (message: Message) => void;
   onPlayVoice?: (uri: string, messageId: string) => void;
+  /** Seek a une position 0..1 dans le voice en cours de lecture (meme message
+      uniquement — sinon, lance la lecture). */
+  onSeekVoice?: (messageId: string, ratio: number) => void;
+  /** Saute 15s en avant sur le voice en cours (affiche si duration > 60s). */
+  onSkipForward?: () => void;
+  /** Long-press sur le play : cycle 1× → 1.5× → 2×. */
+  onCyclePlaybackRate?: () => void;
+  /** Vitesse courante. Affichee comme badge sur le voice en cours. */
+  playbackRate?: number;
+  /** Set des message ids de voice deja ecoutes (jusqu'a la fin). Pour
+      l'indicateur visuel "ecoute". */
+  listenedVoiceIds?: Set<string>;
   /** Forward — appele depuis le menu attachment, reuse le flow message-level
       du parent (qui ouvre le modal de selection de conversation). */
   onForward?: (message: Message) => void;
@@ -187,6 +199,16 @@ interface VoiceAttachmentProps {
   currentSeconds: number;
   totalSeconds: number;
   onPress: () => void;
+  /** Optionnel : tap-to-seek sur la waveform. Recoit un ratio 0..1. */
+  onSeek?: (ratio: number) => void;
+  /** Long-press sur le bouton play : cycle de vitesse 1× → 1.5× → 2×. */
+  onLongPressPlay?: () => void;
+  /** Tap "+15s" — visible uniquement quand isCurrent && duration > 60s. */
+  onSkipForward?: () => void;
+  /** Vitesse courante : affichee comme badge sur le voice en cours. */
+  rate?: number;
+  /** Vrai si l'utilisateur a deja ecoute ce voice. */
+  listened?: boolean;
   bg: string;
   fgIcon: string;
   activeBar: string;
@@ -202,6 +224,11 @@ const VoiceAttachment = memo(function VoiceAttachment({
   currentSeconds,
   totalSeconds,
   onPress,
+  onSeek,
+  onLongPressPlay,
+  onSkipForward,
+  rate = 1.0,
+  listened = false,
   bg,
   fgIcon,
   activeBar,
@@ -234,28 +261,61 @@ const VoiceAttachment = memo(function VoiceAttachment({
 
   const displayedSeconds = isPlaying || progressRatio > 0 ? currentSeconds : totalSeconds;
 
+  // Tap-to-seek : on capture la largeur de la waveform via onLayout puis on
+  // convertit locationX -> ratio. Le tap "play/pause" reste sur l'icone.
+  const waveformWidthRef = useRef(0);
+  const handleWaveformPress = useCallback(
+    (e: any) => {
+      if (!onSeek) return;
+      const width = waveformWidthRef.current;
+      if (!width) return;
+      const x = e?.nativeEvent?.locationX ?? 0;
+      const ratio = Math.max(0, Math.min(1, x / width));
+      onSeek(ratio);
+    },
+    [onSeek],
+  );
+
+  // #10 Skip button visible quand le voice est en cours de lecture (isCurrent
+  // = progressRatio > 0 ou isPlaying) ET la duree > 60s.
+  const showSkip = !!onSkipForward && totalSeconds > 60 && (isPlaying || progressRatio > 0);
+  // Badge rate : visible uniquement quand on est en cours de lecture, et != 1.0
+  const showRate = isPlaying && rate !== 1.0;
+
   return (
-    <TouchableOpacity
+    <View
       style={[styles.voiceAttachment, { backgroundColor: bg }]}
-      onPress={onPress}
-      activeOpacity={0.85}
       accessibilityRole="button"
       accessibilityLabel={isPlaying ? t('componentsMessages.voicePause') : t('componentsMessages.voicePlay')}
     >
-      <View style={styles.voiceIconWrap}>
+      <TouchableOpacity
+        onPress={onPress}
+        onLongPress={onLongPressPlay}
+        delayLongPress={400}
+        activeOpacity={0.7}
+        style={styles.voiceIconWrap}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
         {isLoading ? (
           <ActivityIndicator size="small" color={fgIcon} />
         ) : (
           <Ionicons name={isPlaying ? 'pause' : 'play'} size={22} color={fgIcon} />
         )}
-      </View>
-      <View style={styles.waveformContainer}>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.waveformContainer}
+        activeOpacity={0.85}
+        onPress={onSeek ? handleWaveformPress : onPress}
+        onLayout={(e) => { waveformWidthRef.current = e.nativeEvent.layout.width; }}
+        accessibilityLabel={t('componentsMessages.voiceSeek') || 'Seek'}
+      >
         {waveformHeights.map((h, i) => {
           const barRatio = (i + 0.5) / WAVEFORM_BARS;
           const active = barRatio <= progressRatio;
           return (
             <View
               key={i}
+              pointerEvents="none"
               style={[
                 styles.waveformBar,
                 {
@@ -266,11 +326,36 @@ const VoiceAttachment = memo(function VoiceAttachment({
             />
           );
         })}
+      </TouchableOpacity>
+      <View style={styles.voiceMetaCol}>
+        <Text style={[styles.voiceDuration, { color: textColor }]}>
+          {formatDuration(displayedSeconds)}
+        </Text>
+        {/* Dot "ecoute" : marque sous la duration */}
+        {listened && !isPlaying && (
+          <View style={[styles.voiceListenedDot, { backgroundColor: textColor, opacity: 0.5 }]} />
+        )}
       </View>
-      <Text style={[styles.voiceDuration, { color: textColor }]}>
-        {formatDuration(displayedSeconds)}
-      </Text>
-    </TouchableOpacity>
+      {/* +15s — discret, a droite du bloc duration */}
+      {showSkip && (
+        <TouchableOpacity
+          onPress={onSkipForward}
+          style={[styles.voiceSkipBtn, { borderColor: textColor }]}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          accessibilityLabel={t('componentsMessages.voiceSkip15') || 'Skip 15s'}
+        >
+          <Text style={[styles.voiceSkipText, { color: textColor }]}>+15</Text>
+        </TouchableOpacity>
+      )}
+      {/* Badge "1.5×" / "2×" pendant la lecture */}
+      {showRate && (
+        <View style={[styles.voiceRateBadge, { backgroundColor: 'rgba(0,0,0,0.25)' }]}>
+          <Text style={[styles.voiceRateText, { color: '#FFFFFF' }]}>
+            {rate === 1.5 ? '1.5×' : `${rate}×`}
+          </Text>
+        </View>
+      )}
+    </View>
   );
 });
 
@@ -284,6 +369,11 @@ function MessageBubble({
   voicePlayback,
   uploadingAttachmentIds,
   onLongPress,
+  onSeekVoice,
+  onSkipForward,
+  onCyclePlaybackRate,
+  playbackRate = 1.0,
+  listenedVoiceIds,
   onPlayVoice,
   onForward,
 }: MessageBubbleProps) {
@@ -650,6 +740,13 @@ function MessageBubble({
             currentSeconds={currentSeconds}
             totalSeconds={totalSeconds}
             onPress={() => onPlayVoice?.(attachment.file, String(message.id))}
+            onSeek={isCurrent && onSeekVoice
+              ? (ratio) => onSeekVoice(String(message.id), ratio)
+              : undefined}
+            onLongPressPlay={isCurrent ? onCyclePlaybackRate : undefined}
+            onSkipForward={isCurrent ? onSkipForward : undefined}
+            rate={isCurrent ? playbackRate : 1.0}
+            listened={listenedVoiceIds?.has(String(message.id)) ?? false}
             bg={voiceBg}
             fgIcon={voiceFg}
             activeBar={activeBar}
@@ -911,6 +1008,29 @@ function MessageBubble({
 
 // Fonction de comparaison pour memo
 function arePropsEqual(prevProps: MessageBubbleProps, nextProps: MessageBubbleProps): boolean {
+  // voicePlayback : on ne re-render QUE si ce voicePlayback concerne CE message
+  // (sinon les autres bulles re-render inutilement a chaque tick d'une autre
+  // lecture). Si c'est nous, on track les transitions de progression.
+  const msgIdStr = String(nextProps.message.id);
+  const prevVP = prevProps.voicePlayback;
+  const nextVP = nextProps.voicePlayback;
+  const prevConcernsUs = prevVP?.messageId === msgIdStr;
+  const nextConcernsUs = nextVP?.messageId === msgIdStr;
+  // Le voicePlayback "concerne nous" change de presence ou de progression
+  if (prevConcernsUs !== nextConcernsUs) return false;
+  if (nextConcernsUs && (
+    prevVP?.currentMs !== nextVP?.currentMs ||
+    prevVP?.durationMs !== nextVP?.durationMs ||
+    prevVP?.isLoading !== nextVP?.isLoading
+  )) return false;
+
+  // Track aussi le passage de "non ecoute" -> "ecoute" pour CE message.
+  const isMyVoiceListenedNow = nextProps.listenedVoiceIds?.has(msgIdStr) ?? false;
+  const isMyVoiceListenedBefore = prevProps.listenedVoiceIds?.has(msgIdStr) ?? false;
+  if (isMyVoiceListenedNow !== isMyVoiceListenedBefore) return false;
+  // playbackRate uniquement si on est le voice courant
+  if (nextConcernsUs && prevProps.playbackRate !== nextProps.playbackRate) return false;
+
   return (
     prevProps.message.id === nextProps.message.id &&
     prevProps.message.content === nextProps.message.content &&
@@ -1096,6 +1216,43 @@ const styles = StyleSheet.create({
   },
   voiceDurationMine: {
     color: Colors.white,
+  },
+  voiceMetaCol: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  voiceListenedDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+  voiceSkipBtn: {
+    marginLeft: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voiceSkipText: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.3,
+  },
+  voiceRateBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 8,
+  },
+  voiceRateText: {
+    fontSize: 9,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.3,
   },
 
   // Document Attachment

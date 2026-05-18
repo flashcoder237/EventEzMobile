@@ -22,6 +22,9 @@ import {
   TextInput,
   Modal,
   ScrollView,
+  AppState,
+  AppStateStatus,
+  Animated,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
@@ -141,6 +144,9 @@ export default function ConversationScreen() {
   const currentPlayerMsgIdRef = useRef<string | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const draftSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Fallback timeout pour forcer la sortie de l'etat "loading" du voice player
+  // si aucun status callback n'est arrive (certains backends streamant lentement).
+  const loadingFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [forwardSearchQuery, setForwardSearchQuery] = React.useState('');
   const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
 
@@ -168,6 +174,26 @@ export default function ConversationScreen() {
     durationMs: number;
     isLoading: boolean;
   } | null>(null);
+  // Vitesse de lecture courante (1.0 / 1.5 / 2.0). Long-press sur le bouton
+  // play du voice cycle entre ces valeurs. Appliquee au player en cours via
+  // player.setPlaybackRate / player.playbackRate.
+  const [playbackRate, setPlaybackRate] = useState<number>(1.0);
+  const PLAYBACK_RATES = [1.0, 1.5, 2.0];
+  // Set des message ids dont le voice a ete ecoute jusqu'au bout. Stocke en
+  // AsyncStorage par conversation. Sert a afficher un indicateur visuel
+  // "ecoute" different du simple "recu" — un voice ouvert mais pas lu reste
+  // "non ecoute".
+  const [listenedVoiceIds, setListenedVoiceIds] = useState<Set<string>>(new Set());
+  // Message en attente d'envoi reel (undo possible pendant N secondes apres
+  // tap "Envoyer"). On affiche une snackbar avec "Annuler". Apres expiration
+  // du delai, on commit l'envoi reel via WS/REST.
+  const UNDO_SEND_DELAY_MS = 5000;
+  const [pendingUndoMessage, setPendingUndoMessage] = useState<{
+    tempId: string;
+    expiresAt: number;
+  } | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const undoSnackbarAnim = useRef(new Animated.Value(0)).current;
   // Set des attachment ids en cours d'upload : permet à MessageBubble
   // d'afficher un overlay de chargement sur le tempMessage avant que l'upload
   // ne se termine.
@@ -339,18 +365,87 @@ export default function ConversationScreen() {
         clearInterval(recordingIntervalRef.current);
         recordingIntervalRef.current = null;
       }
+      if (loadingFallbackRef.current) {
+        clearTimeout(loadingFallbackRef.current);
+        loadingFallbackRef.current = null;
+      }
+      if (draftSaveTimeoutRef.current) {
+        clearTimeout(draftSaveTimeoutRef.current);
+        draftSaveTimeoutRef.current = null;
+      }
     };
   }, []);
 
-  // Restore draft on mount
+  // Restore draft on mount — avec TTL 24h pour eviter de remonter un brouillon
+  // oublie depuis 3 jours quand l'user revient. Format stocke : "<timestamp>|<text>".
+  // Fallback retro-compat : si pas de "|", on traite comme du legacy plain text.
   useEffect(() => {
     const convId = state.conversationId;
     if (!convId) return;
+    const DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
     AsyncStorage.getItem(`draft:${convId}`)
-      .then(draft => { if (draft) actions.setNewMessage(draft); })
+      .then(raw => {
+        if (!raw) return;
+        const sepIdx = raw.indexOf('|');
+        if (sepIdx > 0) {
+          const ts = Number(raw.slice(0, sepIdx));
+          const text = raw.slice(sepIdx + 1);
+          if (Number.isFinite(ts) && Date.now() - ts < DRAFT_TTL_MS && text) {
+            actions.setNewMessage(text);
+          } else {
+            // Brouillon expire — on nettoie pour ne pas le refaire apparaitre
+            AsyncStorage.removeItem(`draft:${convId}`).catch(() => {});
+          }
+        } else {
+          // Legacy (sans timestamp) : restaure mais re-sauvegarde avec ts pour
+          // que la prochaine fois le TTL s'applique
+          actions.setNewMessage(raw);
+          AsyncStorage.setItem(`draft:${convId}`, `${Date.now()}|${raw}`).catch(() => {});
+        }
+      })
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.conversationId]);
+
+  // Restore "voices ecoutes" set on conversation change.
+  useEffect(() => {
+    const convId = state.conversationId;
+    if (!convId) return;
+    AsyncStorage.getItem(`voice_listened:${convId}`)
+      .then(raw => {
+        if (!raw) return;
+        try {
+          const arr = JSON.parse(raw);
+          if (Array.isArray(arr)) setListenedVoiceIds(new Set(arr.map(String)));
+        } catch { /* ignore */ }
+      })
+      .catch(() => {});
+  }, [state.conversationId]);
+
+  // #5 Auto-pause : app passe en background OU ecran perd focus
+  // → on coupe la lecture pour eviter qu'un voice continue de jouer dans le
+  // vide quand l'user est ailleurs. La position courante est preservee dans
+  // playerRef si on revient (mais on ne reprend pas auto).
+  const pauseCurrentVoice = useCallback(() => {
+    const player: any = playerRef.current;
+    if (player && state.playingVoiceId) {
+      try { player.pause(); } catch { /* noop */ }
+      actions.setPlayingVoice(null);
+    }
+  }, [state.playingVoiceId, actions]);
+
+  useEffect(() => {
+    const handler = (next: AppStateStatus) => {
+      if (next === 'background' || next === 'inactive') pauseCurrentVoice();
+    };
+    const sub = AppState.addEventListener('change', handler);
+    return () => sub.remove();
+  }, [pauseCurrentVoice]);
+
+  useEffect(() => {
+    const unsubBlur = navigation.addListener('blur', pauseCurrentVoice);
+    return unsubBlur;
+  }, [navigation, pauseCurrentVoice]);
 
   // ============================================
   // DATA FETCHING
@@ -982,13 +1077,17 @@ export default function ConversationScreen() {
     setVoicePreviewPlaying(false);
     setPendingVoiceUri(null);
     setPendingVoiceDuration(0);
-    // Attach the voice file and trigger send
-    actions.setAttachedFiles([{
-      uri,
-      name: `voice_${Date.now()}.m4a`,
-      type: 'voice',
-      duration,
-    }]);
+    // Concatene avec les autres attachments deja attaches (image+doc+voice
+    // ensemble) au lieu de remplacer — preserve une eventuelle selection.
+    actions.setAttachedFiles([
+      ...(state.attachedFiles || []),
+      {
+        uri,
+        name: `voice_${Date.now()}.m4a`,
+        type: 'voice',
+        duration,
+      },
+    ]);
     // handleSend reads from state.attachedFiles asynchronously, so we defer
     // by one tick to let the state update propagate before the send fires.
     setTimeout(() => { handleSend(); }, 0);
@@ -1051,6 +1150,42 @@ export default function ConversationScreen() {
     }
   };
 
+  // Marque un voice comme "ecoute" (#4) et persiste — utilise au didJustFinish
+  // et aussi quand l'user seek >= 90% (l'user a globalement ecoute la totalite).
+  const markVoiceListened = useCallback((msgId: string) => {
+    const convId = state.conversationId;
+    if (!convId) return;
+    setListenedVoiceIds((prev) => {
+      if (prev.has(msgId)) return prev;
+      const next = new Set(prev);
+      next.add(msgId);
+      AsyncStorage.setItem(`voice_listened:${convId}`, JSON.stringify(Array.from(next))).catch(() => {});
+      return next;
+    });
+  }, [state.conversationId]);
+
+  // #2 Auto-play du voice suivant non ecoute, dans le meme ordre que la liste.
+  // Retourne le message vocal qui suit `currentMsgId` chronologiquement.
+  const findNextVoiceMessage = useCallback((currentMsgId: string): { uri: string; messageId: string } | null => {
+    // FlatList inverted: index 0 = plus recent. "Suivant" pour l'user = plus
+    // recent que celui qui vient de finir.
+    const messages = state.messages;
+    if (!messages || messages.length === 0) return null;
+    const idx = messages.findIndex((m) => String(m.id) === String(currentMsgId));
+    if (idx === -1) return null;
+    // On scanne du courant vers les plus recents (index decroissant car liste inversee)
+    for (let i = idx - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.is_deleted) continue;
+      const voiceAtt = (m.attachments || []).find((a: any) => a.attachment_type === 'voice');
+      if (voiceAtt && !listenedVoiceIds.has(String(m.id))) {
+        const uri = typeof voiceAtt.file === 'string' ? voiceAtt.file : (voiceAtt.file as any)?.uri;
+        if (uri) return { uri, messageId: String(m.id) };
+      }
+    }
+    return null;
+  }, [state.messages, listenedVoiceIds]);
+
   const playVoiceMessage = async (uri: string, messageId: string) => {
     try {
       // Cas 1 : tap sur le message déjà chargé → toggle pause / play sans
@@ -1074,6 +1209,10 @@ export default function ConversationScreen() {
         playerRef.current = null;
         currentPlayerMsgIdRef.current = null;
       }
+      if (loadingFallbackRef.current) {
+        clearTimeout(loadingFallbackRef.current);
+        loadingFallbackRef.current = null;
+      }
 
       const playableUri = getMediaUrl(uri) || uri;
 
@@ -1084,11 +1223,22 @@ export default function ConversationScreen() {
       const player = createAudioPlayer({ uri: playableUri });
       playerRef.current = player;
       currentPlayerMsgIdRef.current = messageId;
+      // #1 Applique la vitesse courante au nouveau player. L'API varie selon
+      // la version expo-audio (setPlaybackRate vs playbackRate property) —
+      // on essaie les 2 et on tolere l'echec silencieux.
+      try {
+        const p: any = player;
+        if (typeof p.setPlaybackRate === 'function') {
+          p.setPlaybackRate(playbackRate);
+        } else if ('playbackRate' in p) {
+          p.playbackRate = playbackRate;
+        }
+      } catch { /* ignore */ }
 
       // Cf. note plus haut : addListener existe au runtime mais pas dans le
       // typing expo-modules-core de SharedObject — d'où le cast.
       const subscription = (player as any).addListener('playbackStatusUpdate', (status: any) => {
-        // status: { isLoaded, currentTime (s), duration (s), didJustFinish, playing }
+        // status: { isLoaded, currentTime (s), duration (s), didJustFinish, playing, isBuffering }
         if (status?.didJustFinish) {
           actions.setPlayingVoice(null);
           setVoicePlayback(null);
@@ -1096,17 +1246,48 @@ export default function ConversationScreen() {
           try { player.remove(); } catch { /* noop */ }
           if (playerRef.current === player) playerRef.current = null;
           if (currentPlayerMsgIdRef.current === messageId) currentPlayerMsgIdRef.current = null;
+          if (loadingFallbackRef.current) {
+            clearTimeout(loadingFallbackRef.current);
+            loadingFallbackRef.current = null;
+          }
+          // #4 Marque comme ecoute
+          markVoiceListened(messageId);
+          // #2 Auto-play du voice suivant non ecoute, leger delai pour respirer
+          const next = findNextVoiceMessage(messageId);
+          if (next) {
+            setTimeout(() => { playVoiceMessage(next.uri, next.messageId); }, 350);
+          }
           return;
         }
-        if (status?.isLoaded) {
-          setVoicePlayback({
-            messageId,
-            currentMs: Math.round((status.currentTime ?? 0) * 1000),
-            durationMs: Math.round((status.duration ?? 0) * 1000),
-            isLoading: false,
-          });
+        // Drop "loading" des qu'on a un signe que le moteur lit (playing ou
+        // duration > 0) OU que le media est marque comme charge. Certaines
+        // versions d'expo-audio ne settent jamais explicitement isLoaded=true
+        // pour les URI distantes — on s'appuyait dessus avant, d'où le spinner
+        // qui restait visible indefiniment.
+        const hasDuration = (status?.duration ?? 0) > 0;
+        const isReady = !!status?.isLoaded || !!status?.playing || hasDuration;
+        const currentMs = Math.round((status?.currentTime ?? 0) * 1000);
+        const durationMs = Math.round((status?.duration ?? 0) * 1000);
+        setVoicePlayback({ messageId, currentMs, durationMs, isLoading: !isReady });
+        // #4 Marque "ecoute" si l'user a depasse 90% (compte un seek vers la
+        // fin comme "ecoute" sans attendre didJustFinish, qui peut etre rate
+        // si l'user pause juste avant la fin).
+        if (durationMs > 0 && currentMs / durationMs >= 0.9) {
+          markVoiceListened(messageId);
         }
       });
+
+      // Fallback : si aucun status n'est arrive en 2.5s, on assume que la
+      // lecture est en cours (le spinner ne doit pas rester eternellement).
+      const loadingFallback = setTimeout(() => {
+        setVoicePlayback((prev) => {
+          if (prev && prev.messageId === messageId && prev.isLoading) {
+            return { ...prev, isLoading: false };
+          }
+          return prev;
+        });
+      }, 2500);
+      loadingFallbackRef.current = loadingFallback;
 
       player.play();
     } catch (error) {
@@ -1117,6 +1298,149 @@ export default function ConversationScreen() {
       showError(t('common.error'), t('conversation.voicePlayError'));
     }
   };
+
+  // #1 Long-press sur le bouton play : cycle 1.0 → 1.5 → 2.0 → 1.0.
+  const cyclePlaybackRate = useCallback(() => {
+    setPlaybackRate((current) => {
+      const idx = PLAYBACK_RATES.indexOf(current);
+      const next = PLAYBACK_RATES[(idx + 1) % PLAYBACK_RATES.length];
+      // Applique au player en cours si un voice joue
+      const p: any = playerRef.current;
+      if (p) {
+        try {
+          if (typeof p.setPlaybackRate === 'function') p.setPlaybackRate(next);
+          else if ('playbackRate' in p) p.playbackRate = next;
+        } catch { /* ignore */ }
+      }
+      return next;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // #6 Undo send — arme la snackbar pour 5s. On stocke le tempId, et au
+  // moment du tap "Annuler" on retrouve le vrai message (replace par WS/REST)
+  // pour le supprimer cote serveur. On supprime aussi le temp en local au cas
+  // ou le WS n'a pas encore repondu.
+  const armUndoSend = useCallback((tempId: string) => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setPendingUndoMessage({ tempId, expiresAt: Date.now() + UNDO_SEND_DELAY_MS });
+    // Slide-in
+    Animated.timing(undoSnackbarAnim, {
+      toValue: 1,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+    undoTimerRef.current = setTimeout(() => {
+      Animated.timing(undoSnackbarAnim, {
+        toValue: 0,
+        duration: 220,
+        useNativeDriver: true,
+      }).start(() => setPendingUndoMessage(null));
+    }, UNDO_SEND_DELAY_MS);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const performUndoSend = useCallback(async () => {
+    const pending = pendingUndoMessage;
+    if (!pending) return;
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+    Animated.timing(undoSnackbarAnim, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(() => setPendingUndoMessage(null));
+
+    // Cherche le message a supprimer : d'abord par tempId, sinon le plus
+    // recent envoye par l'user (REST l'a deja remplace avec le real id).
+    const messages = state.messages;
+    const userIdStr = String(user?.id ?? '');
+    let target = messages.find((m) => String(m.id) === pending.tempId);
+    if (!target) {
+      // Plus recent sortant (index 0 dans une liste triee desc; ici la liste
+      // peut etre triee asc — on cherche par created_at desc)
+      const mine = messages.filter((m) => String(m.sender ?? (m as any).sender_id ?? '') === userIdStr);
+      if (mine.length > 0) {
+        target = mine.reduce((a, b) =>
+          new Date(a.created_at).getTime() > new Date(b.created_at).getTime() ? a : b,
+        );
+      }
+    }
+    if (!target) return;
+
+    // Retire optimistiquement du local
+    actions.removeMessage(String(target.id));
+
+    // Tente le delete cote serveur — for_everyone si possible
+    try {
+      const realId = String(target.id);
+      if (!realId.startsWith('temp-')) {
+        if (isConnected && isAuthenticated && typeof wsDeleteMessage === 'function') {
+          wsDeleteMessage(realId);
+        } else {
+          await messagesAPI.deleteMessage(realId);
+        }
+      }
+      // Si c'etait encore un tempId, le message n'est probablement pas encore
+      // arrive au serveur (WS pending). Le removeMessage local suffit.
+    } catch (err) {
+      if (__DEV__) console.warn('[undoSend] delete failed', err);
+    }
+  }, [pendingUndoMessage, state.messages, user?.id, isConnected, isAuthenticated, wsDeleteMessage, actions, undoSnackbarAnim]);
+
+  // Cleanup undo timer au unmount
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    };
+  }, []);
+
+  // #10 Skip avant de 15s sur le voice en cours.
+  const skipForward15s = useCallback(() => {
+    const player: any = playerRef.current;
+    if (!player || !voicePlayback) return;
+    const { durationMs, currentMs } = voicePlayback;
+    if (durationMs <= 0) return;
+    const targetSec = Math.min(durationMs / 1000, (currentMs / 1000) + 15);
+    try {
+      if (typeof player.seekTo === 'function') player.seekTo(targetSec);
+      else if (typeof player.setPosition === 'function') player.setPosition(targetSec * 1000);
+      setVoicePlayback((prev) =>
+        prev && prev.messageId === voicePlayback.messageId
+          ? { ...prev, currentMs: Math.round(targetSec * 1000) }
+          : prev,
+      );
+    } catch (e) {
+      if (__DEV__) console.warn('[skipForward15s] failed', e);
+    }
+  }, [voicePlayback]);
+
+  // Tap-to-seek sur la waveform du voice en cours de lecture.
+  const seekVoiceMessage = useCallback((messageId: string, ratio: number) => {
+    const player: any = playerRef.current;
+    if (!player || currentPlayerMsgIdRef.current !== messageId) return;
+    const durationMs = voicePlayback?.durationMs ?? 0;
+    if (durationMs <= 0) return;
+    const targetSec = Math.max(0, Math.min(durationMs / 1000, (durationMs / 1000) * ratio));
+    try {
+      // expo-audio: seekTo(seconds) (numeric, en secondes)
+      if (typeof player.seekTo === 'function') {
+        player.seekTo(targetSec);
+      } else if (typeof player.setPosition === 'function') {
+        player.setPosition(targetSec * 1000);
+      }
+      // Update optimiste pour que l'UI bouge meme avant le prochain status
+      setVoicePlayback((prev) =>
+        prev && prev.messageId === messageId
+          ? { ...prev, currentMs: Math.round(targetSec * 1000) }
+          : prev,
+      );
+    } catch (e) {
+      if (__DEV__) console.warn('[seekVoiceMessage] failed', e);
+    }
+  }, [voicePlayback?.durationMs]);
 
   // ============================================
   // MESSAGE ACTIONS
@@ -1381,8 +1705,45 @@ export default function ConversationScreen() {
   const handleSend = async () => {
     if (state.sending) return;
 
+    // Annule immediatement tout setTimeout de sauvegarde de brouillon. Sans
+    // ce garde, l'envoi peut se finir en ~200ms (WS) puis le timer T+500
+    // re-ecrit le draft avec le contenu deja envoye => au retour sur l'ecran
+    // l'user voit son message envoye reapparaitre en brouillon.
+    if (draftSaveTimeoutRef.current) {
+      clearTimeout(draftSaveTimeoutRef.current);
+      draftSaveTimeoutRef.current = null;
+    }
+
+    // Auto-attache le voice en preview si l'user tape Send : le voice reste
+    // dans `pendingVoiceUri` (etat preview) tant que l'user n'a pas valide
+    // explicitement avec le bouton dedie. On le merge LOCALEMENT a la liste
+    // d'attachments — pas via setState round-trip + setTimeout (stale closure
+    // garantie), on travaille avec une variable locale jusqu'a la fin du send.
+    let effectiveFiles = state.attachedFiles || [];
+    const pickedUpVoice = pendingVoiceUri && pendingVoiceDuration > 0;
+    if (pickedUpVoice) {
+      effectiveFiles = [
+        ...effectiveFiles,
+        {
+          uri: pendingVoiceUri!,
+          name: `voice_${Date.now()}.m4a`,
+          type: 'voice' as const,
+          duration: pendingVoiceDuration,
+        },
+      ];
+      // Clear preview state immediatement pour que la pill au-dessus de
+      // l'input disparaisse sans attendre la fin du send.
+      if (previewPlayerRef.current) {
+        try { previewPlayerRef.current.remove(); } catch { /* noop */ }
+        previewPlayerRef.current = null;
+      }
+      setVoicePreviewPlaying(false);
+      setPendingVoiceUri(null);
+      setPendingVoiceDuration(0);
+    }
+
     const messageContent = state.newMessage.trim();
-    const hasContent = messageContent.length > 0 || state.attachedFiles.length > 0;
+    const hasContent = messageContent.length > 0 || effectiveFiles.length > 0;
     if (!hasContent) return;
 
     // Lecture seule : on bloque l'envoi (filet de sécurité, l'UI désactive déjà
@@ -1411,6 +1772,13 @@ export default function ConversationScreen() {
 
     actions.setNewMessage('');
     actions.setSending(true);
+    // Suppression immediate du brouillon (pas seulement apres succes du send) :
+    // si l'user navigue away avant la fin du await, le draft est deja parti.
+    // Le removeItem en fin de handleSend reste comme filet de securite.
+    const draftKey = state.conversationId ? `draft:${state.conversationId}` : null;
+    if (draftKey) {
+      AsyncStorage.removeItem(draftKey).catch(() => {});
+    }
 
     try {
       // Mode édition
@@ -1461,7 +1829,7 @@ export default function ConversationScreen() {
       // ajoute à `uploadingIds` ; MessageBubble affiche un overlay loader
       // tant que l'id figure dans ce Set.
       const tempMessageId = `temp-${Date.now()}`;
-      const tempAttachments = state.attachedFiles.map((f, i) => ({
+      const tempAttachments = effectiveFiles.map((f, i) => ({
         id: `tmp:${tempMessageId}:${i}`,
         file: f.uri,
         attachment_type: f.type,
@@ -1492,6 +1860,13 @@ export default function ConversationScreen() {
       actions.clearAttachedFiles();
       actions.cancelReply();
 
+      // #6 Arme la fenetre d'undo. On expose une snackbar "Annuler" 5s. Si
+      // l'user tap, on supprime le message via wsDeleteMessage / API. On
+      // identifie le message au moment de l'Annuler en cherchant le dernier
+      // message de l'user (le temp aura ete remplace par le real sur REST,
+      // ou WS aura confirme).
+      armUndoSend(tempMessageId);
+
       // Marquer tous les attachments en upload pour l'overlay loader
       if (tempAttachments.length > 0) {
         setUploadingIds(prev => {
@@ -1515,7 +1890,7 @@ export default function ConversationScreen() {
         | { ok: false; error: string; code?: string; tmpIdx: number; fileType: 'image' | 'voice' | 'document'; fileName: string };
 
       const uploadOutcomes: UploadOutcome[] = await Promise.all(
-        state.attachedFiles.map(async (att, idx): Promise<UploadOutcome> => {
+        effectiveFiles.map(async (att, idx): Promise<UploadOutcome> => {
           const formData = new FormData();
           const fileFieldName = att.type === 'voice' ? 'audio' : 'file';
           formData.append(fileFieldName, {
@@ -1842,11 +2217,20 @@ export default function ConversationScreen() {
           uploadingAttachmentIds={uploadingIds}
           onLongPress={handleMessageLongPress}
           onPlayVoice={playVoiceMessage}
+          onSeekVoice={seekVoiceMessage}
+          onSkipForward={skipForward15s}
+          onCyclePlaybackRate={cyclePlaybackRate}
+          playbackRate={playbackRate}
+          listenedVoiceIds={listenedVoiceIds}
           onForward={handleForwardMessage}
         />
       </View>
     );
-  }, [state.messages, state.otherUserId, state.playingVoiceId, voicePlayback, uploadingIds, user?.id, handleMessageLongPress]);
+  }, [
+    state.messages, state.otherUserId, state.playingVoiceId, voicePlayback,
+    uploadingIds, user?.id, handleMessageLongPress, seekVoiceMessage,
+    skipForward15s, cyclePlaybackRate, playbackRate, listenedVoiceIds,
+  ]);
 
   const renderSearchResultItem = useCallback(({ item }: { item: Message }) => (
     <TouchableOpacity
@@ -2498,6 +2882,36 @@ export default function ConversationScreen() {
                 ))}
               </ScrollView>
             )}
+            {/* #6 Snackbar Undo Send — visible 5s apres chaque envoi */}
+            {pendingUndoMessage && (
+              <Animated.View
+                style={[
+                  styles.undoSnackbar,
+                  {
+                    backgroundColor: colors.gray900,
+                    transform: [{
+                      translateY: undoSnackbarAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [40, 0],
+                      }),
+                    }],
+                    opacity: undoSnackbarAnim,
+                  },
+                ]}
+              >
+                <Text style={[styles.undoSnackbarText, { color: '#FFFFFF' }]}>
+                  {t('conversation.messageSent') || 'Message envoyé'}
+                </Text>
+                <TouchableOpacity
+                  onPress={performUndoSend}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={[styles.undoSnackbarAction, { color: colors.accent }]}>
+                    {t('conversation.undo') || 'Annuler'}
+                  </Text>
+                </TouchableOpacity>
+              </Animated.View>
+            )}
             <InputToolbar
               value={state.newMessage}
               onChangeText={(text) => {
@@ -2506,9 +2920,15 @@ export default function ConversationScreen() {
                 if (draftSaveTimeoutRef.current) clearTimeout(draftSaveTimeoutRef.current);
                 const convId = state.conversationId;
                 if (convId) {
-                  draftSaveTimeoutRef.current = setTimeout(() => {
-                    AsyncStorage.setItem(`draft:${convId}`, text).catch(() => {});
-                  }, 500);
+                  // Si le champ devient vide, on supprime le brouillon
+                  // immediatement plutot que d'attendre 500ms.
+                  if (!text) {
+                    AsyncStorage.removeItem(`draft:${convId}`).catch(() => {});
+                  } else {
+                    draftSaveTimeoutRef.current = setTimeout(() => {
+                      AsyncStorage.setItem(`draft:${convId}`, `${Date.now()}|${text}`).catch(() => {});
+                    }, 500);
+                  }
                 }
               }}
               onSend={handleSend}
@@ -2961,6 +3381,28 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
+  },
+
+  // #6 Undo Send snackbar
+  undoSnackbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  undoSnackbarText: {
+    fontSize: 13,
+    fontFamily: FontFamily.medium,
+  },
+  undoSnackbarAction: {
+    fontSize: 13,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
 
   // Quick replies strip (organizer-only, au-dessus de l'InputToolbar)

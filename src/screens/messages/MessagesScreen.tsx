@@ -671,6 +671,10 @@ export default function MessagesScreen() {
   // Charge tous les brouillons stockés par ConversationScreen. La fonction est
   // rappelée au focus (cf. useFocusEffect plus bas) pour refléter les drafts
   // créés/effacés depuis qu'on est revenu sur l'inbox.
+  //
+  // Format de stockage (cf. ConversationScreen) : "<timestamp>|<text>". Le
+  // timestamp est utilise pour appliquer un TTL de 24h. Les drafts expires
+  // sont nettoyes au passage. Format legacy (sans `|`) toujours supporte.
   const loadDrafts = async () => {
     try {
       const keys = await AsyncStorage.getAllKeys();
@@ -679,15 +683,37 @@ export default function MessagesScreen() {
         setDrafts(new Map());
         return;
       }
+      const DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+      const now = Date.now();
       const entries = await AsyncStorage.multiGet(draftKeys);
       const next = new Map<string, string>();
+      const expired: string[] = [];
       for (const [key, value] of entries) {
-        if (value && value.trim().length > 0) {
-          // Strip le préfixe `draft:`
-          next.set(key.slice(6), value);
+        if (!value || value.trim().length === 0) continue;
+        const sepIdx = value.indexOf('|');
+        let text: string;
+        let isExpired = false;
+        if (sepIdx > 0) {
+          const ts = Number(value.slice(0, sepIdx));
+          text = value.slice(sepIdx + 1);
+          if (Number.isFinite(ts) && now - ts >= DRAFT_TTL_MS) {
+            isExpired = true;
+          }
+        } else {
+          // Legacy (sans timestamp) — affiche tel quel
+          text = value;
         }
+        if (isExpired || !text) {
+          expired.push(key);
+          continue;
+        }
+        // Strip le préfixe `draft:` pour la cle de la Map
+        next.set(key.slice(6), text);
       }
       setDrafts(next);
+      if (expired.length > 0) {
+        AsyncStorage.multiRemove(expired).catch(() => {});
+      }
     } catch {
       // ignore — pas critique
     }
