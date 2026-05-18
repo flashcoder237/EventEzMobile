@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
@@ -16,6 +17,7 @@ interface BulkActionBarProps {
 
 function BulkActionBar({ selectedCount, onApprove, onReject, onCheckIn, onCancel, loading }: BulkActionBarProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   if (selectedCount === 0) return null;
 
@@ -23,7 +25,7 @@ function BulkActionBar({ selectedCount, onApprove, onReject, onCheckIn, onCancel
     <View style={[styles.container, { backgroundColor: colors.card }, Shadows.bottomBar]}>
       <View style={styles.topRow}>
         <Text style={[styles.countText, { color: colors.gray900 }]}>
-          {selectedCount} selectionne{selectedCount > 1 ? 's' : ''}
+          {t('organizer.bulkAction.selectedCount', { count: selectedCount })}
         </Text>
         <TouchableOpacity onPress={onCancel} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="close" size={22} color={colors.gray500} />
@@ -40,7 +42,7 @@ function BulkActionBar({ selectedCount, onApprove, onReject, onCheckIn, onCancel
           ) : (
             <>
               <Ionicons name="checkmark-circle" size={18} color={Colors.white} />
-              <Text style={styles.actionText}>Approuver</Text>
+              <Text style={styles.actionText}>{t('organizer.bulkAction.approve')}</Text>
             </>
           )}
         </TouchableOpacity>
@@ -50,7 +52,7 @@ function BulkActionBar({ selectedCount, onApprove, onReject, onCheckIn, onCancel
           disabled={loading}
         >
           <Ionicons name="close-circle" size={18} color={Colors.white} />
-          <Text style={styles.actionText}>Rejeter</Text>
+          <Text style={styles.actionText}>{t('organizer.bulkAction.reject')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionBtn, { backgroundColor: Colors.primary }]}
@@ -58,7 +60,7 @@ function BulkActionBar({ selectedCount, onApprove, onReject, onCheckIn, onCancel
           disabled={loading}
         >
           <Ionicons name="qr-code" size={18} color={Colors.white} />
-          <Text style={styles.actionText}>Check-in</Text>
+          <Text style={styles.actionText}>{t('organizer.bulkAction.checkIn')}</Text>
         </TouchableOpacity>
       </View>
     </View>

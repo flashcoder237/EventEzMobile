@@ -1375,7 +1375,13 @@ export default function ConversationScreen() {
     } catch { return null; }
   }, [state.conversationId]);
 
-  const playVoiceMessage = async (uri: string, messageId: string, attachmentId?: string) => {
+  const playVoiceMessage = async (
+    uri: string,
+    messageId: string,
+    attachmentId?: string,
+    serverStartOffsetMs?: number,
+    serverEndOffsetMs?: number,
+  ) => {
     try {
       // Cas 1 : tap sur le message déjà chargé → toggle pause / play sans
       // détruire le player (préserve la position de lecture).
@@ -1418,9 +1424,14 @@ export default function ConversationScreen() {
       const playableUri = getCachedVoiceUri(remoteUri) || remoteUri;
       // Charge la position sauvegardee pour ce voice — si > 1s on reprendra la
       // lecture a cette position au premier status callback.
-      // Fallback : si pas de position sauvee, on regarde le silence d'ouverture
-      // detecte au record (feature A) pour skip directement au debut du son.
+      // Cascade :
+      //   1. position sauvee (l'user a pause au milieu, on reprend la)
+      //   2. start_offset_ms du serveur (analyse audio backend, universelle)
+      //   3. offset local recorder (feature A — fallback sender-only)
       let savedPosMs = await loadVoicePosition(messageId);
+      if (!savedPosMs && typeof serverStartOffsetMs === 'number' && serverStartOffsetMs > 0) {
+        savedPosMs = serverStartOffsetMs;
+      }
       if (!savedPosMs && attachmentId) {
         try {
           const offsetRaw = await AsyncStorage.getItem(`voice_start_offset:${attachmentId}`);
@@ -1514,6 +1525,36 @@ export default function ConversationScreen() {
         const currentMs = Math.round((status?.currentTime ?? 0) * 1000);
         const durationMs = Math.round((status?.duration ?? 0) * 1000);
         setVoicePlayback({ messageId, currentMs, durationMs, isLoading: !isReady });
+        // Auto-stop avant le silence final (end_offset_ms du serveur).
+        // On declenche manuellement la fin si on entre dans la zone de
+        // silence terminal — meme effet que didJustFinish mais plus tot.
+        if (
+          typeof serverEndOffsetMs === 'number'
+          && serverEndOffsetMs > 0
+          && durationMs > 0
+          && currentMs >= durationMs - serverEndOffsetMs
+        ) {
+          try { player.pause(); } catch { /* noop */ }
+          // Simule didJustFinish pour declencher #2 auto-next + #4 listened
+          actions.setPlayingVoice(null);
+          setVoicePlayback(null);
+          try { subscription.remove(); } catch { /* noop */ }
+          try { player.remove(); } catch { /* noop */ }
+          if (playerRef.current === player) playerRef.current = null;
+          if (currentPlayerMsgIdRef.current === messageId) currentPlayerMsgIdRef.current = null;
+          if (loadingFallbackRef.current) {
+            clearTimeout(loadingFallbackRef.current);
+            loadingFallbackRef.current = null;
+          }
+          markVoiceListened(messageId);
+          const convId = state.conversationId;
+          if (convId) {
+            AsyncStorage.removeItem(`voice_pos:${convId}:${messageId}`).catch(() => {});
+          }
+          const next = findNextVoiceMessage(messageId);
+          if (next) setTimeout(() => { playVoiceMessage(next.uri, next.messageId); }, 350);
+          return;
+        }
         // #4 Marque "ecoute" si l'user a depasse 90% (compte un seek vers la
         // fin comme "ecoute" sans attendre didJustFinish, qui peut etre rate
         // si l'user pause juste avant la fin).

@@ -367,7 +367,7 @@ export default function DashboardScreen() {
                   <Ionicons name="wallet-outline" size={24} color={colors.success} />
                 </View>
                 <Text style={[styles.organizerActionTitle, { color: colors.text }]}>{t('dashboard.walletTitle')}</Text>
-                <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>Revenus & paiements</Text>
+                <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>{t('dashboard.walletSubtitle')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity

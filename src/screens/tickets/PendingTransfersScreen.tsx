@@ -216,7 +216,7 @@ export default function PendingTransfersScreen() {
             </Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[s.personLabel, { color: colors.textSecondary }]}>Envoyé par</Text>
+            <Text style={[s.personLabel, { color: colors.textSecondary }]}>{t('tickets.transfers.sentBy')}</Text>
             <Text style={[s.personName, { color: colors.text }]} numberOfLines={1}>
               {item.sender_name}
             </Text>
@@ -251,7 +251,7 @@ export default function PendingTransfersScreen() {
                 ? <ActivityIndicator size="small" color={colors.error} />
                 : <>
                     <Ionicons name="close" size={15} color={colors.error} />
-                    <Text style={[s.btnGhostText, { color: colors.error }]}>Refuser</Text>
+                    <Text style={[s.btnGhostText, { color: colors.error }]}>{t('tickets.transfers.decline')}</Text>
                   </>
               }
             </TouchableOpacity>
@@ -265,7 +265,7 @@ export default function PendingTransfersScreen() {
                 ? <ActivityIndicator size="small" color="#fff" />
                 : <>
                     <Ionicons name="checkmark" size={15} color="#fff" />
-                    <Text style={s.btnPrimaryText}>Accepter</Text>
+                    <Text style={s.btnPrimaryText}>{t('tickets.transfers.accept')}</Text>
                   </>
               }
             </TouchableOpacity>
@@ -317,7 +317,7 @@ export default function PendingTransfersScreen() {
             </Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[s.personLabel, { color: colors.textSecondary }]}>Envoyé à</Text>
+            <Text style={[s.personLabel, { color: colors.textSecondary }]}>{t('tickets.transfers.sentTo')}</Text>
             <Text style={[s.personName, { color: colors.text }]} numberOfLines={1}>
               {item.recipient_name || item.recipient_email}
             </Text>
@@ -325,7 +325,7 @@ export default function PendingTransfersScreen() {
           {/* Status chip */}
           <View style={[s.chip, { backgroundColor: `${statusColor}14` }]}>
             <Text style={[s.chipText, { color: statusColor }]}>
-              {item.is_expired ? 'Expiré' : (STATUS_LABELS[item.status] ?? item.status)}
+              {item.is_expired ? t('tickets.transfers.expired') : (STATUS_LABELS[item.status] ?? item.status)}
             </Text>
           </View>
         </View>
@@ -353,7 +353,7 @@ export default function PendingTransfersScreen() {
                 ? <ActivityIndicator size="small" color={colors.error} />
                 : <>
                     <Ionicons name="close-circle-outline" size={15} color={colors.error} />
-                    <Text style={[s.btnGhostText, { color: colors.error }]}>Annuler</Text>
+                    <Text style={[s.btnGhostText, { color: colors.error }]}>{t('tickets.transfers.cancel')}</Text>
                   </>
               }
             </TouchableOpacity>

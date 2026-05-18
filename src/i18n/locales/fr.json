@@ -220,6 +220,9 @@
     "verifyByPhoneFormatHint": "Format international requis, ex. +237 6XXXXXXXX",
     "verifyByPhoneSend": "Envoyer le code SMS",
     "verifyByPhoneConfirm": "Confirmer le code",
+    "verifyByPhoneSwitchToSms": "Vérifier par SMS",
+    "verifyByPhoneSwitchToSmsHint": "Recevoir un code à 6 chiffres par téléphone",
+    "verifyByPhoneBackToEmail": "Revenir à la vérification par email",
     "verifyByPhoneChangeNumber": "Changer de numéro",
     "verifyByPhoneResend": "Renvoyer le code",
     "verifyByPhoneResendIn": "Renvoyer dans {{seconds}}s",
@@ -557,6 +560,7 @@
     "fromLabel": "À partir de"
   },
   "events": {
+    "videoBadge": "Vidéo",
     "details": "Détails",
     "description": "Description",
     "showFullDescription": "Lire la suite",
@@ -665,6 +669,28 @@
     "noTalks": "Aucune session prévue"
   },
   "tickets": {
+    "transfers": {
+      "sentBy": "Envoyé par",
+      "sentTo": "Envoyé à",
+      "accept": "Accepter",
+      "decline": "Refuser",
+      "cancel": "Annuler",
+      "expired": "Expiré"
+    },
+    "transferAccept": {
+      "successTitle": "Billet reçu !",
+      "successSub": "Votre billet a bien été transféré sur votre compte.",
+      "successSubWithEvent": "Votre billet pour « {{event}} » est dans vos billets.",
+      "declinedTitle": "Transfert refusé",
+      "declinedSub": "Vous avez refusé ce transfert de billet.",
+      "eyebrowTickets": "BILLETS",
+      "viewMyTickets": "Voir mes billets",
+      "eyebrowAccept": "ACCEPTER",
+      "receiveTicket": "Recevoir le billet",
+      "eyebrowNewAccount": "NOUVEAU COMPTE",
+      "createAccount": "Créer un compte",
+      "login": "Connexion"
+    },
     "myTickets": "Mes billets",
     "title": "Mes billets",
     "upcoming": "À venir",
@@ -1607,6 +1633,7 @@
     "createEventSubtitle": "Nouveau",
     "myEventsTitle": "Mes événements",
     "walletTitle": "Portefeuille",
+    "walletSubtitle": "Revenus & paiements",
     "analyticsTitle": "Analytiques",
     "analyticsSubtitle": "Voir les stats",
     "subscriptionTitle": "Abonnement",
@@ -4893,6 +4920,13 @@
       "saveError": "Erreur lors de la sauvegarde",
       "deleteError": "Suppression impossible.",
       "createError": "Création impossible."
+    },
+    "bulkAction": {
+      "selectedCount": "{{count}} sélectionné",
+      "selectedCount_plural": "{{count}} sélectionnés",
+      "approve": "Approuver",
+      "reject": "Rejeter",
+      "checkIn": "Check-in"
     },
     "reports": {
       "eyebrow": "TES CHIFFRES",

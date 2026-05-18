@@ -10,6 +10,7 @@ import {
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { ticketTransfersAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -85,6 +86,7 @@ export default function TransferAcceptScreen() {
   const { isAuthenticated, user } = useAuth();
   const { colors, isDark } = useTheme();
   const { showAlert, showConfirm } = useAlert();
+  const { t } = useTranslation();
 
   const [state, setState] = useState<ScreenState>('loading');
   const [transfer, setTransfer] = useState<TransferInfo | null>(null);
@@ -310,15 +312,15 @@ export default function TransferAcceptScreen() {
           <View style={[s.iconDisc, { backgroundColor: `${colors.success}18` }]}>
             <Ionicons name="checkmark-circle" size={48} color={colors.success} />
           </View>
-          <Text style={[s.resultTitle, { color: colors.text }]}>Billet reçu !</Text>
+          <Text style={[s.resultTitle, { color: colors.text }]}>{t('tickets.transferAccept.successTitle')}</Text>
           <Text style={[s.resultSub, { color: colors.textSecondary }]}>
             {transfer?.event_title
-              ? `Votre billet pour « ${transfer.event_title} » est dans vos billets.`
-              : 'Votre billet a bien été transféré sur votre compte.'}
+              ? t('tickets.transferAccept.successSubWithEvent', { event: transfer.event_title })
+              : t('tickets.transferAccept.successSub')}
           </Text>
           <EditorialPillCTA
-            eyebrow="BILLETS"
-            label="Voir mes billets"
+            eyebrow={t('tickets.transferAccept.eyebrowTickets')}
+            label={t('tickets.transferAccept.viewMyTickets')}
             onPress={() => navigation.navigate('PendingTransfers')}
             style={s.resultCTA}
           />
@@ -336,9 +338,9 @@ export default function TransferAcceptScreen() {
           <View style={[s.iconDisc, { backgroundColor: `${colors.textSecondary}14` }]}>
             <Ionicons name="close-circle-outline" size={48} color={colors.textSecondary} />
           </View>
-          <Text style={[s.resultTitle, { color: colors.text }]}>Transfert refusé</Text>
+          <Text style={[s.resultTitle, { color: colors.text }]}>{t('tickets.transferAccept.declinedTitle')}</Text>
           <Text style={[s.resultSub, { color: colors.textSecondary }]}>
-            Vous avez refusé ce transfert de billet.
+            {t('tickets.transferAccept.declinedSub')}
           </Text>
           <EditorialPillCTA
             eyebrow="RETOUR"
@@ -463,11 +465,11 @@ export default function TransferAcceptScreen() {
               activeOpacity={0.7}
             >
               <Ionicons name="close" size={16} color={colors.error} />
-              <Text style={[editorial.ghostBackText, { color: colors.error }]}>Refuser</Text>
+              <Text style={[editorial.ghostBackText, { color: colors.error }]}>{t('tickets.transfers.decline')}</Text>
             </TouchableOpacity>
             <EditorialPillCTA
-              eyebrow="ACCEPTER"
-              label="Recevoir le billet"
+              eyebrow={t('tickets.transferAccept.eyebrowAccept')}
+              label={t('tickets.transferAccept.receiveTicket')}
               onPress={handleAccept}
               loading={acting}
               disabled={acting}
@@ -482,11 +484,11 @@ export default function TransferAcceptScreen() {
               activeOpacity={0.7}
             >
               <Ionicons name="log-in-outline" size={16} color={colors.primary} />
-              <Text style={[editorial.ghostBackText, { color: colors.primary }]}>Connexion</Text>
+              <Text style={[editorial.ghostBackText, { color: colors.primary }]}>{t('tickets.transferAccept.login')}</Text>
             </TouchableOpacity>
             <EditorialPillCTA
-              eyebrow="NOUVEAU COMPTE"
-              label="Créer un compte"
+              eyebrow={t('tickets.transferAccept.eyebrowNewAccount')}
+              label={t('tickets.transferAccept.createAccount')}
               icon="person-add-outline"
               onPress={handleRegister}
             />

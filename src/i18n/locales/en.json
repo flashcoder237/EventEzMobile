@@ -560,6 +560,7 @@
     "fromLabel": "Starting from"
   },
   "events": {
+    "videoBadge": "Video",
     "details": "Details",
     "description": "Description",
     "showFullDescription": "Read more",
@@ -668,6 +669,28 @@
     "noTalks": "No sessions scheduled"
   },
   "tickets": {
+    "transfers": {
+      "sentBy": "Sent by",
+      "sentTo": "Sent to",
+      "accept": "Accept",
+      "decline": "Decline",
+      "cancel": "Cancel",
+      "expired": "Expired"
+    },
+    "transferAccept": {
+      "successTitle": "Ticket received!",
+      "successSub": "Your ticket has been transferred to your account.",
+      "successSubWithEvent": "Your ticket for « {{event}} » is in your tickets.",
+      "declinedTitle": "Transfer declined",
+      "declinedSub": "You declined this ticket transfer.",
+      "eyebrowTickets": "TICKETS",
+      "viewMyTickets": "View my tickets",
+      "eyebrowAccept": "ACCEPT",
+      "receiveTicket": "Receive ticket",
+      "eyebrowNewAccount": "NEW ACCOUNT",
+      "createAccount": "Create account",
+      "login": "Sign in"
+    },
     "myTickets": "My tickets",
     "title": "My tickets",
     "upcoming": "Upcoming",
@@ -1610,6 +1633,7 @@
     "createEventSubtitle": "New",
     "myEventsTitle": "My events",
     "walletTitle": "Wallet",
+    "walletSubtitle": "Revenue & payouts",
     "analyticsTitle": "Analytics",
     "analyticsSubtitle": "View stats",
     "subscriptionTitle": "Subscription",
@@ -4899,6 +4923,13 @@
       "saveError": "Save failed",
       "deleteError": "Delete failed.",
       "createError": "Create failed."
+    },
+    "bulkAction": {
+      "selectedCount": "{{count}} selected",
+      "selectedCount_plural": "{{count}} selected",
+      "approve": "Approve",
+      "reject": "Reject",
+      "checkIn": "Check-in"
     },
     "reports": {
       "eyebrow": "YOUR NUMBERS",

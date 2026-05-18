@@ -163,7 +163,13 @@ interface MessageBubbleProps {
       "Connexion lente" pour rassurer l'user que l'envoi est encore en cours. */
   slowUploadAttachmentIds?: Set<string>;
   onLongPress: (message: Message) => void;
-  onPlayVoice?: (uri: string, messageId: string, attachmentId?: string) => void;
+  onPlayVoice?: (
+    uri: string,
+    messageId: string,
+    attachmentId?: string,
+    startOffsetMs?: number,
+    endOffsetMs?: number,
+  ) => void;
   /** Seek a une position 0..1 dans le voice en cours de lecture (meme message
       uniquement — sinon, lance la lecture). */
   onSeekVoice?: (messageId: string, ratio: number) => void;
@@ -751,7 +757,13 @@ function MessageBubble({
             progressRatio={progressRatio}
             currentSeconds={currentSeconds}
             totalSeconds={totalSeconds}
-            onPress={() => onPlayVoice?.(attachment.file, String(message.id), attachment.id != null ? String(attachment.id) : undefined)}
+            onPress={() => onPlayVoice?.(
+              attachment.file,
+              String(message.id),
+              attachment.id != null ? String(attachment.id) : undefined,
+              typeof attachment.start_offset_ms === 'number' ? attachment.start_offset_ms : undefined,
+              typeof attachment.end_offset_ms === 'number' ? attachment.end_offset_ms : undefined,
+            )}
             onSeek={isCurrent && onSeekVoice
               ? (ratio) => onSeekVoice(String(message.id), ratio)
               : undefined}

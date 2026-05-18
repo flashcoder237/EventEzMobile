@@ -177,7 +177,7 @@ function EventCardComponent({
       return (
         <View style={styles.videoBadge}>
           <Ionicons name="play-circle" size={12} color="#fff" />
-          <Text style={styles.videoBadgeText}>Video</Text>
+          <Text style={styles.videoBadgeText}>{t('events.videoBadge')}</Text>
         </View>
       );
     }
