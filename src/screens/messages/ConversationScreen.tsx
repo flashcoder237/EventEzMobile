@@ -22,8 +22,6 @@ import {
   TextInput,
   Modal,
   ScrollView,
-  AppState,
-  AppStateStatus,
   Animated,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -39,6 +37,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import {
   useAudioPlayer,
   useAudioRecorder,
+  useAudioRecorderState,
   type AudioPlayer,
   createAudioPlayer,
   requestRecordingPermissionsAsync,
@@ -137,7 +136,15 @@ export default function ConversationScreen() {
   const flatListRef = useRef<FlatList>(null);
   const lastTypingSentRef = useRef<number>(0);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  // #9 FFT live : on enrichit le preset HIGH_QUALITY avec isMeteringEnabled
+  // pour que `useAudioRecorderState(recorder).metering` expose le niveau audio
+  // (~30 fps) — utilise pour animer la waveform du recording UI en temps reel.
+  const recorder = useAudioRecorder({
+    ...RecordingPresets.HIGH_QUALITY,
+    isMeteringEnabled: true,
+  });
+  // Poll a ~50ms — assez pour des bars qui suivent la voix sans surcharger.
+  const recorderState = useAudioRecorderState(recorder, 50);
   const playerRef = useRef<AudioPlayer | null>(null);
   // Track quel messageId est actuellement chargé dans playerRef. Permet de
   // distinguer "toggle pause/play sur le même" de "lancer un nouveau message".
@@ -184,6 +191,9 @@ export default function ConversationScreen() {
   // "ecoute" different du simple "recu" — un voice ouvert mais pas lu reste
   // "non ecoute".
   const [listenedVoiceIds, setListenedVoiceIds] = useState<Set<string>>(new Set());
+  // #5 Recording locked : l'user a tape "lock" pendant l'enregistrement, il
+  // peut maintenant scroller, ouvrir la galerie, etc. sans interrompre.
+  const [isRecordingLocked, setIsRecordingLocked] = useState(false);
   // Message en attente d'envoi reel (undo possible pendant N secondes apres
   // tap "Envoyer"). On affiche une snackbar avec "Annuler". Apres expiration
   // du delai, on commit l'envoi reel via WS/REST.
@@ -422,30 +432,44 @@ export default function ConversationScreen() {
       .catch(() => {});
   }, [state.conversationId]);
 
-  // #5 Auto-pause : app passe en background OU ecran perd focus
-  // → on coupe la lecture pour eviter qu'un voice continue de jouer dans le
-  // vide quand l'user est ailleurs. La position courante est preservee dans
-  // playerRef si on revient (mais on ne reprend pas auto).
+  // Auto-pause : on coupe la lecture quand l'ecran perd focus (navigation
+  // vers un autre ecran). #7 : on N'AUTO-PAUSE PAS quand l'app passe en
+  // background — la lecture continue (pattern podcast). Le mode audio est
+  // configure en consequence dans le startup hook plus bas.
   const pauseCurrentVoice = useCallback(() => {
     const player: any = playerRef.current;
     if (player && state.playingVoiceId) {
       try { player.pause(); } catch { /* noop */ }
       actions.setPlayingVoice(null);
+      // #6 Persiste la position au pause par perte de focus
+      if (voicePlayback?.messageId) {
+        const convId = state.conversationId;
+        if (convId && voicePlayback.currentMs > 1000) {
+          AsyncStorage.setItem(
+            `voice_pos:${convId}:${voicePlayback.messageId}`,
+            String(voicePlayback.currentMs),
+          ).catch(() => {});
+        }
+      }
     }
-  }, [state.playingVoiceId, actions]);
-
-  useEffect(() => {
-    const handler = (next: AppStateStatus) => {
-      if (next === 'background' || next === 'inactive') pauseCurrentVoice();
-    };
-    const sub = AppState.addEventListener('change', handler);
-    return () => sub.remove();
-  }, [pauseCurrentVoice]);
+  }, [state.playingVoiceId, state.conversationId, voicePlayback, actions]);
 
   useEffect(() => {
     const unsubBlur = navigation.addListener('blur', pauseCurrentVoice);
     return unsubBlur;
   }, [navigation, pauseCurrentVoice]);
+
+  // #7 Configure le mode audio au mount pour permettre la lecture en
+  // background (silent mode iOS + interruption sane defaults). N'a effet
+  // que si l'app.json declare aussi UIBackgroundModes:["audio"] cote iOS,
+  // sinon iOS coupe la lecture quand on quitte l'app — non bloquant ici.
+  useEffect(() => {
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      allowsRecording: false,
+      interruptionMode: 'mixWithOthers',
+    }).catch(() => { /* ignore — mode optionnel */ });
+  }, []);
 
   // ============================================
   // DATA FETCHING
@@ -1040,6 +1064,7 @@ export default function ConversationScreen() {
       const duration = state.recordingDuration;
 
       actions.setRecording(false);
+      setIsRecordingLocked(false);
 
       // Instead of immediately attaching the file, store it for preview
       if (uri && duration >= 1) {
@@ -1145,6 +1170,7 @@ export default function ConversationScreen() {
 
       await recorder.stop();
       actions.setRecording(false);
+      setIsRecordingLocked(false);
     } catch (error) {
       if (__DEV__) console.error('Erreur annulation enregistrement:', error);
     }
@@ -1186,6 +1212,25 @@ export default function ConversationScreen() {
     return null;
   }, [state.messages, listenedVoiceIds]);
 
+  // #6 Persist position au pause / save explicite. Cle par conversation.
+  const persistVoicePosition = useCallback(async (messageId: string, currentMs: number) => {
+    const convId = state.conversationId;
+    if (!convId || currentMs < 1000) return; // ignore < 1s (debut)
+    try {
+      await AsyncStorage.setItem(`voice_pos:${convId}:${messageId}`, String(currentMs));
+    } catch { /* noop */ }
+  }, [state.conversationId]);
+
+  const loadVoicePosition = useCallback(async (messageId: string): Promise<number | null> => {
+    const convId = state.conversationId;
+    if (!convId) return null;
+    try {
+      const raw = await AsyncStorage.getItem(`voice_pos:${convId}:${messageId}`);
+      const n = Number(raw);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    } catch { return null; }
+  }, [state.conversationId]);
+
   const playVoiceMessage = async (uri: string, messageId: string) => {
     try {
       // Cas 1 : tap sur le message déjà chargé → toggle pause / play sans
@@ -1196,6 +1241,10 @@ export default function ConversationScreen() {
         if (isCurrentlyPlaying) {
           try { player.pause(); } catch { /* noop */ }
           actions.setPlayingVoice(null);
+          // #6 Persiste la position courante au pause manuel
+          if (voicePlayback?.messageId === messageId) {
+            persistVoicePosition(messageId, voicePlayback.currentMs);
+          }
         } else {
           try { player.play(); } catch { /* noop */ }
           actions.setPlayingVoice(messageId);
@@ -1205,6 +1254,10 @@ export default function ConversationScreen() {
 
       // Cas 2 : tap sur un autre message → couper le player précédent
       if (playerRef.current) {
+        // Persiste la position de l'ancien voice avant de le couper
+        if (voicePlayback?.messageId && currentPlayerMsgIdRef.current === voicePlayback.messageId) {
+          persistVoicePosition(voicePlayback.messageId, voicePlayback.currentMs);
+        }
         try { playerRef.current.remove(); } catch { /* noop */ }
         playerRef.current = null;
         currentPlayerMsgIdRef.current = null;
@@ -1215,14 +1268,40 @@ export default function ConversationScreen() {
       }
 
       const playableUri = getMediaUrl(uri) || uri;
+      // Charge la position sauvegardee pour ce voice — si > 1s on reprendra la
+      // lecture a cette position au premier status callback.
+      const savedPosMs = await loadVoicePosition(messageId);
 
       // Loading visible immédiatement (entre tap et premier sample).
-      setVoicePlayback({ messageId, currentMs: 0, durationMs: 0, isLoading: true });
+      setVoicePlayback({
+        messageId,
+        currentMs: savedPosMs ?? 0,
+        durationMs: 0,
+        isLoading: true,
+      });
       actions.setPlayingVoice(messageId);
 
       const player = createAudioPlayer({ uri: playableUri });
       playerRef.current = player;
       currentPlayerMsgIdRef.current = messageId;
+
+      // Si on a une position sauvegardee, on seek juste apres play() (le
+      // player doit etre charge avant que seekTo fonctionne — on essaie
+      // immediatement puis retry une fois apres premier status callback).
+      let seekedToSaved = false;
+      const trySeekToSaved = () => {
+        if (seekedToSaved || !savedPosMs) return;
+        try {
+          const p: any = player;
+          if (typeof p.seekTo === 'function') {
+            p.seekTo(savedPosMs / 1000);
+            seekedToSaved = true;
+          } else if (typeof p.setPosition === 'function') {
+            p.setPosition(savedPosMs);
+            seekedToSaved = true;
+          }
+        } catch { /* ignore */ }
+      };
       // #1 Applique la vitesse courante au nouveau player. L'API varie selon
       // la version expo-audio (setPlaybackRate vs playbackRate property) —
       // on essaie les 2 et on tolere l'echec silencieux.
@@ -1252,12 +1331,21 @@ export default function ConversationScreen() {
           }
           // #4 Marque comme ecoute
           markVoiceListened(messageId);
+          // #6 Clear la position sauvegardee — voice termine, plus rien a reprendre
+          const convId = state.conversationId;
+          if (convId) {
+            AsyncStorage.removeItem(`voice_pos:${convId}:${messageId}`).catch(() => {});
+          }
           // #2 Auto-play du voice suivant non ecoute, leger delai pour respirer
           const next = findNextVoiceMessage(messageId);
           if (next) {
             setTimeout(() => { playVoiceMessage(next.uri, next.messageId); }, 350);
           }
           return;
+        }
+        // #6 Premier status valide → si on a une position sauvegardee, on seek
+        if (!seekedToSaved && (status?.isLoaded || (status?.duration ?? 0) > 0)) {
+          trySeekToSaved();
         }
         // Drop "loading" des qu'on a un signe que le moteur lit (playing ou
         // duration > 0) OU que le media est marque comme charge. Certaines
@@ -2942,6 +3030,9 @@ export default function ConversationScreen() {
               onStartRecording={startRecording}
               onStopRecording={stopRecording}
               onCancelRecording={cancelRecording}
+              meteringLevel={recorderState?.metering}
+              isRecordingLocked={isRecordingLocked}
+              onLockRecording={() => setIsRecordingLocked(true)}
               replyToMessage={state.replyToMessage}
               editingMessage={state.editingMessage}
               onCancelReply={actions.cancelReply}

@@ -75,7 +75,8 @@ export default function EventStep4Sessions({
   // Advanced open per track / per speaker (idem que sessions).
   const [trackAdvancedOpen, setTrackAdvancedOpen] = useState<Record<number, boolean>>({});
   const [speakerAdvancedOpen, setSpeakerAdvancedOpen] = useState<Record<number, boolean>>({});
-  // Pour la saisie libre Level/Language (chip "Personnalise" → input)
+  // Pour la saisie libre Type/Level/Language (chip "Personnalise" → input)
+  const [typeCustom, setTypeCustom] = useState<Record<number, boolean>>({});
   const [levelCustom, setLevelCustom] = useState<Record<number, boolean>>({});
   const [languageCustom, setLanguageCustom] = useState<Record<number, boolean>>({});
 
@@ -498,27 +499,56 @@ export default function EventStep4Sessions({
                 <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step4.sessionTypeLabel')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.chipContainer}>
-                    {SESSION_TYPES.map((type) => (
-                      <TouchableOpacity
-                        key={type.value}
-                        style={[
-                          styles.chip, themed.chip,
-                          session.session_type === type.value && [styles.chipActive, themed.chipActive],
-                        ]}
-                        onPress={() => onUpdateSession(index, 'session_type', type.value)}
-                      >
-                        <Text
-                          style={[
-                            styles.chipText, themed.chipText,
-                            session.session_type === type.value && [styles.chipTextActive, themed.chipTextActive],
-                          ]}
+                    {SESSION_TYPES.map((type) => {
+                      const isSelected = !typeCustom[index] && session.session_type === type.value;
+                      return (
+                        <TouchableOpacity
+                          key={type.value}
+                          style={[styles.chip, themed.chip, isSelected && [styles.chipActive, themed.chipActive]]}
+                          onPress={() => {
+                            setTypeCustom(prev => ({ ...prev, [index]: false }));
+                            onUpdateSession(index, 'session_type', type.value);
+                          }}
                         >
-                          {type.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                          <Text style={[styles.chipText, themed.chipText, isSelected && [styles.chipTextActive, themed.chipTextActive]]}>
+                            {type.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                    {/* Chip "Personnalise" : actif si la valeur n'est pas dans SESSION_TYPES */}
+                    {(() => {
+                      const isPreset = SESSION_TYPES.some(o => o.value === session.session_type);
+                      const isCustomActive = typeCustom[index] || !isPreset;
+                      return (
+                        <TouchableOpacity
+                          style={[styles.chip, themed.chip, isCustomActive && [styles.chipActive, themed.chipActive]]}
+                          onPress={() => {
+                            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                            setTypeCustom(prev => ({ ...prev, [index]: !prev[index] }));
+                          }}
+                        >
+                          <Ionicons name="create-outline" size={12}
+                            color={isCustomActive ? colors.white : colors.gray700}
+                            style={{ marginRight: 4 }} />
+                          <Text style={[styles.chipText, themed.chipText, isCustomActive && [styles.chipTextActive, themed.chipTextActive]]}>
+                            {t('componentsOrganizer.step4.customOption')}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })()}
                   </View>
                 </ScrollView>
+                {(typeCustom[index] || !SESSION_TYPES.some(o => o.value === session.session_type)) && (
+                  <TextInput
+                    style={[styles.input, themed.input, { marginTop: 6 }]}
+                    value={SESSION_TYPES.some(o => o.value === session.session_type) ? '' : session.session_type}
+                    onChangeText={(v) => onUpdateSession(index, 'session_type', v)}
+                    placeholder={t('componentsOrganizer.step4.sessionTypeCustomPlaceholder')}
+                    placeholderTextColor={colors.gray400}
+                    maxLength={20}
+                  />
+                )}
               </View>
 
               <View style={styles.inputGroup}>

@@ -3746,7 +3746,8 @@
       "addSession": "Add",
       "customOption": "Custom",
       "levelCustomPlaceholder": "Ex: General audience, Expert, ...",
-      "languageCustomPlaceholder": "Ex: Arabic, Swahili, Japanese, ..."
+      "languageCustomPlaceholder": "Ex: Arabic, Swahili, Japanese, ...",
+      "sessionTypeCustomPlaceholder": "Ex: Concert, Product demo, ... (max 20 char.)"
     },
     "sendEmail": {
       "title": "Send an email",

@@ -32,6 +32,55 @@ import {
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatDuration } from '../../lib/utils/messagingHelpers';
 
+// #9 Mini-waveform live affichee pendant l'enregistrement. Maintient un
+// ring-buffer des N derniers niveaux audio pour donner l'illusion d'un
+// vrai signal qui defile.
+const METER_BAR_COUNT = 12;
+function LiveMeterBars({ level, color }: { level?: number; color: string }) {
+  const [history, setHistory] = useState<number[]>(() => Array(METER_BAR_COUNT).fill(0.1));
+  useEffect(() => {
+    if (typeof level !== 'number' || !Number.isFinite(level)) return;
+    // expo-audio metering ~ -160..0 dB. On normalise -50..0 vers 0.1..1.
+    // En dessous de -50dB on considere du silence (bar mini).
+    const normalized = Math.max(0.1, Math.min(1, (level + 50) / 50));
+    setHistory((prev) => {
+      const next = prev.slice(1);
+      next.push(normalized);
+      return next;
+    });
+  }, [level]);
+  return (
+    <View style={meterStyles.container} pointerEvents="none">
+      {history.map((h, i) => (
+        <View
+          key={i}
+          style={[
+            meterStyles.bar,
+            {
+              height: 4 + h * 14,
+              backgroundColor: color,
+              opacity: 0.55 + h * 0.45,
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+const meterStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginLeft: 12,
+    height: 20,
+  },
+  bar: {
+    width: 3,
+    borderRadius: 1.5,
+  },
+});
+
 interface InputToolbarProps {
   // Input state
   value: string;
@@ -51,6 +100,11 @@ interface InputToolbarProps {
   onStartRecording: () => void;
   onStopRecording: () => void;
   onCancelRecording: () => void;
+  /** #9 Niveau audio en dB (env. -160..0). Anime la mini-waveform du recording. */
+  meteringLevel?: number;
+  /** #5 Mode mains libres : recording locked, l'user peut scroller. */
+  isRecordingLocked?: boolean;
+  onLockRecording?: () => void;
 
   // Reply/Edit
   replyToMessage: Message | null;
@@ -73,6 +127,9 @@ function InputToolbar({
   onStartRecording,
   onStopRecording,
   onCancelRecording,
+  meteringLevel,
+  isRecordingLocked = false,
+  onLockRecording,
   replyToMessage,
   editingMessage,
   onCancelReply,
@@ -213,6 +270,7 @@ function InputToolbar({
         <TouchableOpacity
           onPress={onCancelRecording}
           style={[styles.recordingCancelButton, { backgroundColor: colors.error + '15' }]}
+          accessibilityLabel={t('componentsMessages.recordingCancel') || 'Annuler'}
         >
           <Ionicons name="trash-outline" size={24} color={colors.error} />
         </TouchableOpacity>
@@ -227,11 +285,26 @@ function InputToolbar({
           <Text style={[styles.recordingDurationText, { color: colors.gray900 }]}>
             {formatDuration(recordingDuration)}
           </Text>
+          {/* #9 Mini-waveform live qui reagit au niveau audio */}
+          <LiveMeterBars level={meteringLevel} color={colors.primary} />
         </View>
+
+        {/* #5 Lock button — disponible quand pas encore locked. Une fois
+            locked, l'icone disparait et l'user peut scroller librement. */}
+        {!isRecordingLocked && onLockRecording && (
+          <TouchableOpacity
+            onPress={onLockRecording}
+            style={[styles.recordingLockButton, { backgroundColor: colors.gray100 }]}
+            accessibilityLabel={t('componentsMessages.recordingLock') || 'Verrouiller'}
+          >
+            <Ionicons name="lock-closed-outline" size={20} color={colors.gray700} />
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           onPress={onStopRecording}
           style={[styles.recordingSendButton, { backgroundColor: colors.primary }]}
+          accessibilityLabel={t('componentsMessages.recordingSend') || 'Envoyer'}
         >
           <Ionicons name="send" size={24} color={Colors.white} />
         </TouchableOpacity>
@@ -525,5 +598,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  recordingLockButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
   },
 });

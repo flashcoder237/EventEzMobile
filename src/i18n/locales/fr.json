@@ -3144,7 +3144,8 @@
       "addSession": "Ajouter",
       "customOption": "Personnalisé",
       "levelCustomPlaceholder": "Ex: Tous publics, Expert, ...",
-      "languageCustomPlaceholder": "Ex: Arabe, Swahili, Japonais, ..."
+      "languageCustomPlaceholder": "Ex: Arabe, Swahili, Japonais, ...",
+      "sessionTypeCustomPlaceholder": "Ex: Concert, Démo produit, ... (20 car. max)"
     },
     "sendEmail": {
       "title": "Envoyer un email",

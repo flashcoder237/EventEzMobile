@@ -20,7 +20,10 @@
       "usesAppleSignIn": true,
       "associatedDomains": [
         "applinks:eventez.online"
-      ]
+      ],
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
     },
     "android": {
       "googleServicesFile": "./google-services.json",
