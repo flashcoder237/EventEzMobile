@@ -99,8 +99,17 @@ import EventActionsSheet, {
   EventActionSection,
   EventAction,
 } from '../../components/organizer/EventActionsSheet';
+import CacheService from '../../services/CacheService';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+// TTL court : 30s. Une conversation active bouge vite, on revalide
+// rapidement en bg pour rester aligne sur les nouveaux messages que le
+// WebSocket aurait pu manquer (deconnexion bref, app en arriere-plan).
+const MESSAGES_CACHE_TTL_MS = 30_000;
+
+const messagesCacheKey = (conversationId: string | number, userId: string | number | undefined) =>
+  `msgs:conv:${conversationId}:${userId ?? 'anon'}`;
 type ConversationRouteProp = RouteProp<RootStackParamList, 'Conversation'>;
 
 /** Format un nombre d'octets en chaîne lisible (KB / MB / GB). Hors composant
@@ -476,6 +485,27 @@ export default function ConversationScreen() {
     return unsubBlur;
   }, [navigation, pauseCurrentVoice]);
 
+  // Sync state.messages -> CacheService. Toute mutation locale (nouveau
+  // msg WS, edit, delete, optimistic send) passe par le reducer. Au
+  // prochain mount sur la meme conv, le cache contient l'etat a jour.
+  // Debounce 500ms : evite de re-ecrire le cache 10x en 1s pendant un
+  // burst de messages.
+  useEffect(() => {
+    if (!state.conversationId || state.messages.length === 0) return;
+    const timer = setTimeout(() => {
+      CacheService.set(
+        messagesCacheKey(state.conversationId!, user?.id),
+        {
+          messages: state.messages,
+          hasMore: state.hasMore,
+          nextPageUrl: state.nextPageUrl,
+        },
+        MESSAGES_CACHE_TTL_MS,
+      ).catch(() => { /* silent */ });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [state.messages, state.conversationId, state.hasMore, state.nextPageUrl, user?.id]);
+
   // #7 Configure le mode audio au mount pour permettre la lecture en
   // background (silent mode iOS + interruption sane defaults). N'a effet
   // que si l'app.json declare aussi UIBackgroundModes:["audio"] cote iOS,
@@ -538,6 +568,31 @@ export default function ConversationScreen() {
     if (loadMore) {
       if (!state.hasMore || state.loadingMore) return;
       actions.setLoadingMore(true);
+    } else {
+      // Stale-while-revalidate sur le fetch initial : on sert le cache
+      // immediatement si dispo, puis on refresh en arriere-plan. Evite
+      // de re-charger 20 messages depuis le reseau a chaque retour sur
+      // la conv (typique : quitter pour repondre a une notif et revenir).
+      const cacheKey = messagesCacheKey(state.conversationId, user?.id);
+      try {
+        const cached = await CacheService.get<{
+          messages: any[];
+          hasMore: boolean;
+          nextPageUrl: string | null;
+        }>(cacheKey);
+        if (cached?.data) {
+          actions.setMessages(cached.data.messages);
+          actions.setHasMore(cached.data.hasMore);
+          actions.setNextPageUrl(cached.data.nextPageUrl);
+          actions.setLoading(false);
+          setMessagesLoadError(null);
+          // Cache frais → on saute le fetch reseau, on s'appuie sur le
+          // WebSocket pour les diffs.
+          if (!cached.isStale) return;
+        }
+      } catch {
+        // CacheService HS → fallback sur fetch reseau standard
+      }
     }
 
     try {
@@ -562,6 +617,21 @@ export default function ConversationScreen() {
         actions.addMessagesBefore(newMessages);
       } else {
         actions.setMessages(newMessages);
+        // Sync cache uniquement sur le fetch initial — le loadMore ajoute
+        // l'historique pagine qui n'est pas la "page 1" qu'on veut au mount.
+        try {
+          await CacheService.set(
+            messagesCacheKey(state.conversationId, user?.id),
+            {
+              messages: newMessages,
+              hasMore: !!data.next,
+              nextPageUrl: data.next || null,
+            },
+            MESSAGES_CACHE_TTL_MS,
+          );
+        } catch {
+          // silent
+        }
       }
 
       actions.setHasMore(!!data.next);
