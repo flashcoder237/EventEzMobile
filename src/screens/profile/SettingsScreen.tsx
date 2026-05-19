@@ -557,7 +557,10 @@ export default function SettingsScreen() {
         reason: deleteReason,
       });
       setShowDeleteModal(false);
-      logout();
+      // Compte deja supprime serveur : on skip les calls API du logout
+      // (unregister-device + /logout/) qui retourneraient 401 user_not_found
+      // et declencheraient un retry de refresh tout aussi voue a l'echec.
+      logout({ accountDeleted: true });
     } catch (error: any) {
       if (__DEV__) console.error('Erreur suppression compte:', error);
       showError(

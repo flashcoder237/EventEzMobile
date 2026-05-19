@@ -42,7 +42,7 @@ interface AuthContextType extends AuthState {
    * vérification côté backend.
    */
   upgradeGuest: (data: { password: string; confirm_password: string; last_name?: string }) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: (options?: { accountDeleted?: boolean }) => Promise<void>;
   updateUser: (data: Partial<User>) => Promise<void>;
   setUser: (user: User) => Promise<void>;  // Pour l'authentification sociale
   /**
@@ -265,8 +265,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(async (options?: { accountDeleted?: boolean }) => {
     setState((prev) => ({ ...prev, isLoading: true }));
+    // Cas special : compte deja supprime serveur. Le JWT pointe vers un user
+    // qui n'existe plus → toute call API retourne 401 user_not_found, et
+    // l'interceptor tente un refresh qui se vautre lui aussi. On skip les
+    // appels reseau et on nettoie purement local. Le backend a deja
+    // supprime PushDeviceToken via signal post_delete sur le User.
+    const accountDeleted = !!options?.accountDeleted;
     // ORDRE IMPORTANT pour l'isolation des push notifications :
     // 1. Désenregistrer le push token côté backend AVANT de blackliste les
     //    tokens JWT. Sinon, l'API unregister-device retourne 401 et le
@@ -274,17 +280,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     //    en transit soit livré. Voir UX_AUDIT_NOTIFICATIONS_ISOLATION.md §5.2.
     // 2. Ensuite seulement, authAPI.logout() blackliste le refresh + clear
     //    SecureStore (clearTokens() dans son finally).
-    try {
-      // Lazy import pour éviter le cycle AuthContext ↔ NotificationContext
-      const pushService = (await import('../services/pushNotificationService')).default;
-      await pushService.unregisterDevice();
-    } catch (error) {
-      if (__DEV__) console.warn('Push unregister failed:', error);
-    }
-    try {
-      await authAPI.logout();
-    } catch (error) {
-      if (__DEV__) console.warn('Logout API call failed:', error);
+    if (!accountDeleted) {
+      try {
+        // Lazy import pour éviter le cycle AuthContext ↔ NotificationContext
+        const pushService = (await import('../services/pushNotificationService')).default;
+        await pushService.unregisterDevice();
+      } catch (error) {
+        if (__DEV__) console.warn('Push unregister failed:', error);
+      }
+      try {
+        await authAPI.logout();
+      } catch (error) {
+        if (__DEV__) console.warn('Logout API call failed:', error);
+      }
+    } else {
+      // Account already deleted : on purge juste les tokens locaux. Le
+      // PushDeviceToken backend est nettoye par le signal post_delete User.
+      try {
+        const { clearTokens } = await import('../api');
+        await clearTokens();
+      } catch (error) {
+        if (__DEV__) console.warn('clearTokens after account deletion failed:', error);
+      }
+      try {
+        const pushService = (await import('../services/pushNotificationService')).default;
+        // Cleanup local push state seulement (Notifications.unregister local)
+        // sans toucher au backend.
+        if (typeof (pushService as any).unregisterLocal === 'function') {
+          await (pushService as any).unregisterLocal();
+        }
+      } catch (error) {
+        if (__DEV__) console.warn('Local push cleanup after delete failed:', error);
+      }
     }
     EventEzAnalytics.logout();
     clearAnalyticsUser();

@@ -572,6 +572,24 @@ class PushNotificationService {
    * prochain boot via `flushPendingUnregisters()`. Sinon le backend continue
    * de pousser des notifs vers ce device pour l'ex-user.
    */
+  /**
+   * Nettoyage local UNIQUEMENT (pas d'appel backend). A utiliser quand le
+   * compte serveur est deja supprime et qu'un call /notifications/unregister-device/
+   * retournerait inevitablement 401 user_not_found. Le PushDeviceToken backend
+   * est nettoye par le signal post_delete sur User.
+   */
+  async unregisterLocal(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(PUSH_TOKEN_KEY);
+      await AsyncStorage.removeItem(PUSH_REGISTERED_AT_KEY);
+      await AsyncStorage.removeItem(LAST_REGISTERED_TOKEN_KEY);
+      await AsyncStorage.removeItem(PENDING_UNREGISTER_TOKENS_KEY);
+      if (__DEV__) console.log('[Push] Local cleanup done (no backend call)');
+    } catch (error) {
+      if (__DEV__) console.warn('[Push] Local cleanup failed:', error);
+    }
+  }
+
   async unregisterDevice(): Promise<void> {
     try {
       const token = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
