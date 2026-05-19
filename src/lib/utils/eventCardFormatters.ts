@@ -51,8 +51,16 @@ export function formatCardPrice(params: CardPriceParams): string {
     return formatPriceRange(price, priceMax, currency);
   }
 
-  if (typeof price === 'number' && price > 0)
-    return tx('componentsEvents.priceFromShort', { price: price.toLocaleString(), currency: displayCurrency(currency) });
+  if (typeof price === 'number' && price > 0) {
+    // Séparateur de milliers via regex pour rester portable : `toLocaleString()`
+    // sans argument utilise la locale du runtime (espace insécable sur Windows
+    // FR, virgule sur Ubuntu en-US par défaut) → snapshot non-portable et
+    // affichage incohérent entre devices. La regex donne toujours "5 000".
+    const formattedPrice = Math.round(price)
+      .toString()
+      .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return tx('componentsEvents.priceFromShort', { price: formattedPrice, currency: displayCurrency(currency) });
+  }
 
   if (typeof price === 'number' && price === 0) return tx('componentsEvents.priceFree');
 
