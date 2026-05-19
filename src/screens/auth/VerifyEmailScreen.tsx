@@ -21,6 +21,7 @@ import { authAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { dispatchAfterAuth } from '../../lib/utils/authNavigation';
 import { RootStackParamList } from '../../types';
 import {
@@ -131,6 +132,10 @@ export default function VerifyEmailScreen() {
   const [phoneStep, setPhoneStep] = useState<PhoneStep>('idle');
   // Section SMS collapsed par defaut — email reste la voie principale. L'user
   // tape "Verifier par SMS" pour expand le flow phone inline.
+  // Si l'admin a desactive l'OTP telephone via /api/settings/public/,
+  // on cache entierement la section SMS — pas de toggle, pas de form.
+  const { flags: featureFlags } = useFeatureFlags();
+  const phoneOtpAvailable = featureFlags.phone_otp_enabled;
   const [phoneExpanded, setPhoneExpanded] = useState(false);
   const togglePhoneSection = useCallback(() => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -141,6 +146,14 @@ export default function VerifyEmailScreen() {
   const [otpPhone, setOtpPhone] = useState('');
   const [phoneCooldown, setPhoneCooldown] = useState(0);
   const [phoneError, setPhoneError] = useState<string | null>(null);
+
+  // Si l'admin desactive l'OTP pendant que l'user a la section expanded,
+  // on collapse pour eviter d'afficher un formulaire qui ne marche plus.
+  useEffect(() => {
+    if (!phoneOtpAvailable && phoneExpanded) {
+      setPhoneExpanded(false);
+    }
+  }, [phoneOtpAvailable, phoneExpanded]);
 
   useEffect(() => {
     if (emailCooldown <= 0) return;
@@ -315,8 +328,8 @@ export default function VerifyEmailScreen() {
           </View>
           )}
 
-          {/* ── Divider — masqué aussi quand téléphone vérifié ── */}
-          {phoneStep !== 'done' && (
+          {/* ── Divider — masqué aussi quand téléphone vérifié OU OTP désactivé admin ── */}
+          {phoneOtpAvailable && phoneStep !== 'done' && (
           <View style={styles.divider}>
             <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
             <Text style={[styles.dividerText, { color: colors.gray400 }]}>{t('auth.verifyOr')}</Text>
@@ -325,8 +338,9 @@ export default function VerifyEmailScreen() {
           )}
 
           {/* ── Bouton secondaire "Verifier par SMS" — collapsed par defaut.
-                 Au tap, expand inline pour reveler le flow phone (input → OTP). ── */}
-          {phoneStep !== 'done' && !phoneExpanded && (
+                 Au tap, expand inline pour reveler le flow phone (input → OTP).
+                 Cache si OTP desactive cote admin. ── */}
+          {phoneOtpAvailable && phoneStep !== 'done' && !phoneExpanded && (
             <AnimatedPressable
               onPress={togglePhoneSection}
               style={[styles.smsToggle, { backgroundColor: colors.card, borderColor: colors.gray200 }]}
@@ -350,8 +364,10 @@ export default function VerifyEmailScreen() {
             </AnimatedPressable>
           )}
 
-          {/* ── Phone OTP card — visible quand expanded OU verification reussie ── */}
-          {(phoneExpanded || phoneStep === 'done') && (
+          {/* ── Phone OTP card — visible quand expanded OU verification reussie.
+               Cache aussi si OTP desactive cote admin (filet de securite : si
+               le toggle bascule a OFF pendant que l'user etait expanded). ── */}
+          {phoneOtpAvailable && (phoneExpanded || phoneStep === 'done') && (
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
             {phoneStep === 'done' ? (
               /* Success */
