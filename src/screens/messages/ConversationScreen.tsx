@@ -1843,6 +1843,10 @@ export default function ConversationScreen() {
         break;
 
       case 'react':
+        // Memoriser la cible AVANT le wipe par hideActionMenu (deja appele
+        // ligne ~1793). handleSelectReaction lira cette ref au lieu de
+        // selectedMessage qui sera null a ce moment.
+        reactionTargetMessageRef.current = message;
         actions.showReactionPicker();
         break;
 
@@ -1897,8 +1901,76 @@ export default function ConversationScreen() {
           });
         break;
       }
+
+      // ─── Actions specifiques aux attachments (gates cote MessageActionModal) ───
+      case 'save_image': {
+        const imageAtt = (message.attachments || []).find((a: any) => a?.attachment_type === 'image');
+        if (imageAtt) saveImageAttachmentToGallery(imageAtt);
+        break;
+      }
+      case 'open_with': {
+        const docAtt = (message.attachments || []).find(
+          (a: any) => a?.attachment_type && a.attachment_type !== 'image' && a.attachment_type !== 'voice',
+        );
+        if (docAtt) downloadAndOpenAttachment(docAtt);
+        break;
+      }
+      case 'share_attachment': {
+        const att = (message.attachments || []).find(
+          (a: any) => typeof a?.file === 'string' && a.file.startsWith('http'),
+        );
+        if (att) downloadAndOpenAttachment(att);
+        break;
+      }
+      case 'copy_link': {
+        const att = (message.attachments || []).find(
+          (a: any) => typeof a?.file === 'string' && a.file.startsWith('http'),
+        );
+        if (att) {
+          try {
+            Clipboard.setString(att.file);
+            showSuccess(t('conversation.copiedTitle'), t('conversation.copiedMessage'));
+          } catch { /* ignore */ }
+        }
+        break;
+      }
     }
   }, [state.selectedMessage, user?.id, actions]);
+
+  // Helpers attachment — appeles depuis le menu d'actions message
+  // (save_image, open_with, share_attachment). Telecharge le fichier en
+  // cache puis le passe a expo-sharing.shareAsync (gere Save to gallery
+  // sur iOS et l'intent system Share sur Android).
+  const downloadAndOpenAttachment = useCallback(async (att: any) => {
+    try {
+      if (typeof att?.file !== 'string') return;
+      const url: string = att.file;
+      const filename = (att.file_name as string) || url.split('/').pop()?.split('?')[0] || 'download';
+      const localUri = `${FileSystem.cacheDirectory}${filename}`;
+      // Skip download si deja en cache
+      const info = await FileSystem.getInfoAsync(localUri);
+      if (!info.exists) {
+        await FileSystem.downloadAsync(url, localUri);
+      }
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(localUri, {
+          mimeType: att.mime_type || undefined,
+          dialogTitle: att.file_name || t('componentsMessages.attachmentMenuShare'),
+        });
+      }
+    } catch (err: any) {
+      if (__DEV__) console.warn('downloadAndOpenAttachment failed:', err?.message);
+      showError(t('common.error'), t('componentsMessages.attachmentDownloadFailed'));
+    }
+  }, [t, showError]);
+
+  const saveImageAttachmentToGallery = useCallback(async (att: any) => {
+    // Pour la galerie photo native, on a besoin de expo-media-library qui
+    // n'est peut-etre pas installe. Fallback : share, qui propose "Save
+    // image" parmi les options.
+    return downloadAndOpenAttachment(att);
+  }, [downloadAndOpenAttachment]);
 
   const handleBlockUserById = (targetUserId: string, targetName: string) => {
     showConfirm(
@@ -1972,6 +2044,13 @@ export default function ConversationScreen() {
   // "Envoyer" du ForwardModal voyait `selectedMessage=null` et abandonnait
   // silencieusement.
   const forwardSourceMessageRef = useRef<Message | null>(null);
+
+  // Meme pattern pour la reaction : `state.selectedMessage` est wipe par
+  // `hideActionMenu()` au moment ou l'user tape "Reagir" dans le menu,
+  // donc quand il choisit ensuite un emoji, selectedMessage est null →
+  // la reaction part dans le vide. Cette ref capture le message cible
+  // AVANT le wipe.
+  const reactionTargetMessageRef = useRef<Message | null>(null);
 
   // ─────────────────────────────────────────────────────────────────────
   // Bulk selection mode (long-press → entree mode, tap pour toggle).
@@ -2187,11 +2266,16 @@ export default function ConversationScreen() {
   };
 
   const handleSelectReaction = async (emoji: string) => {
-    const messageId = state.selectedMessage?.id;
+    // Source : la ref qu'on a set au moment du 'react' action, sinon
+    // fallback sur state.selectedMessage (cas ou le picker est ouvert
+    // depuis un autre flow, ex: tap quick reaction).
+    const targetMessage = reactionTargetMessageRef.current || state.selectedMessage;
+    const messageId = targetMessage?.id;
     if (!messageId) return;
 
     const messageIdStr = String(messageId);
     actions.hideReactionPicker();
+    reactionTargetMessageRef.current = null;
 
     try {
       if (isConnected && isAuthenticated) {

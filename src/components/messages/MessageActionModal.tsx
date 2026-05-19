@@ -39,7 +39,12 @@ export type MessageActionType =
   | 'report'
   | 'block'
   | 'star'
-  | 'select';
+  | 'select'
+  // Attachment-specific (visibles uniquement quand message a une PJ)
+  | 'save_image'      // image
+  | 'open_with'       // document
+  | 'share_attachment' // image + document
+  | 'copy_link';      // image + document (URL du blob)
 
 interface MessageActionModalProps {
   visible: boolean;
@@ -67,6 +72,12 @@ interface ActionItem {
   directOnly?: boolean;
   /** Caché si message system (welcome, join, etc.). */
   hideOnSystem?: boolean;
+  /** Visible uniquement si message a au moins une image en attachment. */
+  imageOnly?: boolean;
+  /** Visible uniquement si message a au moins un document (file_name) en attachment. */
+  documentOnly?: boolean;
+  /** Visible si message a une image OU un document (URL ouvrable). */
+  hasAttachmentUrl?: boolean;
 }
 
 const ACTIONS: ActionItem[] = [
@@ -80,6 +91,11 @@ const ACTIONS: ActionItem[] = [
   // message est déjà star (cf. render plus bas). Type reste 'star' côté handler
   // — le toggle se fait côté backend.
   { type: 'star',    icon: 'star-outline',       labelKey: 'componentsMessages.actionStar',                                                 hideOnSystem: true },
+  // Attachment-specific (apparaissent dynamiquement quand applicable) :
+  { type: 'save_image',      icon: 'download-outline',     labelKey: 'componentsMessages.attachmentMenuSaveImage',     imageOnly: true,         hideOnSystem: true },
+  { type: 'open_with',       icon: 'open-outline',         labelKey: 'componentsMessages.attachmentMenuOpenWith',      documentOnly: true,      hideOnSystem: true },
+  { type: 'share_attachment',icon: 'share-outline',        labelKey: 'componentsMessages.attachmentMenuShare',         hasAttachmentUrl: true,  hideOnSystem: true },
+  { type: 'copy_link',       icon: 'link-outline',         labelKey: 'componentsMessages.attachmentMenuCopyLink',      hasAttachmentUrl: true,  hideOnSystem: true },
   { type: 'edit',    icon: 'create-outline',     labelKey: 'componentsMessages.actionEdit',                          ownerOnly: true,     hideOnSystem: true },
   { type: 'delete',  icon: 'trash-outline',      labelKey: 'componentsMessages.actionDelete', destructive: true,      ownerOnly: true,     hideOnSystem: true },
   { type: 'report',  icon: 'flag-outline',       labelKey: 'componentsMessages.actionReport', destructive: true,      othersOnly: true,    hideOnSystem: true },
@@ -108,11 +124,27 @@ function MessageActionModal({
     onClose();
   };
 
+  // Détection des attachments — pour gater save_image / open_with /
+  // share / copy_link selon le type de fichier present.
+  const attachments = (message?.attachments || []) as any[];
+  const hasImage = attachments.some(a => a?.attachment_type === 'image');
+  const hasDocument = attachments.some(a =>
+    a?.attachment_type && a.attachment_type !== 'image' && a.attachment_type !== 'voice',
+  );
+  const hasAttachmentUrl = attachments.some(a =>
+    typeof a?.file === 'string' && a.file.startsWith('http'),
+  );
+
   const filteredActions = ACTIONS.filter(a => {
     if (a.hideOnSystem && isSystem) return false;
     if (a.ownerOnly && !isMine) return false;
     if (a.othersOnly && isMine) return false;
     if (a.directOnly && !isDirect) return false;
+    if (a.imageOnly && !hasImage) return false;
+    if (a.documentOnly && !hasDocument) return false;
+    if (a.hasAttachmentUrl && !hasAttachmentUrl) return false;
+    // 'copy' (texte) cache si pas de content (message qui n'a QUE des PJ)
+    if (a.type === 'copy' && !message?.content) return false;
     return true;
   });
 
