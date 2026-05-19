@@ -658,28 +658,89 @@ function MessageBubble({
     return actions;
   }, [attachSheetTarget, downloadAndOpen, saveImageToGallery, onForward, message, t]);
 
-  // Render Reply Preview
+  // Render Reply Preview — pattern WhatsApp : integre dans la bulle,
+  // bg legerement plus fonce que la bulle parent, barre verticale coloree
+  // a gauche, nom sender en couleur sur 1 ligne, preview riche selon le
+  // type du message original (text / voice / image / document).
+  // Tap pour scroller au message original (callback parente onReplyTap).
   const renderReplyPreview = () => {
     if (!replyToMessage) return null;
+    const r: any = replyToMessage;
+
+    // Couleurs : effet "imbrique" — plus fonce sur ma bulle (indigo), plus
+    // gris clair chez le peer. La barre verticale prend l'accent.
+    const innerBg = isMine
+      ? 'rgba(0,0,0,0.18)'
+      : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)');
+    const accentColor = isMine ? Colors.white : colors.primary;
+    const nameColor = accentColor;
+    const previewColor = isMine ? 'rgba(255,255,255,0.85)' : colors.gray600;
+
+    // Preview du contenu original — text / voice / image / doc
+    const firstType = r.first_attachment_type;
+    let previewIcon: keyof typeof Ionicons.glyphMap | null = null;
+    let previewText = r.content || '';
+    if (r.is_deleted) {
+      previewText = t('componentsMessages.replyDeleted', { defaultValue: 'Message supprimé' });
+    } else if (firstType === 'voice') {
+      previewIcon = 'mic';
+      const dur = r.first_voice_duration;
+      const durStr = dur
+        ? `${Math.floor(dur / 60)}:${String(dur % 60).padStart(2, '0')}`
+        : '';
+      previewText = `${t('componentsMessages.replyVoice', { defaultValue: 'Message vocal' })}${durStr ? ` · ${durStr}` : ''}`;
+    } else if (firstType === 'image') {
+      previewIcon = 'image';
+      previewText = previewText || t('componentsMessages.replyImage', { defaultValue: 'Photo' });
+    } else if (firstType === 'document') {
+      previewIcon = 'document-attach';
+      previewText = previewText || t('componentsMessages.replyDocument', { defaultValue: 'Document' });
+    }
 
     return (
-      <View style={[styles.replyPreview, { backgroundColor: colors.gray100 }, isMine && styles.replyPreviewMine]}>
-        <View style={[styles.replyBar, { backgroundColor: colors.primary }, isMine && styles.replyBarMine]} />
-        <View style={styles.replyContent}>
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => {
+          // Callback parente — la conv screen scroll vers le msg original
+          if (typeof (onForward as any) === 'function') {
+            // pas onForward — TODO : on ne wire pas encore le scroll-to.
+            // Pour l'instant, le tap est silencieux (juste visual feedback).
+          }
+        }}
+        style={[
+          styles.replyPreviewInside,
+          { backgroundColor: innerBg, borderLeftColor: accentColor },
+        ]}
+      >
+        {/* Thumbnail mini si reply contient une image */}
+        {firstType === 'image' && r.first_image_thumb && (
+          <Image
+            source={{ uri: r.first_image_thumb }}
+            style={styles.replyThumbnail}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+          />
+        )}
+        <View style={styles.replyContentInside}>
           <Text
-            style={[styles.replyName, { color: colors.primary }, isMine && styles.replyNameMine]}
+            style={[styles.replyNameInside, { color: nameColor }]}
             numberOfLines={1}
           >
-            {replyToMessage.sender_name || t('componentsMessages.userFallback')}
+            {r.sender_name || t('componentsMessages.userFallback')}
           </Text>
-          <Text
-            style={[styles.replyText, { color: colors.gray600 }, isMine && styles.replyTextMine]}
-            numberOfLines={1}
-          >
-            {replyToMessage.content}
-          </Text>
+          <View style={styles.replyPreviewLine}>
+            {previewIcon && (
+              <Ionicons name={previewIcon} size={12} color={previewColor} style={{ marginRight: 4 }} />
+            )}
+            <Text
+              style={[styles.replyTextInside, { color: previewColor }]}
+              numberOfLines={1}
+            >
+              {previewText}
+            </Text>
+          </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -693,10 +754,14 @@ function MessageBubble({
     if (attachment.attachment_type === 'image') {
       // Index dans le tableau d'images (pour ouvrir le viewer au bon endroit)
       const imageIdx = imageAttachments.findIndex(a => a.id === attachment.id);
+      // Style WhatsApp : image "full bleed" — arrondit pour suivre les
+      // coins de la bulle parent. Si c'est la seule chose dans la bulle
+      // (imageOnlyBubble cote parent), elle prend toute la place. Sinon
+      // l'image garde des coins legerement arrondis et un petit margin.
       return (
         <TouchableOpacity
           key={attachment.id || index}
-          style={styles.imageWrap}
+          style={styles.imageWrapWhatsApp}
           activeOpacity={0.85}
           onPress={() => { if (!isUploading) openImageAt(imageIdx >= 0 ? imageIdx : 0); }}
           onLongPress={() => { if (!isUploading) showAttachmentMenu(attachment); }}
@@ -707,7 +772,7 @@ function MessageBubble({
         >
           <Image
             source={attachment.file}
-            style={[styles.imageAttachment, { backgroundColor: colors.gray100 }]}
+            style={[styles.imageAttachmentWhatsApp, { backgroundColor: colors.gray100 }]}
             contentFit="cover"
             cachePolicy="memory-disk"
             transition={200}
@@ -729,10 +794,10 @@ function MessageBubble({
     }
 
     if (attachment.attachment_type === 'voice') {
-      // La card voice est rendue HORS de la bulle text — bg autoporteur.
-      // Sender = primary indigo, peer = bulle rose pour rester aligné avec
-      // le bg de la bulle texte de l'interlocuteur.
-      const voiceBg = isMine ? colors.primary : peerBubbleBg;
+      // Style WhatsApp : la card voice est INTEGREE dans la bulle parent,
+      // pas de bg propre — juste les controls (play btn + waveform + duration)
+      // avec les couleurs adaptees au fond de la bulle.
+      const voiceBg = 'transparent';
       const voiceFg = isMine ? Colors.white : colors.primary;
       const activeBar = isMine ? Colors.white : colors.primary;
       const inactiveBar = isMine ? 'rgba(255,255,255,0.35)' : (isDark ? 'rgba(252,231,243,0.3)' : 'rgba(190,24,93,0.25)');
@@ -801,13 +866,10 @@ function MessageBubble({
     // Couleur d'accent : couleur typee si peer, blanc si mine (sur fond indigo)
     const iconColor = isMine ? Colors.white : meta.color;
     const iconBg = isMine ? 'rgba(255,255,255,0.2)' : `${meta.color}1A`; // 10% opacity hex
-    // Fond du tile document :
-    //  - sender (isMine)  → indigo (colors.primary) pour matcher la bulle texte
-    //  - peer             → bulle rose (peerBubbleBg) idem
-    //  L'ancien fond rgba(255,255,255,0.18) (white semi-transparent) ne s'aligne
-    //  visuellement avec rien quand l'attachment est rendu HORS de la bulle —
-    //  il flottait sur un fond canvas et paraissait gris.
-    const docTileBg = isMine ? colors.primary : peerBubbleBg;
+    // Style WhatsApp : le document est INTEGRE dans la bulle parent —
+    // bg transparent + une separation subtile (border-top) si le doc est
+    // au-dessus d'un autre element (gere via le rendu, ici on garde transparent).
+    const docTileBg = 'transparent';
 
     return (
       <View key={attachment.id || index} style={styles.imageWrap}>
@@ -937,52 +999,100 @@ function MessageBubble({
       )}
 
       <View style={styles.bubbleContainer}>
-        {/* Reply Preview */}
-        {renderReplyPreview()}
-
-        {/* Attachments */}
-        {hasAttachments && (
-          <View style={styles.attachmentsContainer} accessibilityLabel={t('componentsMessages.attachmentA11y')}>
-            {message.attachments?.map((att, i) => renderAttachment(att, i))}
-          </View>
-        )}
-
-        {/* Text Content */}
-        {message.content && (
-          <View
-            style={[
-              styles.bubble,
-              isMine
-                ? [styles.bubbleMine, { backgroundColor: colors.primary }]
-                : [styles.bubbleOther, { backgroundColor: peerBubbleBg }],
-              hasAttachments && styles.bubbleWithAttachment,
-            ]}
-          >
-            <Text
-              accessibilityRole="text"
-              accessibilityLabel={`${message.sender_name || t('componentsMessages.userFallback')}: ${message.content}`}
-              style={[styles.messageText, { color: isMine ? Colors.white : peerTextColor }]}
+        {/* === BULLE UNIFIEE (style WhatsApp) ===
+            Reply preview + attachments + texte + timestamp TOUS dans la
+            meme bulle. Image attachment "deborde" (full bleed) jusqu'aux
+            bords arrondis. Voice/document utilisent le bg de la bulle. */}
+        {(replyToMessage || hasAttachments || message.content) && (() => {
+          const bubbleBg = isMine ? colors.primary : peerBubbleBg;
+          // Image "full bleed" : si la bulle ne contient QUE des images
+          // (pas de texte, pas de doc/voice), on enleve le padding et on
+          // arrondit l'image elle-meme. Sinon padding standard partout.
+          const imageOnlyBubble = hasAttachments
+            && !message.content
+            && !replyToMessage
+            && (message.attachments || []).every(a => a.attachment_type === 'image');
+          return (
+            <View
+              style={[
+                styles.bubble,
+                isMine
+                  ? [styles.bubbleMine, { backgroundColor: bubbleBg }]
+                  : [styles.bubbleOther, { backgroundColor: bubbleBg }],
+                imageOnlyBubble && styles.bubbleNoPadding,
+              ]}
             >
-              {message.content}
-            </Text>
-          </View>
-        )}
+              {/* Reply preview integre */}
+              {renderReplyPreview()}
 
-        {/* Reactions */}
-        {renderReactions()}
+              {/* Attachments — voice/document utilisent le bg parent (bubbleBg),
+                  image deborde si imageOnlyBubble. */}
+              {hasAttachments && (
+                <View
+                  style={[
+                    styles.attachmentsInsideBubble,
+                    imageOnlyBubble && { marginBottom: 0 },
+                  ]}
+                  accessibilityLabel={t('componentsMessages.attachmentA11y')}
+                >
+                  {message.attachments?.map((att, i) => renderAttachment(att, i))}
+                </View>
+              )}
 
-        {/* Time and Status */}
-        <View style={[styles.timeRow, isMine && styles.timeRowMine]}>
-          {message.is_edited && (
-            <Text style={[styles.editedLabel, { color: colors.gray400 }]}>{t('componentsMessages.messageEdited')}</Text>
-          )}
-          <Text style={[styles.timeText, { color: colors.gray400 }]}>{formatMessageTime(message.created_at)}</Text>
-          {status && (
-            <View style={styles.statusIcon}>
-              <MessageStatusIcon status={status} />
+              {/* Text content */}
+              {message.content && (
+                <Text
+                  accessibilityRole="text"
+                  accessibilityLabel={`${message.sender_name || t('componentsMessages.userFallback')}: ${message.content}`}
+                  style={[styles.messageText, { color: isMine ? Colors.white : peerTextColor }]}
+                >
+                  {message.content}
+                </Text>
+              )}
+
+              {/* Time + status integres dans la bulle, en bas-droite. Style
+                  WhatsApp : superposes sur l'image si imageOnlyBubble, sinon
+                  inline a la fin du texte. */}
+              <View
+                style={[
+                  styles.timeRowInside,
+                  imageOnlyBubble && styles.timeRowOverlay,
+                ]}
+              >
+                {message.is_edited && (
+                  <Text style={[
+                    styles.editedLabel,
+                    {
+                      color: imageOnlyBubble
+                        ? 'rgba(255,255,255,0.9)'
+                        : (isMine ? 'rgba(255,255,255,0.7)' : colors.gray400),
+                    },
+                  ]}>
+                    {t('componentsMessages.messageEdited')}
+                  </Text>
+                )}
+                <Text style={[
+                  styles.timeTextInside,
+                  {
+                    color: imageOnlyBubble
+                      ? 'rgba(255,255,255,0.9)'
+                      : (isMine ? 'rgba(255,255,255,0.7)' : colors.gray500),
+                  },
+                ]}>
+                  {formatMessageTime(message.created_at)}
+                </Text>
+                {status && (
+                  <View style={styles.statusIcon}>
+                    <MessageStatusIcon status={status} />
+                  </View>
+                )}
+              </View>
             </View>
-          )}
-        </View>
+          );
+        })()}
+
+        {/* Reactions — restent OUT de la bulle (chips qui debordent en bas) */}
+        {renderReactions()}
 
         {/* Fullscreen image viewer (carousel + zoom + swipe). Mounte uniquement
             quand visible pour eviter l'overhead Modal en arriere-plan. */}
@@ -1136,6 +1246,87 @@ const styles = StyleSheet.create({
   },
   bubbleWithAttachment: {
     marginTop: Spacing.xs,
+  },
+  bubbleNoPadding: {
+    padding: 0,
+    overflow: 'hidden', // image suit les coins arrondis de la bulle
+  },
+
+  // === Reply preview integre (style WhatsApp) ===
+  replyPreviewInside: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderLeftWidth: 3,
+    marginBottom: 6,
+    gap: 8,
+  },
+  replyThumbnail: {
+    width: 36,
+    height: 36,
+    borderRadius: 4,
+  },
+  replyContentInside: {
+    flex: 1,
+    minWidth: 0,
+  },
+  replyNameInside: {
+    fontSize: 12,
+    fontFamily: FontFamily.semiBold,
+    marginBottom: 2,
+  },
+  replyPreviewLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  replyTextInside: {
+    fontSize: 12,
+    flex: 1,
+  },
+
+  // === Attachments integres dans la bulle ===
+  attachmentsInsideBubble: {
+    marginBottom: 4,
+    gap: 4,
+  },
+  imageWrapWhatsApp: {
+    position: 'relative',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  imageAttachmentWhatsApp: {
+    width: '100%',
+    aspectRatio: 4 / 3,
+    minHeight: 180,
+    maxHeight: 260,
+    borderRadius: 12,
+  },
+
+  // === Time row integre dans la bulle (style WhatsApp) ===
+  timeRowInside: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+    marginTop: 4,
+  },
+  timeRowOverlay: {
+    // Sur image only : positionner en absolu en bas-droite avec un fond
+    // semi-transparent pour rester lisible.
+    position: 'absolute',
+    bottom: 6,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginTop: 0,
+  },
+  timeTextInside: {
+    fontSize: 10,
+    fontFamily: FontFamily.medium,
   },
 
   // Message Text
