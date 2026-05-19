@@ -124,6 +124,69 @@ export function getCachedVoiceUri(remoteUrl: string | null | undefined): string 
   return remoteUrl;
 }
 
+// ============================================================================
+// SENT VOICE CACHE — pour les voices QUE NOUS VENONS D'ENVOYER
+// ============================================================================
+// Le useVoicePrefetch ci-dessus prefetche les voices DISTANTS (recus). Mais
+// pour les voices que NOUS venons d'envoyer, on a deja le file:// local sur
+// disque (le fichier enregistre par le micro). C'est gachis de le re-streamer
+// depuis le backend juste apres l'upload — d'autant que le backend peut etre
+// lent a servir le fichier juste apres ecriture (cache CDN froid, etc.) →
+// l'user voit le player "tourner" sans son.
+//
+// Solution : indexer le file:// local par attachment_id du backend, des que
+// l'upload renvoie l'id. La lecture utilise ce local en priorite. Cleanup :
+// au logout (cf clearSentVoiceCache) ; sinon TTL via LRU 50 entries
+// (~5MB/voice ≈ 250MB worst case, mais en pratique l'user n'envoie pas tant
+// de voices d'affilée).
+const sentVoiceMap = new Map<string, string>(); // attachment_id → file://...
+const sentLruOrder: string[] = [];
+const MAX_SENT_VOICES = 50;
+
+function touchSentLRU(attachmentId: string): void {
+  const idx = sentLruOrder.indexOf(attachmentId);
+  if (idx !== -1) sentLruOrder.splice(idx, 1);
+  sentLruOrder.push(attachmentId);
+}
+
+/**
+ * A appeler juste apres un upload voice reussi pour memoriser que ce
+ * `attachment_id` correspond au fichier local `localUri` du sender. Le player
+ * preferera ce local au stream distant.
+ */
+export function registerSentVoice(attachmentId: string | null | undefined, localUri: string): void {
+  if (!attachmentId || !localUri || !localUri.startsWith('file:')) return;
+  sentVoiceMap.set(String(attachmentId), localUri);
+  touchSentLRU(String(attachmentId));
+  // Eviction LRU
+  while (sentLruOrder.length > MAX_SENT_VOICES) {
+    const oldest = sentLruOrder.shift();
+    if (oldest) sentVoiceMap.delete(oldest);
+  }
+}
+
+/**
+ * Lookup synchrone : si on a envoye ce voice nous-meme, retourne le file://
+ * local (jouable instantanement). Sinon, null.
+ */
+export function getSentVoiceUri(attachmentId: string | null | undefined): string | null {
+  if (!attachmentId) return null;
+  const local = sentVoiceMap.get(String(attachmentId));
+  if (local) {
+    touchSentLRU(String(attachmentId));
+    return local;
+  }
+  return null;
+}
+
+/**
+ * Purge le cache sent-voice. Appele au logout (privacy cross-account).
+ */
+export function clearSentVoiceCache(): void {
+  sentVoiceMap.clear();
+  sentLruOrder.length = 0;
+}
+
 /**
  * Purge tout le cache disque + memoire. A appeler au logout (cross-account
  * privacy : eviter d'exposer des voices d'un user a un autre).

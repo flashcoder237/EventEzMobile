@@ -300,9 +300,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     // Purge le cache fichier des voice messages — eviter qu'un autre user
     // sur le meme device puisse acceder aux .m4a en lisant cacheDirectory.
+    // Inclut aussi le cache des voices envoyes (sentVoiceMap) pour la meme
+    // raison : un autre user pourrait re-jouer les vocaux du precedent.
     try {
-      const { clearVoiceCache } = await import('../hooks/useVoicePrefetch');
+      const { clearVoiceCache, clearSentVoiceCache } = await import('../hooks/useVoicePrefetch');
       await clearVoiceCache();
+      clearSentVoiceCache();
     } catch (voiceCacheError) {
       if (__DEV__) console.warn('clearVoiceCache on logout failed:', voiceCacheError);
     }

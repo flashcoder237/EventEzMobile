@@ -101,7 +101,7 @@ import EventActionsSheet, {
   EventAction,
 } from '../../components/organizer/EventActionsSheet';
 import CacheService from '../../services/CacheService';
-import { useVoicePrefetch, getCachedVoiceUri } from '../../hooks/useVoicePrefetch';
+import { useVoicePrefetch, getCachedVoiceUri, registerSentVoice, getSentVoiceUri } from '../../hooks/useVoicePrefetch';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -1426,11 +1426,15 @@ export default function ConversationScreen() {
         voiceHardTimeoutRef.current = null;
       }
 
-      // Prefere le fichier local pre-fetche s'il existe (useVoicePrefetch
-      // tourne en arriere-plan a chaque update de messages). Sinon, fallback
-      // sur l'URL distante en streaming HTTP (comportement avant le prefetch).
+      // Priorite des URIs (du plus rapide au plus lent) :
+      //  1. file:// local du SENDER (sentVoiceCache) : si on a envoye ce voice
+      //     nous-meme, on lit directement depuis le disque — instant, et evite
+      //     le bug "ca tourne juste apres l'envoi" (fichier serveur pas pret).
+      //  2. file:// pre-fetche par useVoicePrefetch (voices recus deja DL).
+      //  3. URL distante en streaming HTTP (fallback dernier recours).
       const remoteUri = getMediaUrl(uri) || uri;
-      const playableUri = getCachedVoiceUri(remoteUri) || remoteUri;
+      const sentLocal = getSentVoiceUri(attachmentId);
+      const playableUri = sentLocal || getCachedVoiceUri(remoteUri) || remoteUri;
       // Charge la position sauvegardee pour ce voice — si > 1s on reprendra la
       // lecture a cette position au premier status callback.
       // Cascade :
@@ -2508,6 +2512,13 @@ export default function ConversationScreen() {
             const id = uploadResponse.data?.id ? String(uploadResponse.data.id) : '';
             if (!id) {
               return { ok: false, error: t('conversation.errorInvalidResponse'), tmpIdx: idx, fileType: att.type, fileName: att.name };
+            }
+            // Pour les voices : on memorise le fichier local sous l'id backend.
+            // Cela permet a playVoiceMessage de lire instantanement depuis le
+            // disque local au lieu d'attendre que le serveur serve le fichier
+            // (qui peut etre lent juste apres l'upload — bug "tourne longtemps").
+            if (att.type === 'voice') {
+              registerSentVoice(id, att.uri);
             }
             return { ok: true, id, tmpIdx: idx, fileType: att.type, fileName: att.name };
           } catch (uploadError: any) {
