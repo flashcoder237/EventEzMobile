@@ -9,6 +9,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   Platform,
 } from 'react-native';
@@ -185,6 +186,10 @@ interface MessageBubbleProps {
   /** Forward — appele depuis le menu attachment, reuse le flow message-level
       du parent (qui ouvre le modal de selection de conversation). */
   onForward?: (message: Message) => void;
+  /** Callback declenche quand l'user tap le reply preview pour scroller au
+      message original. Le parent (ConversationScreen) doit lookup l'index
+      du message dans state.messages et appeler flatListRef.scrollToIndex. */
+  onReplyPress?: (originalMessageId: number | string) => void;
 }
 
 // ============================================================================
@@ -386,6 +391,7 @@ function MessageBubble({
   listenedVoiceIds,
   onPlayVoice,
   onForward,
+  onReplyPress,
 }: MessageBubbleProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
@@ -701,11 +707,9 @@ function MessageBubble({
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={() => {
-          // Callback parente — la conv screen scroll vers le msg original
-          if (typeof (onForward as any) === 'function') {
-            // pas onForward — TODO : on ne wire pas encore le scroll-to.
-            // Pour l'instant, le tap est silencieux (juste visual feedback).
-          }
+          // Callback parente : ConversationScreen scroll a l'index du msg
+          // original via flatListRef.scrollToIndex. Si non wire, no-op.
+          if (r.id != null && onReplyPress) onReplyPress(r.id);
         }}
         style={[
           styles.replyPreviewInside,
@@ -764,7 +768,11 @@ function MessageBubble({
           style={styles.imageWrapWhatsApp}
           activeOpacity={0.85}
           onPress={() => { if (!isUploading) openImageAt(imageIdx >= 0 ? imageIdx : 0); }}
-          onLongPress={() => { if (!isUploading) showAttachmentMenu(attachment); }}
+          // Long-press = menu d'actions message (reply / react / forward /
+          // delete / etc.) — pattern WhatsApp. Le sheet specifique
+          // "Save/Share" reste accessible depuis le visionneur fullscreen
+          // (footer du ImageView).
+          onLongPress={() => { if (!isUploading) onLongPress?.(message); }}
           delayLongPress={300}
           accessibilityRole="imagebutton"
           accessibilityLabel={t('componentsMessages.imageAttachmentA11y')}
@@ -814,7 +822,15 @@ function MessageBubble({
         : 0;
 
       return (
-        <View key={attachment.id || index} style={styles.imageWrap}>
+        // Pressable parent : intercepte le long-press → menu d'actions
+        // message (reply/react/forward/delete). Le tap reste dispatche au
+        // play button enfant qui a son propre TouchableOpacity.
+        <Pressable
+          key={attachment.id || index}
+          style={styles.imageWrap}
+          onLongPress={() => onLongPress?.(message)}
+          delayLongPress={400}
+        >
           <VoiceAttachment
             attachment={attachment}
             isPlaying={isPlaying}
@@ -852,7 +868,7 @@ function MessageBubble({
               )}
             </View>
           )}
-        </View>
+        </Pressable>
       );
     }
 
@@ -876,7 +892,8 @@ function MessageBubble({
         <TouchableOpacity
           style={[styles.documentAttachment, { backgroundColor: docTileBg }]}
           onPress={() => { if (!isUploading && !isDownloading) downloadAndOpen(attachment); }}
-          onLongPress={() => { if (!isUploading) showAttachmentMenu(attachment); }}
+          // Long-press = menu d'actions message (idem images / voice).
+          onLongPress={() => { if (!isUploading) onLongPress?.(message); }}
           delayLongPress={300}
           activeOpacity={0.7}
           accessibilityRole="button"
@@ -933,17 +950,43 @@ function MessageBubble({
     );
   };
 
-  // Render Reactions
+  // Render Reactions — chips qui debordent legerement la bulle en bas
+  // (pattern WhatsApp / Messenger). Tap pour toggle (TODO si on ajoute le
+  // handler parent). Couleurs : bg blanc opaque + ombre subtile pour
+  // qu'elles soient visibles sur n'importe quel fond (clair OU bulle).
   const renderReactions = () => {
     const entries = Object.entries(groupedReactions);
     if (entries.length === 0) return null;
 
+    // Position : la chip "deborde" sur le bord inferieur de la bulle
+    // (marginTop negatif). Cote droit si isMine, gauche sinon.
     return (
       <View style={[styles.reactionsContainer, isMine && styles.reactionsContainerMine]}>
         {entries.map(([emoji, count]) => (
-          <View key={emoji} style={[styles.reactionBadge, { backgroundColor: colors.surface, borderColor: colors.gray200 }]}>
+          <View
+            key={emoji}
+            style={[
+              styles.reactionBadge,
+              {
+                // Fond toujours opaque (jamais transparent) pour rester
+                // lisible sur n'importe quel bg (canvas, bulle indigo, bulle
+                // rose, image). En dark mode : card sombre + border claire.
+                backgroundColor: isDark ? colors.card : '#FFFFFF',
+                borderColor: isDark ? colors.gray200 : 'rgba(0,0,0,0.08)',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.12,
+                shadowRadius: 2,
+                elevation: 2,
+              },
+            ]}
+          >
             <Text style={styles.reactionEmoji}>{emoji}</Text>
-            {count > 1 && <Text style={[styles.reactionCount, { color: colors.gray600 }]}>{count}</Text>}
+            {count > 1 && (
+              <Text style={[styles.reactionCount, { color: isDark ? colors.gray300 : colors.gray700 }]}>
+                {count}
+              </Text>
+            )}
           </View>
         ))}
       </View>
@@ -1020,6 +1063,10 @@ function MessageBubble({
                   ? [styles.bubbleMine, { backgroundColor: bubbleBg }]
                   : [styles.bubbleOther, { backgroundColor: bubbleBg }],
                 imageOnlyBubble && styles.bubbleNoPadding,
+                // Min width quand la bulle contient une reply preview, sinon
+                // un texte court ("ok") fait collapser la bulle a 30px et la
+                // preview au-dessus est tronquee. WhatsApp impose ~200px min.
+                replyToMessage && styles.bubbleWithReplyMinWidth,
               ]}
             >
               {/* Reply preview integre */}
@@ -1250,6 +1297,13 @@ const styles = StyleSheet.create({
   bubbleNoPadding: {
     padding: 0,
     overflow: 'hidden', // image suit les coins arrondis de la bulle
+  },
+  bubbleWithReplyMinWidth: {
+    // Pattern WhatsApp : meme avec un reply contenant un nom court +
+    // un texte court ("ok"), la bulle doit avoir ~220px pour rester
+    // lisible. Sinon le sender name + preview du reply est tronque a
+    // 2-3 caracteres.
+    minWidth: 220,
   },
 
   // === Reply preview integre (style WhatsApp) ===
@@ -1571,25 +1625,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Reactions
+  // Reactions — chips qui debordent la bulle (style WhatsApp)
   reactionsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 4,
+    // marginTop negatif : la chip chevauche legerement le bord inferieur
+    // de la bulle, comme dans WhatsApp / Messenger.
+    marginTop: -8,
+    marginLeft: 8,
     gap: 4,
+    zIndex: 1, // au-dessus de la bulle
   },
   reactionsContainerMine: {
     justifyContent: 'flex-end',
+    marginLeft: 0,
+    marginRight: 8,
   },
   reactionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: Colors.gray200,
+    gap: 2,
   },
   reactionEmoji: {
     fontSize: 14,

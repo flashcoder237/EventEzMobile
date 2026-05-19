@@ -47,7 +47,7 @@ import {
 } from 'expo-audio';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { messagesAPI, eventsAPI, getMediaUrl } from '../../api';
+import { messagesAPI, eventsAPI, connectionsAPI, getMediaUrl } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -165,6 +165,10 @@ export default function ConversationScreen() {
   // Fallback timeout pour forcer la sortie de l'etat "loading" du voice player
   // si aucun status callback n'est arrive (certains backends streamant lentement).
   const loadingFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Hard timeout : kill le player s'il n'a toujours pas de duration apres 6s.
+  // Cas typique : tap play sur son propre voice juste apres l'envoi, alors
+  // que le fichier n'est pas encore servi par le backend (404/buffer infini).
+  const voiceHardTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [forwardSearchQuery, setForwardSearchQuery] = React.useState('');
   const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
 
@@ -1417,6 +1421,10 @@ export default function ConversationScreen() {
         clearTimeout(loadingFallbackRef.current);
         loadingFallbackRef.current = null;
       }
+      if (voiceHardTimeoutRef.current) {
+        clearTimeout(voiceHardTimeoutRef.current);
+        voiceHardTimeoutRef.current = null;
+      }
 
       // Prefere le fichier local pre-fetche s'il existe (useVoicePrefetch
       // tourne en arriere-plan a chaque update de messages). Sinon, fallback
@@ -1498,6 +1506,10 @@ export default function ConversationScreen() {
             clearTimeout(loadingFallbackRef.current);
             loadingFallbackRef.current = null;
           }
+          if (voiceHardTimeoutRef.current) {
+            clearTimeout(voiceHardTimeoutRef.current);
+            voiceHardTimeoutRef.current = null;
+          }
           // #4 Marque comme ecoute
           markVoiceListened(messageId);
           // #6 Clear la position sauvegardee — voice termine, plus rien a reprendre
@@ -1575,6 +1587,43 @@ export default function ConversationScreen() {
         });
       }, 2500);
       loadingFallbackRef.current = loadingFallback;
+
+      // Hard timeout : si apres 6s on n'a TOUJOURS recu aucune `duration` du
+      // status callback, c'est que le serveur ne sert pas le fichier (404,
+      // CDN cold, fichier pas encore ecrit cote backend juste apres upload).
+      // On stoppe le player et on remonte une erreur claire avec retry plutot
+      // que de laisser tourner indefiniment. Cas typique : tap "play" sur son
+      // propre voice juste apres l'avoir envoye, avant que le fichier soit
+      // accessible cote storage.
+      if (voiceHardTimeoutRef.current) {
+        clearTimeout(voiceHardTimeoutRef.current);
+        voiceHardTimeoutRef.current = null;
+      }
+      voiceHardTimeoutRef.current = setTimeout(() => {
+        setVoicePlayback((prev) => {
+          if (!prev || prev.messageId !== messageId) return prev;
+          if (prev.durationMs > 0) return prev; // OK, charge → ne pas killer
+          try { subscription.remove(); } catch { /* noop */ }
+          try { player.remove(); } catch { /* noop */ }
+          if (playerRef.current === player) playerRef.current = null;
+          if (currentPlayerMsgIdRef.current === messageId) currentPlayerMsgIdRef.current = null;
+          if (loadingFallbackRef.current) {
+            clearTimeout(loadingFallbackRef.current);
+            loadingFallbackRef.current = null;
+          }
+          voiceHardTimeoutRef.current = null;
+          actions.setPlayingVoice(null);
+          showError(t('common.error'), t('conversation.voiceTimeoutHint'));
+          if (__DEV__) {
+            console.warn('[playVoiceMessage] hard timeout — no audio data', {
+              messageId,
+              uri: playableUri,
+              wasLocal: playableUri.startsWith('file://'),
+            });
+          }
+          return null;
+        });
+      }, 6000);
 
       player.play();
     } catch (error) {
@@ -2001,6 +2050,58 @@ export default function ConversationScreen() {
     );
   }, [selectedIds, state.messages, user?.id, t, showError, showSuccess, showConfirm, actions, exitSelectionMode]);
 
+  /**
+   * Charge la liste des cibles autorisees pour un forward. Strategie :
+   *
+   *  1. Connections etablies (QR / mutual follow) — affichees EN PREMIER,
+   *     forward garanti reussi (le destinataire a explicitement consenti).
+   *  2. Conversations existantes en complement (dedupliquees vs Connections) —
+   *     personnes avec qui on a deja echange mais pas forcement Connection.
+   *     Le forward backend re-valide la policy du destinataire : si refus
+   *     (recipient_requires_connection), Promise.allSettled remonte l'echec
+   *     dans le compteur de failures (cf handleForwardToTargets).
+   *
+   * On evite ainsi le bug "aucun contact visible" du fix initial (qui ne
+   * listait QUE les Connections — souvent vide) tout en gardant le filtrage
+   * cote backend pour les destinataires en policy 'connections' stricte.
+   */
+  const loadForwardTargets = useCallback(async (): Promise<User[]> => {
+    const [connectionsRes, conversationsRes] = await Promise.allSettled([
+      connectionsAPI.list(),
+      messagesAPI.getConversations(),
+    ]);
+
+    const seen = new Set<string | number>();
+    const targets: User[] = [];
+
+    // 1. Connections d'abord (priorité — destinataires fiables).
+    if (connectionsRes.status === 'fulfilled') {
+      const connections = connectionsRes.value.data?.results || [];
+      connections.forEach((c: any) => {
+        const u = c.user;
+        if (u && u.id !== user?.id && !seen.has(u.id)) {
+          seen.add(u.id);
+          targets.push(u);
+        }
+      });
+    }
+
+    // 2. Conversations en complement (deduplique vs Connections).
+    if (conversationsRes.status === 'fulfilled') {
+      const conversations = conversationsRes.value.data?.results || conversationsRes.value.data || [];
+      conversations.forEach((conv: any) => {
+        conv.participants?.forEach((p: any) => {
+          if (p && p.id !== user?.id && !seen.has(p.id)) {
+            seen.add(p.id);
+            targets.push(p);
+          }
+        });
+      });
+    }
+
+    return targets;
+  }, [user?.id]);
+
   const handleBulkForward = useCallback(async () => {
     const ids = Array.from(selectedIds).filter((id) => {
       const m = state.messages.find((x: any) => x.id === id);
@@ -2015,23 +2116,14 @@ export default function ConversationScreen() {
     actions.showForwardModal();
     actions.setLoadingForwardTargets(true);
     try {
-      const response = await messagesAPI.getConversations();
-      const conversations = response.data.results || response.data || [];
-      const targets: User[] = [];
-      conversations.forEach((conv: any) => {
-        conv.participants?.forEach((p: any) => {
-          if (p.id !== user?.id && !targets.find(t => t.id === p.id)) {
-            targets.push(p);
-          }
-        });
-      });
+      const targets = await loadForwardTargets();
       actions.setForwardTargets(targets);
     } catch {
       showError(t('common.error'), t('conversation.forwardTargetsError'));
     } finally {
       actions.setLoadingForwardTargets(false);
     }
-  }, [selectedIds, state.messages, user?.id, t, showError, actions]);
+  }, [selectedIds, state.messages, user?.id, t, showError, actions, loadForwardTargets]);
 
   const handleForwardMessage = async (message: Message) => {
     forwardSourceMessageRef.current = message;
@@ -2039,18 +2131,7 @@ export default function ConversationScreen() {
     actions.setLoadingForwardTargets(true);
 
     try {
-      const response = await messagesAPI.getConversations();
-      const conversations = response.data.results || response.data || [];
-
-      const targets: User[] = [];
-      conversations.forEach((conv: any) => {
-        conv.participants?.forEach((p: any) => {
-          if (p.id !== user?.id && !targets.find(t => t.id === p.id)) {
-            targets.push(p);
-          }
-        });
-      });
-
+      const targets = await loadForwardTargets();
       actions.setForwardTargets(targets);
     } catch (error) {
       showError(t('common.error'), t('conversation.forwardTargetsError'));
@@ -2619,6 +2700,35 @@ export default function ConversationScreen() {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   }, []);
 
+  // Scroll-to-original quand l'user tap le reply preview d'un message.
+  // FlatList est inversee → index 0 = msg le plus recent (en bas), donc on
+  // peut directement utiliser l'index dans state.messages (ordre desc).
+  // Si le msg n'est pas dans la fenetre actuellement chargee (pagination
+  // upward), on signale via toast — l'user devra remonter manuellement.
+  const handleReplyPress = useCallback((originalId: number | string) => {
+    const idStr = String(originalId);
+    const idx = state.messages.findIndex((m: any) => String(m.id) === idStr);
+    if (idx === -1) {
+      showError(
+        t('common.info', { defaultValue: 'Info' }),
+        t('conversation.replyOriginalNotLoaded', {
+          defaultValue: 'Le message original n\'est pas encore chargé. Remonte pour le voir.',
+        }),
+      );
+      return;
+    }
+    try {
+      flatListRef.current?.scrollToIndex({
+        index: idx,
+        animated: true,
+        viewPosition: 0.5, // centre le msg dans la vue
+      });
+    } catch {
+      // scrollToIndex peut throw si l'item est trop loin (getItemLayout
+      // pas dispo). Fallback : scrollToOffset approximatif.
+    }
+  }, [state.messages, t, showError]);
+
   const renderMessage = useCallback(({ item, index }: { item: Message; index: number }) => {
     const isMine = isMyMessage(item, user?.id);
     const showDate = shouldShowDateSeparator(state.messages, index);
@@ -2682,6 +2792,7 @@ export default function ConversationScreen() {
         playbackRate={playbackRate}
         listenedVoiceIds={listenedVoiceIds}
         onForward={selectionMode ? () => {} : handleForwardMessage}
+        onReplyPress={selectionMode ? undefined : handleReplyPress}
       />
     );
 
@@ -2719,7 +2830,7 @@ export default function ConversationScreen() {
   }, [
     state.messages, state.otherUserId, state.playingVoiceId, voicePlayback,
     uploadingIds, slowUploadIds, user?.id, handleMessageLongPress, seekVoiceMessage,
-    skipForward15s, cyclePlaybackRate, playbackRate, listenedVoiceIds,
+    skipForward15s, cyclePlaybackRate, playbackRate, listenedVoiceIds, handleReplyPress,
     selectionMode, selectedIds, toggleMessageSelection, colors.primary, colors.gray400,
   ]);
 
