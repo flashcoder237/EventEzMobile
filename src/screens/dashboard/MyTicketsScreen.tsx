@@ -683,7 +683,12 @@ export default function MyTicketsScreen() {
   // ==========================================================
   // Ticket Stub Card
   // ==========================================================
-  const renderTicketStub = useCallback((item: Registration, index: number, variant: 'active' | 'archived') => {
+  const renderTicketStub = useCallback((
+    item: Registration,
+    index: number,
+    variant: 'active' | 'archived',
+    isFirstInMonth: boolean = index === 0,
+  ) => {
     const event = getEventData(item);
     const dateInfo = event?.start_date ? formatDate(event.start_date) : null;
     const daysUntil = getDaysUntil(event?.start_date);
@@ -693,10 +698,12 @@ export default function MyTicketsScreen() {
     const statusConfig = getStatusConfig(item.status);
     const isPending = item.status === 'pending' || item.status === 'pending_approval';
 
-    // Overlap behavior — first active card sits full, next ones overlap slightly
+    // Overlap behavior — first active card de chaque MOIS sits full, next ones
+    // overlap slightly. Sans `isFirstInMonth`, le 1er ticket d'un mois suivant
+    // (index > 0) chevaucherait le header de mois et le masquerait.
     const isFirst = index === 0;
     const isPendingStack = isPending && !isFirst;
-    const overlapMargin = !isFirst && !isArchived ? -Spacing.xl - 20 : 0;
+    const overlapMargin = !isFirstInMonth && !isArchived ? -Spacing.xl - 20 : 0;
 
     // Dimensions for accent fills
     const accentColor = isArchived
@@ -1062,7 +1069,7 @@ export default function MyTicketsScreen() {
   ];
   type ListItem =
     | { kind: 'header'; key: string; label: string }
-    | { kind: 'ticket'; key: string; registration: Registration; ticketIndex: number };
+    | { kind: 'ticket'; key: string; registration: Registration; ticketIndex: number; isFirstInMonth: boolean };
 
   const sectionedItems = useMemo<ListItem[]>(() => {
     if (filteredRegistrations.length <= SECTION_THRESHOLD) {
@@ -1071,6 +1078,9 @@ export default function MyTicketsScreen() {
         key: r.id,
         registration: r,
         ticketIndex: i,
+        // Pas de groupement par mois sous le seuil : un seul ticket "premier
+        // du mois" possible (index 0), les autres overlappent normalement.
+        isFirstInMonth: i === 0,
       }));
     }
     const out: ListItem[] = [];
@@ -1090,11 +1100,21 @@ export default function MyTicketsScreen() {
           // ignore parse failure
         }
       }
-      if (key !== lastKey) {
+      const newMonth = key !== lastKey;
+      if (newMonth) {
         out.push({ kind: 'header', key: `h-${key}`, label });
         lastKey = key;
       }
-      out.push({ kind: 'ticket', key: r.id, registration: r, ticketIndex: ticketIdx });
+      // `isFirstInMonth` permet a renderTicketStub de ne PAS appliquer
+      // l'overlap negatif au premier ticket de chaque nouveau mois, sinon
+      // il chevauche le header et masque visuellement le separateur.
+      out.push({
+        kind: 'ticket',
+        key: r.id,
+        registration: r,
+        ticketIndex: ticketIdx,
+        isFirstInMonth: newMonth,
+      });
       ticketIdx += 1;
     });
     return out;
@@ -1114,6 +1134,7 @@ export default function MyTicketsScreen() {
       item.registration,
       item.ticketIndex,
       activeTab === 'past' || activeTab === 'cancelled' ? 'archived' : 'active',
+      item.isFirstInMonth,
     );
   }, [activeTab, colors.gray200, colors.gray500, renderTicketStub]);
 
