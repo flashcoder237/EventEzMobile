@@ -195,9 +195,7 @@ beforeEach(() => {
   });
 });
 
-// TODO(tests): suite skipped — assertions sur strings i18n hardcodes obsoletes apres 
-// refonte i18n recente. A reecrire avec selectors testID ou regex tolerantes.
-describe.skip('WalletScreen', () => {
+describe('WalletScreen', () => {
   it('renders the wallet balance + Effectuer un retrait CTA', async () => {
     const { findByText, findAllByText } = render(<WalletScreen />);
     expect(await findByText('Effectuer un retrait')).toBeTruthy();
@@ -215,7 +213,7 @@ describe.skip('WalletScreen', () => {
 
   it('opens the payout modal when "Effectuer un retrait" is pressed', async () => {
     const { findByText, queryByPlaceholderText } = render(<WalletScreen />);
-    expect(queryByPlaceholderText(/Min:/)).toBeNull();
+    expect(queryByPlaceholderText(/Min\s*:/)).toBeNull();
 
     fireEvent.press(await findByText('Effectuer un retrait'));
 
@@ -239,7 +237,7 @@ describe.skip('WalletScreen', () => {
     const { findByText, getByPlaceholderText } = render(<WalletScreen />);
     fireEvent.press(await findByText('Effectuer un retrait'));
 
-    const input = await waitFor(() => getByPlaceholderText(/Min:/));
+    const input = await waitFor(() => getByPlaceholderText(/Min\s*:/));
     fireEvent.changeText(input, '999999'); // > 50000
 
     fireEvent.press(await findByText('Retirer'));
@@ -256,7 +254,7 @@ describe.skip('WalletScreen', () => {
     const { findByText, getByPlaceholderText } = render(<WalletScreen />);
     fireEvent.press(await findByText('Effectuer un retrait'));
 
-    const input = await waitFor(() => getByPlaceholderText(/Min:/));
+    const input = await waitFor(() => getByPlaceholderText(/Min\s*:/));
     fireEvent.changeText(input, '20000');
 
     fireEvent.press(await findByText('Retirer'));
@@ -286,7 +284,7 @@ describe.skip('WalletScreen', () => {
     const { findByText, getByPlaceholderText } = render(<WalletScreen />);
     fireEvent.press(await findByText('Effectuer un retrait'));
 
-    const input = await waitFor(() => getByPlaceholderText(/Min:/));
+    const input = await waitFor(() => getByPlaceholderText(/Min\s*:/));
     fireEvent.changeText(input, '10000');
 
     fireEvent.press(await findByText('Retirer'));

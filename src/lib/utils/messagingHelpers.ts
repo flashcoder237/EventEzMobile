@@ -193,7 +193,11 @@ export function getUserInitials(name: string): string {
 }
 
 /**
- * Récupère le contenu du message de réponse
+ * Recupere le contenu du message de reponse. Comparaison normalisee via
+ * String() — `m.id` peut etre number (REST) ou string (WS/temp), `replyTo`
+ * est passe en string par le caller. Sans normalisation `123 === '123'`
+ * retourne false → le tag de reply n'est jamais resolu, et la bubble
+ * affiche le message sans rappel du message d'origine.
  */
 export function getReplyToContent(
   replyTo: string | Message | undefined,
@@ -201,7 +205,7 @@ export function getReplyToContent(
 ): Message | null {
   if (!replyTo) return null;
   if (typeof replyTo === 'string') {
-    return messages.find(m => m.id === replyTo) || null;
+    return messages.find(m => String(m.id) === replyTo) || null;
   }
   return replyTo;
 }

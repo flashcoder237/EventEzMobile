@@ -151,6 +151,17 @@ jest.mock('../../../components/ui/LoadingOverlay', () => {
   };
 });
 
+// ConvertedPrice utilise useCurrencyConversion → currencyAPI, qu'on n'a pas
+// mocké. On stub le composant pour éviter de tirer toute la chaîne.
+jest.mock('../../../components/common/ConvertedPrice', () => {
+  const RN = require('react-native');
+  const React = require('react');
+  return {
+    __esModule: true,
+    default: () => React.createElement(RN.Text, null, '≈ 0'),
+  };
+});
+
 jest.mock('expo-linear-gradient', () => {
   const RN = require('react-native');
   return { LinearGradient: RN.View };
@@ -204,9 +215,7 @@ beforeEach(() => {
   mockGetMyRegistrations.mockResolvedValue({ data: { results: [] } });
 });
 
-// TODO(tests): suite skipped — assertions sur strings i18n hardcodes obsoletes apres 
-// refonte i18n recente. A reecrire avec selectors testID ou regex tolerantes.
-describe.skip('TicketPurchaseScreen', () => {
+describe('TicketPurchaseScreen', () => {
   it('renders event title + ticket types after fetch', async () => {
     const { findByText } = render(<TicketPurchaseScreen />);
     expect(await findByText('Festival Indie')).toBeTruthy();

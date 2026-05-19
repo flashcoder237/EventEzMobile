@@ -27,7 +27,7 @@
  * On verifie ici juste que le composant peut s'instancier (pas de throw au mount).
  */
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, waitFor } from '@testing-library/react-native';
 
 // ── Navigation ────────────────────────────────────────────────────
 const mockGoBack = jest.fn();
@@ -36,6 +36,8 @@ jest.mock('@react-navigation/native', () => ({
     goBack: mockGoBack,
     navigate: jest.fn(),
     setOptions: jest.fn(),
+    addListener: jest.fn(() => jest.fn()),
+    removeListener: jest.fn(),
   }),
   useRoute: () => ({
     params: { conversationId: 'conv-1', userId: '2', userName: 'Bob' },
@@ -142,6 +144,13 @@ jest.mock('expo-audio', () => ({
     stop: jest.fn(() => Promise.resolve({ uri: 'file://rec.m4a' })),
     getStatusAsync: jest.fn(() => Promise.resolve({})),
   }),
+  // expo-audio v0.4+ : useAudioRecorderState(recorder, pollIntervalMs) renvoie
+  // un snapshot { isRecording, durationMillis, metering } — stub à l'arrêt.
+  useAudioRecorderState: () => ({
+    isRecording: false,
+    durationMillis: 0,
+    metering: -160,
+  }),
   createAudioPlayer: jest.fn(() => ({ remove: jest.fn() })),
   requestRecordingPermissionsAsync: jest.fn(() => Promise.resolve({ granted: true })),
   setAudioModeAsync: jest.fn(() => Promise.resolve()),
@@ -182,10 +191,84 @@ jest.mock('../../../components/ui/editorial', () => {
 
 // ── Skeleton ──────────────────────────────────────────────────────
 jest.mock('../../../components/ui/Skeleton', () => {
+  const React = require('react');
   const RN = require('react-native');
+  const Stub = () => React.createElement(RN.View, null);
+  return new Proxy(
+    {},
+    { get: () => Stub },
+  );
+});
+
+// ── Hooks divers manquants ────────────────────────────────────────
+jest.mock('../../../hooks/useMessageState', () => ({
+  useMessageState: () => ({
+    state: {
+      // conversationId truthy → l'effect mount du screen déclenche fetchMessages
+      conversationId: 'conv-1',
+      messages: [],
+      newMessage: '',
+      isLoading: false,
+      editingMessage: null,
+      replyingTo: null,
+      attachedFiles: [],
+      hasMoreMessages: false,
+      isLoadingMore: false,
+      offlineMessages: [],
+      isOffline: false,
+    },
+    actions: new Proxy({}, { get: () => jest.fn() }),
+  }),
+}));
+
+jest.mock('../../../hooks/useMutedConversations', () => ({
+  useMutedConversations: () => ({
+    isMuted: () => false,
+    toggleMute: jest.fn(),
+  }),
+}));
+
+jest.mock('../../../hooks/useVoicePrefetch', () => ({
+  useVoicePrefetch: jest.fn(),
+  getCachedVoiceUri: jest.fn(() => null),
+}));
+
+// ── react-native-image-viewing ────────────────────────────────────
+jest.mock('react-native-image-viewing', () => {
+  const RN = require('react-native');
+  return { __esModule: true, default: RN.View };
+});
+
+// ── expo-document-picker ──────────────────────────────────────────
+jest.mock('expo-document-picker', () => ({
+  getDocumentAsync: jest.fn(() => Promise.resolve({ canceled: true, assets: [] })),
+}));
+
+// ── expo-file-system/legacy ───────────────────────────────────────
+jest.mock('expo-file-system/legacy', () => ({
+  documentDirectory: 'file:///docs/',
+  cacheDirectory: 'file:///cache/',
+  downloadAsync: jest.fn(() => Promise.resolve({ uri: '' })),
+  readAsStringAsync: jest.fn(() => Promise.resolve('')),
+  writeAsStringAsync: jest.fn(() => Promise.resolve()),
+  getInfoAsync: jest.fn(() => Promise.resolve({ exists: false })),
+  deleteAsync: jest.fn(() => Promise.resolve()),
+  makeDirectoryAsync: jest.fn(() => Promise.resolve()),
+}));
+
+// ── expo-sharing ──────────────────────────────────────────────────
+jest.mock('expo-sharing', () => ({
+  shareAsync: jest.fn(() => Promise.resolve()),
+  isAvailableAsync: jest.fn(() => Promise.resolve(true)),
+}));
+
+// ── EventActionsSheet ─────────────────────────────────────────────
+jest.mock('../../../components/organizer/EventActionsSheet', () => {
+  const RN = require('react-native');
+  const React = require('react');
   return {
-    SkeletonList: () => RN.View,
-    MessageSkeleton: () => RN.View,
+    __esModule: true,
+    default: () => React.createElement(RN.View, null),
   };
 });
 
@@ -213,15 +296,15 @@ jest.mock('../../../components/messages', () => {
 
 import ConversationScreen from '../ConversationScreen';
 
-// TODO(tests): suite skipped — assertions sur strings i18n hardcodes obsoletes apres 
-// refonte i18n recente. A reecrire avec selectors testID ou regex tolerantes.
-describe.skip('ConversationScreen — smoke', () => {
+describe('ConversationScreen — smoke', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('mounts without throwing and triggers initial fetch', async () => {
     const result = render(<ConversationScreen />);
-    // Le mount declenche fetchMessages + fetchConversationDetails + markAsRead
-    expect(mockGetMessages).toHaveBeenCalled();
+    // fetchMessages est async (CacheService + messagesAPI) → on attend
+    await waitFor(() => {
+      expect(mockGetMessages).toHaveBeenCalled();
+    });
     expect(result.toJSON()).toBeTruthy();
   });
 });

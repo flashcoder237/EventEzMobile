@@ -14,11 +14,22 @@ import { render, fireEvent, waitFor } from '@testing-library/react-native';
 
 const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
-jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: mockNavigate, goBack: mockGoBack }),
-  useRoute: () => ({ params: {} }),
-  useFocusEffect: jest.fn(), // no-op pour ne pas double-fetcher
-}));
+jest.mock('@react-navigation/native', () => {
+  const React = require('react');
+  return {
+    useNavigation: () => ({ navigate: mockNavigate, goBack: mockGoBack }),
+    useRoute: () => ({ params: {} }),
+    // Approximation : useFocusEffect appelle le callback au mount (comme un
+    // useEffect simple). Suffisant pour les tests qui veulent déclencher
+    // fetchTransfers une fois.
+    useFocusEffect: (cb: () => void | (() => void)) => {
+      React.useEffect(() => {
+        const cleanup = cb();
+        return typeof cleanup === 'function' ? cleanup : undefined;
+      }, [cb]);
+    },
+  };
+});
 
 const mockShowError = jest.fn();
 const mockShowSuccess = jest.fn();
@@ -98,11 +109,13 @@ jest.mock('../../../components/common/QRCodeDisplay', () => {
 jest.mock('../../../components/ui/editorial', () => {
   const RN = require('react-native');
   const React = require('react');
+  const PassThrough = ({ children }: any) =>
+    React.createElement(RN.View, null, children);
   return {
-    EditorialCanvas: ({ children }: any) =>
-      React.createElement(RN.View, null, children),
-    WatermarkNumeral: ({ children }: any) =>
-      React.createElement(RN.View, null, children),
+    EditorialCanvas: PassThrough,
+    EditorialHeader: PassThrough,
+    WatermarkNumeral: PassThrough,
+    editorial: {},
   };
 });
 
@@ -161,9 +174,7 @@ beforeEach(() => {
   mockGetSent.mockResolvedValue({ data: { results: [sentTransfer] } });
 });
 
-// TODO(tests): suite skipped — assertions sur strings i18n hardcodes obsoletes apres 
-// refonte i18n recente. A reecrire avec selectors testID ou regex tolerantes.
-describe.skip('PendingTransfersScreen', () => {
+describe('PendingTransfersScreen', () => {
   it('renders both tabs (Reçus / Envoyés) on mount', async () => {
     const { findByText } = render(<PendingTransfersScreen />);
     expect(await findByText('Reçus')).toBeTruthy();

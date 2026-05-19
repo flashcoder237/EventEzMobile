@@ -56,11 +56,11 @@ jest.mock('../../../contexts/ThemeContext', () => ({
   useTheme: () => ({ colors: themeColors, isDark: false }),
 }));
 
-const mockUpdateUser = jest.fn();
+const mockSyncUser = jest.fn();
 jest.mock('../../../contexts/AuthContext', () => ({
   useAuth: () => ({
     user: { id: 1, email: 'a@b.com', phone: '+237600112233' },
-    updateUser: mockUpdateUser,
+    syncUser: mockSyncUser,
   }),
 }));
 
@@ -88,9 +88,7 @@ beforeEach(() => {
 
 const goNext = (getByText: any) => fireEvent.press(getByText('Continuer'));
 
-// TODO(tests): suite skipped — assertions sur strings i18n hardcodes obsoletes apres 
-// refonte i18n recente. A reecrire avec selectors testID ou regex tolerantes.
-describe.skip('BecomeOrganizerScreen', () => {
+describe('BecomeOrganizerScreen', () => {
   it('renders step 1 (Welcome) by default', () => {
     const { getByText } = render(<BecomeOrganizerScreen />);
     expect(getByText('Devenez Organisateur')).toBeTruthy();
@@ -135,9 +133,9 @@ describe.skip('BecomeOrganizerScreen', () => {
     fireEvent.press(getByText('Continuer'));
 
     expect(await findByText("Le nom de l'entreprise est requis")).toBeTruthy();
-    expect(await findByText('Le numero SIRET/RC est requis')).toBeTruthy();
+    expect(await findByText('Le numéro SIRET/RC est requis')).toBeTruthy();
     // pas passé en step 4
-    expect(queryByText('Pret a commencer !')).toBeNull();
+    expect(queryByText('Prêt à commencer !')).toBeNull();
   });
 
   it('clears phone validation error when user types', async () => {
@@ -151,12 +149,12 @@ describe.skip('BecomeOrganizerScreen', () => {
     await findByText('Vos informations');
 
     // efface phone (préremplie par user.phone)
-    const phoneInput = getByPlaceholderText('Votre numero de telephone');
+    const phoneInput = getByPlaceholderText('Votre numéro de téléphone');
     fireEvent.changeText(phoneInput, '');
 
     fireEvent.press(getByText('Continuer'));
 
-    expect(await findByText('Le telephone est requis')).toBeTruthy();
+    expect(await findByText('Le téléphone est requis')).toBeTruthy();
 
     // re-saisir → l'erreur disparaît du state (pas forcément du DOM tant qu'on
     // ne re-render pas, mais updateField la clear)
@@ -164,7 +162,7 @@ describe.skip('BecomeOrganizerScreen', () => {
     // après update, on peut re-presser Continuer pour avancer
     fireEvent.press(getByText('Continuer'));
     await waitFor(() => {
-      expect(queryByText('Le telephone est requis')).toBeNull();
+      expect(queryByText('Le téléphone est requis')).toBeNull();
     });
   });
 
@@ -181,7 +179,7 @@ describe.skip('BecomeOrganizerScreen', () => {
 
     // phone est pré-rempli depuis user.phone, on continue directement
     goNext(getByText); // step 4
-    await findByText('Pret a commencer !');
+    await findByText('Prêt à commencer !');
 
     fireEvent.press(getByLabelText('Confirmer'));
 
@@ -197,10 +195,10 @@ describe.skip('BecomeOrganizerScreen', () => {
       expect(mockGetCurrentUser).toHaveBeenCalled();
     });
     await waitFor(() => {
-      expect(mockUpdateUser).toHaveBeenCalledWith({ id: 1, role: 'organizer' });
+      expect(mockSyncUser).toHaveBeenCalledWith({ id: 1, role: 'organizer' });
     });
     expect(mockShowSuccess).toHaveBeenCalledWith(
-      'Felicitations !',
+      'Félicitations !',
       expect.any(String),
     );
   });
@@ -224,7 +222,7 @@ describe.skip('BecomeOrganizerScreen', () => {
     fireEvent.changeText(getByPlaceholderText("Numéro d'enregistrement"), 'RC-12345');
 
     goNext(getByText); // step 4
-    await findByText('Pret a commencer !');
+    await findByText('Prêt à commencer !');
 
     fireEvent.press(getByLabelText('Confirmer'));
 
@@ -252,7 +250,7 @@ describe.skip('BecomeOrganizerScreen', () => {
     goNext(getByText); // step 3
     await findByText('Vos informations');
     goNext(getByText); // step 4
-    await findByText('Pret a commencer !');
+    await findByText('Prêt à commencer !');
 
     fireEvent.press(getByLabelText('Confirmer'));
 

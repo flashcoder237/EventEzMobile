@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
   AppState,
   AppStateStatus,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -1643,8 +1644,13 @@ export default function MessagesScreen() {
           </View>
         )}
 
-        {/* Chips */}
-        <View style={styles.chipsRow}>
+        {/* Chips — scrollable horizontalement pour gerer >4 filtres sans
+            tronquer les chips longs (ex: "Demandes", "Archives"). */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}
+        >
           {chips.map((c) => {
             const active = activeTab === c.key;
             const count = tabUnreadCounts[c.key] || 0;
@@ -1700,7 +1706,7 @@ export default function MessagesScreen() {
               </TouchableOpacity>
             );
           })}
-        </View>
+        </ScrollView>
       </View>
 
       {/* Section "Messages" — résultats de recherche globale.
@@ -2048,6 +2054,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     paddingTop: Spacing.sm,
+    // Padding horizontal pour eviter que le 1er chip touche le bord et
+    // donner de l'air visuel au scroll horizontal. Le parent (View qui
+    // contient le header) avait deja un padding, on le compense ici via
+    // contentContainerStyle puisque le ScrollView prend la pleine largeur.
+    paddingRight: Spacing.sm,
   },
   chip: {
     flexDirection: 'row',

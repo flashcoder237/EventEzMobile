@@ -147,10 +147,7 @@ jest.mock('../../components/ui/Animations', () => {
 
 import MessagesScreen from '../../screens/messages/MessagesScreen';
 
-// TODO(perf): test de timing flaky en full run (cold-start + contamination
-// inter-suites). Passe en isolation (`npx jest MessagesScreen.perf.test`).
-// À réactiver après stabilisation runner (ex: --runInBand ou timeout adapté).
-describe.skip('MessagesScreen — performance', () => {
+describe('MessagesScreen — performance', () => {
   // Warmup pour absorber le cout de compilation/require Jest
   beforeAll(() => {
     render(<MessagesScreen />);

@@ -24,7 +24,7 @@ module.exports = {
   // Liste des modules ESM-only utilisés par MSW que Babel doit transformer.
   // Le `(?!...)` négatif veut dire : "ignore tout sauf ce qui matche ces noms".
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|expo-modules-core|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/.*|sentry-expo|native-base|react-native-svg|@testing-library/react-native|@notifee/.*|msw|@mswjs/.*|@bundled-es-modules/.*|@open-draft/.*|until-async|rettime|headers-polyfill|cookie|statuses|@inquirer/.*|strict-event-emitter|outvariant|is-node-process|path-to-regexp|tough-cookie|picocolors|graphql|type-fest|yargs)/)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo|expo-.*|@expo/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/.*|sentry-expo|native-base|react-native-svg|@testing-library/react-native|@notifee/.*|msw|@mswjs/.*|@bundled-es-modules/.*|@open-draft/.*|until-async|rettime|headers-polyfill|cookie|statuses|@inquirer/.*|strict-event-emitter|outvariant|is-node-process|path-to-regexp|tough-cookie|picocolors|graphql|type-fest|yargs)/)',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs'],
   testMatch: ['<rootDir>/src/__tests__/integration/**/*.test.(ts|tsx|js|jsx)'],

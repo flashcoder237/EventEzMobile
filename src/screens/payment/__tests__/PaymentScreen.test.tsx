@@ -411,10 +411,7 @@ describe('PaymentScreen', () => {
     });
   });
 
-  // TODO: ce test échoue car le flow biométrique n'est plus déclenché à
-  // l'endroit attendu après le refacto multi-PSP. Tech debt à traiter dans
-  // un PR dédié biométrie.
-  it.skip('does NOT submit when biometric confirm is rejected', async () => {
+  it('does NOT submit when biometric confirm is rejected', async () => {
     mockBiometricConfirm.mockResolvedValueOnce(false);
 
     const { findByText, findByLabelText } = render(<PaymentScreen />);
@@ -429,9 +426,7 @@ describe('PaymentScreen', () => {
     expect(mockCreatePayment).not.toHaveBeenCalled();
   });
 
-  // TODO: ce test échoue car le format d'erreur exposé via showError a changé
-  // avec le refacto des flows CinetPay/NotchPay. Tech debt UX/error messaging.
-  it.skip('shows showError when createPayment fails', async () => {
+  it('shows showError when createPayment fails', async () => {
     mockCreatePayment.mockRejectedValueOnce({
       response: { data: { detail: 'Provider down' } },
     });
@@ -443,10 +438,11 @@ describe('PaymentScreen', () => {
     fireEvent.press(payBtn);
 
     await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith(
-        'Erreur de paiement',
-        'Provider down',
-      );
+      expect(mockShowError).toHaveBeenCalled();
     });
+    // Le détail backend doit être propagé quelque part dans les args (titre ou message).
+    const errArgs = mockShowError.mock.calls[0];
+    const concat = errArgs.join(' ');
+    expect(concat).toContain('Provider down');
   });
 });

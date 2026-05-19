@@ -3628,6 +3628,7 @@
     "voiceTooLongTitle": "Message vocal trop long",
     "voiceTooLongMessage": "Limite : {{limit}}. Réduis la durée de ton enregistrement.",
     "voicePlayError": "Impossible de lire le message vocal",
+    "voiceTimeoutHint": "Le fichier audio n'est pas encore disponible. Réessaie dans quelques secondes.",
     "editUnavailableTitle": "Édition non disponible",
     "editUnavailableMessage": "Tu peux éditer un message uniquement dans les 15 minutes après son envoi.",
     "copiedTitle": "Copié",

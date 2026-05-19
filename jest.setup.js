@@ -292,6 +292,32 @@ jest.mock('./src/contexts/AlertContext', () => {
   };
 });
 
+// FeatureTourContext : mock global. Les écrans appellent useTour() au render,
+// mais les tests ne wrappent pas leur tree dans <FeatureTourProvider>.
+// On stub useTour() avec un no-op (isActive: false, start/finish/etc. inertes).
+// Les tests qui veulent piloter le tour peuvent override via jest.mock local.
+jest.mock('./src/components/tour/FeatureTourContext', () => {
+  const React = require('react');
+  const tourValue = {
+    isActive: false,
+    currentIndex: 0,
+    steps: [],
+    start: jest.fn(() => Promise.resolve()),
+    next: jest.fn(),
+    back: jest.fn(),
+    finish: jest.fn(() => Promise.resolve()),
+    skip: jest.fn(() => Promise.resolve()),
+    __register: jest.fn(),
+    __unregister: jest.fn(),
+    __getRef: jest.fn(() => null),
+  };
+  return {
+    __esModule: true,
+    FeatureTourProvider: ({ children }) => children,
+    useTour: () => tourValue,
+  };
+});
+
 // react-native-keyboard-controller : stubs
 jest.mock('react-native-keyboard-controller', () => {
   const React = require('react');

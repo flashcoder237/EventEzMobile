@@ -18,6 +18,8 @@ jest.mock('@react-navigation/native', () => ({
     goBack: jest.fn(),
     navigate: jest.fn(),
     setOptions: jest.fn(),
+    addListener: jest.fn(() => jest.fn()),
+    removeListener: jest.fn(),
   }),
   useRoute: () => ({
     params: { conversationId: 'conv-1', userId: '2', userName: 'Bob' },
@@ -120,11 +122,84 @@ jest.mock('expo-audio', () => ({
     stop: jest.fn(() => Promise.resolve({ uri: 'file://rec.m4a' })),
     getStatusAsync: jest.fn(() => Promise.resolve({})),
   }),
+  useAudioRecorderState: () => ({
+    isRecording: false,
+    durationMillis: 0,
+    metering: -160,
+  }),
   createAudioPlayer: jest.fn(() => ({ remove: jest.fn() })),
   requestRecordingPermissionsAsync: jest.fn(() => Promise.resolve({ granted: true })),
   setAudioModeAsync: jest.fn(() => Promise.resolve()),
   RecordingPresets: { HIGH_QUALITY: {} },
 }));
+
+jest.mock('../../hooks/useMessageState', () => ({
+  useMessageState: () => ({
+    state: {
+      conversationId: 'conv-1',
+      messages: [],
+      newMessage: '',
+      isLoading: false,
+      editingMessage: null,
+      replyingTo: null,
+      attachedFiles: [],
+      hasMore: false,
+      hasMoreMessages: false,
+      isLoadingMore: false,
+      loadingMore: false,
+      offlineMessages: [],
+      isOffline: false,
+      nextPageUrl: null,
+    },
+    actions: new Proxy({}, { get: () => jest.fn() }),
+  }),
+}));
+
+jest.mock('../../hooks/useMutedConversations', () => ({
+  useMutedConversations: () => ({
+    isMuted: () => false,
+    toggleMute: jest.fn(),
+  }),
+}));
+
+jest.mock('../../hooks/useVoicePrefetch', () => ({
+  useVoicePrefetch: jest.fn(),
+  getCachedVoiceUri: jest.fn(() => null),
+}));
+
+jest.mock('react-native-image-viewing', () => {
+  const RN = require('react-native');
+  return { __esModule: true, default: RN.View };
+});
+
+jest.mock('expo-document-picker', () => ({
+  getDocumentAsync: jest.fn(() => Promise.resolve({ canceled: true, assets: [] })),
+}));
+
+jest.mock('expo-file-system/legacy', () => ({
+  documentDirectory: 'file:///docs/',
+  cacheDirectory: 'file:///cache/',
+  downloadAsync: jest.fn(() => Promise.resolve({ uri: '' })),
+  readAsStringAsync: jest.fn(() => Promise.resolve('')),
+  writeAsStringAsync: jest.fn(() => Promise.resolve()),
+  getInfoAsync: jest.fn(() => Promise.resolve({ exists: false })),
+  deleteAsync: jest.fn(() => Promise.resolve()),
+  makeDirectoryAsync: jest.fn(() => Promise.resolve()),
+}));
+
+jest.mock('expo-sharing', () => ({
+  shareAsync: jest.fn(() => Promise.resolve()),
+  isAvailableAsync: jest.fn(() => Promise.resolve(true)),
+}));
+
+jest.mock('../../components/organizer/EventActionsSheet', () => {
+  const RN = require('react-native');
+  const React = require('react');
+  return {
+    __esModule: true,
+    default: () => React.createElement(RN.View, null),
+  };
+});
 
 jest.mock('expo-image-manipulator', () => ({
   manipulateAsync: jest.fn(() => Promise.resolve({ uri: 'file://compressed.jpg' })),
@@ -153,11 +228,10 @@ jest.mock('../../components/ui/editorial', () => {
 });
 
 jest.mock('../../components/ui/Skeleton', () => {
+  const React = require('react');
   const RN = require('react-native');
-  return {
-    SkeletonList: () => RN.View,
-    MessageSkeleton: () => RN.View,
-  };
+  const Stub = () => React.createElement(RN.View, null);
+  return new Proxy({}, { get: () => Stub });
 });
 
 jest.mock('../../components/messages', () => {
@@ -182,12 +256,7 @@ jest.mock('../../components/messages', () => {
 
 import ConversationScreen from '../../screens/messages/ConversationScreen';
 
-// TODO: ConversationScreen importe un composant qui est undefined dans cet
-// environnement mock (probablement un composant editorial ou messaging ajoute
-// recemment). Le perf test est suspendu jusqu'a ce que les mocks soient
-// alignes — pas critique car les autres perf tests couvrent les patterns
-// (mount cost / regression scaling). Cf. issue tech debt mai 2026.
-describe.skip('ConversationScreen — performance', () => {
+describe('ConversationScreen — performance', () => {
   // Warmup pour absorber le cout de compilation/require Jest (cold-start ~3-4s)
   beforeAll(() => {
     render(<ConversationScreen />);

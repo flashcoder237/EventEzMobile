@@ -225,19 +225,28 @@ function messageReducer(state: MessageState, action: MessageAction): MessageStat
         messages: [...state.messages, ...action.payload],
       };
 
-    case 'UPDATE_MESSAGE':
+    case 'UPDATE_MESSAGE': {
+      // Comparaison normalisee via String() : `m.id` peut etre `number`
+      // (REST Django) ou `string` (temp ID, payload WS), et le payload du
+      // dispatch est toujours `string`. Sans normalisation, `123 === '123'`
+      // retourne false et la mise a jour silently no-op (bug bulk delete,
+      // edit, reaction non visible, etc).
+      const targetId = String(action.payload.id);
       return {
         ...state,
         messages: state.messages.map(m =>
-          m.id === action.payload.id ? { ...m, ...action.payload.updates } : m
+          String(m.id) === targetId ? { ...m, ...action.payload.updates } : m
         ),
       };
+    }
 
-    case 'REMOVE_MESSAGE':
+    case 'REMOVE_MESSAGE': {
+      const targetId = String(action.payload);
       return {
         ...state,
-        messages: state.messages.filter(m => m.id !== action.payload),
+        messages: state.messages.filter(m => String(m.id) !== targetId),
       };
+    }
 
     case 'REMOVE_TEMP_MESSAGES':
       return {
@@ -389,11 +398,15 @@ function messageReducer(state: MessageState, action: MessageAction): MessageStat
       return { ...state, inputFocused: action.payload };
 
     case 'ADD_REACTION': {
+      // Comparaison normalisee : msg.id peut etre number (REST) ou string
+      // (temp/WS), payload.messageId est toujours string. Sans normalisation,
+      // la map ne trouve jamais le message → reaction invisible cote user.
       const reactionUserId = Number(action.payload.userId);
+      const targetMessageId = String(action.payload.messageId);
       return {
         ...state,
         messages: state.messages.map(msg => {
-          if (msg.id !== action.payload.messageId) return msg;
+          if (String(msg.id) !== targetMessageId) return msg;
           const reactions = msg.reactions || [];
           const existingIndex = reactions.findIndex(
             r => r.emoji === action.payload.emoji && r.user === reactionUserId
@@ -418,10 +431,11 @@ function messageReducer(state: MessageState, action: MessageAction): MessageStat
 
     case 'REMOVE_REACTION': {
       const removeUserId = Number(action.payload.userId);
+      const targetMessageId = String(action.payload.messageId);
       return {
         ...state,
         messages: state.messages.map(msg => {
-          if (msg.id !== action.payload.messageId) return msg;
+          if (String(msg.id) !== targetMessageId) return msg;
           return {
             ...msg,
             reactions: (msg.reactions || []).filter(

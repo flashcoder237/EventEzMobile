@@ -261,6 +261,7 @@ exports[`MessageBubble snapshots renders edited message with edited label 1`] = 
             },
           ],
           false,
+          undefined,
         ]
       }
     >
@@ -282,51 +283,53 @@ exports[`MessageBubble snapshots renders edited message with edited label 1`] = 
       >
         Bonjour ! Comment ca va ?
       </Text>
-    </View>
-    <View
-      style={
-        [
-          {
-            "alignItems": "center",
-            "flexDirection": "row",
-            "marginTop": 4,
-          },
-          false,
-        ]
-      }
-    >
-      <Text
+      <View
         style={
           [
             {
-              "color": "#9CA3AF",
-              "fontSize": 10,
-              "fontStyle": "italic",
-              "marginRight": 4,
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 4,
+              "justifyContent": "flex-end",
+              "marginTop": 4,
             },
-            {
-              "color": "#9CA3AF",
-            },
+            false,
           ]
         }
       >
-        modifié
-      </Text>
-      <Text
-        style={
-          [
-            {
-              "color": "#9CA3AF",
-              "fontSize": 11.5,
-            },
-            {
-              "color": "#9CA3AF",
-            },
-          ]
-        }
-      >
-        14:30
-      </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#9CA3AF",
+                "fontSize": 10,
+                "fontStyle": "italic",
+                "marginRight": 4,
+              },
+              {
+                "color": "#9CA3AF",
+              },
+            ]
+          }
+        >
+          modifié
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "fontFamily": "Montserrat_500Medium",
+                "fontSize": 10,
+              },
+              {
+                "color": undefined,
+              },
+            ]
+          }
+        >
+          14:30
+        </Text>
+      </View>
     </View>
   </View>
 </View>
@@ -402,6 +405,7 @@ exports[`MessageBubble snapshots renders grouped message (avatar masque) 1`] = `
             },
           ],
           false,
+          undefined,
         ]
       }
     >
@@ -423,34 +427,36 @@ exports[`MessageBubble snapshots renders grouped message (avatar masque) 1`] = `
       >
         Bonjour ! Comment ca va ?
       </Text>
-    </View>
-    <View
-      style={
-        [
-          {
-            "alignItems": "center",
-            "flexDirection": "row",
-            "marginTop": 4,
-          },
-          false,
-        ]
-      }
-    >
-      <Text
+      <View
         style={
           [
             {
-              "color": "#9CA3AF",
-              "fontSize": 11.5,
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 4,
+              "justifyContent": "flex-end",
+              "marginTop": 4,
             },
-            {
-              "color": "#9CA3AF",
-            },
+            false,
           ]
         }
       >
-        14:30
-      </Text>
+        <Text
+          style={
+            [
+              {
+                "fontFamily": "Montserrat_500Medium",
+                "fontSize": 10,
+              },
+              {
+                "color": undefined,
+              },
+            ]
+          }
+        >
+          14:30
+        </Text>
+      </View>
     </View>
   </View>
 </View>
@@ -537,74 +543,6 @@ exports[`MessageBubble snapshots renders message with image attachment 1`] = `
     }
   >
     <View
-      accessibilityLabel="Pièce jointe"
-      style={
-        {
-          "marginBottom": 4,
-        }
-      }
-    >
-      <View
-        accessibilityHint="Touchez pour agrandir, restez appuyé pour plus d'options"
-        accessibilityLabel="Image en pièce jointe"
-        accessibilityRole="imagebutton"
-        accessibilityState={
-          {
-            "busy": undefined,
-            "checked": undefined,
-            "disabled": undefined,
-            "expanded": undefined,
-            "selected": undefined,
-          }
-        }
-        accessibilityValue={
-          {
-            "max": undefined,
-            "min": undefined,
-            "now": undefined,
-            "text": undefined,
-          }
-        }
-        accessible={true}
-        collapsable={false}
-        focusable={true}
-        onClick={[Function]}
-        onResponderGrant={[Function]}
-        onResponderMove={[Function]}
-        onResponderRelease={[Function]}
-        onResponderTerminate={[Function]}
-        onResponderTerminationRequest={[Function]}
-        onStartShouldSetResponder={[Function]}
-        style={
-          {
-            "opacity": 1,
-            "position": "relative",
-          }
-        }
-      >
-        <Image
-          cachePolicy="memory-disk"
-          contentFit="cover"
-          placeholderContentFit="cover"
-          source="https://test.local/media/img.jpg"
-          style={
-            [
-              {
-                "backgroundColor": "#F3F4F6",
-                "borderRadius": 8,
-                "height": 150,
-                "width": 200,
-              },
-              {
-                "backgroundColor": "#F3F4F6",
-              },
-            ]
-          }
-          transition={200}
-        />
-      </View>
-    </View>
-    <View
       style={
         [
           {
@@ -620,12 +558,86 @@ exports[`MessageBubble snapshots renders message with image attachment 1`] = `
               "backgroundColor": "#FFE4EC",
             },
           ],
-          {
-            "marginTop": 4,
-          },
+          false,
+          undefined,
         ]
       }
     >
+      <View
+        accessibilityLabel="Pièce jointe"
+        style={
+          [
+            {
+              "gap": 4,
+              "marginBottom": 4,
+            },
+            false,
+          ]
+        }
+      >
+        <View
+          accessibilityHint="Touchez pour agrandir, restez appuyé pour plus d'options"
+          accessibilityLabel="Image en pièce jointe"
+          accessibilityRole="imagebutton"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          onClick={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "borderRadius": 12,
+              "opacity": 1,
+              "overflow": "hidden",
+              "position": "relative",
+            }
+          }
+        >
+          <Image
+            cachePolicy="memory-disk"
+            contentFit="cover"
+            placeholderContentFit="cover"
+            source="https://test.local/media/img.jpg"
+            style={
+              [
+                {
+                  "aspectRatio": 1.3333333333333333,
+                  "borderRadius": 12,
+                  "maxHeight": 260,
+                  "minHeight": 180,
+                  "width": "100%",
+                },
+                {
+                  "backgroundColor": "#F3F4F6",
+                },
+              ]
+            }
+            transition={200}
+          />
+        </View>
+      </View>
       <Text
         accessibilityLabel="Alice Doe: Regarde ca"
         accessibilityRole="text"
@@ -644,34 +656,36 @@ exports[`MessageBubble snapshots renders message with image attachment 1`] = `
       >
         Regarde ca
       </Text>
-    </View>
-    <View
-      style={
-        [
-          {
-            "alignItems": "center",
-            "flexDirection": "row",
-            "marginTop": 4,
-          },
-          false,
-        ]
-      }
-    >
-      <Text
+      <View
         style={
           [
             {
-              "color": "#9CA3AF",
-              "fontSize": 11.5,
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 4,
+              "justifyContent": "flex-end",
+              "marginTop": 4,
             },
-            {
-              "color": "#9CA3AF",
-            },
+            false,
           ]
         }
       >
-        14:30
-      </Text>
+        <Text
+          style={
+            [
+              {
+                "fontFamily": "Montserrat_500Medium",
+                "fontSize": 10,
+              },
+              {
+                "color": undefined,
+              },
+            ]
+          }
+        >
+          14:30
+        </Text>
+      </View>
     </View>
   </View>
 </View>
@@ -774,6 +788,7 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
             },
           ],
           false,
+          undefined,
         ]
       }
     >
@@ -795,6 +810,36 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
       >
         Bonjour ! Comment ca va ?
       </Text>
+      <View
+        style={
+          [
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 4,
+              "justifyContent": "flex-end",
+              "marginTop": 4,
+            },
+            false,
+          ]
+        }
+      >
+        <Text
+          style={
+            [
+              {
+                "fontFamily": "Montserrat_500Medium",
+                "fontSize": 10,
+              },
+              {
+                "color": undefined,
+              },
+            ]
+          }
+        >
+          14:30
+        </Text>
+      </View>
     </View>
     <View
       style={
@@ -803,7 +848,9 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
             "flexDirection": "row",
             "flexWrap": "wrap",
             "gap": 4,
-            "marginTop": 4,
+            "marginLeft": 8,
+            "marginTop": -8,
+            "zIndex": 1,
           },
           false,
         ]
@@ -814,17 +861,24 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
           [
             {
               "alignItems": "center",
-              "backgroundColor": "#FFFFFF",
-              "borderColor": "#E5E7EB",
-              "borderRadius": 12,
+              "borderRadius": 999,
               "borderWidth": 1,
               "flexDirection": "row",
-              "paddingHorizontal": 6,
-              "paddingVertical": 2,
+              "gap": 2,
+              "paddingHorizontal": 8,
+              "paddingVertical": 3,
             },
             {
               "backgroundColor": "#FFFFFF",
-              "borderColor": "#E5E7EB",
+              "borderColor": "rgba(0,0,0,0.08)",
+              "elevation": 2,
+              "shadowColor": "#000",
+              "shadowOffset": {
+                "height": 1,
+                "width": 0,
+              },
+              "shadowOpacity": 0.12,
+              "shadowRadius": 2,
             },
           ]
         }
@@ -848,7 +902,7 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
                 "marginLeft": 2,
               },
               {
-                "color": "#4B5563",
+                "color": undefined,
               },
             ]
           }
@@ -861,17 +915,24 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
           [
             {
               "alignItems": "center",
-              "backgroundColor": "#FFFFFF",
-              "borderColor": "#E5E7EB",
-              "borderRadius": 12,
+              "borderRadius": 999,
               "borderWidth": 1,
               "flexDirection": "row",
-              "paddingHorizontal": 6,
-              "paddingVertical": 2,
+              "gap": 2,
+              "paddingHorizontal": 8,
+              "paddingVertical": 3,
             },
             {
               "backgroundColor": "#FFFFFF",
-              "borderColor": "#E5E7EB",
+              "borderColor": "rgba(0,0,0,0.08)",
+              "elevation": 2,
+              "shadowColor": "#000",
+              "shadowOffset": {
+                "height": 1,
+                "width": 0,
+              },
+              "shadowOpacity": 0.12,
+              "shadowRadius": 2,
             },
           ]
         }
@@ -886,34 +947,6 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
           😂
         </Text>
       </View>
-    </View>
-    <View
-      style={
-        [
-          {
-            "alignItems": "center",
-            "flexDirection": "row",
-            "marginTop": 4,
-          },
-          false,
-        ]
-      }
-    >
-      <Text
-        style={
-          [
-            {
-              "color": "#9CA3AF",
-              "fontSize": 11.5,
-            },
-            {
-              "color": "#9CA3AF",
-            },
-          ]
-        }
-      >
-        14:30
-      </Text>
     </View>
   </View>
 </View>
@@ -1003,84 +1036,6 @@ exports[`MessageBubble snapshots renders message with reply preview 1`] = `
       style={
         [
           {
-            "backgroundColor": "#F3F4F6",
-            "borderRadius": 8,
-            "flexDirection": "row",
-            "marginBottom": 4,
-            "padding": 8.5,
-          },
-          {
-            "backgroundColor": "#F3F4F6",
-          },
-          false,
-        ]
-      }
-    >
-      <View
-        style={
-          [
-            {
-              "backgroundColor": "#4F46E5",
-              "borderRadius": 2,
-              "marginRight": 8.5,
-              "width": 3,
-            },
-            {
-              "backgroundColor": "#4F46E5",
-            },
-            false,
-          ]
-        }
-      />
-      <View
-        style={
-          {
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          numberOfLines={1}
-          style={
-            [
-              {
-                "color": "#4F46E5",
-                "fontFamily": "Montserrat_600SemiBold",
-                "fontSize": 11.5,
-                "marginBottom": 2,
-              },
-              {
-                "color": "#4F46E5",
-              },
-              false,
-            ]
-          }
-        >
-          Bob
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            [
-              {
-                "color": "#4B5563",
-                "fontSize": 11.5,
-              },
-              {
-                "color": "#4B5563",
-              },
-              false,
-            ]
-          }
-        >
-          Message original cite
-        </Text>
-      </View>
-    </View>
-    <View
-      style={
-        [
-          {
             "borderRadius": 12,
             "padding": 12.5,
           },
@@ -1094,9 +1049,108 @@ exports[`MessageBubble snapshots renders message with reply preview 1`] = `
             },
           ],
           false,
+          {
+            "minWidth": 220,
+          },
         ]
       }
     >
+      <View
+        accessibilityState={
+          {
+            "busy": undefined,
+            "checked": undefined,
+            "disabled": undefined,
+            "expanded": undefined,
+            "selected": undefined,
+          }
+        }
+        accessibilityValue={
+          {
+            "max": undefined,
+            "min": undefined,
+            "now": undefined,
+            "text": undefined,
+          }
+        }
+        accessible={true}
+        collapsable={false}
+        focusable={true}
+        onClick={[Function]}
+        onResponderGrant={[Function]}
+        onResponderMove={[Function]}
+        onResponderRelease={[Function]}
+        onResponderTerminate={[Function]}
+        onResponderTerminationRequest={[Function]}
+        onStartShouldSetResponder={[Function]}
+        style={
+          {
+            "alignItems": "center",
+            "backgroundColor": "rgba(0,0,0,0.05)",
+            "borderLeftColor": "#4F46E5",
+            "borderLeftWidth": 3,
+            "borderRadius": 6,
+            "flexDirection": "row",
+            "gap": 8,
+            "marginBottom": 6,
+            "opacity": 1,
+            "paddingHorizontal": 8,
+            "paddingVertical": 6,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "flex": 1,
+              "minWidth": 0,
+            }
+          }
+        >
+          <Text
+            numberOfLines={1}
+            style={
+              [
+                {
+                  "fontFamily": "Montserrat_600SemiBold",
+                  "fontSize": 12,
+                  "marginBottom": 2,
+                },
+                {
+                  "color": "#4F46E5",
+                },
+              ]
+            }
+          >
+            Bob
+          </Text>
+          <View
+            style={
+              {
+                "alignItems": "center",
+                "flexDirection": "row",
+              }
+            }
+          >
+            <Text
+              numberOfLines={1}
+              style={
+                [
+                  {
+                    "flex": 1,
+                    "fontSize": 12,
+                  },
+                  {
+                    "color": "#4B5563",
+                  },
+                ]
+              }
+            >
+              Message original cite
+            </Text>
+          </View>
+        </View>
+      </View>
       <Text
         accessibilityLabel="Alice Doe: Reponse au message"
         accessibilityRole="text"
@@ -1115,34 +1169,36 @@ exports[`MessageBubble snapshots renders message with reply preview 1`] = `
       >
         Reponse au message
       </Text>
-    </View>
-    <View
-      style={
-        [
-          {
-            "alignItems": "center",
-            "flexDirection": "row",
-            "marginTop": 4,
-          },
-          false,
-        ]
-      }
-    >
-      <Text
+      <View
         style={
           [
             {
-              "color": "#9CA3AF",
-              "fontSize": 11.5,
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 4,
+              "justifyContent": "flex-end",
+              "marginTop": 4,
             },
-            {
-              "color": "#9CA3AF",
-            },
+            false,
           ]
         }
       >
-        14:30
-      </Text>
+        <Text
+          style={
+            [
+              {
+                "fontFamily": "Montserrat_500Medium",
+                "fontSize": 10,
+              },
+              {
+                "color": undefined,
+              },
+            ]
+          }
+        >
+          14:30
+        </Text>
+      </View>
     </View>
   </View>
 </View>
@@ -1245,6 +1301,7 @@ exports[`MessageBubble snapshots renders other user message (peer) 1`] = `
             },
           ],
           false,
+          undefined,
         ]
       }
     >
@@ -1266,34 +1323,36 @@ exports[`MessageBubble snapshots renders other user message (peer) 1`] = `
       >
         Bonjour ! Comment ca va ?
       </Text>
-    </View>
-    <View
-      style={
-        [
-          {
-            "alignItems": "center",
-            "flexDirection": "row",
-            "marginTop": 4,
-          },
-          false,
-        ]
-      }
-    >
-      <Text
+      <View
         style={
           [
             {
-              "color": "#9CA3AF",
-              "fontSize": 11.5,
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 4,
+              "justifyContent": "flex-end",
+              "marginTop": 4,
             },
-            {
-              "color": "#9CA3AF",
-            },
+            false,
           ]
         }
       >
-        14:30
-      </Text>
+        <Text
+          style={
+            [
+              {
+                "fontFamily": "Montserrat_500Medium",
+                "fontSize": 10,
+              },
+              {
+                "color": undefined,
+              },
+            ]
+          }
+        >
+          14:30
+        </Text>
+      </View>
     </View>
   </View>
 </View>
@@ -1361,6 +1420,7 @@ exports[`MessageBubble snapshots renders own message (mine) 1`] = `
             },
           ],
           false,
+          undefined,
         ]
       }
     >
@@ -1382,48 +1442,48 @@ exports[`MessageBubble snapshots renders own message (mine) 1`] = `
       >
         Bonjour ! Comment ca va ?
       </Text>
-    </View>
-    <View
-      style={
-        [
-          {
-            "alignItems": "center",
-            "flexDirection": "row",
-            "marginTop": 4,
-          },
-          {
-            "justifyContent": "flex-end",
-          },
-        ]
-      }
-    >
-      <Text
+      <View
         style={
           [
             {
-              "color": "#9CA3AF",
-              "fontSize": 11.5,
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 4,
+              "justifyContent": "flex-end",
+              "marginTop": 4,
             },
-            {
-              "color": "#9CA3AF",
-            },
+            false,
           ]
         }
       >
-        14:30
-      </Text>
-      <View
-        style={
-          {
-            "marginLeft": 4,
-          }
-        }
-      >
         <Text
-          data-status="read"
+          style={
+            [
+              {
+                "fontFamily": "Montserrat_500Medium",
+                "fontSize": 10,
+              },
+              {
+                "color": "rgba(255,255,255,0.7)",
+              },
+            ]
+          }
         >
-          read
+          14:30
         </Text>
+        <View
+          style={
+            {
+              "marginLeft": 4,
+            }
+          }
+        >
+          <Text
+            data-status="read"
+          >
+            read
+          </Text>
+        </View>
       </View>
     </View>
   </View>
