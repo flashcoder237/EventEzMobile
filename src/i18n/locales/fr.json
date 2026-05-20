@@ -417,6 +417,12 @@
     "frenchHint": "Recommandé en Afrique francophone",
     "footnote": "Cette préférence est sauvegardée sur ton appareil."
   },
+  "phoneInput": {
+    "selectCountry": "Choisir le pays",
+    "placeholder": "Numéro de téléphone",
+    "searchPlaceholder": "Rechercher un pays",
+    "noResult": "Aucun pays trouvé"
+  },
 
   "authGuard": {
     "eyebrow": "Accès réservé",
@@ -5558,6 +5564,9 @@
       "phonePlaceholder": "Ex : 6XX XXX XXX",
       "operatorLabel": "OPÉRATEUR",
       "operatorNoneForCountry": "Aucun opérateur Mobile Money disponible pour le pays {{country}}. Utilise un virement bancaire à la place.",
+      "mobileMoneyLockedHint": "Ce numéro est lié à ton compte et ne peut pas être modifié ici. Contacte le support pour le changer.",
+      "mobileMoneyEmptyHint": "Pour activer les retraits par Mobile Money, ajoute ton numéro de téléphone dans ton profil. Il servira de numéro de retrait.",
+      "mobileMoneyEmptyCta": "Compléter mon profil",
       "bankNameLabel": "NOM DE LA BANQUE",
       "bankNamePlaceholder": "Ex : Afriland First Bank",
       "accountHolderLabel": "TITULAIRE DU COMPTE",

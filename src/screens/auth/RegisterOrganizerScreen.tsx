@@ -27,6 +27,7 @@ import {
   TextStyles,
 } from '../../constants/theme';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
+import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'RegisterOrganizer'>;
@@ -429,14 +430,14 @@ export default function RegisterOrganizerScreen() {
         </>
       )}
 
-      {/* Phone */}
+      {/* Phone — saisie internationale (E.164) */}
       <View style={styles.inputContainer}>
-        {renderInput('phone', t('auth.phone'), 'call-outline', {
-          keyboardType: 'phone-pad',
-        })}
-        {errors.phone && (
-          <Text style={styles.errorText}>{errors.phone}</Text>
-        )}
+        <PhoneNumberInput
+          value={formData.phone}
+          onChangeValue={(v) => updateField('phone', v)}
+          placeholder={t('auth.phone')}
+          error={errors.phone}
+        />
       </View>
 
       <View style={styles.submitButtonWrap}>

@@ -28,6 +28,8 @@ interface Props {
     bank_name?: string;
     bank_account_number?: string;
     mobile_money_number?: string;
+    /** True quand Stripe Connect autorise les payouts — canal de payout valide. */
+    stripe_payouts_enabled?: boolean;
   } | null;
   isOrganizer: boolean;
 }
@@ -35,15 +37,17 @@ interface Props {
 /**
  * "Configured" = au moins un moyen de payout renseigne. Sur le wallet,
  * un user peut renseigner soit du Mobile Money, soit un compte bancaire
- * (bank_name ET/OU bank_account_number suffit). On considere donc le wallet
- * configure des qu'un seul de ces 3 champs est rempli.
+ * (bank_name ET/OU bank_account_number suffit), soit avoir complete
+ * l'onboarding Stripe Connect (stripe_payouts_enabled). On considere donc le
+ * wallet configure des qu'un seul de ces canaux est actif.
  */
 function hasPayoutConfigured(wallet: Props['wallet']): boolean {
   if (!wallet) return false;
   return Boolean(
     wallet.bank_name?.trim() ||
     wallet.bank_account_number?.trim() ||
-    wallet.mobile_money_number?.trim()
+    wallet.mobile_money_number?.trim() ||
+    wallet.stripe_payouts_enabled
   );
 }
 

@@ -32,6 +32,7 @@ import { authAPI, setTokens } from '../../api';
 import { extractErrorMessage } from '../../lib/utils/errorHandling';
 import { validators } from '../../lib/validation';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
+import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
@@ -377,11 +378,16 @@ export default function RegisterScreen() {
               )}
             </View>
 
-            {/* Phone */}
+            {/* Phone — saisie internationale : sélecteur d'indicatif pays +
+                numéro, émet du E.164 (+indicatif…) consommé tel quel par le
+                backend. Indispensable pour que la devise/pays du wallet soit
+                dérivée correctement de l'indicatif. */}
             <View style={styles.inputContainer}>
-              {renderInput('phone_number', t('auth.phoneOptional'), 'call-outline', {
-                keyboardType: 'phone-pad',
-              })}
+              <PhoneNumberInput
+                value={formData.phone_number}
+                onChangeValue={(v) => updateField('phone_number', v)}
+                placeholder={t('auth.phoneOptional')}
+              />
             </View>
 
             {/* Password — pas de champ "confirmer" : le toggle afficher/masquer

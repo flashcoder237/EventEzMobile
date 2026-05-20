@@ -28,11 +28,6 @@ export {
   getTicketsTourSteps,
 } from './ticketsTour';
 export {
-  PROFILE_TOUR_STORAGE_KEY,
-  PROFILE_TOUR_DELAY_MS,
-  getProfileTourSteps,
-} from './profileTour';
-export {
   EVENT_DETAILS_TOUR_STORAGE_KEY,
   EVENT_DETAILS_TOUR_DELAY_MS,
   getEventDetailsTourSteps,

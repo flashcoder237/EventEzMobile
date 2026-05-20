@@ -37,6 +37,7 @@ import { extractErrorMessage } from '../../lib/utils/errorHandling';
 import { validators, FormErrors } from '../../lib/validation';
 import { eventBus } from '../../lib/eventBus';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
+import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral, editorial } from '../../components/ui/editorial';
 
 const REMEMBER_ME_KEY = 'eventez_remember_me';
@@ -219,9 +220,9 @@ export default function LoginScreen() {
   };
 
   const handleSendOTP = async () => {
-    const raw = phoneNumber.trim();
-    if (!raw) { showError(t('auth.phoneMissing'), t('auth.phoneMissingDetail')); return; }
-    const formatted = raw.startsWith('+') ? raw : `+${raw}`;
+    // phoneNumber est déjà au format E.164 (fourni par PhoneNumberInput).
+    const formatted = phoneNumber.trim();
+    if (!formatted) { showError(t('auth.phoneMissing'), t('auth.phoneMissingDetail')); return; }
     const result = await sendOTP(formatted);
     if (result.success) {
       setOtpPhone(result.normalizedPhone || formatted);
@@ -392,24 +393,12 @@ export default function LoginScreen() {
             {/* ── Phone tab content ── */}
             {activeTab === 'phone' && phoneStep === 'phone' && (
               <View style={styles.inputContainer}>
-                <Text style={[styles.inputLabel, { color: colors.gray700 }]}>{t('auth.phoneNumber')}</Text>
-                <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, focusedField === 'phone' && { backgroundColor: colors.surface, borderColor: colors.primary, ...Shadows.sm }]}>
-                  <View style={styles.inputIconContainer}>
-                    <Ionicons name="phone-portrait-outline" size={20} color={focusedField === 'phone' ? colors.primary : colors.gray400} />
-                  </View>
-                  <TextInput
-                    style={[styles.input, { color: colors.gray900 }]}
-                    placeholder={t('auth.phonePlaceholder')}
-                    placeholderTextColor={colors.gray400}
-                    value={phoneNumber}
-                    onChangeText={setPhoneNumber}
-                    onFocus={() => setFocusedField('phone')}
-                    onBlur={() => setFocusedField(null)}
-                    keyboardType="phone-pad"
-                    autoComplete="tel"
-                    accessibilityLabel={t('auth.phoneNumber')}
-                  />
-                </View>
+                <PhoneNumberInput
+                  value={phoneNumber}
+                  onChangeValue={setPhoneNumber}
+                  label={t('auth.phoneNumber')}
+                  placeholder={t('auth.phonePlaceholder')}
+                />
                 <Text style={[styles.fieldHint, { color: colors.gray400 }]}>
                   {t('auth.phoneHint')}
                 </Text>

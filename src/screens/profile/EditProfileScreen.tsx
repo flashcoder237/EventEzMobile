@@ -20,6 +20,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import { usersAPI } from '../../api';
 import { RootStackParamList } from '../../types';
@@ -403,17 +404,7 @@ export default function EditProfileScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.phoneLabel')}</Text>
-            <View style={styles.inputWithIcon}>
-              <Ionicons name="call-outline" size={18} color={colors.gray400} style={styles.inputIcon} />
-              <TextInput
-                style={[inputStyle, styles.inputWithIconPadding]}
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="+237 6XX XXX XXX"
-                placeholderTextColor={colors.gray400}
-                keyboardType="phone-pad"
-              />
-            </View>
+            <PhoneNumberInput value={phone} onChangeValue={setPhone} />
           </View>
 
           <View style={styles.inputGroup}>

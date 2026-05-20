@@ -31,6 +31,7 @@ import {
 } from '../../constants/theme';
 import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
+import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 const { width } = Dimensions.get('window');
@@ -451,17 +452,15 @@ export default function BecomeOrganizerScreen() {
           </>
         )}
 
-        <FormField
-          label={t('becomeOrganizerForm.labelPhone')}
-          iconName="call-outline"
-          field="phone"
-          value={formData.phone}
-          error={errors.phone}
-          placeholder={t('becomeOrganizerForm.placeholderPhone')}
-          onChange={updateField}
-          keyboardType="phone-pad"
-          colors={colors}
-        />
+        <View style={styles.inputContainer}>
+          <PhoneNumberInput
+            value={formData.phone}
+            onChangeValue={(v) => updateField('phone', v)}
+            label={t('becomeOrganizerForm.labelPhone')}
+            error={errors.phone}
+            placeholder={t('becomeOrganizerForm.placeholderPhone')}
+          />
+        </View>
       </View>
     </View>
   );

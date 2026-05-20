@@ -417,6 +417,12 @@
     "frenchHint": "Recommended in francophone Africa",
     "footnote": "This preference is saved on your device."
   },
+  "phoneInput": {
+    "selectCountry": "Select country",
+    "placeholder": "Phone number",
+    "searchPlaceholder": "Search a country",
+    "noResult": "No country found"
+  },
 
   "authGuard": {
     "eyebrow": "Members only",
@@ -5561,6 +5567,9 @@
       "phonePlaceholder": "E.g. 6XX XXX XXX",
       "operatorLabel": "OPERATOR",
       "operatorNoneForCountry": "No Mobile Money operator available for country {{country}}. Use a bank transfer instead.",
+      "mobileMoneyLockedHint": "This number is tied to your account and can't be changed here. Contact support to update it.",
+      "mobileMoneyEmptyHint": "To enable Mobile Money payouts, add your phone number in your profile. It will be used as your payout number.",
+      "mobileMoneyEmptyCta": "Complete my profile",
       "bankNameLabel": "BANK NAME",
       "bankNamePlaceholder": "E.g. Afriland First Bank",
       "accountHolderLabel": "ACCOUNT HOLDER",

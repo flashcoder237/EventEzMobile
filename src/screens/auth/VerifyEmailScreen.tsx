@@ -34,6 +34,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
+import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'VerifyEmail'>;
@@ -535,18 +536,13 @@ export default function VerifyEmailScreen() {
 
                 {(phoneStep === 'idle' || phoneStep === 'sending') && (
                   <>
-                    <TextInput
-                      style={[styles.phoneInput, { borderColor: colors.gray200, color: colors.gray900, backgroundColor: colors.background }]}
-                      placeholder={t('auth.verifyByPhonePlaceholder')}
-                      placeholderTextColor={colors.gray400}
-                      value={phoneNumber}
-                      onChangeText={setPhoneNumber}
-                      keyboardType="phone-pad"
-                      autoComplete="tel"
-                    />
-                    <Text style={[styles.formatHint, { color: colors.gray400 }]}>
-                      {t('auth.verifyByPhoneFormatHint')}
-                    </Text>
+                    <View style={styles.phoneInputWrap}>
+                      <PhoneNumberInput
+                        value={phoneNumber}
+                        onChangeValue={setPhoneNumber}
+                        placeholder={t('auth.verifyByPhonePlaceholder')}
+                      />
+                    </View>
                     <AnimatedPressable
                       onPress={handleSendOTP}
                       disabled={phoneStep === 'sending' || !phoneNumber.trim()}
@@ -797,21 +793,9 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     fontFamily: FontFamily.regular,
   },
-  phoneInput: {
+  phoneInputWrap: {
     width: '100%',
-    borderWidth: 2,
-    borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.regular,
-    marginBottom: Spacing.xs,
-  },
-  formatHint: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
-    alignSelf: 'flex-start',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   sendButton: {
     width: '100%',

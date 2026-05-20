@@ -296,7 +296,14 @@ export default function WalletScreen() {
 
     setSavingBank(true);
     try {
-      await walletAPI.updateBankDetails(bankDetails);
+      // Seuls les champs bancaires sont modifiables. mobile_money_number /
+      // mobile_money_provider sont verrouillés côté backend (figés au téléphone
+      // du compte) — les envoyer ne ferait que les voir ignorés silencieusement.
+      await walletAPI.updateBankDetails({
+        bank_name: bankDetails.bank_name,
+        bank_account_name: bankDetails.bank_account_name,
+        bank_account_number: bankDetails.bank_account_number,
+      });
       showSuccess(t('common.success'), t('organizer.wallet.bankSuccess'));
       setShowBankModal(false);
       fetchData();
@@ -1095,7 +1102,12 @@ export default function WalletScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Mobile Money Section */}
+              {/* Mobile Money Section — numéro VERROUILLÉ : il est figé au
+                  téléphone du compte côté backend (WalletBankDetailsSerializer
+                  l'ignore en écriture). On l'affiche en lecture seule plutôt
+                  qu'en champ éditable qui ferait croire à un enregistrement
+                  silencieusement rejeté. S'il est vide, on guide l'organisateur
+                  vers son profil où le numéro de téléphone alimente ce champ. */}
               <View style={styles.bankSectionE}>
                 <View style={[styles.bankSectionHeaderE, { borderBottomColor: softBorder }]}>
                   <View style={[styles.bankSectionIcon, { backgroundColor: '#FF660015' }]}>
@@ -1107,75 +1119,32 @@ export default function WalletScreen() {
                   </View>
                 </View>
 
-                <View style={styles.inputGroupE}>
-                  <Text style={[styles.inputLabelE, { color: colors.gray600 }]}>{t('organizer.wallet.phoneLabel')}</Text>
-                  <TextInput
-                    style={[
-                      styles.inputE,
-                      { backgroundColor: colors.gray100, borderColor: softBorder, color: colors.text },
-                    ]}
-                    value={bankDetails.mobile_money_number}
-                    onChangeText={(text) => setBankDetails({ ...bankDetails, mobile_money_number: text })}
-                    placeholder={t('organizer.wallet.phonePlaceholder')}
-                    placeholderTextColor={colors.gray400}
-                    keyboardType="phone-pad"
-                  />
-                </View>
-
-                <View style={styles.inputGroupE}>
-                  <View style={styles.operatorLabelRow}>
-                    <Text style={[styles.inputLabelE, { color: colors.gray600 }]}>{t('organizer.wallet.operatorLabel')}</Text>
-                    {wallet?.country && (
-                      <View style={[styles.operatorCountryPill, { backgroundColor: colors.primary + '15' }]}>
-                        <Ionicons name="flag" size={9} color={colors.primary} />
-                        <Text style={[styles.operatorCountryText, { color: colors.primary }]}>
-                          {wallet.country}
-                        </Text>
-                      </View>
-                    )}
+                {wallet?.mobile_money_number ? (
+                  <View style={styles.inputGroupE}>
+                    <Text style={[styles.inputLabelE, { color: colors.gray600 }]}>{t('organizer.wallet.phoneLabel')}</Text>
+                    <View style={[styles.mmLockedRow, { backgroundColor: colors.gray100, borderColor: softBorder }]}>
+                      <Text style={[styles.mmLockedValue, { color: colors.text }]}>{wallet.mobile_money_number}</Text>
+                      <Ionicons name="lock-closed" size={14} color={colors.gray400} />
+                    </View>
+                    <Text style={[styles.mmLockedHint, { color: colors.gray500 }]}>
+                      {t('organizer.wallet.mobileMoneyLockedHint')}
+                    </Text>
                   </View>
-                  {(() => {
-                    const mmOptions = availableMethods.filter((m: any) => m.type === 'mobile_money');
-                    if (mmOptions.length === 0) {
-                      return (
-                        <View style={[styles.operatorEmptyHint, { borderColor: softBorder }]}>
-                          <Text style={[styles.operatorEmptyText, { color: colors.gray500 }]}>
-                            {t('organizer.wallet.operatorNoneForCountry', {
-                              country: wallet?.country || '—',
-                            })}
-                          </Text>
-                        </View>
-                      );
-                    }
-                    return (
-                      <View style={styles.methodsRowE}>
-                        {mmOptions.map((option: any) => {
-                          const isActive = bankDetails.mobile_money_provider === option.id;
-                          return (
-                            <TouchableOpacity
-                              key={option.id}
-                              style={[
-                                styles.methodChip,
-                                isActive
-                                  ? { backgroundColor: colors.primary, borderColor: colors.primary, ...Shadows.buttonPrimary }
-                                  : { backgroundColor: colors.card, borderColor: softBorder },
-                              ]}
-                              onPress={() => setBankDetails({ ...bankDetails, mobile_money_provider: option.id })}
-                              activeOpacity={0.85}
-                            >
-                              <Text style={[
-                                styles.methodChipText,
-                                { color: isActive ? Colors.white : colors.gray700 },
-                              ]}>
-                                {option.name}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </View>
-                    );
-                  })()}
-                </View>
+                ) : (
+                  <View style={[styles.mmEmptyCard, { backgroundColor: colors.primary + '0D', borderColor: colors.primary + '26' }]}>
+                    <Text style={[styles.mmEmptyText, { color: colors.gray600 }]}>
+                      {t('organizer.wallet.mobileMoneyEmptyHint')}
+                    </Text>
+                    <TouchableOpacity
+                      style={[styles.mmEmptyBtn, { backgroundColor: colors.primary }]}
+                      onPress={() => { setShowBankModal(false); navigation.navigate('EditProfile'); }}
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons name="person-outline" size={14} color={Colors.white} />
+                      <Text style={styles.mmEmptyBtnText}>{t('organizer.wallet.mobileMoneyEmptyCta')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
 
               <View style={[styles.dividerE, { backgroundColor: softBorder }]} />
@@ -2558,6 +2527,50 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.medium,
     fontSize: 12,
     lineHeight: 16,
+  },
+  mmLockedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 48,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+  },
+  mmLockedValue: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 14,
+  },
+  mmLockedHint: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 6,
+  },
+  mmEmptyCard: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    padding: 14,
+    gap: 12,
+  },
+  mmEmptyText: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  mmEmptyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 40,
+    borderRadius: 999,
+  },
+  mmEmptyBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
   methodChip: {
     flexDirection: 'row',
