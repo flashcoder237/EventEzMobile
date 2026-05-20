@@ -430,7 +430,7 @@ export default function DiscoverScreen() {
       // Endpoint /events/nearby/ filtre déjà start_date >= now côté backend.
       setNearbyEvents(getApiResults<Event>(response));
     } catch (error) {
-      if (__DEV__) console.error('Erreur evenements proches:', error);
+      if (__DEV__) console.error('[Discover] Erreur evenements proches:', error);
     }
   }, [location]);
 
@@ -578,10 +578,7 @@ export default function DiscoverScreen() {
       }
       if (status === 'granted') {
         const coords = await acquirePosition();
-        if (coords) {
-          if (__DEV__) console.log('[Discover] position obtenue:', coords);
-          setLocation(coords);
-        }
+        if (coords) setLocation(coords);
         // Perm accordée même si le fix GPS échoue — le retry au pull-to-refresh
         // re-tentera acquirePosition().
         setLocationPermStatus('granted');
@@ -601,10 +598,7 @@ export default function DiscoverScreen() {
       if (status === 'granted') {
         setLocationPermStatus('granted');
         const coords = await acquirePosition();
-        if (coords) {
-          if (__DEV__) console.log('[Discover] position obtenue (silent):', coords);
-          setLocation(coords);
-        }
+        if (coords) setLocation(coords);
       } else if (status === 'denied') {
         setLocationPermStatus('denied');
       }
