@@ -236,8 +236,11 @@ export const verificationAPI = {
   submit: (formData: FormData) =>
     fetchUpload('POST', '/verifications/submit/', formData),
 
+  // 404 = l'utilisateur n'a pas encore soumis de demande de verification.
+  // C'est un etat vide normal (le screen affiche alors le formulaire), pas
+  // une erreur — on le declare attendu pour eviter le bruit de log rouge.
   getMyRequest: () =>
-    api.get('/verifications/my_request/'),
+    api.get('/verifications/my_request/', { expectedErrorStatuses: [404] } as any),
 
   getPending: () =>
     api.get('/verifications/pending/'),

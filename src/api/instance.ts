@@ -219,12 +219,28 @@ api.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean; _timeoutRetryCount?: number };
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+      _timeoutRetryCount?: number;
+      // Statuts HTTP que l'appelant considere comme un resultat NORMAL (ex:
+      // 404 sur /verifications/my_request/ = "pas encore de demande"). Pour
+      // ces statuts on loggue en info plutot qu'en error → pas de bruit
+      // rouge dans la console pour un etat vide attendu.
+      expectedErrorStatuses?: number[];
+    };
 
-    // Log de l'erreur pour debug
-    if (__DEV__) console.error(`[API] Error ${error.response?.status || error.code} from ${originalRequest?.url}`);
-    if (error.response?.data && __DEV__) {
-      console.error('[API] Error data:', JSON.stringify(error.response.data));
+    const status = error.response?.status;
+    const isExpected =
+      status != null && originalRequest?.expectedErrorStatuses?.includes(status);
+
+    // Log de l'erreur pour debug — degrade en console.log si l'appelant a
+    // declare ce statut comme attendu.
+    if (__DEV__) {
+      const logFn = isExpected ? console.log : console.error;
+      logFn(`[API] ${isExpected ? 'Expected ' : 'Error '}${status || error.code} from ${originalRequest?.url}`);
+      if (error.response?.data && !isExpected) {
+        console.error('[API] Error data:', JSON.stringify(error.response.data));
+      }
     }
 
     // Gestion des timeouts et erreurs réseau avec retry automatique

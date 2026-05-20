@@ -38,7 +38,10 @@ describe('verificationAPI', () => {
 
   it('getMyRequest() GETs /verifications/my_request/', async () => {
     await verificationAPI.getMyRequest();
-    expect(api.get).toHaveBeenCalledWith('/verifications/my_request/');
+    expect(api.get).toHaveBeenCalledWith(
+      '/verifications/my_request/',
+      expect.objectContaining({ expectedErrorStatuses: [404] }),
+    );
   });
 
   it('getPending() GETs /verifications/pending/', async () => {
