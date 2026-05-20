@@ -200,8 +200,10 @@ export default function LoginScreen() {
   }, [resendCooldown]);
 
   const handleGoogleSignIn = async () => {
-    const result = await googleSignIn();
+    // rememberMe transmis au hook → setTokens persiste (ou non) selon la case.
+    const result = await googleSignIn(rememberMe);
     if (result.success && result.user) {
+      await SecureStore.setItemAsync(REMEMBER_ME_KEY, rememberMe.toString());
       await setUser(result.user);
       dismissAfterLogin(result.user);
     } else if (result.error && result.error !== 'Connexion annulée') {
@@ -210,8 +212,9 @@ export default function LoginScreen() {
   };
 
   const handleAppleSignIn = async () => {
-    const result = await appleSignIn();
+    const result = await appleSignIn(rememberMe);
     if (result.success && result.user) {
+      await SecureStore.setItemAsync(REMEMBER_ME_KEY, rememberMe.toString());
       await setUser(result.user);
       dismissAfterLogin(result.user);
     } else if (result.error && result.error !== 'Connexion annulée') {
@@ -240,8 +243,9 @@ export default function LoginScreen() {
       showError(t('auth.incompleteCode'), t('auth.incompleteCodeDetail'));
       return;
     }
-    const result = await verifyOTP(otpPhone, otpCode);
+    const result = await verifyOTP(otpPhone, otpCode, rememberMe);
     if (result.success && result.user) {
+      await SecureStore.setItemAsync(REMEMBER_ME_KEY, rememberMe.toString());
       await setUser(result.user);
       dismissAfterLogin(result.user);
     } else {

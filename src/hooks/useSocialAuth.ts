@@ -39,7 +39,7 @@ export function useGoogleAuth() {
   const googleModule = loadGoogleSignin();
   const isReady = googleModule !== null;
 
-  const signIn = async (): Promise<SocialAuthResult> => {
+  const signIn = async (rememberMe: boolean = true): Promise<SocialAuthResult> => {
     if (!googleModule) {
       return {
         success: false,
@@ -61,7 +61,7 @@ export function useGoogleAuth() {
 
       const apiResponse = await authAPI.googleSignIn(idToken);
       const { access, refresh, user } = apiResponse.data;
-      await setTokens(access, refresh);
+      await setTokens(access, refresh, rememberMe);
       return { success: true, user };
     } catch (error: any) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
@@ -112,7 +112,7 @@ export function useAppleAuth() {
     checkAvailability();
   }, []);
 
-  const signIn = async (): Promise<SocialAuthResult> => {
+  const signIn = async (rememberMe: boolean = true): Promise<SocialAuthResult> => {
     if (Platform.OS !== 'ios') {
       return {
         success: false,
@@ -182,7 +182,7 @@ export function useAppleAuth() {
       const { access, refresh, user } = response.data;
 
       // Stocker les tokens
-      await setTokens(access, refresh);
+      await setTokens(access, refresh, rememberMe);
 
       return { success: true, user };
     } catch (error: any) {
@@ -238,12 +238,13 @@ export function usePhoneAuth() {
   const verifyOTP = async (
     phone: string,
     code: string,
+    rememberMe: boolean = true,
   ): Promise<SocialAuthResult> => {
     setIsLoading(true);
     try {
       const res = await authAPI.phoneVerifyOTP(phone || normalizedPhone, code);
       const { access, refresh, user } = res.data;
-      await setTokens(access, refresh);
+      await setTokens(access, refresh, rememberMe);
       return { success: true, user };
     } catch (error: any) {
       const msg =
