@@ -14,8 +14,9 @@ import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 
 const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
+const mockReset = jest.fn();
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: mockNavigate, goBack: mockGoBack }),
+  useNavigation: () => ({ navigate: mockNavigate, goBack: mockGoBack, reset: mockReset }),
   useRoute: () => ({ params: {} }),
 }));
 
@@ -237,9 +238,15 @@ describe('SettingsScreen', () => {
     // Exécute le callback de confirm
     expect(lastConfirmCallback).toBeDefined();
     await act(async () => {
-      lastConfirmCallback?.();
+      await lastConfirmCallback?.();
     });
     expect(mockLogout).toHaveBeenCalled();
+    // Après logout, on reset la navigation vers Main — sinon l'utilisateur
+    // reste bloqué sur SettingsScreen (écran de stack au-dessus de Main).
+    expect(mockReset).toHaveBeenCalledWith({
+      index: 0,
+      routes: [{ name: 'Main' }],
+    });
   });
 
   it('toggles "Apparaître dans Qui y va" → calls updateUserSettings', async () => {
@@ -333,6 +340,14 @@ describe('SettingsScreen', () => {
     });
     await waitFor(() => {
       expect(mockLogout).toHaveBeenCalled();
+    });
+    // Reset de navigation après suppression — l'utilisateur ne doit pas
+    // rester sur SettingsScreen d'un compte qui n'existe plus.
+    await waitFor(() => {
+      expect(mockReset).toHaveBeenCalledWith({
+        index: 0,
+        routes: [{ name: 'Main' }],
+      });
     });
   });
 

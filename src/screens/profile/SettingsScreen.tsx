@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -527,11 +527,23 @@ export default function SettingsScreen() {
     handleUpdateSetting(key, value);
   };
 
+  // SettingsScreen est un ecran de stack pousse PAR-DESSUS Main. Contrairement
+  // a ProfileScreen (dans l'onglet Profile, dont le wrapper bascule vers
+  // AuthGuardScreen quand isAuthenticated devient false), SettingsScreen reste
+  // monte apres un logout. Sans reset explicite, l'utilisateur se retrouve
+  // bloque sur un ecran Settings d'un compte qui n'existe plus.
+  const resetToHome = useCallback(() => {
+    navigation.reset({ index: 0, routes: [{ name: 'Main' as never }] });
+  }, [navigation]);
+
   const handleLogout = () => {
     showConfirm(
       t('profile.logoutConfirmTitle'),
       t('profile.logoutConfirmDetail'),
-      logout
+      async () => {
+        await logout();
+        resetToHome();
+      }
     );
   };
 
@@ -560,7 +572,10 @@ export default function SettingsScreen() {
       // Compte deja supprime serveur : on skip les calls API du logout
       // (unregister-device + /logout/) qui retourneraient 401 user_not_found
       // et declencheraient un retry de refresh tout aussi voue a l'echec.
-      logout({ accountDeleted: true });
+      await logout({ accountDeleted: true });
+      // Reset de navigation : SettingsScreen ne se demonte pas tout seul
+      // quand isAuthenticated passe a false (cf. resetToHome).
+      resetToHome();
     } catch (error: any) {
       if (__DEV__) console.error('Erreur suppression compte:', error);
       showError(
