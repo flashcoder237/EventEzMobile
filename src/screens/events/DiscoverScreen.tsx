@@ -544,6 +544,28 @@ export default function DiscoverScreen() {
     [loadMoreForYou],
   );
 
+  // Acquisition robuste d'une position. getCurrentPositionAsync({}) seul est
+  // peu fiable (GPS froid → peut hang ou échouer). On tente d'abord le dernier
+  // fix connu (instantané), puis un fix frais avec une précision raisonnable
+  // et un timeout. Retourne null si rien n'est obtenu.
+  const acquirePosition = useCallback(async (): Promise<{ lat: number; lng: number } | null> => {
+    try {
+      const last = await Location.getLastKnownPositionAsync();
+      if (last) {
+        return { lat: last.coords.latitude, lng: last.coords.longitude };
+      }
+    } catch { /* ignore — on tente le fix frais */ }
+    try {
+      const fresh = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      return { lat: fresh.coords.latitude, lng: fresh.coords.longitude };
+    } catch (error) {
+      if (__DEV__) console.warn('[Discover] getCurrentPositionAsync failed:', error);
+      return null;
+    }
+  }, []);
+
   const requestLocation = useCallback(async () => {
     setLocationPermStatus('requesting');
     try {
@@ -555,8 +577,13 @@ export default function DiscoverScreen() {
         status = requested.status;
       }
       if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({});
-        setLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+        const coords = await acquirePosition();
+        if (coords) {
+          if (__DEV__) console.log('[Discover] position obtenue:', coords);
+          setLocation(coords);
+        }
+        // Perm accordée même si le fix GPS échoue — le retry au pull-to-refresh
+        // re-tentera acquirePosition().
         setLocationPermStatus('granted');
       } else {
         setLocationPermStatus('denied');
@@ -565,7 +592,7 @@ export default function DiscoverScreen() {
       if (__DEV__) console.error('Erreur localisation:', error);
       setLocationPermStatus('denied');
     }
-  }, []);
+  }, [acquirePosition]);
 
   // Hydrate l'état de perm au mount (sans déclencher le prompt système)
   const checkLocationPermSilent = useCallback(async () => {
@@ -573,8 +600,11 @@ export default function DiscoverScreen() {
       const { status } = await Location.getForegroundPermissionsAsync();
       if (status === 'granted') {
         setLocationPermStatus('granted');
-        const loc = await Location.getCurrentPositionAsync({});
-        setLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+        const coords = await acquirePosition();
+        if (coords) {
+          if (__DEV__) console.log('[Discover] position obtenue (silent):', coords);
+          setLocation(coords);
+        }
       } else if (status === 'denied') {
         setLocationPermStatus('denied');
       }
@@ -582,7 +612,7 @@ export default function DiscoverScreen() {
     } catch {
       // ignore
     }
-  }, []);
+  }, [acquirePosition]);
 
   // === Effects ===
   useEffect(() => {
@@ -626,6 +656,13 @@ export default function DiscoverScreen() {
   // === Handlers ===
   const onRefresh = async () => {
     setRefreshing(true);
+    // Si la permission est accordée mais qu'on n'a pas (encore) de position
+    // — fix GPS qui avait échoué au mount — on retente d'en acquérir une.
+    // setLocation déclenchera l'effect [location] qui chargera "près de toi".
+    if (!location && locationPermStatus === 'granted') {
+      const coords = await acquirePosition();
+      if (coords) setLocation(coords);
+    }
     await Promise.all([
       fetchDiscoveryData(true),
       fetchRecommendations(true),
