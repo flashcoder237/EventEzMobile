@@ -1577,8 +1577,10 @@ export type RootStackParamList = {
      * disparaître pour les workshops, meetups, conférences ouvertes.
      */
     eventIsFree?: boolean;
+    /** Email pré-rempli (ex: redirection depuis Register quand l'email existe déjà). */
+    prefillEmail?: string;
   } | undefined;
-  Register: { returnScreen?: string | null; returnParams?: any } | undefined;
+  Register: { returnScreen?: string | null; returnParams?: any; prefillEmail?: string } | undefined;
   RegisterOrganizer: undefined;
   ForgotPassword: undefined;
   ResetPassword: { token: string };

@@ -54,14 +54,11 @@ const getAutofillHints = (field: string): {
       return { autoComplete: 'given-name', textContentType: 'givenName' };
     case 'last_name':
       return { autoComplete: 'family-name', textContentType: 'familyName' };
-    case 'username':
-      return { autoComplete: 'username-new', textContentType: 'username' };
     case 'email':
       return { autoComplete: 'email', textContentType: 'emailAddress' };
     case 'phone_number':
       return { autoComplete: 'tel', textContentType: 'telephoneNumber' };
     case 'password':
-    case 'confirm_password':
       return { autoComplete: 'new-password', textContentType: 'newPassword' };
     default:
       return {};
@@ -71,43 +68,37 @@ const getAutofillHints = (field: string): {
 interface FormData {
   first_name: string;
   last_name: string;
-  username: string;
   email: string;
   phone_number: string;
   password: string;
-  confirm_password: string;
 }
 
 interface FormErrors {
   first_name?: string;
   last_name?: string;
-  username?: string;
   email?: string;
   phone_number?: string;
   password?: string;
-  confirm_password?: string;
 }
 
 export default function RegisterScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
-  const { returnScreen, returnParams } = route.params || {};
+  const { returnScreen, returnParams, prefillEmail } = route.params || {};
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { showError } = useAlert();
+  const { showError, showAlert } = useAlert();
   const { setUser } = useAuth();
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({
     first_name: '',
     last_name: '',
-    username: '',
-    email: '',
+    // Pré-rempli si on arrive depuis VerifyEmail "Mauvais email ?".
+    email: prefillEmail ?? '',
     phone_number: '',
     password: '',
-    confirm_password: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -126,19 +117,6 @@ export default function RegisterScreen() {
     setFormData({ ...formData, [field]: value });
     if (errors[field]) {
       setErrors({ ...errors, [field]: undefined });
-    }
-  };
-
-  // Pré-remplit le username depuis l'email tant que l'utilisateur n'y a pas
-  // touché. Le champ reste OPTIONNEL : si laissé vide, le backend dérive un
-  // username unique automatiquement (cf. generate_unique_username).
-  const handleEmailChange = (email: string) => {
-    if (!formData.username && email.includes('@')) {
-      const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-      setFormData((prev) => ({ ...prev, email, username }));
-      if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
-    } else {
-      updateField('email', email);
     }
   };
 
@@ -171,18 +149,10 @@ export default function RegisterScreen() {
     if (firstNameError) newErrors.first_name = firstNameError;
     const lastNameError = validators.required(formData.last_name, t('auth.lastName'));
     if (lastNameError) newErrors.last_name = lastNameError;
-    // Username OPTIONNEL : on ne valide le format que si l'utilisateur a
-    // saisi quelque chose. Vide → le backend génère un username unique.
-    if (formData.username.trim()) {
-      const usernameError = validators.username(formData.username, 3);
-      if (usernameError) newErrors.username = usernameError;
-    }
     const emailError = validators.email(formData.email);
     if (emailError) newErrors.email = emailError;
     const passwordError = validators.password(formData.password, 8);
     if (passwordError) newErrors.password = passwordError;
-    const confirmError = validators.confirmPassword(formData.confirm_password, formData.password);
-    if (confirmError) newErrors.confirm_password = confirmError;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -192,15 +162,17 @@ export default function RegisterScreen() {
     setIsSubmitting(true);
     try {
       // Appel API direct (pas AuthContext.register() qui set isLoading → unmount navigator)
-      // username envoyé seulement si saisi — sinon le backend le dérive de l'email.
+      // - username : non envoyé, le backend le dérive de l'email.
+      // - confirm_password : le backend exige le champ mais le toggle "afficher
+      //   le mot de passe" rend la double saisie inutile → on renvoie la même
+      //   valeur, la vérification d'égalité backend passe trivialement.
       const response = await authAPI.register({
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
-        username: formData.username.trim().toLowerCase(),
         email: formData.email.trim().toLowerCase(),
         phone_number: formData.phone_number.trim() || undefined,
         password: formData.password,
-        confirm_password: formData.confirm_password,
+        confirm_password: formData.password,
       });
       setIsSubmitting(false);
       const targetEmail = response.data?.email ?? formData.email.trim().toLowerCase();
@@ -231,6 +203,30 @@ export default function RegisterScreen() {
       }
     } catch (error: any) {
       setIsSubmitting(false);
+      // Email déjà rattaché à un compte → on ne laisse pas l'utilisateur en
+      // cul-de-sac : on propose de se connecter, avec l'email pré-rempli.
+      const emailErr = error.response?.data?.email;
+      const emailErrMsg = Array.isArray(emailErr) ? emailErr.join(' ') : String(emailErr || '');
+      if (emailErr && /exist|déjà|deja/i.test(emailErrMsg)) {
+        const enteredEmail = formData.email.trim().toLowerCase();
+        showAlert(
+          t('auth.registerEmailExistsTitle'),
+          t('auth.registerEmailExistsDetail'),
+          [
+            { text: t('common.cancel'), style: 'cancel' },
+            {
+              text: t('auth.registerEmailExistsConfirm'),
+              onPress: () => navigation.replace('Login', {
+                prefillEmail: enteredEmail,
+                returnScreen: (returnScreen as keyof RootStackParamList | undefined) ?? undefined,
+                returnParams,
+              }),
+            },
+          ],
+          'warning',
+        );
+        return;
+      }
       const message = extractErrorMessage(error);
       showError(t('auth.registerError'), message);
     }
@@ -371,19 +367,10 @@ export default function RegisterScreen() {
               </View>
             </View>
 
-            {/* Username — optionnel, pré-rempli depuis l'email */}
-            <View style={styles.inputContainer}>
-              {renderInput('username', t('auth.usernameOptional'), 'at-outline')}
-              {errors.username && (
-                <Text style={[styles.fieldError, { color: colors.error }]}>{errors.username}</Text>
-              )}
-            </View>
-
             {/* Email */}
             <View style={styles.inputContainer}>
               {renderInput('email', t('auth.emailPlaceholder'), 'mail-outline', {
                 keyboardType: 'email-address',
-                onChangeText: handleEmailChange,
               })}
               {errors.email && (
                 <Text style={[styles.fieldError, { color: colors.error }]}>{errors.email}</Text>
@@ -397,7 +384,8 @@ export default function RegisterScreen() {
               })}
             </View>
 
-            {/* Password */}
+            {/* Password — pas de champ "confirmer" : le toggle afficher/masquer
+                rend la double saisie inutile. */}
             <View style={styles.inputContainer}>
               {renderInput('password', t('auth.password'), 'lock-closed-outline', {
                 secureTextEntry: !showPassword,
@@ -407,19 +395,6 @@ export default function RegisterScreen() {
               })}
               {errors.password && (
                 <Text style={[styles.fieldError, { color: colors.error }]}>{errors.password}</Text>
-              )}
-            </View>
-
-            {/* Confirm Password */}
-            <View style={styles.inputContainer}>
-              {renderInput('confirm_password', t('auth.confirmPassword'), 'lock-closed-outline', {
-                secureTextEntry: !showConfirmPassword,
-                showPasswordToggle: true,
-                showPassword: showConfirmPassword,
-                onTogglePassword: () => setShowConfirmPassword(!showConfirmPassword),
-              })}
-              {errors.confirm_password && (
-                <Text style={[styles.fieldError, { color: colors.error }]}>{errors.confirm_password}</Text>
               )}
             </View>
 

@@ -9,6 +9,7 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  AppState,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -17,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useTranslation } from 'react-i18next';
-import { authAPI } from '../../api';
+import { authAPI, usersAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -126,6 +127,43 @@ export default function VerifyEmailScreen() {
   // Email resend
   const [resendLoading, setResendLoading] = useState(false);
   const [emailCooldown, setEmailCooldown] = useState(0);
+
+  // Détection de la vérification email. Quand l'utilisateur clique le lien
+  // dans son email (browser ou autre device), il revient ici : sans cette
+  // boucle l'écran restait mort. On vérifie l'état du compte (a) au retour
+  // au premier plan, (b) sur appui manuel "J'ai vérifié mon email".
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [checkingVerification, setCheckingVerification] = useState(false);
+
+  const checkEmailVerified = useCallback(async (silent: boolean): Promise<boolean> => {
+    if (!silent) setCheckingVerification(true);
+    try {
+      const res = await usersAPI.getCurrentUser();
+      const verified = Boolean(res.data?.email_verified);
+      if (verified) {
+        setEmailVerified(true);
+        await refreshUser();
+      } else if (!silent) {
+        showError(t('auth.verifyEmailNotYetTitle'), t('auth.verifyEmailNotYetDetail'));
+      }
+      return verified;
+    } catch {
+      return false;
+    } finally {
+      if (!silent) setCheckingVerification(false);
+    }
+  }, [refreshUser, showError, t]);
+
+  // Refresh silencieux à chaque retour au premier plan : couvre le cas
+  // "l'utilisateur quitte vers son app mail, clique le lien, revient".
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active' && !emailVerified) {
+        checkEmailVerified(true);
+      }
+    });
+    return () => sub.remove();
+  }, [emailVerified, checkEmailVerified]);
 
   // Phone OTP
   type PhoneStep = 'idle' | 'sending' | 'otp' | 'verifying' | 'done';
@@ -271,6 +309,46 @@ export default function VerifyEmailScreen() {
             <Ionicons name="arrow-back" size={24} color={colors.gray800} />
           </AnimatedPressable>
 
+          {/* État succès — affiché dès que la vérification email est détectée
+              (retour au premier plan ou appui manuel). */}
+          {emailVerified && (
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
+              <View style={styles.successContent}>
+                <LinearGradient colors={['#10B981', '#34D399']} style={styles.successIcon}>
+                  <Ionicons name="checkmark-circle" size={40} color={Colors.white} />
+                </LinearGradient>
+                <Text style={[styles.eyebrow, { color: '#10B981' }]}>{t('auth.verifyEmailVerifiedEyebrow')}</Text>
+                <Text style={[styles.cardTitle, { color: colors.gray900 }]}>{t('auth.verifyEmailVerified')}</Text>
+                <Text style={[styles.cardSubtitle, { color: colors.gray500 }]}>
+                  {t('auth.verifyEmailVerifiedSubtitle')}
+                </Text>
+                <AnimatedPressable
+                  onPress={() => {
+                    if (returnScreen) {
+                      navigation.reset({
+                        index: 1,
+                        routes: [
+                          { name: 'Main' as never },
+                          { name: returnScreen as never, params: returnParams as never },
+                        ],
+                      });
+                    } else {
+                      navigation.reset({ index: 0, routes: [{ name: 'Main' as never }] });
+                    }
+                  }}
+                  style={styles.successButton}
+                  animationType="scale"
+                  scaleValue={0.97}
+                >
+                  <LinearGradient colors={['#10B981', '#34D399']} style={styles.successButtonGradient}>
+                    <Text style={styles.successButtonText}>{t('auth.verifyByPhoneSuccessCTA')}</Text>
+                  </LinearGradient>
+                </AnimatedPressable>
+              </View>
+            </View>
+          )}
+
+          {!emailVerified && <>
           {/* Badge : "obligatoire" quand non-skippable, "recommandée" sinon (#7) */}
           <View style={[styles.mandatoryBadge, { backgroundColor: colors.success + '15', borderColor: colors.success + '30' }]}>
             <Ionicons name="shield-checkmark" size={16} color={colors.success} />
@@ -325,6 +403,25 @@ export default function VerifyEmailScreen() {
                 icon="refresh"
               />
             )}
+
+            {/* "J'ai vérifié mon email" — relance la vérification manuellement
+                (en plus du refresh auto au retour au premier plan). */}
+            <TouchableOpacity
+              style={styles.checkVerifiedRow}
+              onPress={() => checkEmailVerified(false)}
+              disabled={checkingVerification}
+              accessibilityRole="button"
+              accessibilityLabel={t('auth.verifyEmailCheckButton')}
+            >
+              {checkingVerification ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Ionicons name="checkmark-done-outline" size={16} color={colors.primary} />
+              )}
+              <Text style={[styles.checkVerifiedText, { color: colors.primary }]}>
+                {t('auth.verifyEmailCheckButton')}
+              </Text>
+            </TouchableOpacity>
           </View>
           )}
 
@@ -533,10 +630,11 @@ export default function VerifyEmailScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Mauvais email → Register (pour le corriger) ; sinon Login (#6) */}
+          {/* Mauvais email → Register avec l'email pré-rempli (l'utilisateur
+              corrige une faute de frappe sans retaper tout le formulaire). */}
           <TouchableOpacity
             style={styles.wrongEmailRow}
-            onPress={() => navigation.replace('Register', { returnScreen: returnScreen ?? undefined, returnParams })}
+            onPress={() => navigation.replace('Register', { prefillEmail: email, returnScreen: returnScreen ?? undefined, returnParams })}
           >
             <Text style={[styles.wrongEmailText, { color: colors.gray500 }]}>{t('auth.verifyWrongEmail')}</Text>
             <Text style={[styles.wrongEmailLink, { color: colors.primary }]}>{t('auth.verifyWrongEmailLink')}</Text>
@@ -564,6 +662,7 @@ export default function VerifyEmailScreen() {
               <Ionicons name="arrow-forward" size={16} color={colors.gray400} />
             </TouchableOpacity>
           )}
+          </>}
       </KeyboardAwareScrollView>
     </EditorialCanvas>
   );
@@ -814,6 +913,18 @@ const styles = StyleSheet.create({
   collapsePhoneText: {
     fontSize: FontSizes.xs,
     fontFamily: FontFamily.medium,
+  },
+  checkVerifiedRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.xs,
+  },
+  checkVerifiedText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
   },
   wrongEmailRow: {
     flexDirection: 'row',

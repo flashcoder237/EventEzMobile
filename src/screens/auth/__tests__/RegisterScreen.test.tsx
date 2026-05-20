@@ -24,8 +24,17 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 const mockShowError = jest.fn();
+// showAlert : déclenche l'onPress du dernier bouton (le bouton de confirmation
+// "Se connecter") pour rendre la navigation testable.
+const mockShowAlert = jest.fn((_title: string, _msg: string, buttons?: any[]) => {
+  buttons?.[buttons.length - 1]?.onPress?.();
+});
 jest.mock('../../../contexts/AlertContext', () => ({
-  useAlert: () => ({ showError: mockShowError, showSuccess: jest.fn() }),
+  useAlert: () => ({
+    showError: mockShowError,
+    showSuccess: jest.fn(),
+    showAlert: mockShowAlert,
+  }),
 }));
 
 const themeColors = {
@@ -88,10 +97,8 @@ beforeEach(() => {
 const fillValidForm = (getByPlaceholderText: any) => {
   fireEvent.changeText(getByPlaceholderText('Prénom'), 'Alice');
   fireEvent.changeText(getByPlaceholderText('Nom'), 'Martin');
-  fireEvent.changeText(getByPlaceholderText("Nom d'utilisateur (optionnel)"), 'alice123');
   fireEvent.changeText(getByPlaceholderText('votre@email.com'), 'alice@example.com');
   fireEvent.changeText(getByPlaceholderText('Mot de passe'), 'password123');
-  fireEvent.changeText(getByPlaceholderText('Confirmer le mot de passe'), 'password123');
 };
 
 describe('RegisterScreen', () => {
@@ -99,26 +106,8 @@ describe('RegisterScreen', () => {
     const { getByPlaceholderText } = render(<RegisterScreen />);
     expect(getByPlaceholderText('Prénom')).toBeTruthy();
     expect(getByPlaceholderText('Nom')).toBeTruthy();
-    expect(getByPlaceholderText("Nom d'utilisateur (optionnel)")).toBeTruthy();
     expect(getByPlaceholderText('votre@email.com')).toBeTruthy();
     expect(getByPlaceholderText('Mot de passe')).toBeTruthy();
-    expect(getByPlaceholderText('Confirmer le mot de passe')).toBeTruthy();
-  });
-
-  it('shows error when passwords do not match', async () => {
-    const { getByPlaceholderText, getByText, findByText } = render(<RegisterScreen />);
-
-    fireEvent.changeText(getByPlaceholderText('Prénom'), 'Alice');
-    fireEvent.changeText(getByPlaceholderText('Nom'), 'Martin');
-    fireEvent.changeText(getByPlaceholderText("Nom d'utilisateur (optionnel)"), 'alice123');
-    fireEvent.changeText(getByPlaceholderText('votre@email.com'), 'alice@example.com');
-    fireEvent.changeText(getByPlaceholderText('Mot de passe'), 'password123');
-    fireEvent.changeText(getByPlaceholderText('Confirmer le mot de passe'), 'different');
-
-    fireEvent.press(getByText('Créer mon compte'));
-
-    expect(await findByText(/ne correspondent pas/i)).toBeTruthy();
-    expect(mockRegister).not.toHaveBeenCalled();
   });
 
   it('rejects invalid email format', async () => {
@@ -126,10 +115,8 @@ describe('RegisterScreen', () => {
 
     fireEvent.changeText(getByPlaceholderText('Prénom'), 'Alice');
     fireEvent.changeText(getByPlaceholderText('Nom'), 'Martin');
-    fireEvent.changeText(getByPlaceholderText("Nom d'utilisateur (optionnel)"), 'alice123');
     fireEvent.changeText(getByPlaceholderText('votre@email.com'), 'pas-un-email');
     fireEvent.changeText(getByPlaceholderText('Mot de passe'), 'password123');
-    fireEvent.changeText(getByPlaceholderText('Confirmer le mot de passe'), 'password123');
 
     fireEvent.press(getByText('Créer mon compte'));
 
@@ -142,10 +129,8 @@ describe('RegisterScreen', () => {
 
     fireEvent.changeText(getByPlaceholderText('Prénom'), 'Alice');
     fireEvent.changeText(getByPlaceholderText('Nom'), 'Martin');
-    fireEvent.changeText(getByPlaceholderText("Nom d'utilisateur (optionnel)"), 'alice123');
     fireEvent.changeText(getByPlaceholderText('votre@email.com'), 'alice@example.com');
     fireEvent.changeText(getByPlaceholderText('Mot de passe'), 'short');
-    fireEvent.changeText(getByPlaceholderText('Confirmer le mot de passe'), 'short');
 
     fireEvent.press(getByText('Créer mon compte'));
 
@@ -174,13 +159,16 @@ describe('RegisterScreen', () => {
         expect.objectContaining({
           first_name: 'Alice',
           last_name: 'Martin',
-          username: 'alice123',
           email: 'alice@example.com',
           password: 'password123',
+          // confirm_password = password (le backend l'exige, le toggle
+          // afficher/masquer rend la double saisie inutile).
           confirm_password: 'password123',
         }),
       );
     });
+    // username n'est plus envoyé — le backend le dérive de l'email.
+    expect(mockRegister.mock.calls[0][0]).not.toHaveProperty('username');
   });
 
   it('auto-login + route vers VerifyEmail (compte non vérifié) sur succès', async () => {
@@ -234,7 +222,7 @@ describe('RegisterScreen', () => {
     });
   });
 
-  it('shows an error toast when authAPI.register fails', async () => {
+  it('email déjà utilisé → propose de se connecter (email pré-rempli)', async () => {
     mockRegister.mockRejectedValueOnce({
       response: { data: { email: ['Cet email est déjà utilisé'] } },
     });
@@ -243,11 +231,31 @@ describe('RegisterScreen', () => {
     fillValidForm(getByPlaceholderText);
     fireEvent.press(getByText('Créer mon compte'));
 
+    // showAlert (pas showError) avec un bouton "Se connecter".
     await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith(
-        "Erreur d'inscription",
-        'Cet email est déjà utilisé',
+      expect(mockShowAlert).toHaveBeenCalled();
+    });
+    // Le bouton de confirmation navigue vers Login avec l'email pré-rempli.
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith(
+        'Login',
+        expect.objectContaining({ prefillEmail: 'alice@example.com' }),
       );
+    });
+    expect(mockShowError).not.toHaveBeenCalled();
+  });
+
+  it('affiche une erreur générique pour les autres échecs', async () => {
+    mockRegister.mockRejectedValueOnce({
+      response: { data: { detail: 'Service indisponible' } },
+    });
+    const { getByPlaceholderText, getByText } = render(<RegisterScreen />);
+
+    fillValidForm(getByPlaceholderText);
+    fireEvent.press(getByText('Créer mon compte'));
+
+    await waitFor(() => {
+      expect(mockShowError).toHaveBeenCalled();
     });
   });
 });

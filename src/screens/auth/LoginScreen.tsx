@@ -50,7 +50,7 @@ type LoginRouteProp = RouteProp<RootStackParamList, 'Login'>;
 export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<LoginRouteProp>();
-  const { eventTitle, returnScreen, returnParams, eventIsFree } = route.params || {};
+  const { eventTitle, returnScreen, returnParams, eventIsFree, prefillEmail } = route.params || {};
   const { login, isLoading, setUser, guestRegister, user } = useAuth();
   const { showError, showSuccess } = useAlert();
   const { colors, isDark } = useTheme();
@@ -64,8 +64,8 @@ export default function LoginScreen() {
   const emailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
 
-  // Email form
-  const [email, setEmail] = useState('');
+  // Email form — pré-rempli si on arrive depuis Register (email déjà existant).
+  const [email, setEmail] = useState(prefillEmail ?? '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   // Coché par défaut — l'attente universelle est de rester connecté entre
@@ -312,6 +312,19 @@ export default function LoginScreen() {
         // Sans ça, le bouton restait caché derrière le clavier (parité EventCreateScreen).
         bottomOffset={100}
       >
+          {/* Bouton fermer — Login est un modal ; sans sortie visible un
+              invité qui l'ouvre par erreur se sent piégé. */}
+          <AnimatedPressable
+            onPress={() => navigation.goBack()}
+            style={[styles.closeButton, { backgroundColor: colors.gray50 }]}
+            animationType="scale"
+            scaleValue={0.9}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.close')}
+          >
+            <Ionicons name="close" size={24} color={colors.gray800} />
+          </AnimatedPressable>
+
           {/* Logo */}
           <View style={styles.logoContainer}>
             <Image
@@ -431,6 +444,10 @@ export default function LoginScreen() {
                   onChangeText={(t) => setOtpCode(t.replace(/\D/g, '').slice(0, 6))}
                   keyboardType="number-pad"
                   maxLength={6}
+                  // Auto-remplissage du code SMS : iOS via oneTimeCode,
+                  // Android via autoComplete sms-otp.
+                  textContentType="oneTimeCode"
+                  autoComplete="sms-otp"
                   autoFocus
                   accessibilityLabel={t('auth.otpPlaceholder')}
                 />
@@ -611,6 +628,36 @@ export default function LoginScreen() {
             </>}
           </View>
 
+          {/* Guest checkout — événement gratuit : chemin le plus rapide, donc
+              placé juste sous le formulaire (pas enterré tout en bas). */}
+          {eventIsFree && (
+          <View style={styles.guestSection}>
+            <View style={styles.guestDivider}>
+              <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
+              <Text style={[styles.dividerText, { color: colors.gray400 }]}>{t('auth.or')}</Text>
+              <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
+            </View>
+            <TouchableOpacity
+              style={[styles.guestButton, { borderColor: colors.primary, backgroundColor: `${colors.primary}0D` }]}
+              onPress={() => setGuestModal(true)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={t('auth.guestContinueAccessibility')}
+            >
+              <Ionicons name="flash-outline" size={16} color={colors.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.guestButtonText, { color: colors.gray900 }]}>
+                  {t('auth.guestContinue')}
+                </Text>
+                <Text style={[styles.guestButtonHint, { color: colors.gray500 }]}>
+                  {t('auth.guestHintFree')}
+                </Text>
+              </View>
+              <Ionicons name="arrow-forward" size={16} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+          )}
+
           {/* Divider */}
           <View style={styles.divider}>
             <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
@@ -691,37 +738,6 @@ export default function LoginScreen() {
               <Text style={[styles.registerLink, { color: colors.primary }]}> {t('auth.registerButton')}</Text>
             </AnimatedPressable>
           </View>
-
-          {/* Guest checkout — visible uniquement quand eventIsFree=true (#9) */}
-          {eventIsFree && (
-          <View style={styles.guestSection}>
-            <View style={styles.guestDivider}>
-              <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
-              <Text style={[styles.dividerText, { color: colors.gray400 }]}>{t('auth.or')}</Text>
-              <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
-            </View>
-            <TouchableOpacity
-              style={[styles.guestButton, { borderColor: colors.gray200, backgroundColor: colors.surface }]}
-              onPress={() => setGuestModal(true)}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel={t('auth.guestContinueAccessibility')}
-            >
-              <Ionicons name="flash-outline" size={16} color={colors.gray700} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.guestButtonText, { color: colors.gray900 }]}>
-                  {t('auth.guestContinue')}
-                </Text>
-                <Text style={[styles.guestButtonHint, { color: colors.gray500 }]}>
-                  {eventIsFree
-                    ? t('auth.guestHintFree')
-                    : t('auth.guestHintGeneric')}
-                </Text>
-              </View>
-              <Ionicons name="arrow-forward" size={16} color={colors.gray400} />
-            </TouchableOpacity>
-          </View>
-          )}
       </KeyboardAwareScrollView>
 
       {/* === GUEST CHECKOUT MODAL === */}
@@ -835,6 +851,14 @@ const styles = StyleSheet.create({
     paddingTop: Spacing['2xl'],
     paddingBottom: Spacing['2xl'],
     justifyContent: 'center',
+  },
+  closeButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
   },
   logoContainer: {
     alignItems: 'center',

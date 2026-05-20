@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { LoadingSpinner } from '../components/ui/LoadingOverlay';
+import BrandedSplash from '../components/ui/BrandedSplash';
 import { getLocales } from 'expo-localization';
 import { ONBOARDING_COMPLETE_KEY } from '../screens/auth/OnboardingScreen';
 import { LANGUAGE_STORAGE_KEY, changeLanguage } from '../i18n';
@@ -229,7 +230,7 @@ export default function RootNavigator() {
   // détectée depuis la locale device). On attend cette résolution avant de
   // monter la stack pour que l'onboarding s'affiche dans la bonne langue.
   if (isInitializing || checkingOnboarding || languagePicked === null) {
-    return <LoadingSpinner />;
+    return <BrandedSplash />;
   }
 
   // First-launch welcome — shown to ALL users (guest & authenticated) until completed

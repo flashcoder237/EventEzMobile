@@ -40,9 +40,6 @@ import {
   OnlinePayments,
   SaveToBookmarks,
   WellDone,
-  NewMessage,
-  Conference,
-  MyNotifications,
   type EntryPreset,
   type IdlePreset,
 } from '../../components/illustrations';
@@ -61,6 +58,8 @@ type FeatureSlide = {
   illustrationIdle: IdlePreset;
 };
 
+// 4 slides — un parcours d'intro court. Au-delà, l'utilisateur décroche
+// avant d'avoir vu le moindre vrai contenu (cf. audit UX).
 const SLIDES: FeatureSlide[] = [
   {
     id: '1',
@@ -93,30 +92,6 @@ const SLIDES: FeatureSlide[] = [
     Illustration: WellDone,
     illustrationEntry: 'bounce',
     illustrationIdle: 'breathe',
-  },
-  {
-    id: '5',
-    numeral: '05',
-    i18nKey: 'onboardingSlide5',
-    Illustration: NewMessage,
-    illustrationEntry: 'slideUp',
-    illustrationIdle: 'breathe',
-  },
-  {
-    id: '6',
-    numeral: '06',
-    i18nKey: 'onboardingSlide6',
-    Illustration: Conference,
-    illustrationEntry: 'scaleIn',
-    illustrationIdle: 'float',
-  },
-  {
-    id: '7',
-    numeral: '07',
-    i18nKey: 'onboardingSlide7',
-    Illustration: MyNotifications,
-    illustrationEntry: 'fadeIn',
-    illustrationIdle: 'sway',
   },
 ];
 
@@ -275,19 +250,20 @@ export default function OnboardingScreen({ onComplete }: Props) {
               <View style={[styles.pulseDot, { backgroundColor: colors.accent }]} />
             </View>
           </View>
-          {/* "Passer" — masqué sur le dernier slide où "Commencer" fait déjà
-              sortir. Permet à un nouvel utilisateur de rejoindre l'app sans
-              dérouler les 7 slides. */}
+          {/* "Passer" — chip visible (pas un simple texte gris), masqué sur le
+              dernier slide où "Commencer" fait déjà sortir. */}
           {!isLastSlide && (
             <Pressable
               onPress={() => completeAndExit(false)}
-              hitSlop={12}
+              hitSlop={8}
+              style={[styles.skipPill, { backgroundColor: isDark ? colors.card : '#F4F0E8' }]}
               accessibilityRole="button"
               accessibilityLabel={t('auth.onboardingSkip')}
             >
-              <Text style={[styles.skipText, { color: colors.gray500 }]}>
+              <Text style={[styles.skipText, { color: colors.gray700 }]}>
                 {t('auth.onboardingSkip')}
               </Text>
+              <Ionicons name="arrow-forward" size={13} color={colors.gray700} />
             </Pressable>
           )}
         </View>
@@ -351,12 +327,13 @@ export default function OnboardingScreen({ onComplete }: Props) {
             />
           </TouchableOpacity>
 
-          {/* Tertiary link */}
+          {/* "J'ai déjà un compte" — bouton secondaire bordé (action
+              principale pour un revenant, ne doit pas être un lien discret). */}
           <Pressable
             onPress={() => completeAndExit(true)}
-            hitSlop={12}
-            style={styles.secondaryCTA}
-            accessibilityRole="link"
+            hitSlop={8}
+            style={[styles.secondaryCTA, { borderColor: colors.primary }]}
+            accessibilityRole="button"
             accessibilityLabel={t('auth.onboardingHasAccount')}
           >
             <Text style={[styles.secondaryCTAText, { color: colors.primary }]}>
@@ -399,9 +376,17 @@ const styles = StyleSheet.create({
     fontSize: 22,
     letterSpacing: -0.6,
   },
+  skipPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+  },
   skipText: {
     fontFamily: FontFamily.semiBold,
-    fontSize: 14,
+    fontSize: 13,
     letterSpacing: 0.1,
   },
   pulseHost: {
@@ -539,12 +524,15 @@ const styles = StyleSheet.create({
   },
   secondaryCTA: {
     alignItems: 'center',
-    marginTop: 16,
-    paddingVertical: 6,
+    justifyContent: 'center',
+    marginTop: 12,
+    paddingVertical: 15,
+    borderRadius: 999,
+    borderWidth: 1.5,
   },
   secondaryCTAText: {
     fontFamily: FontFamily.semiBold,
-    fontSize: 13,
+    fontSize: 14,
     letterSpacing: 0.1,
   },
 });

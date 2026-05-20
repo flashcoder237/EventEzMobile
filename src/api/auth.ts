@@ -15,7 +15,8 @@ export const authAPI = {
 
   register: (data: {
     email: string;
-    username: string;
+    // username optionnel : le backend le dérive de l'email s'il est absent.
+    username?: string;
     password: string;
     confirm_password: string;
     first_name: string;

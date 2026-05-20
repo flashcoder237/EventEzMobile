@@ -68,19 +68,19 @@ export default function AuthGuardScreen({ illustration = 'profile', title, subti
         <Text style={[styles.subtitle, { color: colors.gray500 }]}>{displaySubtitle}</Text>
 
         <View style={styles.actions}>
-          {/* Cohérence avec LoginScreen : style éditorial pilule + eyebrow.
-              "Entrer" / "Se connecter" — même couple que le CTA du LoginScreen
-              pour une transition visuelle continue. */}
+          {/* Quelqu'un qui frappe un onglet protégé est, par défaut, un invité
+              sans compte → "Créer un compte" est le CTA primaire. "Se
+              connecter" reste accessible en secondaire pour les revenants. */}
           <EditorialButton
-            label={t('authGuard.loginCta')}
+            label={t('authGuard.registerCta')}
             eyebrow={t('componentsAuth.guardEnter')}
-            onPress={() => navigation.navigate('Login')}
+            onPress={() => navigation.navigate('Register')}
             variant="primary"
             fullWidth
           />
           <EditorialButton
-            label={t('authGuard.registerCta')}
-            onPress={() => navigation.navigate('Register')}
+            label={t('authGuard.loginCta')}
+            onPress={() => navigation.navigate('Login')}
             variant="secondary"
             fullWidth
           />
