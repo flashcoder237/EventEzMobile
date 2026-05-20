@@ -161,7 +161,9 @@ describe('EditProfileScreen', () => {
     // user.first_name + last_name + bio etc. pré-remplis
     expect(getByDisplayValue('Alice')).toBeTruthy();
     expect(getByDisplayValue('Martin')).toBeTruthy();
-    expect(getByDisplayValue('+237600112233')).toBeTruthy();
+    // PhoneNumberInput sépare l'indicatif (+237, affiché à part) du numéro
+    // national → le TextInput porte la partie nationale seule.
+    expect(getByDisplayValue('600112233')).toBeTruthy();
     // email affiché en read-only
     expect(getByText('alice@example.com')).toBeTruthy();
   });

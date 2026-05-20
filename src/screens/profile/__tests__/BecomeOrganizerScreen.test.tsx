@@ -57,9 +57,13 @@ jest.mock('../../../contexts/ThemeContext', () => ({
 }));
 
 const mockSyncUser = jest.fn();
+// User mutable, réinitialisé dans beforeEach. Permet au test de validation
+// téléphone de rendre avec un user SANS numéro : le champ PhoneNumberInput
+// est alors éditable (sinon il est verrouillé — identifiant payout du wallet).
+let mockAuthUser: any = { id: 1, email: 'a@b.com', phone: '+237600112233' };
 jest.mock('../../../contexts/AuthContext', () => ({
   useAuth: () => ({
-    user: { id: 1, email: 'a@b.com', phone: '+237600112233' },
+    user: mockAuthUser,
     syncUser: mockSyncUser,
   }),
 }));
@@ -84,6 +88,7 @@ import BecomeOrganizerScreen from '../BecomeOrganizerScreen';
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockAuthUser = { id: 1, email: 'a@b.com', phone: '+237600112233' };
 });
 
 const goNext = (getByText: any) => fireEvent.press(getByText('Continuer'));
@@ -139,6 +144,9 @@ describe('BecomeOrganizerScreen', () => {
   });
 
   it('clears phone validation error when user types', async () => {
+    // User sans téléphone → champ PhoneNumberInput éditable et vide.
+    mockAuthUser = { id: 1, email: 'a@b.com' };
+
     const { getByText, findByText, getByPlaceholderText, queryByText } = render(
       <BecomeOrganizerScreen />,
     );
@@ -148,18 +156,14 @@ describe('BecomeOrganizerScreen', () => {
     goNext(getByText); // step 3 (individual)
     await findByText('Vos informations');
 
-    // efface phone (préremplie par user.phone)
-    const phoneInput = getByPlaceholderText('Votre numéro de téléphone');
-    fireEvent.changeText(phoneInput, '');
-
+    // phone vide → validation déclenche l'erreur requise
     fireEvent.press(getByText('Continuer'));
-
     expect(await findByText('Le téléphone est requis')).toBeTruthy();
 
-    // re-saisir → l'erreur disparaît du state (pas forcément du DOM tant qu'on
-    // ne re-render pas, mais updateField la clear)
-    fireEvent.changeText(phoneInput, '+237699112233');
-    // après update, on peut re-presser Continuer pour avancer
+    // saisir un numéro → updateField efface l'erreur, on peut avancer.
+    // PhoneNumberInput ne garde que les chiffres et préfixe l'indicatif pays.
+    const phoneInput = getByPlaceholderText('Votre numéro de téléphone');
+    fireEvent.changeText(phoneInput, '699112233');
     fireEvent.press(getByText('Continuer'));
     await waitFor(() => {
       expect(queryByText('Le téléphone est requis')).toBeNull();
