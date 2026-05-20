@@ -11,12 +11,14 @@ import { render, fireEvent, waitFor } from '@testing-library/react-native';
 const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
 const mockReplace = jest.fn();
+const mockReset = jest.fn();
 
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
     navigate: mockNavigate,
     goBack: mockGoBack,
     replace: mockReplace,
+    reset: mockReset,
   }),
   useRoute: () => ({ params: {} }),
 }));
@@ -181,7 +183,43 @@ describe('RegisterScreen', () => {
     });
   });
 
-  it('navigates to VerifyEmail with skippable=true on register success', async () => {
+  it('auto-login + route vers VerifyEmail (compte non vérifié) sur succès', async () => {
+    // Le backend renvoie {access, refresh, user} dès l'inscription. Le screen
+    // établit la session puis dispatchAfterAuth route un compte non vérifié
+    // vers VerifyEmail via navigation.reset([Main, VerifyEmail]).
+    mockRegister.mockResolvedValueOnce({
+      data: {
+        email: 'alice@example.com',
+        access: 'access',
+        refresh: 'refresh',
+        user: { id: 1, email: 'alice@example.com', email_verified: false },
+      },
+    });
+    const { getByPlaceholderText, getByText } = render(<RegisterScreen />);
+
+    fillValidForm(getByPlaceholderText);
+    fireEvent.press(getByText('Créer mon compte'));
+
+    await waitFor(() => {
+      expect(mockSetUser).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, email: 'alice@example.com' }),
+      );
+    });
+    await waitFor(() => {
+      expect(mockReset).toHaveBeenCalledWith(
+        expect.objectContaining({
+          routes: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'VerifyEmail',
+              params: expect.objectContaining({ email: 'alice@example.com', skippable: true }),
+            }),
+          ]),
+        }),
+      );
+    });
+  });
+
+  it('fallback navigation.replace VerifyEmail si la réponse ne contient pas de user', async () => {
     mockRegister.mockResolvedValueOnce({ data: { email: 'alice@example.com' } });
     const { getByPlaceholderText, getByText } = render(<RegisterScreen />);
 

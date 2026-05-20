@@ -5,8 +5,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { LoadingSpinner } from '../components/ui/LoadingOverlay';
+import { getLocales } from 'expo-localization';
 import { ONBOARDING_COMPLETE_KEY } from '../screens/auth/OnboardingScreen';
-import { LANGUAGE_STORAGE_KEY } from '../i18n';
+import { LANGUAGE_STORAGE_KEY, changeLanguage } from '../i18n';
 import { navigate } from './navigationRef';
 
 // Helper : wrap un composant lazy dans un Suspense pour qu'il soit utilisable
@@ -35,7 +36,6 @@ import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 import VerifyEmailScreen from '../screens/auth/VerifyEmailScreen';
 import VerifyEmailTokenScreen from '../screens/auth/VerifyEmailTokenScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
-import LanguagePickerScreen from '../screens/auth/LanguagePickerScreen';
 
 // Event Screens
 import EventDetailsScreen from '../screens/events/EventDetailsScreen';
@@ -161,25 +161,35 @@ import WebViewScreen from '../screens/common/WebViewScreen';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
-  const { isInitializing } = useAuth();
+  const { isInitializing, isAuthenticated } = useAuth();
   const { colors } = useTheme();
   const [languagePicked, setLanguagePicked] = useState<boolean | null>(null);
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const pendingLoginRef = useRef(false);
 
-  // Check if the user has already picked a language (gate AVANT onboarding)
+  // Résolution de la langue au premier launch. Plutôt que d'imposer un écran
+  // de choix (gate plein écran), on auto-détecte la langue depuis la locale du
+  // device. L'utilisateur peut toujours la changer dans Paramètres.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const stored = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
-        if (!cancelled) setLanguagePicked(stored === 'fr' || stored === 'en');
+        if (stored === 'fr' || stored === 'en') {
+          if (!cancelled) setLanguagePicked(true);
+          return;
+        }
+        // Pas de préférence → on dérive de la locale device (fr si device en
+        // français, en sinon) et on persiste silencieusement.
+        const deviceLang = getLocales()[0]?.languageCode === 'fr' ? 'fr' : 'en';
+        await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, deviceLang);
+        await changeLanguage(deviceLang);
+        if (!cancelled) setLanguagePicked(true);
       } catch (error) {
-        if (__DEV__) console.error('[RootNavigator] Error checking language pref:', error);
-        // En cas d'erreur AsyncStorage, on suppose qu'aucun choix n'a été fait
-        // pour ne pas bloquer l'utilisateur dans l'onboarding sans avoir choisi.
-        if (!cancelled) setLanguagePicked(false);
+        if (__DEV__) console.error('[RootNavigator] Error resolving language pref:', error);
+        // En cas d'erreur, on ne bloque pas : i18n a déjà un fallback EN au boot.
+        if (!cancelled) setLanguagePicked(true);
       }
     })();
     return () => { cancelled = true; };
@@ -201,10 +211,6 @@ export default function RootNavigator() {
     return () => { cancelled = true; };
   }, []);
 
-  const handleLanguagePicked = useCallback((_lang: 'fr' | 'en') => {
-    setLanguagePicked(true);
-  }, []);
-
   const handleOnboardingComplete = useCallback((goToLogin?: boolean) => {
     pendingLoginRef.current = !!goToLogin;
     setShowOnboarding(false);
@@ -219,15 +225,11 @@ export default function RootNavigator() {
     }
   }, [showOnboarding]);
 
+  // languagePicked passe de null → true une fois la langue résolue (auto-
+  // détectée depuis la locale device). On attend cette résolution avant de
+  // monter la stack pour que l'onboarding s'affiche dans la bonne langue.
   if (isInitializing || checkingOnboarding || languagePicked === null) {
     return <LoadingSpinner />;
-  }
-
-  // First-launch language picker — shown ONCE before onboarding.
-  // Gate volontairement avant l'onboarding pour que tous les écrans suivants
-  // (incl. onboarding) s'affichent dans la langue choisie par l'utilisateur.
-  if (!languagePicked) {
-    return <LanguagePickerScreen onComplete={handleLanguagePicked} />;
   }
 
   // First-launch welcome — shown to ALL users (guest & authenticated) until completed
@@ -248,23 +250,31 @@ export default function RootNavigator() {
       {/* Main tabs — always accessible (guest & authenticated) */}
       <Stack.Screen name="Main" component={MainTabNavigator} />
 
-      {/* Auth Screens — accessible as modal from anywhere */}
-      <Stack.Screen
-        name="Login"
-        component={LoginScreen}
-        options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
-      />
-      <Stack.Screen
-        name="Register"
-        component={RegisterScreen}
-        options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
-      />
-      <Stack.Screen name="RegisterOrganizer" component={RegisterOrganizerScreen} />
-      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-      <Stack.Screen
-        name="ResetPassword"
-        component={ResetPasswordScreen}
-      />
+      {/* Auth Screens — réservés aux visiteurs non connectés. Un utilisateur
+          authentifié n'a aucune raison d'atteindre connexion / inscription /
+          réinitialisation de mot de passe : on retire ces écrans du navigateur
+          tant qu'il est connecté. Les deep links vers ces routes deviennent
+          alors inopérants quand le user est connecté — comportement voulu. */}
+      {!isAuthenticated && (
+        <>
+          <Stack.Screen
+            name="Login"
+            component={LoginScreen}
+            options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="Register"
+            component={RegisterScreen}
+            options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
+          />
+          <Stack.Screen name="RegisterOrganizer" component={RegisterOrganizerScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+          <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+        </>
+      )}
+
+      {/* Vérification d'email — accessible même connecté : un compte peut être
+          authentifié mais non vérifié. */}
       <Stack.Screen
         name="VerifyEmail"
         component={VerifyEmailScreen}

@@ -28,7 +28,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
-import { authAPI } from '../../api';
+import { authAPI, setTokens } from '../../api';
 import { extractErrorMessage } from '../../lib/utils/errorHandling';
 import { validators } from '../../lib/validation';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
@@ -204,15 +204,31 @@ export default function RegisterScreen() {
       });
       setIsSubmitting(false);
       const targetEmail = response.data?.email ?? formData.email.trim().toLowerCase();
-      // Navigation vers VerifyEmail. On passe `skippable=true` pour que l'utilisateur
-      // puisse explorer l'app sans verifier tout de suite (la verification reste
-      // obligatoire pour acheter un billet — les bandeaux UI le rappellent ailleurs).
-      navigation.replace('VerifyEmail', {
-        email: targetEmail,
-        skippable: true,
-        returnScreen,
-        returnParams,
-      });
+
+      // Auto-login soft : le backend renvoie {access, refresh, user} dès
+      // l'inscription. On établit la session pour que l'utilisateur soit
+      // déjà connecté — puis dispatchAfterAuth route comme pour un login
+      // normal (compte non vérifié → VerifyEmail skippable). Flux post-auth
+      // unifié : login, register participant et register organisateur
+      // passent tous par dispatchAfterAuth.
+      const { access, refresh, user } = response.data || {};
+      if (access && refresh) {
+        await setTokens(access, refresh);
+      }
+      if (user) {
+        await setUser(user);
+      }
+      if (user) {
+        dispatchAfterAuth(navigation, user, returnScreen, returnParams);
+      } else {
+        // Réponse sans user (rare) : fallback sur le flux legacy.
+        navigation.replace('VerifyEmail', {
+          email: targetEmail,
+          skippable: true,
+          returnScreen,
+          returnParams,
+        });
+      }
     } catch (error: any) {
       setIsSubmitting(false);
       const message = extractErrorMessage(error);
