@@ -20,7 +20,7 @@ import {
   PAYMENT_TOUR_STORAGE_KEY,
   PAYMENT_TOUR_DELAY_MS,
 } from '../../components/tour';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
@@ -313,7 +313,7 @@ export default function PaymentScreen() {
   // Payment tour fires once methods are loaded — targets the first method
   // card and the bottom pay CTA. Skip while processing/cancelling because
   // the form (including both targets) is swapped out for a status screen.
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (loading || methodsLoading || dynamicMethods.length === 0) return;
     if (processing || cancelling) return;
     const timer = setTimeout(() => {
@@ -322,7 +322,7 @@ export default function PaymentScreen() {
     }, PAYMENT_TOUR_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, methodsLoading, dynamicMethods.length, processing, cancelling]);
+  }, [loading, methodsLoading, dynamicMethods.length, processing, cancelling]));
   // Pays du payeur : choix manuel (AsyncStorage) > locale device > pays événement
   const [payerCountry, setPayerCountry] = useState<string>(() => {
     const detected = detectUserCountry();
@@ -714,7 +714,8 @@ export default function PaymentScreen() {
     // Validation stricte seulement pour le Cameroun (on a les patterns connus)
     if (countryConfig?.country_code === 'CM' || !countryConfig) {
       if (method === 'mtn_money') {
-        if (!numberWithoutPrefix.match(/^(6[78]\d|7[78]\d|65[0-4])\d{6}$/)) {
+        // CM : MTN = 67x, 680-684, 650-654 (685-689 appartient a Orange).
+        if (!numberWithoutPrefix.match(/^(67\d|68[0-4]|65[0-4])\d{6}$/)) {
           showError(
             t('payment.paymentInvalidMTN'),
             t('payment.paymentMTNValidationHint')
@@ -723,7 +724,8 @@ export default function PaymentScreen() {
         }
       }
       if (method === 'orange_money') {
-        if (!numberWithoutPrefix.match(/^(65[5-9]|69\d|5[59]\d)\d{6}$/)) {
+        // CM : Orange = 69x, 685-689, 655-659.
+        if (!numberWithoutPrefix.match(/^(65[5-9]|68[5-9]|69\d)\d{6}$/)) {
           showError(
             t('payment.paymentInvalidOrange'),
             t('payment.paymentOrangeValidationHint')

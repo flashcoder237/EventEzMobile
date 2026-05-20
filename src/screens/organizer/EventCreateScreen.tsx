@@ -10,7 +10,7 @@ import {
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -67,7 +67,7 @@ export default function EventCreateScreen() {
   // Event create tour — skipped in edit mode (existing event being edited)
   // and when hydrating from a draft (user has been here before). Single step
   // pointing at the progress bar to communicate the wizard structure.
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (isEditing || draftId) return;
     const timer = setTimeout(() => {
       if (tour.isActive) return;
@@ -75,7 +75,7 @@ export default function EventCreateScreen() {
     }, EVENT_CREATE_TOUR_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditing, draftId]);
+  }, [isEditing, draftId]));
   const canvasBg = isDark ? colors.background : CANVAS_LIGHT;
   const watermarkColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(17,17,16,0.04)';
   const barDim = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(17,17,16,0.08)';

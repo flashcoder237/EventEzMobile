@@ -87,14 +87,14 @@ export default function MyEventsScreen() {
   // covers the bottom nav separately; this one focuses on this screen's
   // organizer-specific actions. The isActive check avoids stomping on the
   // mainTabs tour if a deep link brings the user straight here.
-  React.useEffect(() => {
+  useFocusEffect(useCallback(() => {
     const timer = setTimeout(() => {
       if (tour.isActive) return;
       tour.start(getOrganizerTourSteps(t), { seenKey: ORGANIZER_TOUR_STORAGE_KEY });
     }, ORGANIZER_TOUR_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []));
   const statusConfig: Record<string, { color: string; label: string; icon: keyof typeof Ionicons.glyphMap }> = useMemo(() => ({
     draft: { ...statusColorIcon.draft, label: t('organizer.myEvents.statusDraft') },
     submitted: { ...statusColorIcon.submitted, label: t('organizer.myEvents.statusSubmitted') },

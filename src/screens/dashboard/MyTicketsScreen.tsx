@@ -327,7 +327,7 @@ export default function MyTicketsScreen() {
 
   // Mini-tour fires after main-tabs-tour AND once the header is rendered
   // (the target lives in the header which is hidden while `loading` is true).
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (loading) return;
     const timer = setTimeout(async () => {
       if (tour.isActive) return;
@@ -341,7 +341,7 @@ export default function MyTicketsScreen() {
     }, TICKETS_TOUR_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading]);
+  }, [loading]));
 
   // Reset le drapeau d'auto-redirect quand on repasse online — comme ca si la
   // connexion retombe plus tard, on redirige a nouveau.

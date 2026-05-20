@@ -12,7 +12,7 @@ import {
   Share,
 } from 'react-native';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -225,7 +225,7 @@ export default function DiscoverScreen() {
   // Discover mini-tour — fires after main-tabs-tour AND once initial data has
   // loaded (both targets are inside `{!initialLoading && ...}`; the categories
   // chip is additionally gated on `categories.length > 0`).
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (initialLoading || categories.length === 0) return;
     const timer = setTimeout(async () => {
       if (tour.isActive) return;
@@ -239,7 +239,7 @@ export default function DiscoverScreen() {
     }, DISCOVER_TOUR_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialLoading, categories.length]);
+  }, [initialLoading, categories.length]));
 
   // === "Pour vous" : section paginée infinite-scroll en bas du feed ===
   // Distincte de `recommendations` (top, limit=10) — celle-ci pagine sans

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import { useTranslation } from 'react-i18next';
 import ImageView from 'react-native-image-viewing';
 import { DEFAULT_BLUR_DATA_URL } from '../../utils/imageUtils';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { RouteProp, useRoute } from '@react-navigation/native';
+import { RouteProp, useRoute, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -369,7 +369,7 @@ export default function EventDetailsScreen() {
   // their own event doesn't need the tour). Gated on loaded event so the
   // sticky CTA target exists.
   const tour = useTour();
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (isPreview || loading || !event) return;
     const timer = setTimeout(() => {
       if (tour.isActive) return;
@@ -377,7 +377,7 @@ export default function EventDetailsScreen() {
     }, EVENT_DETAILS_TOUR_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPreview, loading, !!event]);
+  }, [isPreview, loading, !!event]));
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

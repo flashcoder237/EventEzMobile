@@ -62,7 +62,8 @@ export default function TourOverlay() {
   // Measure target on every step change
   const [measurement, setMeasurement] = useState<TourTargetMeasurement | null>(null);
   const [measureError, setMeasureError] = useState(false);
-  const measureAttemptRef = useRef(0);
+  // True dès qu'une mesure valide a été obtenue pour le step courant.
+  const hasMeasuredRef = useRef(false);
 
   // Reanimated shared values
   const overlayOpacity = useSharedValue(0);
@@ -78,21 +79,10 @@ export default function TourOverlay() {
 
   const measureTarget = useCallback(() => {
     if (!step) return;
-    measureAttemptRef.current += 1;
-    const attempt = measureAttemptRef.current;
     const ref = tourCtx.__getRef(step.id);
-
-    if (!ref || !ref.current) {
-      // Retry up to 5 times with backoff — sometimes the layout isn't ready yet
-      if (attempt < 5) {
-        setTimeout(() => {
-          if (measureAttemptRef.current === attempt) measureTarget();
-        }, 80 * attempt);
-      } else {
-        setMeasureError(true);
-      }
-      return;
-    }
+    // Cible pas encore montée (montage tardif, navigation, composant lazy) →
+    // le polling ci-dessous réessaiera au prochain tick.
+    if (!ref || !ref.current) return;
 
     // Utiliser `measure` (PAS measureInWindow) car son `pageX/pageY` est
     // relatif au RN root view — meme coordinate system que notre overlay
@@ -107,32 +97,43 @@ export default function TourOverlay() {
         pageX: number,
         pageY: number,
       ) => {
-        // measure peut renvoyer 0/0/0/0 juste apres layout — retry si invalide
-        if (width === 0 && height === 0 && attempt < 5) {
-          setTimeout(() => {
-            if (measureAttemptRef.current === attempt) measureTarget();
-          }, 80 * attempt);
-          return;
-        }
-        setMeasurement({ x: pageX, y: pageY, width, height });
+        // Layout pas encore posé (0x0) → on réessaiera au prochain tick.
+        if (width === 0 && height === 0) return;
+        hasMeasuredRef.current = true;
         setMeasureError(false);
+        // Bail-out si rien n'a bougé : évite un re-render inutile à chaque
+        // tick de polling quand la cible est statique.
+        setMeasurement((prev) =>
+          prev &&
+          prev.x === pageX &&
+          prev.y === pageY &&
+          prev.width === width &&
+          prev.height === height
+            ? prev
+            : { x: pageX, y: pageY, width, height },
+        );
       },
     );
   }, [step, tourCtx]);
 
-  // Trigger measure on step change
+  // Mesure en POLLING tant que le step est affiché. Résout :
+  //  (#1) cible pas encore montée au lancement → on attend qu'elle apparaisse ;
+  //  (#3) cible qui se déplace (scroll) → le spotlight la suit.
   useEffect(() => {
     setMeasurement(null);
-    measureAttemptRef.current = 0;
-    // Petit delay + double rAF pour s'assurer que le layout (Yoga) est
-    // completement appose ET que les transformations Reanimated sont commit
-    // sur le UI thread avant de mesurer.
-    const timer = setTimeout(() => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(measureTarget);
-      });
-    }, 80);
-    return () => clearTimeout(timer);
+    setMeasureError(false);
+    hasMeasuredRef.current = false;
+    const interval = setInterval(measureTarget, 150);
+    // Filet de sécurité : si rien n'a pu être mesuré après 6s, on passe en
+    // mode dégradé (bulle centrée + hint) au lieu de rester bloqué. Le
+    // polling continue : si la cible apparaît plus tard, on récupère.
+    const errorTimer = setTimeout(() => {
+      if (!hasMeasuredRef.current) setMeasureError(true);
+    }, 6000);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(errorTimer);
+    };
   }, [currentIndex, measureTarget]);
 
   // Entrance animation

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
   FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
@@ -105,7 +105,7 @@ export default function WalletScreen() {
   // Wallet tour fires once wallet data has loaded — the 3 targets all live
   // inside the overview tab so we also gate on `activeTab === 'overview'`.
   const tour = useTour();
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (loading || !wallet || activeTab !== 'overview') return;
     const timer = setTimeout(() => {
       if (tour.isActive) return;
@@ -113,7 +113,7 @@ export default function WalletScreen() {
     }, WALLET_TOUR_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, !!wallet, activeTab]);
+  }, [loading, !!wallet, activeTab]));
 
   // Payout modal states
   const [showPayoutModal, setShowPayoutModal] = useState(false);

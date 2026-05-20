@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -132,7 +132,7 @@ export default function TicketPurchaseScreen() {
   // Purchase tour fires once tickets are loaded — targets the first ticket
   // card and the discount input. Skipped in edit/additional modes where
   // the user already knows the screen.
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (loading || ticketTypes.length === 0 || isEditMode || isAdditionalMode) return;
     const timer = setTimeout(() => {
       if (tour.isActive) return;
@@ -140,7 +140,7 @@ export default function TicketPurchaseScreen() {
     }, TICKET_PURCHASE_TOUR_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, ticketTypes.length, isEditMode, isAdditionalMode]);
+  }, [loading, ticketTypes.length, isEditMode, isAdditionalMode]));
 
   // Commission config dynamique par pays — la commission backend varie selon la
   // zone (CommissionConfig par country_code), il faut donc fournir le pays de

@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -131,7 +131,7 @@ export default function QRScannerScreen() {
   // Scanner tour fires once the camera permission is granted — before that,
   // the screen renders a loading spinner or permission-denied page and the
   // scan-frame target isn't mounted (would error "élément introuvable").
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (!permission?.granted) return;
     const timer = setTimeout(() => {
       if (tour.isActive) return;
@@ -139,7 +139,7 @@ export default function QRScannerScreen() {
     }, SCANNER_TOUR_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [permission?.granted]);
+  }, [permission?.granted]));
 
   // Mode de scan : entrée principale (registration check-in) ou session (présence)
   // Géré par un sélecteur en haut de l'écran. Les sessions sont chargées au mount.

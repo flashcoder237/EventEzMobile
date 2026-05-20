@@ -2,6 +2,7 @@ import React, { useEffect, useRef, memo, useCallback } from 'react';
 import { View, StyleSheet, Platform, Pressable, Text, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
@@ -559,13 +560,13 @@ export default function MainTabNavigator() {
 
   // Auto-start the feature tour on the first authenticated MainTab mount.
   // The seenKey persists in AsyncStorage — won't re-trigger on subsequent boots.
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     const timer = setTimeout(() => {
       tour.start(getMainTabsTourSteps(t), { seenKey: MAIN_TABS_TOUR_STORAGE_KEY });
     }, MAIN_TABS_TOUR_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []));
 
   return (
     <Tab.Navigator
