@@ -15,6 +15,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { Platform, AppState } from 'react-native';
 import { getAccessToken, ensureFreshAccessToken } from '../api';
+import { isJWTExpired } from '../lib/utils/jwt';
 import { eventBus } from '../lib/eventBus';
 import type { Notification as NotifModel } from '../types';
 
@@ -83,8 +84,15 @@ export function useNotificationWebSocket({
 
     isConnectingRef.current = true;
 
+    // getAccessToken() lit le token stocké SANS vérifier son expiration.
+    // Se connecter avec un token expiré (durée de vie 15 min) → le consumer
+    // backend ferme la socket AVANT accept() → le client reçoit le code
+    // 1006 (abnormal closure) et non 4401, donc la branche de refresh sur
+    // 4401 dans onclose ne se déclenche jamais → boucle de reconnexion
+    // infinie avec le même token mort. On rafraîchit donc proactivement
+    // si le token est expiré ou expire dans les 30 s.
     let token = await getAccessToken();
-    if (!token) {
+    if (!token || isJWTExpired(token, 30)) {
       token = await ensureFreshAccessToken();
     }
     if (!token) {
