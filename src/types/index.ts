@@ -14,7 +14,7 @@ export type UserRole = 'user' | 'organizer' | 'moderator' | 'admin';
 export type OrganizerType = 'individual' | 'organization';
 
 // Fournisseurs d'authentification (accounts.User.AUTH_PROVIDER_CHOICES)
-export type AuthProvider = 'email' | 'google' | 'apple';
+export type AuthProvider = 'email' | 'google' | 'apple' | 'phone';
 
 // ============================================
 // USER & AUTHENTICATION TYPES
@@ -53,6 +53,9 @@ export interface User {
   show_read_receipts?: boolean;
   // Authentification sociale
   auth_provider?: AuthProvider;
+  // False pour les comptes Google/Apple/téléphone (pas de mot de passe
+  // utilisable). Détermine le mode de confirmation à la suppression de compte.
+  has_password?: boolean;
   // Parametres de notification
   email_notifications?: boolean;
   push_notifications?: boolean;

@@ -156,7 +156,9 @@ export const usersAPI = {
   updateLanguage: (lang: 'fr' | 'en') =>
     api.patch('/users/me/language/', { language: lang }),
 
-  deleteAccount: (data: { password: string; reason?: string }) =>
+  // password : comptes email ; confirmation (email/numéro) : comptes
+  // Google/Apple/téléphone sans mot de passe utilisable.
+  deleteAccount: (data: { password?: string; confirmation?: string; reason?: string }) =>
     api.post('/users/me/delete_account/', data),
 
   // Organisateurs

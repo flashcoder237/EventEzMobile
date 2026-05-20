@@ -173,11 +173,16 @@ export default function BecomeOrganizerScreen() {
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const progressAnim = useRef(new Animated.Value(1)).current;
 
+  // Numéro de téléphone déjà associé au compte (champ backend = phone_number ;
+  // `phone` n'est qu'un alias client parfois absent). S'il existe, le champ
+  // est prérempli et verrouillé : c'est l'identifiant de payout du wallet.
+  const existingUserPhone = user?.phone_number || user?.phone || '';
+
   const [formData, setFormData] = useState<FormData>({
     organizer_type: 'individual',
     company_name: '',
     registration_number: '',
-    phone: user?.phone || '',
+    phone: existingUserPhone,
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -459,6 +464,7 @@ export default function BecomeOrganizerScreen() {
             label={t('becomeOrganizerForm.labelPhone')}
             error={errors.phone}
             placeholder={t('becomeOrganizerForm.placeholderPhone')}
+            disabled={!!existingUserPhone}
           />
         </View>
       </View>

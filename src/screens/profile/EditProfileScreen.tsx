@@ -21,6 +21,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import PhoneNumberInput from '../../components/common/PhoneNumberInput';
+import { extractErrorMessage } from '../../lib/utils/errorHandling';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import { usersAPI } from '../../api';
 import { RootStackParamList } from '../../types';
@@ -209,8 +210,7 @@ export default function EditProfileScreen() {
     } catch (error: any) {
       if (__DEV__) console.error('Erreur upload image:', error);
       setProfileImage(user?.profile_picture || user?.image || null);
-      const detail = error.response?.data?.detail || error.message || '';
-      showError(t('common.error'), `${t('editProfile.photoUpdateError')} ${detail}`);
+      showError(t('common.error'), extractErrorMessage(error));
     }
   };
 
@@ -242,7 +242,9 @@ export default function EditProfileScreen() {
       showSuccess(t('editProfile.successLabel'), t('editProfile.profileUpdated'));
     } catch (error: any) {
       if (__DEV__) console.error('Erreur mise à jour profil:', error);
-      showError(t('common.error'), error.response?.data?.detail || t('editProfile.profileUpdateError'));
+      // extractErrorMessage gère les erreurs de CHAMP DRF ({"phone_number": [...]}),
+      // pas seulement `detail` — sinon l'utilisateur voit un message générique.
+      showError(t('common.error'), extractErrorMessage(error));
     } finally {
       setSaving(false);
     }
@@ -284,10 +286,7 @@ export default function EditProfileScreen() {
       setConfirmPassword('');
     } catch (error: any) {
       if (__DEV__) console.error('Erreur changement mot de passe:', error);
-      showError(
-        t('common.error'),
-        error.response?.data?.detail || t('editProfile.passwordChangeError')
-      );
+      showError(t('common.error'), extractErrorMessage(error));
     } finally {
       setSaving(false);
     }

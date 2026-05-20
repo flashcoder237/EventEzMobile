@@ -48,6 +48,8 @@ interface Props {
   error?: string;
   /** Placeholder du champ numéro. */
   placeholder?: string;
+  /** Si true : champ verrouillé (sélecteur pays + numéro non modifiables). */
+  disabled?: boolean;
 }
 
 const DEFAULT_COUNTRY_CODE = 'CM';
@@ -69,6 +71,7 @@ export default function PhoneNumberInput({
   label,
   error,
   placeholder,
+  disabled,
 }: Props) {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation();
@@ -143,7 +146,7 @@ export default function PhoneNumberInput({
         style={[
           styles.row,
           {
-            backgroundColor: colors.gray50,
+            backgroundColor: disabled ? colors.gray100 : colors.gray50,
             borderColor: error ? colors.error : colors.gray200,
           },
         ]}
@@ -151,25 +154,37 @@ export default function PhoneNumberInput({
         <TouchableOpacity
           style={[styles.countryBtn, { borderRightColor: colors.gray200 }]}
           onPress={() => setPickerOpen(true)}
+          disabled={disabled}
           activeOpacity={0.7}
           accessibilityRole="button"
+          accessibilityState={{ disabled: !!disabled }}
           accessibilityLabel={t('phoneInput.selectCountry')}
         >
           <Text style={styles.flag}>{flagEmoji(country.code)}</Text>
           <Text style={[styles.dial, { color: colors.gray900 }]}>+{country.dial}</Text>
-          <Ionicons name="chevron-down" size={14} color={colors.gray400} />
+          {!disabled && <Ionicons name="chevron-down" size={14} color={colors.gray400} />}
         </TouchableOpacity>
 
         <TextInput
           style={[styles.input, { color: colors.gray900 }]}
           value={national}
           onChangeText={handleNational}
+          editable={!disabled}
           placeholder={placeholder ?? t('phoneInput.placeholder')}
           placeholderTextColor={colors.gray400}
           keyboardType="phone-pad"
           autoComplete="tel"
           accessibilityLabel={label ?? t('phoneInput.placeholder')}
         />
+
+        {disabled && (
+          <Ionicons
+            name="lock-closed"
+            size={15}
+            color={colors.gray400}
+            style={styles.lockIcon}
+          />
+        )}
       </View>
 
       {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
@@ -271,6 +286,9 @@ const styles = StyleSheet.create({
   dial: {
     fontFamily: FontFamily.semiBold,
     fontSize: 14,
+  },
+  lockIcon: {
+    paddingRight: Spacing.md,
   },
   input: {
     flex: 1,

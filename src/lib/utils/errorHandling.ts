@@ -11,6 +11,7 @@ interface ApiErrorData {
   password?: string | string[];
   username?: string | string[];
   phone?: string | string[];
+  phone_number?: string | string[];
   first_name?: string | string[];
   last_name?: string | string[];
   non_field_errors?: string[];
@@ -34,7 +35,7 @@ export function extractErrorMessage(error: any): string {
 
     // Erreurs de champs specifiques
     const fieldErrors = [
-      'email', 'password', 'username', 'phone',
+      'email', 'password', 'username', 'phone', 'phone_number',
       'first_name', 'last_name', 'content', 'title'
     ];
 

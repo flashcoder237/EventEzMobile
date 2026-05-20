@@ -334,7 +334,18 @@ export default function SettingsScreen() {
   const [saving, setSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [deleteReason, setDeleteReason] = useState('');
+
+  // Mode de confirmation de suppression de compte : mot de passe pour les
+  // comptes email, saisie de l'email/numéro pour les comptes Google/Apple/
+  // téléphone (sans mot de passe utilisable). has_password peut être absent
+  // d'un cache user ancien → repli sur "mot de passe" (le plus sûr).
+  const accountHasPassword = user?.has_password !== false;
+  const deleteConfirmTarget =
+    user?.auth_provider === 'phone'
+      ? user?.phone_number || user?.email || ''
+      : user?.email || '';
 
   // Search bar — filters both individual settings rows and entire sections.
   // `isSearching` is just a convenience for conditional rendering downstream.
@@ -548,14 +559,18 @@ export default function SettingsScreen() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!deletePassword) {
-      showError(t('common.error'), t('settings.passwordRequired'));
+    if (accountHasPassword) {
+      if (!deletePassword) {
+        showError(t('common.error'), t('settings.passwordRequired'));
+        return;
+      }
+    } else if (!deleteConfirmation.trim()) {
+      showError(t('common.error'), t('settings.deleteConfirmRequired'));
       return;
     }
 
-    // Double-barrière : password (savoir) + biométrique (être). Critique pour
-    // une action irréversible. Catégorie 'account' — l'user peut désactiver
-    // dans Settings s'il préfère ne se reposer que sur le password.
+    // Double-barrière : password/confirmation (savoir) + biométrique (être).
+    // Critique pour une action irréversible. Catégorie 'account'.
     const confirmed = await biometric.confirm({
       promptMessage: t('settings.biometricPrompt'),
       category: 'account',
@@ -565,7 +580,9 @@ export default function SettingsScreen() {
     setSaving(true);
     try {
       await usersAPI.deleteAccount({
-        password: deletePassword,
+        ...(accountHasPassword
+          ? { password: deletePassword }
+          : { confirmation: deleteConfirmation.trim() }),
         reason: deleteReason,
       });
       setShowDeleteModal(false);
@@ -1468,22 +1485,49 @@ export default function SettingsScreen() {
                   textAlignVertical="top"
                 />
 
-                <Text style={[styles.inputLabel, { color: eyebrowColor }]}>{t('settings.passwordLabel')}</Text>
-                <TextInput
-                  style={[
-                    styles.modalInput,
-                    {
-                      backgroundColor: isDark ? colors.gray100 : colors.gray50,
-                      borderColor: isDark ? colors.gray200 : colors.gray100,
-                      color: colors.text,
-                    },
-                  ]}
-                  value={deletePassword}
-                  onChangeText={setDeletePassword}
-                  placeholder={t('settings.passwordPlaceholder')}
-                  placeholderTextColor={colors.gray400}
-                  secureTextEntry
-                />
+                {accountHasPassword ? (
+                  <>
+                    <Text style={[styles.inputLabel, { color: eyebrowColor }]}>{t('settings.passwordLabel')}</Text>
+                    <TextInput
+                      style={[
+                        styles.modalInput,
+                        {
+                          backgroundColor: isDark ? colors.gray100 : colors.gray50,
+                          borderColor: isDark ? colors.gray200 : colors.gray100,
+                          color: colors.text,
+                        },
+                      ]}
+                      value={deletePassword}
+                      onChangeText={setDeletePassword}
+                      placeholder={t('settings.passwordPlaceholder')}
+                      placeholderTextColor={colors.gray400}
+                      secureTextEntry
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Text style={[styles.inputLabel, { color: eyebrowColor }]}>{t('settings.deleteConfirmLabel')}</Text>
+                    <Text style={[styles.deleteConfirmHint, { color: colors.gray500 }]}>
+                      {t('settings.deleteConfirmInstruction', { value: deleteConfirmTarget })}
+                    </Text>
+                    <TextInput
+                      style={[
+                        styles.modalInput,
+                        {
+                          backgroundColor: isDark ? colors.gray100 : colors.gray50,
+                          borderColor: isDark ? colors.gray200 : colors.gray100,
+                          color: colors.text,
+                        },
+                      ]}
+                      value={deleteConfirmation}
+                      onChangeText={setDeleteConfirmation}
+                      placeholder={deleteConfirmTarget}
+                      placeholderTextColor={colors.gray400}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </>
+                )}
               </View>
 
               <View style={styles.modalFooter}>
@@ -1498,6 +1542,7 @@ export default function SettingsScreen() {
                   onPress={() => {
                     setShowDeleteModal(false);
                     setDeletePassword('');
+                    setDeleteConfirmation('');
                     setDeleteReason('');
                   }}
                 >
@@ -1758,6 +1803,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: Spacing.xs,
     marginTop: Spacing.md,
+  },
+  deleteConfirmHint: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: Spacing.sm,
   },
   modalInput: {
     borderRadius: 14,
