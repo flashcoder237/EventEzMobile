@@ -20,9 +20,10 @@ export interface SavedPaymentMethod {
   createdAt: number;
 }
 
-// Helpers pour déterminer le type depuis le numéro
-const getMtnPrefixes = () => ['67', '68', '77', '78', '650', '651', '652', '653', '654'];
-const getOrangePrefixes = () => ['69', '655', '656', '657', '658', '659', '55', '59'];
+// Helpers pour déterminer le type depuis le numéro (Cameroun).
+// Attention au préfixe 68 : 680-684 = MTN, 685-689 = Orange.
+const getMtnPrefixes = () => ['67', '680', '681', '682', '683', '684', '650', '651', '652', '653', '654'];
+const getOrangePrefixes = () => ['69', '685', '686', '687', '688', '689', '655', '656', '657', '658', '659'];
 
 export function detectPaymentType(phoneNumber: string): PaymentMethodType | null {
   const cleanNumber = phoneNumber.replace(/\s/g, '');
