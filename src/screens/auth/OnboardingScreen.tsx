@@ -266,13 +266,30 @@ export default function OnboardingScreen({ onComplete }: Props) {
       <View style={styles.safeContent}>
         {/* === HEADER === */}
         <View style={styles.header}>
-          <Text style={[styles.wordmark, { color: colors.primary }]}>EventEz</Text>
-          <View style={styles.pulseHost}>
-            <Animated.View
-              style={[styles.pulseRing, { backgroundColor: colors.accent }, pulseStyle]}
-            />
-            <View style={[styles.pulseDot, { backgroundColor: colors.accent }]} />
+          <View style={styles.headerLeft}>
+            <Text style={[styles.wordmark, { color: colors.primary }]}>EventEz</Text>
+            <View style={styles.pulseHost}>
+              <Animated.View
+                style={[styles.pulseRing, { backgroundColor: colors.accent }, pulseStyle]}
+              />
+              <View style={[styles.pulseDot, { backgroundColor: colors.accent }]} />
+            </View>
           </View>
+          {/* "Passer" — masqué sur le dernier slide où "Commencer" fait déjà
+              sortir. Permet à un nouvel utilisateur de rejoindre l'app sans
+              dérouler les 7 slides. */}
+          {!isLastSlide && (
+            <Pressable
+              onPress={() => completeAndExit(false)}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={t('auth.onboardingSkip')}
+            >
+              <Text style={[styles.skipText, { color: colors.gray500 }]}>
+                {t('auth.onboardingSkip')}
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         {/* === FEATURE PAGER (full-bleed cards with hero illustration) === */}
@@ -372,10 +389,20 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 4,
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   wordmark: {
     fontFamily: FontFamily.displayExtraBold,
     fontSize: 22,
     letterSpacing: -0.6,
+  },
+  skipText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 14,
+    letterSpacing: 0.1,
   },
   pulseHost: {
     width: 8,

@@ -5,6 +5,7 @@ import {
   TextInput,
   StyleSheet,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -14,7 +15,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useGoogleAuth, useAppleAuth } from '../../hooks/useSocialAuth';
+import { dispatchAfterAuth } from '../../lib/utils/authNavigation';
 import { RootStackParamList } from '../../types';
 import {
   Colors,
@@ -90,6 +94,7 @@ export default function RegisterScreen() {
   const { returnScreen, returnParams } = route.params || {};
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showError } = useAlert();
+  const { setUser } = useAuth();
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
@@ -106,6 +111,17 @@ export default function RegisterScreen() {
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
+  const {
+    signIn: googleSignIn,
+    isLoading: googleLoading,
+    isReady: googleReady,
+  } = useGoogleAuth();
+  const {
+    signIn: appleSignIn,
+    isLoading: appleLoading,
+    isAvailable: appleAvailable,
+  } = useAppleAuth();
+
   const updateField = (field: keyof FormData, value: string) => {
     setFormData({ ...formData, [field]: value });
     if (errors[field]) {
@@ -113,11 +129,39 @@ export default function RegisterScreen() {
     }
   };
 
+  // Pré-remplit le username depuis l'email tant que l'utilisateur n'y a pas
+  // touché. Le champ reste OPTIONNEL : si laissé vide, le backend dérive un
+  // username unique automatiquement (cf. generate_unique_username).
   const handleEmailChange = (email: string) => {
-    updateField('email', email);
     if (!formData.username && email.includes('@')) {
       const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
       setFormData((prev) => ({ ...prev, email, username }));
+      if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+    } else {
+      updateField('email', email);
+    }
+  };
+
+  // Inscription sociale = compte cree + connecte en un tap. dispatchAfterAuth
+  // route ensuite vers returnScreen / Main (les comptes Google/Apple sont
+  // verifies d'office, pas de passage par VerifyEmail).
+  const handleGoogleSignUp = async () => {
+    const result = await googleSignIn();
+    if (result.success && result.user) {
+      await setUser(result.user);
+      dispatchAfterAuth(navigation, result.user, returnScreen, returnParams);
+    } else if (result.error && result.error !== 'Connexion annulée') {
+      showError(t('auth.googleError'), result.error);
+    }
+  };
+
+  const handleAppleSignUp = async () => {
+    const result = await appleSignIn();
+    if (result.success && result.user) {
+      await setUser(result.user);
+      dispatchAfterAuth(navigation, result.user, returnScreen, returnParams);
+    } else if (result.error && result.error !== 'Connexion annulée') {
+      showError(t('auth.appleError'), result.error);
     }
   };
 
@@ -127,8 +171,12 @@ export default function RegisterScreen() {
     if (firstNameError) newErrors.first_name = firstNameError;
     const lastNameError = validators.required(formData.last_name, t('auth.lastName'));
     if (lastNameError) newErrors.last_name = lastNameError;
-    const usernameError = validators.username(formData.username, 3);
-    if (usernameError) newErrors.username = usernameError;
+    // Username OPTIONNEL : on ne valide le format que si l'utilisateur a
+    // saisi quelque chose. Vide → le backend génère un username unique.
+    if (formData.username.trim()) {
+      const usernameError = validators.username(formData.username, 3);
+      if (usernameError) newErrors.username = usernameError;
+    }
     const emailError = validators.email(formData.email);
     if (emailError) newErrors.email = emailError;
     const passwordError = validators.password(formData.password, 8);
@@ -144,6 +192,7 @@ export default function RegisterScreen() {
     setIsSubmitting(true);
     try {
       // Appel API direct (pas AuthContext.register() qui set isLoading → unmount navigator)
+      // username envoyé seulement si saisi — sinon le backend le dérive de l'email.
       const response = await authAPI.register({
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
@@ -306,9 +355,9 @@ export default function RegisterScreen() {
               </View>
             </View>
 
-            {/* Username */}
+            {/* Username — optionnel, pré-rempli depuis l'email */}
             <View style={styles.inputContainer}>
-              {renderInput('username', t('auth.username'), 'at-outline')}
+              {renderInput('username', t('auth.usernameOptional'), 'at-outline')}
               {errors.username && (
                 <Text style={[styles.fieldError, { color: colors.error }]}>{errors.username}</Text>
               )}
@@ -374,6 +423,66 @@ export default function RegisterScreen() {
                 loading={isSubmitting}
               />
             </View>
+          </View>
+
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
+            <Text style={[styles.dividerText, { color: colors.gray400 }]}>{t('auth.orContinueWith')}</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
+          </View>
+
+          {/* Social signup — Google / Apple. Un tap → compte créé + connecté. */}
+          <View style={styles.socialButtons}>
+            <AnimatedPressable
+              style={[
+                styles.socialButton,
+                { borderColor: colors.gray200, backgroundColor: colors.surface },
+                (!googleReady || googleLoading) && styles.socialButtonDisabled,
+              ]}
+              onPress={handleGoogleSignUp}
+              disabled={!googleReady || googleLoading || isSubmitting}
+              animationType="lift"
+              scaleValue={0.98}
+              haptic="light"
+              accessibilityRole="button"
+              accessibilityLabel={t('auth.googleAuth')}
+            >
+              {googleLoading ? (
+                <ActivityIndicator size="small" color="#DB4437" />
+              ) : (
+                <>
+                  <Ionicons name="logo-google" size={22} color="#DB4437" />
+                  <Text style={[styles.socialButtonText, { color: colors.gray700 }]}>Google</Text>
+                </>
+              )}
+            </AnimatedPressable>
+
+            {appleAvailable && (
+              <AnimatedPressable
+                style={[
+                  styles.socialButton,
+                  { borderColor: colors.gray200, backgroundColor: colors.surface },
+                  appleLoading && styles.socialButtonDisabled,
+                ]}
+                onPress={handleAppleSignUp}
+                disabled={appleLoading || isSubmitting}
+                animationType="lift"
+                scaleValue={0.98}
+                haptic="light"
+                accessibilityRole="button"
+                accessibilityLabel={t('auth.appleAuth')}
+              >
+                {appleLoading ? (
+                  <ActivityIndicator size="small" color={colors.gray900} />
+                ) : (
+                  <>
+                    <Ionicons name="logo-apple" size={22} color={colors.gray900} />
+                    <Text style={[styles.socialButtonText, { color: colors.gray700 }]}>Apple</Text>
+                  </>
+                )}
+              </AnimatedPressable>
+            )}
           </View>
 
           {/* Organizer Link */}
@@ -532,6 +641,41 @@ const styles = StyleSheet.create({
   registerButtonWrap: {
     marginTop: Spacing.md,
     flexDirection: 'row',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing.xl,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    paddingHorizontal: Spacing.md,
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+  },
+  socialButtons: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  socialButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md + 2,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1.5,
+  },
+  socialButtonText: {
+    fontSize: FontSizes.md,
+    fontFamily: FontFamily.medium,
+  },
+  socialButtonDisabled: {
+    opacity: 0.6,
   },
   organizerContainer: {
     marginTop: Spacing['2xl'],

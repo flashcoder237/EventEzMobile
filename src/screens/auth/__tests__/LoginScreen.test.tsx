@@ -157,7 +157,8 @@ describe('LoginScreen', () => {
     fireEvent.press(getByText('Se connecter'));
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith('a@b.com', 'password123', false);
+      // rememberMe coché par défaut (aucune préférence sauvegardée en store)
+      expect(mockLogin).toHaveBeenCalledWith('a@b.com', 'password123', true);
     });
   });
 
@@ -170,7 +171,7 @@ describe('LoginScreen', () => {
     fireEvent.press(getByText('Se connecter'));
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith('foo@bar.com', 'password123', false);
+      expect(mockLogin).toHaveBeenCalledWith('foo@bar.com', 'password123', true);
     });
   });
 

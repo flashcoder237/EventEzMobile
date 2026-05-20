@@ -86,6 +86,7 @@
     "firstName": "Prénom",
     "lastName": "Nom",
     "username": "Nom d'utilisateur",
+    "usernameOptional": "Nom d'utilisateur (optionnel)",
     "phone": "Téléphone",
     "phoneOptional": "Téléphone (optionnel)",
     "phoneNumber": "Numéro de téléphone",
@@ -273,6 +274,7 @@
     "verifyTokenInvalidAction": "Continuer",
     "onboardingStart": "Commencer",
     "onboardingNext": "Suivant",
+    "onboardingSkip": "Passer",
     "onboardingHasAccount": "J'ai déjà un compte",
     "onboardingSlide1Eyebrow": "01 · EXPLORATION",
     "onboardingSlide1TitleStart": "Découvre ce qui ",
@@ -2275,17 +2277,6 @@
     "transfersEyebrow": "01 · TRANSFERTS",
     "transfersTitle": "Des billets t'arrivent ici.",
     "transfersBody": "Quand un ami te transfère un billet, le compteur s'allume — touche pour accepter ou refuser."
-  },
-  "profileTour": {
-    "becomeOrganizerEyebrow": "01 · ORGANISER",
-    "becomeOrganizerTitle": "Crée tes propres événements.",
-    "becomeOrganizerBody": "Devenir organisateur prend 2 minutes. Tu pourras vendre des billets, recevoir les paiements Mobile Money et tout gérer depuis l'app.",
-    "helpEyebrow": "02 · AIDE",
-    "helpTitle": "Tout est expliqué ici.",
-    "helpBody": "Centre d'aide complet : messagerie, paiements, transferts, sécurité. Plus de 40 questions répondues.",
-    "settingsEyebrow": "03 · PARAMÈTRES",
-    "settingsTitle": "Personnalise ton expérience.",
-    "settingsBody": "Notifications, langue, thème sombre, vie privée — tout se règle ici."
   },
   "eventDetailsTour": {
     "followEyebrow": "01 · SAUVEGARDER",

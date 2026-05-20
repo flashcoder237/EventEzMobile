@@ -86,6 +86,7 @@
     "firstName": "First name",
     "lastName": "Last name",
     "username": "Username",
+    "usernameOptional": "Username (optional)",
     "phone": "Phone",
     "phoneOptional": "Phone (optional)",
     "phoneNumber": "Phone number",
@@ -273,6 +274,7 @@
     "verifyTokenInvalidAction": "Continue",
     "onboardingStart": "Get started",
     "onboardingNext": "Next",
+    "onboardingSkip": "Skip",
     "onboardingHasAccount": "I already have an account",
     "onboardingSlide1Eyebrow": "01 · EXPLORE",
     "onboardingSlide1TitleStart": "Discover what's ",
@@ -2275,17 +2277,6 @@
     "transfersEyebrow": "01 · TRANSFERS",
     "transfersTitle": "Tickets land here.",
     "transfersBody": "When a friend transfers a ticket to you, the counter lights up — tap to accept or decline."
-  },
-  "profileTour": {
-    "becomeOrganizerEyebrow": "01 · ORGANIZE",
-    "becomeOrganizerTitle": "Create your own events.",
-    "becomeOrganizerBody": "Becoming an organizer takes 2 minutes. You can sell tickets, receive Mobile Money payments and manage everything from the app.",
-    "helpEyebrow": "02 · HELP",
-    "helpTitle": "Everything is explained here.",
-    "helpBody": "Full help center: messaging, payments, transfers, security. Over 40 questions answered.",
-    "settingsEyebrow": "03 · SETTINGS",
-    "settingsTitle": "Customize your experience.",
-    "settingsBody": "Notifications, language, dark theme, privacy — everything is set here."
   },
   "eventDetailsTour": {
     "followEyebrow": "01 · SAVE",

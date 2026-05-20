@@ -68,8 +68,11 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  // Décoché par défaut — opt-in conscient pour la persistance de session
-  const [rememberMe, setRememberMe] = useState(false);
+  // Coché par défaut — l'attente universelle est de rester connecté entre
+  // les sessions. Décochable explicitement pour les appareils partagés.
+  // NB : la vraie valeur est ensuite écrasée par la préférence sauvegardée
+  // (useEffect ci-dessous) si l'utilisateur s'est déjà connecté une fois.
+  const [rememberMe, setRememberMe] = useState(true);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [errors, setErrors] = useState<FormErrors<'email' | 'password'>>({});
   const [loginInProgress, setLoginInProgress] = useState(false);

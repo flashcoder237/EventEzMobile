@@ -50,6 +50,18 @@ jest.mock('../../../contexts/ThemeContext', () => ({
   useTheme: () => ({ colors: themeColors, isDark: false }),
 }));
 
+const mockSetUser = jest.fn();
+jest.mock('../../../contexts/AuthContext', () => ({
+  useAuth: () => ({ setUser: mockSetUser }),
+}));
+
+// Hooks d'auth sociale — stubs inertes (les tests ne couvrent pas le flow
+// Google/Apple, juste le formulaire email).
+jest.mock('../../../hooks/useSocialAuth', () => ({
+  useGoogleAuth: () => ({ signIn: jest.fn(), isLoading: false, isReady: true }),
+  useAppleAuth: () => ({ signIn: jest.fn(), isLoading: false, isAvailable: false }),
+}));
+
 const mockRegister = jest.fn();
 jest.mock('../../../api', () => ({
   __esModule: true,
@@ -74,7 +86,7 @@ beforeEach(() => {
 const fillValidForm = (getByPlaceholderText: any) => {
   fireEvent.changeText(getByPlaceholderText('Prénom'), 'Alice');
   fireEvent.changeText(getByPlaceholderText('Nom'), 'Martin');
-  fireEvent.changeText(getByPlaceholderText("Nom d'utilisateur"), 'alice123');
+  fireEvent.changeText(getByPlaceholderText("Nom d'utilisateur (optionnel)"), 'alice123');
   fireEvent.changeText(getByPlaceholderText('votre@email.com'), 'alice@example.com');
   fireEvent.changeText(getByPlaceholderText('Mot de passe'), 'password123');
   fireEvent.changeText(getByPlaceholderText('Confirmer le mot de passe'), 'password123');
@@ -85,7 +97,7 @@ describe('RegisterScreen', () => {
     const { getByPlaceholderText } = render(<RegisterScreen />);
     expect(getByPlaceholderText('Prénom')).toBeTruthy();
     expect(getByPlaceholderText('Nom')).toBeTruthy();
-    expect(getByPlaceholderText("Nom d'utilisateur")).toBeTruthy();
+    expect(getByPlaceholderText("Nom d'utilisateur (optionnel)")).toBeTruthy();
     expect(getByPlaceholderText('votre@email.com')).toBeTruthy();
     expect(getByPlaceholderText('Mot de passe')).toBeTruthy();
     expect(getByPlaceholderText('Confirmer le mot de passe')).toBeTruthy();
@@ -96,7 +108,7 @@ describe('RegisterScreen', () => {
 
     fireEvent.changeText(getByPlaceholderText('Prénom'), 'Alice');
     fireEvent.changeText(getByPlaceholderText('Nom'), 'Martin');
-    fireEvent.changeText(getByPlaceholderText("Nom d'utilisateur"), 'alice123');
+    fireEvent.changeText(getByPlaceholderText("Nom d'utilisateur (optionnel)"), 'alice123');
     fireEvent.changeText(getByPlaceholderText('votre@email.com'), 'alice@example.com');
     fireEvent.changeText(getByPlaceholderText('Mot de passe'), 'password123');
     fireEvent.changeText(getByPlaceholderText('Confirmer le mot de passe'), 'different');
@@ -112,7 +124,7 @@ describe('RegisterScreen', () => {
 
     fireEvent.changeText(getByPlaceholderText('Prénom'), 'Alice');
     fireEvent.changeText(getByPlaceholderText('Nom'), 'Martin');
-    fireEvent.changeText(getByPlaceholderText("Nom d'utilisateur"), 'alice123');
+    fireEvent.changeText(getByPlaceholderText("Nom d'utilisateur (optionnel)"), 'alice123');
     fireEvent.changeText(getByPlaceholderText('votre@email.com'), 'pas-un-email');
     fireEvent.changeText(getByPlaceholderText('Mot de passe'), 'password123');
     fireEvent.changeText(getByPlaceholderText('Confirmer le mot de passe'), 'password123');
@@ -128,7 +140,7 @@ describe('RegisterScreen', () => {
 
     fireEvent.changeText(getByPlaceholderText('Prénom'), 'Alice');
     fireEvent.changeText(getByPlaceholderText('Nom'), 'Martin');
-    fireEvent.changeText(getByPlaceholderText("Nom d'utilisateur"), 'alice123');
+    fireEvent.changeText(getByPlaceholderText("Nom d'utilisateur (optionnel)"), 'alice123');
     fireEvent.changeText(getByPlaceholderText('votre@email.com'), 'alice@example.com');
     fireEvent.changeText(getByPlaceholderText('Mot de passe'), 'short');
     fireEvent.changeText(getByPlaceholderText('Confirmer le mot de passe'), 'short');

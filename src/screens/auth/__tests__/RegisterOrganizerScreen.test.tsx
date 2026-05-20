@@ -24,8 +24,17 @@ jest.mock('@react-navigation/native', () => ({
 
 const mockShowError = jest.fn();
 const mockShowSuccess = jest.fn();
+// showAlert : on déclenche immédiatement l'onPress du premier bouton pour
+// que la navigation post-inscription (VerifyEmail) soit testable.
+const mockShowAlert = jest.fn((_title: string, _msg: string, buttons?: any[]) => {
+  buttons?.[0]?.onPress?.();
+});
 jest.mock('../../../contexts/AlertContext', () => ({
-  useAlert: () => ({ showError: mockShowError, showSuccess: mockShowSuccess }),
+  useAlert: () => ({
+    showError: mockShowError,
+    showSuccess: mockShowSuccess,
+    showAlert: mockShowAlert,
+  }),
 }));
 
 const themeColors = {
@@ -92,7 +101,7 @@ const fillStep1Individual = (getByPlaceholderText: any) => {
 };
 
 const fillStep2 = (getByPlaceholderText: any) => {
-  fireEvent.changeText(getByPlaceholderText("Nom d'utilisateur"), 'alice123');
+  fireEvent.changeText(getByPlaceholderText("Nom d'utilisateur (optionnel)"), 'alice123');
   fireEvent.changeText(getByPlaceholderText('votre@email.com'), 'alice@example.com');
   fireEvent.changeText(getByPlaceholderText('Mot de passe'), 'password123');
   fireEvent.changeText(getByPlaceholderText('Confirmer le mot de passe'), 'password123');
@@ -137,7 +146,7 @@ describe('RegisterOrganizerScreen', () => {
 
     expect(await findByText('Étape 2 sur 2')).toBeTruthy();
     // step 2 affiche username/email/password
-    expect(getByPlaceholderText("Nom d'utilisateur")).toBeTruthy();
+    expect(getByPlaceholderText("Nom d'utilisateur (optionnel)")).toBeTruthy();
     expect(getByPlaceholderText('votre@email.com')).toBeTruthy();
   });
 
@@ -148,7 +157,7 @@ describe('RegisterOrganizerScreen', () => {
     fireEvent.press(getByText('Continuer'));
     await findByText('Étape 2 sur 2');
 
-    fireEvent.changeText(getByPlaceholderText("Nom d'utilisateur"), 'alice123');
+    fireEvent.changeText(getByPlaceholderText("Nom d'utilisateur (optionnel)"), 'alice123');
     fireEvent.changeText(getByPlaceholderText('votre@email.com'), 'alice@example.com');
     fireEvent.changeText(getByPlaceholderText('Mot de passe'), 'password123');
     fireEvent.changeText(getByPlaceholderText('Confirmer le mot de passe'), 'different');
@@ -159,10 +168,18 @@ describe('RegisterOrganizerScreen', () => {
     expect(mockRegisterOrganizer).not.toHaveBeenCalled();
   });
 
-  it('calls registerOrganizer + login + getCurrentUser on full valid submit', async () => {
-    mockRegisterOrganizer.mockResolvedValueOnce({ data: { id: 1 } });
-    mockLogin.mockResolvedValueOnce({ data: { access: 'access', refresh: 'refresh' } });
-    mockGetCurrentUser.mockResolvedValueOnce({ data: { id: 1, email: 'alice@example.com' } });
+  it('uses the register response tokens + navigates to VerifyEmail on full valid submit', async () => {
+    // Le backend renvoie directement {access, refresh, user, email} — le
+    // screen n'appelle plus login() ni getCurrentUser() séparément.
+    mockRegisterOrganizer.mockResolvedValueOnce({
+      data: {
+        access: 'access',
+        refresh: 'refresh',
+        user: { id: 1, email: 'alice@example.com' },
+        email: 'alice@example.com',
+        requires_verification: true,
+      },
+    });
 
     const { getByPlaceholderText, getByText, findByText } = render(<RegisterOrganizerScreen />);
 
@@ -186,17 +203,22 @@ describe('RegisterOrganizerScreen', () => {
       );
     });
 
-    await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith('alice@example.com', 'password123');
-    });
+    // Tokens + user pris depuis la réponse du register — pas de login() séparé
     await waitFor(() => {
       expect(mockSetTokens).toHaveBeenCalledWith('access', 'refresh');
     });
-    await waitFor(() => {
-      expect(mockGetCurrentUser).toHaveBeenCalled();
-    });
+    expect(mockLogin).not.toHaveBeenCalled();
+    expect(mockGetCurrentUser).not.toHaveBeenCalled();
     await waitFor(() => {
       expect(mockSetUser).toHaveBeenCalledWith({ id: 1, email: 'alice@example.com' });
+    });
+
+    // L'alerte de succès → OK navigue vers l'écran de vérification email.
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith(
+        'VerifyEmail',
+        expect.objectContaining({ email: 'alice@example.com', skippable: true }),
+      );
     });
   });
 

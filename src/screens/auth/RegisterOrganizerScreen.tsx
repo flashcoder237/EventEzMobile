@@ -13,7 +13,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { authAPI, setTokens } from '../../api';
-import { usersAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -64,7 +63,7 @@ interface FormErrors {
 export default function RegisterOrganizerScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { setUser } = useAuth();
-  const { showError, showSuccess } = useAlert();
+  const { showError, showAlert } = useAlert();
   const { colors } = useTheme();
   const { t } = useTranslation();
   const [step, setStep] = useState(1);
@@ -131,12 +130,14 @@ export default function RegisterOrganizerScreen() {
   const validateStep2 = () => {
     const newErrors: FormErrors = {};
 
-    if (!formData.username.trim()) {
-      newErrors.username = t('auth.registerOrganizerErrorUsernameRequired');
-    } else if (formData.username.length < 3) {
-      newErrors.username = t('auth.registerOrganizerErrorUsernameShort');
-    } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-      newErrors.username = t('auth.registerOrganizerErrorUsernameInvalid');
+    // Username OPTIONNEL : on ne valide le format que si l'utilisateur a saisi
+    // quelque chose. Vide → le backend génère un username unique depuis l'email.
+    if (formData.username.trim()) {
+      if (formData.username.length < 3) {
+        newErrors.username = t('auth.registerOrganizerErrorUsernameShort');
+      } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
+        newErrors.username = t('auth.registerOrganizerErrorUsernameInvalid');
+      }
     }
 
     if (!formData.email.trim()) {
@@ -183,19 +184,36 @@ export default function RegisterOrganizerScreen() {
         confirm_password: formData.confirm_password,
       };
 
-      // Inscription organisateur
+      // Inscription organisateur. Le backend renvoie directement
+      // {access, refresh, user, requires_verification} → pas besoin d'un
+      // login() + getCurrentUser() séparés (évite 2 appels API redondants
+      // et le risque qu'un échoue APRÈS la création du compte, laissant
+      // l'utilisateur avec un compte mais une erreur à l'écran).
       const response = await authAPI.registerOrganizer(registrationData);
+      const { access, refresh, user } = response.data || {};
+      if (access && refresh) {
+        await setTokens(access, refresh);
+      }
+      if (user) {
+        await setUser(user);
+      }
 
-      // Connexion automatique
-      const loginResponse = await authAPI.login(formData.email.trim().toLowerCase(), formData.password);
-      const { access, refresh } = loginResponse.data;
-      await setTokens(access, refresh);
-
-      // Récupérer l'utilisateur
-      const userResponse = await usersAPI.getCurrentUser();
-      await setUser(userResponse.data);
-
-      showSuccess(t('auth.registerOrganizerSuccessTitle'), t('auth.registerOrganizerSuccessDetail'));
+      // L'alerte de succès doit déclencher la navigation vers l'écran de
+      // vérification email sur OK — showSuccess() n'expose pas de callback,
+      // donc on passe par showAlert() avec un bouton onPress. Sans ça
+      // l'utilisateur tape OK et reste bloqué sur le formulaire.
+      const targetEmail = response.data?.email ?? user?.email ?? formData.email.trim().toLowerCase();
+      showAlert(
+        t('auth.registerOrganizerSuccessTitle'),
+        t('auth.registerOrganizerSuccessDetail'),
+        [{
+          text: t('common.ok'),
+          onPress: () => {
+            navigation.replace('VerifyEmail', { email: targetEmail, skippable: true });
+          },
+        }],
+        'success',
+      );
     } catch (error: any) {
       const errorData = error.response?.data;
       let message = t('auth.registerOrganizerErrorGeneric');
@@ -434,9 +452,9 @@ export default function RegisterOrganizerScreen() {
 
   const renderStep2 = () => (
     <View style={styles.form}>
-      {/* Username */}
+      {/* Username — optionnel, pré-rempli depuis l'email */}
       <View style={styles.inputContainer}>
-        {renderInput('username', t('auth.username'), 'at-outline')}
+        {renderInput('username', t('auth.usernameOptional'), 'at-outline')}
         {errors.username && (
           <Text style={styles.errorText}>{errors.username}</Text>
         )}
