@@ -584,17 +584,24 @@ export default function MyEventsScreen() {
         },
       );
     }
+    // L'equipe (co-organisateurs, scanners, moderateurs) se constitue des la
+    // phase de preparation — un co-organisateur aide a monter l'event avant
+    // meme sa validation. Le backend n'impose aucune restriction de statut,
+    // donc on expose l'action sur tout event non annule (draft / soumis /
+    // valide), coherent avec le web.
+    if (event.status !== 'cancelled') {
+      configActions.push({
+        label: t('organizer.myEvents.actions.team', { defaultValue: 'Equipe' }),
+        icon: 'people-outline',
+        onPress: () =>
+          navigation.navigate('TeamManagement', {
+            eventId: event.id,
+            eventTitle: event.title,
+          }),
+      });
+    }
     if (event.status === 'validated') {
       configActions.push(
-        {
-          label: t('organizer.myEvents.actions.team', { defaultValue: 'Equipe' }),
-          icon: 'people-outline',
-          onPress: () =>
-            navigation.navigate('TeamManagement', {
-              eventId: event.id,
-              eventTitle: event.title,
-            }),
-        },
         {
           label: t('organizer.myEvents.actions.volunteers'),
           icon: 'hand-left-outline',
