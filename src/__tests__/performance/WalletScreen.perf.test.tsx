@@ -10,6 +10,7 @@ import { render } from '@testing-library/react-native';
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }),
   useRoute: () => ({ params: {} }),
+  useFocusEffect: jest.fn(),
 }));
 
 jest.mock('../../contexts/AlertContext', () => ({

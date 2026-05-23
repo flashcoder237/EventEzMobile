@@ -19,6 +19,7 @@ jest.mock('@react-navigation/native', () => ({
     replace: jest.fn(),
   }),
   useRoute: () => ({ params: { registrationId: 'reg-1' } }),
+  useFocusEffect: jest.fn(),
 }));
 
 jest.mock('../../contexts/AlertContext', () => ({

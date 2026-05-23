@@ -21,6 +21,7 @@ const mockGoBack = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate, goBack: mockGoBack }),
   useRoute: () => ({ params: { eventId: 'evt-1' } }),
+  useFocusEffect: jest.fn(),
 }));
 
 const mockShowError = jest.fn();
