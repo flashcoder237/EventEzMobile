@@ -254,30 +254,9 @@ function formatMoney(amount: number, currency: string): string {
   }
 }
 
-// Fallback Cameroun (utilisé si l'API échoue)
-const FALLBACK_METHODS: PaymentMethodOption[] = [
-  {
-    id: 'mtn_money',
-    name: 'MTN Mobile Money',
-    icon: PaymentIcons.mtn_money,
-    color: '#FFCC00',
-    description: 'Paie avec ton compte MTN MoMo',
-  },
-  {
-    id: 'orange_money',
-    name: 'Orange Money',
-    icon: PaymentIcons.orange_money,
-    color: '#FF6600',
-    description: 'Paie avec ton compte Orange Money',
-  },
-  {
-    id: 'credit_card',
-    name: 'Carte bancaire',
-    icon: PaymentIcons.credit_card,
-    color: '#1A1F71',
-    description: 'Visa, Mastercard, etc.',
-  },
-];
+// Pas de liste statique de repli : un fallback Cameroun (MTN/Orange) afficherait
+// des MoMo incompatibles avec la devise de l'event (ex : Orange CM pour un event
+// UGX). En cas d'echec API → liste vide + bandeau d'erreur avec retry.
 
 export default function PaymentScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -303,9 +282,11 @@ export default function PaymentScreen() {
   const [verifyingManually, setVerifyingManually] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId | null>(null);
   const [countryConfig, setCountryConfig] = useState<CountryPaymentConfig | null>(null);
-  const [dynamicMethods, setDynamicMethods] = useState<PaymentMethodOption[]>(FALLBACK_METHODS);
-  // Drapeau pour afficher un bandeau "Méthodes par défaut affichées" quand le fetch a échoué
+  const [dynamicMethods, setDynamicMethods] = useState<PaymentMethodOption[]>([]);
+  // Drapeau d'échec du fetch des méthodes → bandeau d'erreur tappable (retry).
   const [methodsFetchFailed, setMethodsFetchFailed] = useState(false);
+  // Compteur de retry : incrémenté par le bandeau d'erreur pour relancer le fetch.
+  const [methodsRetry, setMethodsRetry] = useState(0);
   // Loader pendant le refetch sur changement de pays — sinon les anciennes
   // methodes restent affichees jusqu'au swap brutal.
   const [methodsLoading, setMethodsLoading] = useState(false);
@@ -541,7 +522,12 @@ export default function PaymentScreen() {
         const eventObj = registration?.event_detail
           || (registration && typeof registration.event === 'object' ? registration.event : null);
         const eventCountry = (eventObj?.location_country_code || eventObj?.location_country || '').toString().toUpperCase();
-        const eventCurrency = getEventCurrency(eventCountry);
+        // Devise réelle de l'event (event.currency = devise du wallet de
+        // l'organisateur, source de vérité mono-devise). On ne la dérive PAS
+        // du pays de l'event : il peut différer du pays de l'organisateur.
+        const eventCurrency = (
+          eventObj?.currency || getEventCurrency(eventCountry) || ''
+        ).toString().toUpperCase();
 
         const response = await paymentsAPI.getPaymentMethods(
           payerCountry,         // pays du payeur (ne plus écraser par eventCountry)
@@ -576,12 +562,14 @@ export default function PaymentScreen() {
       } catch (error) {
         if (cancelled) return;
         if (__DEV__) console.error('[Payment] Error fetching payment methods:', error);
-        // Afficher une erreur au lieu d'un fallback silencieux Cameroun
+        // Pas de fallback en dur : une liste de MoMo camerounais proposerait
+        // des méthodes incompatibles avec la devise de l'event. Liste vide +
+        // bandeau d'erreur tappable pour réessayer.
         showError(
           t('payment.paymentMethodsLoadError'),
           t('payment.paymentMethodsLoadErrorMessage')
         );
-        setDynamicMethods(FALLBACK_METHODS);
+        setDynamicMethods([]);
         setMethodsFetchFailed(true);
       } finally {
         if (!cancelled) setMethodsLoading(false);
@@ -592,7 +580,7 @@ export default function PaymentScreen() {
     return () => {
       cancelled = true;
     };
-  }, [payerCountry, countryHydrated, registration]);
+  }, [payerCountry, countryHydrated, registration, methodsRetry]);
 
   // Auto-select last used payment method for the selected type
   useEffect(() => {
@@ -1507,7 +1495,10 @@ export default function PaymentScreen() {
               />
 
               {methodsFetchFailed && (
-                <View
+                <TouchableOpacity
+                  onPress={() => setMethodsRetry((c) => c + 1)}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -1532,7 +1523,8 @@ export default function PaymentScreen() {
                   >
                     {t('payment.paymentMethodsFallbackBanner')}
                   </Text>
-                </View>
+                  <Ionicons name="refresh" size={16} color="#D97706" />
+                </TouchableOpacity>
               )}
 
               {payerCountry === INTL_CODE && finalTotal > 0 && (

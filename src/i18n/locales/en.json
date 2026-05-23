@@ -1084,7 +1084,7 @@
     "paymentReceiptSubtotal": "Subtotal",
     "paymentServiceFee": "Service fee ({{label}})",
     "paymentTotalToPay": "TOTAL TO PAY",
-    "paymentMethodsFallbackBanner": "Default methods displayed (Cameroon). Verify before paying or retry.",
+    "paymentMethodsFallbackBanner": "Could not load payment methods. Tap here to retry.",
     "paymentMTNNumbersHint": "Valid MTN numbers: 67, 680-684, 650-654",
     "paymentOrangeNumbersHint": "Valid Orange numbers: 655-659, 685-689, 69",
     "paymentEnterNumber": "Enter your {{method}} number",

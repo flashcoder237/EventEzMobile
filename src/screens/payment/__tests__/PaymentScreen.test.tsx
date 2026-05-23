@@ -26,6 +26,9 @@ jest.mock('@react-navigation/native', () => ({
     replace: mockReplace,
   }),
   useRoute: () => ({ params: { registrationId: 'reg-1' } }),
+  // Le tour de paiement appelle useFocusEffect ; no-op en test (le tour
+  // n'est pas sous test ici).
+  useFocusEffect: jest.fn(),
 }));
 
 const mockShowError = jest.fn();
