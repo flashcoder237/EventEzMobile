@@ -993,7 +993,11 @@ export default function WalletScreen() {
               </View>
             </View>
 
-            {payoutMethod !== 'bank_transfer' && !wallet?.mobile_money_number && (
+            {/* Avertissements destination manquante : on cible la methode
+                exacte plutot que "tout sauf bank_transfer" (sinon stripe_payout
+                declenche "configurez MoMo d'abord" — non sens). */}
+            {['mtn_money', 'orange_money', 'wave', 'mpesa', 'airtel_money'].includes(payoutMethod)
+              && !wallet?.mobile_money_number && (
               <TouchableOpacity
                 style={[styles.warningBoxE, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}
                 onPress={() => {
@@ -1036,10 +1040,15 @@ export default function WalletScreen() {
                 <Text style={[styles.modalCancelTextE, { color: colors.text }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               {(() => {
+                const momoMethods = ['mtn_money', 'orange_money', 'wave', 'mpesa', 'airtel_money'];
                 const destinationMissing =
                   payoutMethod === 'bank_transfer'
                     ? !wallet?.bank_account_number
-                    : !wallet?.mobile_money_number;
+                    : payoutMethod === 'stripe_payout'
+                      ? !(wallet?.stripe_account_id && wallet?.stripe_payouts_enabled)
+                      : momoMethods.includes(payoutMethod)
+                        ? !wallet?.mobile_money_number
+                        : true;
                 const confirmDisabled = !payoutAmount || processingPayout || destinationMissing;
                 return (
               <TouchableOpacity
@@ -1102,52 +1111,57 @@ export default function WalletScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Mobile Money Section — numéro VERROUILLÉ : il est figé au
-                  téléphone du compte côté backend (WalletBankDetailsSerializer
-                  l'ignore en écriture). On l'affiche en lecture seule plutôt
-                  qu'en champ éditable qui ferait croire à un enregistrement
-                  silencieusement rejeté. S'il est vide, on guide l'organisateur
-                  vers son profil où le numéro de téléphone alimente ce champ. */}
-              <View style={styles.bankSectionE}>
-                <View style={[styles.bankSectionHeaderE, { borderBottomColor: softBorder }]}>
-                  <View style={[styles.bankSectionIcon, { backgroundColor: '#FF660015' }]}>
-                    <Ionicons name="phone-portrait" size={14} color="#FF6600" />
+              {/* Mobile Money Section — VERROUILLÉE au téléphone du compte
+                  (WalletBankDetailsSerializer l'ignore en écriture). Affichée
+                  uniquement si l'organisateur opère dans un pays où le MoMo
+                  existe (NotchPay/CinetPay) — pour les wallets Stripe-only
+                  (FR/US/etc), cette section n'a aucun sens et est masquée.
+                  Le backend filtre déjà availableMethods, donc l'absence de
+                  méthode de type mobile_money signale un pays Stripe-only. */}
+              {availableMethods.some((m: any) => m.type === 'mobile_money') && (
+                <>
+                <View style={styles.bankSectionE}>
+                  <View style={[styles.bankSectionHeaderE, { borderBottomColor: softBorder }]}>
+                    <View style={[styles.bankSectionIcon, { backgroundColor: '#FF660015' }]}>
+                      <Ionicons name="phone-portrait" size={14} color="#FF6600" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.bankSectionEyebrow, { color: colors.accent }]}>{t('organizer.wallet.section01')}</Text>
+                      <Text style={[styles.bankSectionTitleE, { color: colors.text }]}>{t('organizer.wallet.mobileMoney')}</Text>
+                    </View>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.bankSectionEyebrow, { color: colors.accent }]}>{t('organizer.wallet.section01')}</Text>
-                    <Text style={[styles.bankSectionTitleE, { color: colors.text }]}>{t('organizer.wallet.mobileMoney')}</Text>
-                  </View>
+
+                  {wallet?.mobile_money_number ? (
+                    <View style={styles.inputGroupE}>
+                      <Text style={[styles.inputLabelE, { color: colors.gray600 }]}>{t('organizer.wallet.phoneLabel')}</Text>
+                      <View style={[styles.mmLockedRow, { backgroundColor: colors.gray100, borderColor: softBorder }]}>
+                        <Text style={[styles.mmLockedValue, { color: colors.text }]}>{wallet.mobile_money_number}</Text>
+                        <Ionicons name="lock-closed" size={14} color={colors.gray400} />
+                      </View>
+                      <Text style={[styles.mmLockedHint, { color: colors.gray500 }]}>
+                        {t('organizer.wallet.mobileMoneyLockedHint')}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={[styles.mmEmptyCard, { backgroundColor: colors.primary + '0D', borderColor: colors.primary + '26' }]}>
+                      <Text style={[styles.mmEmptyText, { color: colors.gray600 }]}>
+                        {t('organizer.wallet.mobileMoneyEmptyHint')}
+                      </Text>
+                      <TouchableOpacity
+                        style={[styles.mmEmptyBtn, { backgroundColor: colors.primary }]}
+                        onPress={() => { setShowBankModal(false); navigation.navigate('EditProfile'); }}
+                        activeOpacity={0.85}
+                      >
+                        <Ionicons name="person-outline" size={14} color={Colors.white} />
+                        <Text style={styles.mmEmptyBtnText}>{t('organizer.wallet.mobileMoneyEmptyCta')}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
 
-                {wallet?.mobile_money_number ? (
-                  <View style={styles.inputGroupE}>
-                    <Text style={[styles.inputLabelE, { color: colors.gray600 }]}>{t('organizer.wallet.phoneLabel')}</Text>
-                    <View style={[styles.mmLockedRow, { backgroundColor: colors.gray100, borderColor: softBorder }]}>
-                      <Text style={[styles.mmLockedValue, { color: colors.text }]}>{wallet.mobile_money_number}</Text>
-                      <Ionicons name="lock-closed" size={14} color={colors.gray400} />
-                    </View>
-                    <Text style={[styles.mmLockedHint, { color: colors.gray500 }]}>
-                      {t('organizer.wallet.mobileMoneyLockedHint')}
-                    </Text>
-                  </View>
-                ) : (
-                  <View style={[styles.mmEmptyCard, { backgroundColor: colors.primary + '0D', borderColor: colors.primary + '26' }]}>
-                    <Text style={[styles.mmEmptyText, { color: colors.gray600 }]}>
-                      {t('organizer.wallet.mobileMoneyEmptyHint')}
-                    </Text>
-                    <TouchableOpacity
-                      style={[styles.mmEmptyBtn, { backgroundColor: colors.primary }]}
-                      onPress={() => { setShowBankModal(false); navigation.navigate('EditProfile'); }}
-                      activeOpacity={0.85}
-                    >
-                      <Ionicons name="person-outline" size={14} color={Colors.white} />
-                      <Text style={styles.mmEmptyBtnText}>{t('organizer.wallet.mobileMoneyEmptyCta')}</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-
-              <View style={[styles.dividerE, { backgroundColor: softBorder }]} />
+                <View style={[styles.dividerE, { backgroundColor: softBorder }]} />
+                </>
+              )}
 
               {/* Bank Account Section */}
               <View style={styles.bankSectionE}>
