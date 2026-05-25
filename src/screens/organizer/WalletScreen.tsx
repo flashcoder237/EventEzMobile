@@ -84,7 +84,6 @@ export default function WalletScreen() {
     { key: 'payouts', label: t('organizer.wallet.tabPayouts') },
     { key: 'pending', label: t('organizer.wallet.tabPending') },
   ]), [t]);
-  const { config: commissionConfig } = useCommissionConfig();
   const { countries: supportedCountries } = useSupportedCountries();
   // Codes ISO des pays servis par Stripe uniquement (pas NotchPay/CinetPay).
   // Sert au composant StripeOnboardingBanner pour decider d'afficher
@@ -95,6 +94,12 @@ export default function WalletScreen() {
   );
   const biometric = useBiometricConfirm();
   const [wallet, setWallet] = useState<OrganizerWallet | null>(null);
+  // Config commission liee au pays/devise du wallet. Bug historique : appel
+  // sans arg -> backend retombait sur la config CM par defaut -> tous les
+  // organisateurs voyaient "5% + X XAF" meme s'ils etaient en France (EUR)
+  // ou Senegal (XOF). targetCurrency = wallet.currency pour que le backend
+  // convertisse fixed_fee dans la bonne devise. Aligne avec PaymentScreen.
+  const { config: commissionConfig } = useCommissionConfig(wallet?.country, wallet?.currency);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [pendingEarnings, setPendingEarnings] = useState<PendingEarning[]>([]);

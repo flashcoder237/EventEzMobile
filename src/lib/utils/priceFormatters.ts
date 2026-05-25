@@ -64,6 +64,22 @@ export function formatPrice(amount: number, currency: string = 'FCFA'): string {
 }
 
 /**
+ * Formate UNIQUEMENT le nombre, sans devise.
+ * A utiliser quand l'UI affiche la devise dans un composant separe (typique
+ * du WalletScreen ou un <Text> dedie montre wallet.currency a cote du
+ * montant). Evite l'affichage double "5 000 FCFA EUR" qui survenait quand
+ * formatPrice() defaulte sur FCFA mais la devise reelle est differente.
+ *
+ * Exemple : formatPriceAmount(5000) => "5 000"
+ *           formatPriceAmount(0)    => "0"
+ */
+export function formatPriceAmount(amount: number): string {
+  return Math.round(amount)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+/**
  * Calcule la fourchette de prix (min et max) d'un evenement.
  * Retourne undefined si le prix est inconnu.
  */
