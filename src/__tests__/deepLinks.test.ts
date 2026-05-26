@@ -159,6 +159,22 @@ describe('Deep link path parsing — simulation getStateFromPath', () => {
       uri: 'eventez://subscription',
       expectedScreen: 'Subscription',
     },
+    {
+      // Parite web /events/in : hub liste des villes
+      uri: 'eventez://events/in',
+      expectedScreen: 'CitiesIndex',
+    },
+    {
+      // Parite web /events/in/[slug] : ouvre EventSearch avec city pre-rempli
+      uri: 'eventez://events/in/douala',
+      expectedScreen: 'EventSearch',
+      expectedParam: { city: 'douala' },
+    },
+    {
+      uri: 'eventez://events/in/yaounde',
+      expectedScreen: 'EventSearch',
+      expectedParam: { city: 'yaounde' },
+    },
   ];
 
   it.each(patterns)('parse $uri → $expectedScreen', ({ uri, expectedParam }) => {

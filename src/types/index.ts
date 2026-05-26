@@ -1605,6 +1605,8 @@ export type RootStackParamList = {
   };
   EventReviews: { eventId: string; eventTitle?: string };
   EventSearch: { query?: string; category?: number; city?: string } | undefined;
+  // Liste de toutes les villes ayant des events. Equivalent /events/in du web.
+  CitiesIndex: undefined;
   TicketPurchase: {
     eventId: string;
     ticketTypeId?: string;
@@ -1626,6 +1628,7 @@ export type RootStackParamList = {
     paymentId: string;
     registrationId?: string;
     eventId?: string;
+    eventSlug?: string;
     eventType?: 'billetterie' | 'inscription';
     registrationStatus?: string;
     approvalStatus?: string;

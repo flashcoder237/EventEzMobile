@@ -42,6 +42,7 @@ import OnboardingScreen from '../screens/auth/OnboardingScreen';
 import EventDetailsScreen from '../screens/events/EventDetailsScreen';
 import EventReviewsScreen from '../screens/events/EventReviewsScreen';
 import EventSearchScreen from '../screens/events/EventSearchScreen';
+import CitiesIndexScreen from '../screens/events/CitiesIndexScreen';
 import MapScreen from '../screens/events/MapScreen';
 import SessionDetailsScreen from '../screens/events/SessionDetailsScreen';
 import SpeakerDetailsScreen from '../screens/events/SpeakerDetailsScreen';
@@ -311,6 +312,11 @@ export default function RootNavigator() {
         name="EventSearch"
         component={EventSearchScreen}
         options={{ animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen
+        name="CitiesIndex"
+        component={CitiesIndexScreen}
+        options={{ animation: 'slide_from_right' }}
       />
 
       {/* Payment Screens */}

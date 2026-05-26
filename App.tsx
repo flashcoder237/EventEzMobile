@@ -132,6 +132,14 @@ const linking: LinkingOptions<RootStackParamList> = {
       // VolunteerScreen avec eventId pre-rempli.
       // Cf. eventez-frontend/src/app/events/[id]/volunteer/page.tsx (web).
       Volunteers: 'events/:eventId/volunteer',
+      // Parite web /events/in : hub liste de toutes les villes.
+      CitiesIndex: 'events/in',
+      // Parite web /events/in/[slug] : ouvre EventSearch avec city pre-rempli.
+      // Le param `city` est le slug brut ("douala", "paris") — backend filter
+      // location_city__icontains match en case-insensitive, donc OK pour les
+      // villes sans accents. Pour Yaoundé etc., l'autocomplete CitiesSection
+      // navigue avec city.name exact (resolution cote serveur).
+      EventSearch: 'events/in/:city',
       OrganizerProfile: 'organizers/:organizerId',
       SpeakerDetails: 'speakers/:speakerId',
       PaymentSuccess: 'payment-success/:paymentId',

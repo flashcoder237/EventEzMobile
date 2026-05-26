@@ -43,15 +43,15 @@ describe('useOfflineQueue — cas adverses', () => {
       const stored: QueuedMessage[] = [
         {
           id: 'msg-1', conversationId: 'c1', content: '1',
-          attachments: [], timestamp: 1, status: 'queued', retryCount: 0,
+          attachments: [], timestamp: 1, retryCount: 0,
         },
         {
           id: 'msg-2', conversationId: 'c1', content: '2',
-          attachments: [], timestamp: 2, status: 'queued', retryCount: 0,
+          attachments: [], timestamp: 2, retryCount: 0,
         },
         {
           id: 'msg-3', conversationId: 'c1', content: '3',
-          attachments: [], timestamp: 3, status: 'queued', retryCount: 0,
+          attachments: [], timestamp: 3, retryCount: 0,
         },
       ];
       await AsyncStorage.setItem('offline_queue:7', JSON.stringify(stored));
@@ -82,7 +82,7 @@ describe('useOfflineQueue — cas adverses', () => {
       const stored: QueuedMessage[] = [
         {
           id: 'm1', conversationId: 'c', content: 'x',
-          attachments: [], timestamp: 1, status: 'queued', retryCount: 0,
+          attachments: [], timestamp: 1, retryCount: 0,
         },
       ];
       await AsyncStorage.setItem('offline_queue:1', JSON.stringify(stored));
@@ -117,7 +117,7 @@ describe('useOfflineQueue — cas adverses', () => {
       const stored: QueuedMessage[] = [
         {
           id: 'failed-msg', conversationId: 'c', content: 'x',
-          attachments: [], timestamp: 1, status: 'failed', retryCount: 3,
+          attachments: [], timestamp: 1, retryCount: 3,
           failed: true,
         },
       ];
@@ -146,7 +146,7 @@ describe('useOfflineQueue — cas adverses', () => {
       const stored: QueuedMessage[] = [
         {
           id: 'retry-me', conversationId: 'c', content: 'x',
-          attachments: [], timestamp: 1, status: 'failed', retryCount: 3,
+          attachments: [], timestamp: 1, retryCount: 3,
           failed: true,
         },
       ];
@@ -181,17 +181,17 @@ describe('useOfflineQueue — cas adverses', () => {
       const user1Queue: QueuedMessage[] = [
         {
           id: 'u1-msg', conversationId: 'c', content: 'u1',
-          attachments: [], timestamp: 1, status: 'queued', retryCount: 0,
+          attachments: [], timestamp: 1, retryCount: 0,
         },
       ];
       const user2Queue: QueuedMessage[] = [
         {
           id: 'u2-msg', conversationId: 'c', content: 'u2',
-          attachments: [], timestamp: 2, status: 'queued', retryCount: 0,
+          attachments: [], timestamp: 2, retryCount: 0,
         },
         {
           id: 'u2-msg-2', conversationId: 'c', content: 'u2-2',
-          attachments: [], timestamp: 3, status: 'queued', retryCount: 0,
+          attachments: [], timestamp: 3, retryCount: 0,
         },
       ];
       await AsyncStorage.setItem('offline_queue:1', JSON.stringify(user1Queue));
@@ -230,7 +230,7 @@ describe('useOfflineQueue — cas adverses', () => {
         JSON.stringify([
           {
             id: 'u1-msg', conversationId: 'c', content: 'u1',
-            attachments: [], timestamp: 1, status: 'queued', retryCount: 0,
+            attachments: [], timestamp: 1, retryCount: 0,
           },
         ]),
       );
@@ -265,7 +265,7 @@ describe('useOfflineQueue — cas adverses', () => {
       const stored: QueuedMessage[] = [
         {
           id: 'persisted', conversationId: 'c', content: 'A',
-          attachments: [], timestamp: 1, status: 'queued', retryCount: 0,
+          attachments: [], timestamp: 1, retryCount: 0,
         },
       ];
       await AsyncStorage.setItem('offline_queue:1', JSON.stringify(stored));
@@ -313,7 +313,7 @@ describe('useOfflineQueue — cas adverses', () => {
       const stored: QueuedMessage[] = [
         {
           id: 'initial', conversationId: 'c', content: 'A',
-          attachments: [], timestamp: 1, status: 'queued', retryCount: 0,
+          attachments: [], timestamp: 1, retryCount: 0,
         },
       ];
       await AsyncStorage.setItem('offline_queue:1', JSON.stringify(stored));

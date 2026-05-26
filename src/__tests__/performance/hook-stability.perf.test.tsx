@@ -46,7 +46,7 @@ describe('hook stability — references retournees', () => {
         retryMessage: result.current.retryMessage,
       };
 
-      rerender();
+      rerender({});
 
       // Apres un render sans props change, les memes refs doivent etre
       // retournees (useCallback applique correctement).
@@ -68,7 +68,7 @@ describe('hook stability — references retournees', () => {
       // useMessageState retourne typiquement { setText, ... }
       // On capture la 1ere ref de chaque fonction et compare apres rerender.
       const before = result.current;
-      rerender();
+      rerender({});
       const after = result.current;
 
       // Au moins une propriete-fonction doit etre stable (memo OK)

@@ -30,6 +30,7 @@ import { Image } from 'expo-image';
 
 import { useTranslation } from 'react-i18next';
 import EventCoverMedia from '../../components/events/EventCoverMedia';
+import CitiesSection from '../../components/events/CitiesSection';
 import { eventsAPI, categoriesAPI, recommendationsAPI, advertisementsAPI, getMediaUrl } from '../../api';
 import type { AdvertisementPublic } from '../../api';
 import { Event, Category, RootStackParamList, MainTabParamList } from '../../types';
@@ -1715,6 +1716,11 @@ export default function DiscoverScreen() {
                   </View>
                 </SectionEntrance>
               )}
+
+              {/* === CITIES (entry point UI vers EventSearch by city + CitiesIndex) === */}
+              <SectionEntrance delay={580}>
+                <CitiesSection />
+              </SectionEntrance>
 
               {/* === FREE section === */}
               {freeEvents.length > 0 && (
