@@ -1,0 +1,32 @@
+appId: com.eventez.mobile
+name: Cold open via deep link eventez://payment-success/{id}
+---
+# Flow : simule le retour de WebBrowser apres paiement CinetPay/Stripe.
+# L'OS ouvre l'app via le scheme `eventez://payment-success/{id}` →
+# l'app doit naviguer DIRECTEMENT vers PaymentSuccessScreen avec
+# paymentId pre-rempli, SANS passer par Discover.
+
+# Suppose un Payment de test existe en DB avec ID "${TEST_PAYMENT_ID}".
+
+- launchApp:
+    clearState: true
+
+# Pause minimale pour laisser l'app booter
+- waitForAnimationToEnd
+
+# Simule l'OS qui ouvre un deep link.
+# Maestro `openLink` envoie un intent VIEW avec l'URI au scheme custom.
+- openLink: "eventez://payment-success/${TEST_PAYMENT_ID}"
+
+# On doit atterrir sur PaymentSuccessScreen
+- assertVisible:
+    text: "Paiement réussi|Payment successful|Billet|Voir mon billet"
+    timeout: 10000
+
+- takeScreenshot: deep-link-payment-success
+
+# Verification : on NE doit PAS etre sur Discover (regression : un bug
+# pouvait demarrer sur Discover puis push PaymentSuccess en stack, ce qui
+# laisserait Discover en arriere-plan).
+- assertNotVisible:
+    text: "Discover|Découvrir"
