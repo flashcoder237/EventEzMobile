@@ -403,7 +403,19 @@ export default function EditProfileScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.phoneLabel')}</Text>
-            <PhoneNumberInput value={phone} onChangeValue={setPhone} />
+            {/* Verrouille le champ si l'utilisateur a deja un numero enregistre.
+                Pour le modifier ensuite, il doit passer par le support
+                (anti-fraude + KYC — un numero validable par OTP). */}
+            <PhoneNumberInput
+              value={phone}
+              onChangeValue={setPhone}
+              disabled={!!user?.phone_number}
+            />
+            <Text style={[styles.fieldHint, { color: colors.gray500 }]}>
+              {user?.phone_number
+                ? 'Numéro verrouillé — contactez le support pour le modifier.'
+                : 'Attention : une fois enregistré, ce numéro ne pourra plus être modifié sans contacter le support.'}
+            </Text>
           </View>
 
           <View style={styles.inputGroup}>
@@ -778,6 +790,12 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginBottom: 8,
+  },
+  fieldHint: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 6,
   },
   input: {
     borderRadius: BorderRadius.xl,
