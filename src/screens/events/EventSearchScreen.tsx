@@ -68,6 +68,13 @@ interface State {
   query: string;
   debouncedQuery: string;
   categoryId: number | null;
+  /**
+   * Ville selectionnee (filtre). Tee depuis route.params.city au mount,
+   * mais peut etre dismiss par l'utilisateur via la chip. Sans cet etat,
+   * le filtre venait directement de route.params ce qui empechait le
+   * dismiss et masquait l'indicateur visuel.
+   */
+  city: string | null;
   sortBy: SortOption;
   datePreset: DatePreset;
   locationType: LocationType;
@@ -87,6 +94,7 @@ type Action =
   | { type: 'SET_QUERY'; query: string }
   | { type: 'SET_DEBOUNCED'; query: string }
   | { type: 'SET_CATEGORY'; id: number | null }
+  | { type: 'SET_CITY'; city: string | null }
   | { type: 'SET_SORT'; sort: SortOption }
   | { type: 'SET_DATE_PRESET'; preset: DatePreset }
   | { type: 'SET_LOCATION_TYPE'; loc: LocationType }
@@ -107,6 +115,7 @@ function reducer(state: State, action: Action): State {
     case 'SET_QUERY': return { ...state, query: action.query };
     case 'SET_DEBOUNCED': return { ...state, debouncedQuery: action.query };
     case 'SET_CATEGORY': return { ...state, categoryId: action.id };
+    case 'SET_CITY': return { ...state, city: action.city };
     case 'SET_SORT': return { ...state, sortBy: action.sort };
     case 'SET_DATE_PRESET': return { ...state, datePreset: action.preset };
     case 'SET_LOCATION_TYPE': return { ...state, locationType: action.loc };
@@ -138,6 +147,7 @@ function reducer(state: State, action: Action): State {
       return {
         ...state,
         categoryId: null,
+        city: null,
         sortBy: 'date',
         datePreset: 'any',
         locationType: 'any',
@@ -163,6 +173,7 @@ const initialState: State = {
   query: '',
   debouncedQuery: '',
   categoryId: null,
+  city: null,
   sortBy: 'date',
   datePreset: 'any',
   locationType: 'any',
@@ -262,6 +273,7 @@ export default function EventSearchScreen() {
   const route = useRoute<RouteProps>();
   const initialCategory = route.params?.category ?? null;
   const initialQuery = route.params?.query ?? '';
+  const initialCity = route.params?.city ?? null;
 
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
@@ -281,6 +293,7 @@ export default function EventSearchScreen() {
     query: initialQuery,
     debouncedQuery: initialQuery,
     categoryId: initialCategory,
+    city: initialCity,
   });
 
   const [showFilters, setShowFilters] = useState(false);
@@ -408,13 +421,14 @@ export default function EventSearchScreen() {
   const activeFiltersCount = useMemo(() => {
     let n = 0;
     if (state.categoryId !== null) n++;
+    if (state.city !== null) n++;
     if (state.datePreset !== 'any') n++;
     if (state.locationType !== 'any') n++;
     if (state.priceFilter !== 'any') n++;
     if (state.nearMe) n++;
     if (state.hasTickets) n++;
     return n;
-  }, [state.categoryId, state.datePreset, state.locationType, state.priceFilter, state.nearMe, state.hasTickets]);
+  }, [state.categoryId, state.city, state.datePreset, state.locationType, state.priceFilter, state.nearMe, state.hasTickets]);
 
   useEffect(() => {
     if (!initialQuery && !initialCategory) {
@@ -480,10 +494,10 @@ export default function EventSearchScreen() {
         };
         if (state.debouncedQuery.trim()) params.search = state.debouncedQuery.trim();
         if (state.categoryId) params.category = state.categoryId;
-        // Filtre ville passé en route param (depuis Discover ou deep link).
-        // Le backend Event filter accepte location_city pour exact match.
-        const cityParam = route.params?.city;
-        if (cityParam) params.location_city = cityParam;
+        // Filtre ville depuis l'etat (initialise via route.params.city au
+        // mount, mais dismissable par le user via la chip).
+        // Le backend Event filter accepte location_city pour __icontains.
+        if (state.city) params.location_city = state.city;
 
         // Date range
         const range = computeDateRange(state.datePreset);
@@ -530,7 +544,7 @@ export default function EventSearchScreen() {
       }
     },
     [
-      state.debouncedQuery, state.categoryId, state.sortBy, state.datePreset,
+      state.debouncedQuery, state.categoryId, state.city, state.sortBy, state.datePreset,
       state.locationType, state.priceFilter, state.nearMe, state.hasTickets,
       userLocation, addSearchHistory,
     ]
@@ -540,7 +554,7 @@ export default function EventSearchScreen() {
     doSearch(1, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    state.debouncedQuery, state.categoryId, state.sortBy, state.datePreset,
+    state.debouncedQuery, state.categoryId, state.city, state.sortBy, state.datePreset,
     state.locationType, state.priceFilter, state.nearMe, state.hasTickets,
   ]);
 
@@ -562,7 +576,7 @@ export default function EventSearchScreen() {
 
   const handleEventPress = (event: Event) => {
     navigation.navigate('EventDetails', {
-      eventId: event.id,
+      eventId: event.slug || event.id,
       imageUrl: event.banner_image || event.category?.default_event_image || event.display_image,
     });
   };
@@ -620,6 +634,14 @@ export default function EventSearchScreen() {
     if (state.categoryId !== null) {
       const cat = state.categories.find(c => c.id === state.categoryId);
       if (cat) chips.push({ label: cat.name, onRemove: () => dispatch({ type: 'SET_CATEGORY', id: null }) });
+    }
+    // Chip ville : prefixe d'un pin pour distinguer visuellement du filtre
+    // categorie. onRemove enleve le filtre et declenche un re-search elargi.
+    if (state.city !== null) {
+      chips.push({
+        label: `📍 ${state.city}`,
+        onRemove: () => dispatch({ type: 'SET_CITY', city: null }),
+      });
     }
     if (state.datePreset !== 'any') {
       chips.push({ label: dateLabel(state.datePreset), onRemove: () => dispatch({ type: 'SET_DATE_PRESET', preset: 'any' }) });
