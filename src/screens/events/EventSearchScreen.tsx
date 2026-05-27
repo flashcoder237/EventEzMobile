@@ -471,6 +471,7 @@ export default function EventSearchScreen() {
       const hasFilter =
         state.debouncedQuery.trim().length >= 2 ||
         state.categoryId !== null ||
+        state.city !== null ||
         state.datePreset !== 'any' ||
         state.locationType !== 'any' ||
         state.priceFilter !== 'any' ||
