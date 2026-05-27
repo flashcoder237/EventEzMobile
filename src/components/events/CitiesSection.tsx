@@ -16,8 +16,9 @@
  *  - Error → section masquee (silent fail, pas critique)
  */
 
-import React, { memo, useCallback, useEffect, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Animated,
   FlatList,
   StyleSheet,
   Text,
@@ -28,8 +29,10 @@ import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 
-import { eventsAPI } from '../../api';
+import { eventsAPI, getMediaUrl } from '../../api';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   FontFamily,
@@ -49,6 +52,8 @@ interface CityWithCount {
   country?: string;
   /** Nombre d'events futurs valides (server-side count). */
   event_count: number;
+  /** 0-3 URLs absolues d'events banner pour slideshow en fond (backend extension). */
+  sample_images?: string[];
 }
 
 /** Code 3-letter style IATA (DLA, ABJ, PAR) — strip accents + uppercase. */
@@ -68,15 +73,57 @@ interface CityCardProps {
   onPress: () => void;
 }
 
+/** Duree d'affichage de chaque image dans le slideshow (ms). */
+const SLIDESHOW_INTERVAL = 4000;
+/** Duree du crossfade entre 2 images (ms). */
+const CROSSFADE_DURATION = 800;
+
 /**
- * Card 140x100. Watermark code en background top-right (opacity 0.08),
- * nom en displayExtraBold, country en regular gray, pill count en bas.
- * Memo : evite les re-renders quand la liste parent re-render mais que
- * la city specifique n'a pas change.
+ * Card 140x100 avec slideshow d'images d'events en fond + overlay sombre.
+ * Si sample_images est vide → fallback watermark seul (comportement
+ * original). Sinon : crossfade auto entre 1-3 images toutes les 4s.
+ *
+ * Memo : evite les re-renders quand la liste parent re-render. L'animation
+ * tourne dans Animated.Value local — pas de prop drilling, pas de leak.
  */
 const CityCard = memo(function CityCard({ city, onPress }: CityCardProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
+
+  // Resoud les URL en absolu (les sample_images peuvent etre relatives).
+  // getMediaUrl peut retourner null si l'input est falsy → filter post-map.
+  const images: string[] = (city.sample_images || [])
+    .map((u) => getMediaUrl(u))
+    .filter((u): u is string => !!u)
+    .slice(0, 3);
+  const hasSlideshow = images.length > 0;
+
+  // Index courant + Animated.Value pour fade-in de l'image suivante.
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  // Loop slideshow : avance toutes les SLIDESHOW_INTERVAL ms, avec
+  // crossfade de CROSSFADE_DURATION. Skip si 0 ou 1 image (statique).
+  useEffect(() => {
+    if (images.length < 2) return;
+
+    const interval = setInterval(() => {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: CROSSFADE_DURATION / 2,
+        useNativeDriver: true,
+      }).start(() => {
+        setCurrentIdx((prev) => (prev + 1) % images.length);
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: CROSSFADE_DURATION / 2,
+          useNativeDriver: true,
+        }).start();
+      });
+    }, SLIDESHOW_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [images.length, fadeAnim]);
 
   const countLabel =
     city.event_count === 1
@@ -97,28 +144,56 @@ const CityCard = memo(function CityCard({ city, onPress }: CityCardProps) {
         },
       ]}
     >
-      {/* Watermark : code 3-lettres positionne top-right, tres subtil */}
-      <Text
-        style={[
-          styles.watermark,
-          { color: isDark ? `${colors.primary}22` : `${colors.primary}14` },
-        ]}
-        numberOfLines={1}
-      >
-        {cityCode(city.name)}
-      </Text>
+      {/* === Background : slideshow OU watermark === */}
+      {hasSlideshow ? (
+        <>
+          <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
+            <Image
+              source={{ uri: images[currentIdx] }}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              transition={200}
+              cachePolicy="memory-disk"
+            />
+          </Animated.View>
+          {/* Overlay sombre pour garantir la lisibilite du texte */}
+          <LinearGradient
+            colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.75)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </>
+      ) : (
+        // Fallback : watermark code 3-lettres (comportement original)
+        <Text
+          style={[
+            styles.watermark,
+            { color: isDark ? `${colors.primary}22` : `${colors.primary}14` },
+          ]}
+          numberOfLines={1}
+        >
+          {cityCode(city.name)}
+        </Text>
+      )}
 
-      {/* Contenu principal */}
+      {/* === Contenu principal (texte par-dessus le bg) === */}
       <View style={styles.cardContent}>
         <Text
-          style={[styles.cityName, { color: colors.text }]}
+          style={[
+            styles.cityName,
+            { color: hasSlideshow ? '#FFFFFF' : colors.text },
+          ]}
           numberOfLines={1}
         >
           {city.name}
         </Text>
         {(city.country || city.country_code) && (
           <Text
-            style={[styles.countrySubtitle, { color: colors.gray500 }]}
+            style={[
+              styles.countrySubtitle,
+              { color: hasSlideshow ? 'rgba(255,255,255,0.85)' : colors.gray500 },
+            ]}
             numberOfLines={1}
           >
             {city.country || city.country_code}
@@ -126,11 +201,23 @@ const CityCard = memo(function CityCard({ city, onPress }: CityCardProps) {
         )}
       </View>
 
-      {/* Pill count en bas */}
+      {/* === Pill count en bas === */}
       <View
-        style={[styles.countPill, { backgroundColor: colors.primaryBg }]}
+        style={[
+          styles.countPill,
+          {
+            backgroundColor: hasSlideshow
+              ? 'rgba(255,255,255,0.92)'
+              : colors.primaryBg,
+          },
+        ]}
       >
-        <Text style={[styles.countPillText, { color: colors.primary }]}>
+        <Text
+          style={[
+            styles.countPillText,
+            { color: hasSlideshow ? colors.primary : colors.primary },
+          ]}
+        >
           {countLabel}
         </Text>
       </View>

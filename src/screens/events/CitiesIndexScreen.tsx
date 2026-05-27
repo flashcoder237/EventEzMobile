@@ -26,8 +26,10 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 
-import { eventsAPI } from '../../api';
+import { eventsAPI, getMediaUrl } from '../../api';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   FontFamily,
@@ -44,6 +46,8 @@ interface CityWithCount {
   country_code?: string;
   country?: string;
   event_count: number;
+  /** 0-3 URLs banner pour fond statique (utilise la 1ere sur le hub). */
+  sample_images?: string[];
 }
 
 function cityCode(name: string): string {
@@ -104,6 +108,14 @@ export default function CitiesIndexScreen() {
           ? t('discover.cityEventsCountOne')
           : t('discover.cityEventsCount', { count: item.event_count });
 
+      // Sur le hub (grille de 20+ cards), on prend juste la 1ere image en
+      // fond statique. Pas de slideshow ici (overhead trop important sur
+      // tous les visibles + l'user scrolle vite).
+      const bgImage = item.sample_images?.[0]
+        ? getMediaUrl(item.sample_images[0])
+        : null;
+      const hasBg = !!bgImage;
+
       return (
         <TouchableOpacity
           activeOpacity={TOUCH_OPACITY}
@@ -118,25 +130,49 @@ export default function CitiesIndexScreen() {
             },
           ]}
         >
-          <Text
-            style={[
-              styles.watermark,
-              { color: isDark ? `${colors.primary}22` : `${colors.primary}14` },
-            ]}
-            numberOfLines={1}
-          >
-            {cityCode(item.name)}
-          </Text>
+          {hasBg ? (
+            <>
+              <Image
+                source={{ uri: bgImage! }}
+                style={StyleSheet.absoluteFill}
+                contentFit="cover"
+                transition={200}
+                cachePolicy="memory-disk"
+              />
+              <LinearGradient
+                colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.75)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+            </>
+          ) : (
+            <Text
+              style={[
+                styles.watermark,
+                { color: isDark ? `${colors.primary}22` : `${colors.primary}14` },
+              ]}
+              numberOfLines={1}
+            >
+              {cityCode(item.name)}
+            </Text>
+          )}
           <View style={styles.cardContent}>
             <Text
-              style={[styles.cityName, { color: colors.text }]}
+              style={[
+                styles.cityName,
+                { color: hasBg ? '#FFFFFF' : colors.text },
+              ]}
               numberOfLines={1}
             >
               {item.name}
             </Text>
             {(item.country || item.country_code) && (
               <Text
-                style={[styles.countrySubtitle, { color: colors.gray500 }]}
+                style={[
+                  styles.countrySubtitle,
+                  { color: hasBg ? 'rgba(255,255,255,0.85)' : colors.gray500 },
+                ]}
                 numberOfLines={1}
               >
                 {item.country || item.country_code}
@@ -144,7 +180,14 @@ export default function CitiesIndexScreen() {
             )}
           </View>
           <View
-            style={[styles.countPill, { backgroundColor: colors.primaryBg }]}
+            style={[
+              styles.countPill,
+              {
+                backgroundColor: hasBg
+                  ? 'rgba(255,255,255,0.92)'
+                  : colors.primaryBg,
+              },
+            ]}
           >
             <Text style={[styles.countPillText, { color: colors.primary }]}>
               {countLabel}

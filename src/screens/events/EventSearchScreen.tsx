@@ -497,8 +497,10 @@ export default function EventSearchScreen() {
         if (state.categoryId) params.category = state.categoryId;
         // Filtre ville depuis l'etat (initialise via route.params.city au
         // mount, mais dismissable par le user via la chip).
-        // Le backend Event filter accepte location_city pour __icontains.
-        if (state.city) params.location_city = state.city;
+        // ATTENTION : le backend EventViewSet lit `city` (cf. views.py:239
+        // `request.query_params.get('city')`), PAS `location_city`. Avant ce
+        // fix, le filtre etait ignore en silence → liste vide.
+        if (state.city) params.city = state.city;
 
         // Date range
         const range = computeDateRange(state.datePreset);
