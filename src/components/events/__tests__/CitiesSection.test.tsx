@@ -45,6 +45,32 @@ jest.mock('../../../contexts/ThemeContext', () => ({
   useTheme: () => ({ colors: themeColors, isDark: false }),
 }));
 
+// Mock AuthContext pour eviter de pull i18n + le full provider tree.
+// IMPORTANT : ref stable du user object pour eviter les loops de useMemo
+// qui depend de [user] dans useUserCountryTokens. Le mock factory est
+// hoisted par babel-plugin-jest-hoist → on declare la const a l'interieur.
+jest.mock('../../../contexts/AuthContext', () => {
+  const stableUser = { country: 'CM' };
+  return {
+    useAuth: () => ({ user: stableUser }),
+  };
+});
+
+// Mock expo-localization : retourne CM region pour matching CM.
+jest.mock('expo-localization', () => ({
+  getLocales: () => [{ regionCode: 'CM', languageCode: 'fr' }],
+}));
+
+// Mock expo-image + expo-linear-gradient (pas de native modules en test)
+jest.mock('expo-image', () => {
+  const RN = require('react-native');
+  return { Image: RN.View };
+});
+jest.mock('expo-linear-gradient', () => {
+  const RN = require('react-native');
+  return { LinearGradient: RN.View };
+});
+
 const mockGetCities = jest.fn();
 jest.mock('../../../api', () => ({
   __esModule: true,
@@ -63,7 +89,7 @@ beforeEach(() => {
 
 describe('CitiesSection', () => {
   it('renders cities apres fetch reussi', async () => {
-    mockGetCities.mockResolvedValueOnce({
+    mockGetCities.mockResolvedValue({
       data: {
         results: [
           { name: 'Douala', country: 'Cameroun', country_code: 'CM', event_count: 12 },
@@ -80,7 +106,7 @@ describe('CitiesSection', () => {
   });
 
   it('masque la section quand getCities renvoie 0 villes', async () => {
-    mockGetCities.mockResolvedValueOnce({ data: { results: [] } });
+    mockGetCities.mockResolvedValue({ data: { results: [] } });
     const { queryByText } = render(<CitiesSection />);
 
     // Apres le fetch, le header ne doit pas etre rendu
@@ -90,7 +116,7 @@ describe('CitiesSection', () => {
   });
 
   it('masque la section quand getCities throw', async () => {
-    mockGetCities.mockRejectedValueOnce(new Error('Network down'));
+    mockGetCities.mockRejectedValue(new Error('Network down'));
     const { queryByText } = render(<CitiesSection />);
 
     await waitFor(() => {
@@ -101,7 +127,7 @@ describe('CitiesSection', () => {
   });
 
   it('exclut les villes avec event_count=0 (defense)', async () => {
-    mockGetCities.mockResolvedValueOnce({
+    mockGetCities.mockResolvedValue({
       data: {
         results: [
           { name: 'Douala', country: 'CM', event_count: 5 },
@@ -116,7 +142,7 @@ describe('CitiesSection', () => {
   });
 
   it('tap card → navigate vers EventSearch avec city name exact', async () => {
-    mockGetCities.mockResolvedValueOnce({
+    mockGetCities.mockResolvedValue({
       data: {
         results: [
           { name: 'Yaoundé', country: 'Cameroun', country_code: 'CM', event_count: 3 },
@@ -135,7 +161,7 @@ describe('CitiesSection', () => {
   });
 
   it('tap "Voir tout" → navigate vers CitiesIndex', async () => {
-    mockGetCities.mockResolvedValueOnce({
+    mockGetCities.mockResolvedValue({
       data: {
         results: [
           { name: 'Paris', country: 'France', country_code: 'FR', event_count: 2 },
@@ -151,7 +177,7 @@ describe('CitiesSection', () => {
   });
 
   it('accessibilityLabel inclut nom + count sur chaque card', async () => {
-    mockGetCities.mockResolvedValueOnce({
+    mockGetCities.mockResolvedValue({
       data: {
         results: [
           { name: 'Lagos', country: 'Nigeria', country_code: 'NG', event_count: 7 },
@@ -170,7 +196,7 @@ describe('CitiesSection', () => {
       country: 'XX',
       event_count: i + 1,
     }));
-    mockGetCities.mockResolvedValueOnce({ data: { results: many } });
+    mockGetCities.mockResolvedValue({ data: { results: many } });
 
     const { findByText, queryByText } = render(<CitiesSection limit={5} />);
 

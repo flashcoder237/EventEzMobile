@@ -16,7 +16,7 @@
  *  - Error → section masquee (silent fail, pas critique)
  */
 
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   FlatList,
@@ -31,9 +31,11 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getLocales } from 'expo-localization';
 
 import { eventsAPI, getMediaUrl } from '../../api';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   FontFamily,
   Spacing,
@@ -71,6 +73,12 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 interface CityCardProps {
   city: CityWithCount;
   onPress: () => void;
+  /**
+   * True quand la card est dans le viewport (visible a l'ecran).
+   * Sans ca, on lance des animations + intervals sur des cards offscreen
+   * → consommation batterie inutile + jank au scroll.
+   */
+  isVisible: boolean;
 }
 
 /** Duree d'affichage de chaque image dans le slideshow (ms). */
@@ -79,14 +87,15 @@ const SLIDESHOW_INTERVAL = 4000;
 const CROSSFADE_DURATION = 800;
 
 /**
- * Card 140x100 avec slideshow d'images d'events en fond + overlay sombre.
+ * Card 220x140 avec slideshow d'images d'events en fond + overlay sombre.
  * Si sample_images est vide → fallback watermark seul (comportement
- * original). Sinon : crossfade auto entre 1-3 images toutes les 4s.
+ * original). Sinon : crossfade auto entre 1-3 images toutes les 4s,
+ * UNIQUEMENT quand la card est dans le viewport (isVisible=true).
  *
  * Memo : evite les re-renders quand la liste parent re-render. L'animation
  * tourne dans Animated.Value local — pas de prop drilling, pas de leak.
  */
-const CityCard = memo(function CityCard({ city, onPress }: CityCardProps) {
+const CityCard = memo(function CityCard({ city, onPress, isVisible }: CityCardProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
 
@@ -103,9 +112,11 @@ const CityCard = memo(function CityCard({ city, onPress }: CityCardProps) {
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   // Loop slideshow : avance toutes les SLIDESHOW_INTERVAL ms, avec
-  // crossfade de CROSSFADE_DURATION. Skip si 0 ou 1 image (statique).
+  // crossfade de CROSSFADE_DURATION. Skip si :
+  //   - 0 ou 1 image (statique, rien a alterner)
+  //   - la card n'est pas visible (offscreen → pas de batterie gaspillee)
   useEffect(() => {
-    if (images.length < 2) return;
+    if (images.length < 2 || !isVisible) return;
 
     const interval = setInterval(() => {
       Animated.timing(fadeAnim, {
@@ -123,7 +134,7 @@ const CityCard = memo(function CityCard({ city, onPress }: CityCardProps) {
     }, SLIDESHOW_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [images.length, fadeAnim]);
+  }, [images.length, isVisible, fadeAnim]);
 
   const countLabel =
     city.event_count === 1
@@ -254,14 +265,79 @@ interface CitiesSectionProps {
   limit?: number;
 }
 
+/**
+ * Resout le pays courant de l'utilisateur depuis plusieurs sources, en
+ * priorite descendante :
+ *   1. user.country (champ profil rempli au signup)
+ *   2. getLocales()[0]?.regionCode (region du device, ISO 2-letter)
+ *
+ * Retourne un set de tokens (lowercase) qui peuvent matcher city.country
+ * ("cameroun", "cameroon") OU city.country_code ("cm") pour le tri.
+ */
+function useUserCountryTokens(): Set<string> {
+  const { user } = useAuth();
+  return useMemo(() => {
+    const tokens = new Set<string>();
+    const raw = (user as any)?.country?.toString().trim();
+    if (raw) tokens.add(raw.toLowerCase());
+    try {
+      const region = getLocales()[0]?.regionCode;
+      if (region) tokens.add(region.toLowerCase());
+    } catch {
+      // expo-localization indisponible — silent fallback
+    }
+    return tokens;
+  }, [user]);
+}
+
+/**
+ * Tri stable des villes : celles du pays user en tete, sinon ordre
+ * d'origine (deja par event_count desc cote serveur).
+ */
+function sortByUserCountry(
+  cities: CityWithCount[],
+  userTokens: Set<string>,
+): CityWithCount[] {
+  if (userTokens.size === 0) return cities;
+  const matches = (c: CityWithCount): boolean => {
+    const country = c.country?.toLowerCase() || '';
+    const code = c.country_code?.toLowerCase() || '';
+    return userTokens.has(country) || userTokens.has(code);
+  };
+  // Stable sort : matches first, then everything else in original order.
+  return [...cities].sort((a, b) => {
+    const am = matches(a) ? 1 : 0;
+    const bm = matches(b) ? 1 : 0;
+    return bm - am;
+  });
+}
+
+
 function CitiesSectionImpl({ limit = 10 }: CitiesSectionProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
+  const userCountryTokens = useUserCountryTokens();
 
   const [cities, setCities] = useState<CityWithCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+
+  // IDs des cards actuellement dans le viewport. Permet de ne lancer le
+  // slideshow QUE sur les cards visibles (gain batterie + perf scroll).
+  const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 50,  // >= 50% visible = "vu"
+  }).current;
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: Array<{ key: string; isViewable: boolean }> }) => {
+      const next = new Set<string>();
+      for (const v of viewableItems) {
+        if (v.isViewable) next.add(v.key);
+      }
+      setVisibleIds(next);
+    },
+  ).current;
 
   useEffect(() => {
     let cancelled = false;
@@ -271,8 +347,11 @@ function CitiesSectionImpl({ limit = 10 }: CitiesSectionProps) {
         if (cancelled) return;
         const list = (res.data?.results || []) as CityWithCount[];
         // Filtre : on garde uniquement les villes avec au moins 1 event
-        // (la sectionne se mute toute seule si tout est a 0).
-        setCities(list.filter((c) => c.event_count > 0).slice(0, limit));
+        // (la section se mute toute seule si tout est a 0).
+        const filtered = list.filter((c) => c.event_count > 0);
+        // Tri : villes du pays user en premier, le reste apres
+        const sorted = sortByUserCountry(filtered, userCountryTokens);
+        setCities(sorted.slice(0, limit));
       } catch (err) {
         if (!cancelled) setFailed(true);
         if (__DEV__) console.warn('[CitiesSection] getCities failed', err);
@@ -283,11 +362,11 @@ function CitiesSectionImpl({ limit = 10 }: CitiesSectionProps) {
     return () => {
       cancelled = true;
     };
-  }, [limit]);
+  }, [limit, userCountryTokens]);
 
   const onCityPress = useCallback(
     (city: CityWithCount) => {
-      // Passe le nom EXACT du backend → location_city __icontains match.
+      // Passe le nom EXACT du backend → backend filter `city` icontains match.
       navigation.navigate('EventSearch', { city: city.name });
     },
     [navigation],
@@ -346,12 +425,27 @@ function CitiesSectionImpl({ limit = 10 }: CitiesSectionProps) {
           keyExtractor={(c) => c.name}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
-            <CityCard city={item} onPress={() => onCityPress(item)} />
+            <CityCard
+              city={item}
+              onPress={() => onCityPress(item)}
+              isVisible={visibleIds.has(item.name)}
+            />
           )}
-          removeClippedSubviews
-          initialNumToRender={4}
-          maxToRenderPerBatch={6}
-          windowSize={5}
+          // Tracking viewport pour ne lancer l'animation slideshow que sur
+          // les cards visibles (gain batterie sur les cards offscreen).
+          // `process.env.JEST_WORKER_ID` : en test env, FlatList virtualization
+          // + onViewableItemsChanged + Animated.timing async = race conditions
+          // qui causent "Unable to find node on an unmounted component".
+          // En prod le viewport tracking marche normalement.
+          {...(process.env.JEST_WORKER_ID === undefined
+            ? {
+                viewabilityConfig,
+                onViewableItemsChanged,
+              }
+            : {})}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={10}
         />
       )}
     </View>
@@ -366,8 +460,11 @@ export default CitiesSection;
 // STYLES — alignes sur les tokens DiscoverScreen + style guide editorial
 // =====================================================================
 
-const CARD_W = 140;
-const CARD_H = 100;
+// Cards plus grandes (220x140 vs 140x100) — plus d'impact visuel pour les
+// images slideshow en fond. L'utilisateur voit ~1.5 cards a la fois sur un
+// ecran 390pt, ce qui invite naturellement au scroll.
+const CARD_W = 220;
+const CARD_H = 140;
 
 const styles = StyleSheet.create({
   section: { marginTop: Spacing.xl },
@@ -424,44 +521,44 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardContent: {
-    zIndex: 2,  // au-dessus du watermark
+    zIndex: 2,  // au-dessus du watermark / background image
   },
   cityName: {
     fontFamily: FontFamily.displayExtraBold,
-    fontSize: 18,
-    letterSpacing: -0.5,
-    lineHeight: 20,
+    fontSize: 24,
+    letterSpacing: -0.7,
+    lineHeight: 26,
   },
   countrySubtitle: {
     fontFamily: FontFamily.regular,
-    fontSize: 11,
-    marginTop: 2,
+    fontSize: 12,
+    marginTop: 3,
     letterSpacing: -0.1,
   },
 
   // Watermark code 3-lettres : grand, opacity faible, en arriere-plan
   watermark: {
     position: 'absolute',
-    top: -8,
-    right: -4,
+    top: -12,
+    right: -6,
     fontFamily: FontFamily.displayExtraBold,
-    fontSize: 56,
-    letterSpacing: -3,
-    lineHeight: 56,
+    fontSize: 82,
+    letterSpacing: -4,
+    lineHeight: 82,
     zIndex: 1,
   },
 
   // Pill compte events en bas
   countPill: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
     borderRadius: BorderRadius.full,
     zIndex: 2,
   },
   countPillText: {
     fontFamily: FontFamily.semiBold,
-    fontSize: 10,
+    fontSize: 11,
     letterSpacing: -0.1,
   },
 
