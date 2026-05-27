@@ -1,23 +1,29 @@
 /**
- * CitiesIndexScreen — equivalent /events/in du web sur mobile.
+ * CitiesIndexScreen — hub /events/in du mobile.
  *
- * Hub : toutes les villes ayant au moins 1 evenement. Cible du deep link
- * `eventez://events/in` (Universal Link parite web).
+ * Architecture :
+ *  - Header editorial (back + watermark "MAP")
+ *  - Hero : eyebrow + title + stats (N villes · M evts)
+ *  - Search bar sticky avec debounce 300ms → `?search=` au backend
+ *  - SectionList groupee par pays :
+ *      Section "Pres de chez toi" (pays user / region device) en 1er
+ *      Puis chaque autre pays en section separee (tri par count desc)
+ *  - Chaque section = grille 2 colonnes de city cards
+ *  - Empty state contextuel : pas de match VS aucune ville
  *
- * Layout :
- *  - Header editorial (eyebrow PAR VILLE + watermark "MAP" en arriere-plan)
- *  - Stats compteur (N villes, M evenements total)
- *  - Grille 2 colonnes de cards (meme card design que CitiesSection)
- *  - Empty state si aucune ville
- *
- * Tap card → EventSearch avec city pre-rempli.
+ * Pourquoi SectionList + grouping pays ? Le hub peut remonter jusqu'a 200
+ * villes (cap backend). En grille plate ca devient illisible, et la
+ * pertinence cognitive du "pays" est l'axe naturel de navigation. Pays
+ * user en premier reduit le scroll dans 90% des cas.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  FlatList,
+  Dimensions,
+  SectionList,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -28,8 +34,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getLocales } from 'expo-localization';
 
 import { eventsAPI, getMediaUrl } from '../../api';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   FontFamily,
@@ -40,14 +48,30 @@ import type { RootStackParamList } from '../../types';
 import { ErrorState } from '../../components/ui/ErrorState';
 
 const TOUCH_OPACITY = 0.7;
+const SEARCH_DEBOUNCE_MS = 300;
+const CARD_HEIGHT = 120;
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const GRID_HORIZONTAL_PADDING = Spacing.lg;
+const GRID_GAP = Spacing.md;
+// 2 col grid : (screen - 2*padding - 1*gap) / 2
+const CARD_WIDTH = (SCREEN_WIDTH - GRID_HORIZONTAL_PADDING * 2 - GRID_GAP) / 2;
 
 interface CityWithCount {
+  id?: number;
   name: string;
   country_code?: string;
   country?: string;
   event_count: number;
-  /** 0-3 URLs banner pour fond statique (utilise la 1ere sur le hub). */
+  /** 0-3 URLs banner pour fond statique (1ere image utilisee sur le hub). */
   sample_images?: string[];
+}
+
+/** Chunk a list into rows of N items. Sert au rendu grille via SectionList. */
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
 }
 
 function cityCode(name: string): string {
@@ -58,23 +82,77 @@ function cityCode(name: string): string {
     .toUpperCase();
 }
 
+/**
+ * Detecte le(s) pays prioritaire(s) du user via :
+ *  1. user.country (profile) — source autoritative si dispo
+ *  2. device region (expo-localization) — fallback
+ * Renvoie un Set de tokens lowercase pour matching tolerant ("cm" / "cameroun").
+ */
+function useUserCountryTokens(): Set<string> {
+  const { user } = useAuth();
+  return useMemo(() => {
+    const tokens = new Set<string>();
+    const raw = (user as any)?.country?.toString().trim();
+    if (raw) tokens.add(raw.toLowerCase());
+    try {
+      const region = getLocales()[0]?.regionCode;
+      if (region) tokens.add(region.toLowerCase());
+    } catch {
+      // expo-localization peut throw sur certains envs (Web non supporte) ;
+      // pas grave, on tombe juste sur l'affichage standard sans pays user.
+    }
+    return tokens;
+  }, [user]);
+}
+
+function isUserCity(c: CityWithCount, userTokens: Set<string>): boolean {
+  if (userTokens.size === 0) return false;
+  const country = c.country?.toLowerCase() || '';
+  const code = c.country_code?.toLowerCase() || '';
+  return userTokens.has(country) || userTokens.has(code);
+}
+
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+interface Section {
+  /** Cle d'identification ; soit nom pays, soit sentinelle "_near". */
+  key: string;
+  /** Label affiche en header de section. */
+  title: string;
+  /** Rangees de city cards : `[[c1, c2], [c3, c4], [c5]]`. */
+  data: CityWithCount[][];
+  /** Total events tous events de la section confondus. Affiche en sous-titre. */
+  totalEvents: number;
+  /** Total villes. */
+  totalCities: number;
+}
 
 export default function CitiesIndexScreen() {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
+  const userTokens = useUserCountryTokens();
 
   const [cities, setCities] = useState<CityWithCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
 
-  const loadCities = useCallback(async () => {
+  // Debounce query → backend (300ms). On ne fetch que si trim().length >= 1
+  // (autorise les single-char comme "P" pour "Paris") ou si vide (reset).
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQuery(query.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [query]);
+
+  const loadCities = useCallback(async (search?: string) => {
     setLoading(true);
     setFailed(false);
     try {
-      const res = await eventsAPI.getCities();
+      const params: { search?: string; limit?: number } = { limit: 200 };
+      if (search) params.search = search;
+      const res = await eventsAPI.getCities(params);
       const list = (res.data?.results || []) as CityWithCount[];
       setCities(list.filter((c) => c.event_count > 0));
     } catch (err) {
@@ -85,14 +163,67 @@ export default function CitiesIndexScreen() {
     }
   }, []);
 
+  // Re-fetch a chaque changement de debouncedQuery (incluant le mount avec '').
   useEffect(() => {
-    loadCities();
-  }, [loadCities]);
+    loadCities(debouncedQuery || undefined);
+  }, [debouncedQuery, loadCities]);
 
-  const totalEvents = useMemo(
-    () => cities.reduce((acc, c) => acc + c.event_count, 0),
-    [cities],
-  );
+  const totals = useMemo(() => {
+    const totalEvents = cities.reduce((acc, c) => acc + c.event_count, 0);
+    return { totalEvents, totalCities: cities.length };
+  }, [cities]);
+
+  // Construction des sections : pays user en premier, puis chaque autre pays
+  // tri par event_count desc (les pays les plus actifs en haut).
+  const sections: Section[] = useMemo(() => {
+    if (cities.length === 0) return [];
+
+    const userCities: CityWithCount[] = [];
+    const byCountry = new Map<string, CityWithCount[]>();
+
+    for (const c of cities) {
+      if (isUserCity(c, userTokens)) {
+        userCities.push(c);
+      } else {
+        const key = c.country || c.country_code || '—';
+        const list = byCountry.get(key) || [];
+        list.push(c);
+        byCountry.set(key, list);
+      }
+    }
+
+    const out: Section[] = [];
+
+    if (userCities.length > 0) {
+      out.push({
+        key: '_near',
+        title: t('discover.citiesNearYou'),
+        data: chunk(userCities, 2),
+        totalEvents: userCities.reduce((a, c) => a + c.event_count, 0),
+        totalCities: userCities.length,
+      });
+    }
+
+    // Tri pays : par event_count total decroissant, puis alpha
+    const countryEntries = Array.from(byCountry.entries()).sort(([na, ca], [nb, cb]) => {
+      const sumA = ca.reduce((a, c) => a + c.event_count, 0);
+      const sumB = cb.reduce((a, c) => a + c.event_count, 0);
+      if (sumB !== sumA) return sumB - sumA;
+      return na.localeCompare(nb);
+    });
+
+    for (const [country, list] of countryEntries) {
+      out.push({
+        key: country,
+        title: country,
+        data: chunk(list, 2),
+        totalEvents: list.reduce((a, c) => a + c.event_count, 0),
+        totalCities: list.length,
+      });
+    }
+
+    return out;
+  }, [cities, userTokens, t]);
 
   const onCityPress = useCallback(
     (city: CityWithCount) => {
@@ -102,15 +233,15 @@ export default function CitiesIndexScreen() {
   );
 
   const renderCity = useCallback(
-    ({ item }: { item: CityWithCount }) => {
+    (item: CityWithCount) => {
       const countLabel =
         item.event_count === 1
           ? t('discover.cityEventsCountOne')
           : t('discover.cityEventsCount', { count: item.event_count });
 
-      // Sur le hub (grille de 20+ cards), on prend juste la 1ere image en
-      // fond statique. Pas de slideshow ici (overhead trop important sur
-      // tous les visibles + l'user scrolle vite).
+      // Sur le hub (grille de 20+ cards), image statique (1ere sample). Pas
+      // de slideshow : overhead trop important sur tous les visibles + l'user
+      // scrolle vite et n'aura pas le temps de voir la rotation.
       const bgImage = item.sample_images?.[0]
         ? getMediaUrl(item.sample_images[0])
         : null;
@@ -118,6 +249,7 @@ export default function CitiesIndexScreen() {
 
       return (
         <TouchableOpacity
+          key={item.name}
           activeOpacity={TOUCH_OPACITY}
           onPress={() => onCityPress(item)}
           accessibilityRole="button"
@@ -125,6 +257,7 @@ export default function CitiesIndexScreen() {
           style={[
             styles.gridCard,
             {
+              width: CARD_WIDTH,
               backgroundColor: colors.card,
               borderColor: isDark ? colors.gray200 : 'rgba(0,0,0,0.06)',
             },
@@ -199,14 +332,57 @@ export default function CitiesIndexScreen() {
     [colors, isDark, t, onCityPress],
   );
 
+  const renderRow = useCallback(
+    ({ item: row }: { item: CityWithCount[] }) => (
+      <View style={styles.row}>
+        {row.map(renderCity)}
+        {/* Cellule fantome si la rangee est impaire pour aligner la grille */}
+        {row.length === 1 && <View style={{ width: CARD_WIDTH }} />}
+      </View>
+    ),
+    [renderCity],
+  );
+
+  const renderSectionHeader = useCallback(
+    ({ section }: { section: Section }) => {
+      const isUserSection = section.key === '_near';
+      return (
+        <View
+          style={[
+            styles.sectionHeader,
+            { backgroundColor: colors.background },
+          ]}
+        >
+          {isUserSection && (
+            <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>
+              {t('discover.citiesEyebrow')}
+            </Text>
+          )}
+          <View style={styles.sectionTitleRow}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              {section.title}
+            </Text>
+            <Text style={[styles.sectionMeta, { color: colors.gray500 }]}>
+              {section.totalCities}
+            </Text>
+          </View>
+        </View>
+      );
+    },
+    [colors, t],
+  );
+
   // ─── Render ─────────────────────────────────────────────────────────
+
+  const hasSearch = debouncedQuery.length > 0;
+  const showEmpty = !loading && !failed && cities.length === 0;
 
   return (
     <SafeAreaView
       edges={['top']}
       style={[styles.safe, { backgroundColor: colors.background }]}
     >
-      {/* Header avec back button + watermark MAP en background */}
+      {/* Header avec back button */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -219,84 +395,126 @@ export default function CitiesIndexScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Hero editorial : watermark "MAP" + eyebrow + title + stats */}
-      <View style={styles.hero}>
-        <Text
-          style={[
-            styles.heroWatermark,
-            { color: isDark ? `${colors.primary}10` : `${colors.primary}08` },
-          ]}
-          numberOfLines={1}
-        >
-          MAP
-        </Text>
-        <Text style={[styles.heroEyebrow, { color: colors.accent }]}>
-          {t('discover.citiesEyebrow')}
-        </Text>
-        <Text style={[styles.heroTitle, { color: colors.text }]}>
-          {t('discover.citiesIndexTitle')}
-        </Text>
-        {cities.length > 0 && (
-          <Text style={[styles.heroSubtitle, { color: colors.gray600 }]}>
-            {t('discover.citiesIndexSubtitle', {
-              count: cities.length,
-              total: totalEvents,
-            })}
-          </Text>
-        )}
-      </View>
-
       {failed ? (
         <ErrorState
           message={t('common.errorLoading') || 'Error'}
-          onRetry={loadCities}
+          onRetry={() => loadCities(debouncedQuery || undefined)}
         />
       ) : (
-        <FlatList
-          data={loading ? Array.from({ length: 8 }) as CityWithCount[] : cities}
-          keyExtractor={(item, idx) =>
-            loading ? `city-skel-${idx}` : (item as CityWithCount).name
+        <SectionList
+          sections={sections}
+          keyExtractor={(item, idx) => item.map((c) => c.name).join('|') + idx}
+          renderItem={renderRow}
+          renderSectionHeader={renderSectionHeader}
+          stickySectionHeadersEnabled
+          ListHeaderComponent={
+            <>
+              {/* Hero editorial : watermark "MAP" + eyebrow + title + stats */}
+              <View style={styles.hero}>
+                <Text
+                  style={[
+                    styles.heroWatermark,
+                    { color: isDark ? `${colors.primary}10` : `${colors.primary}08` },
+                  ]}
+                  numberOfLines={1}
+                >
+                  MAP
+                </Text>
+                <Text style={[styles.heroEyebrow, { color: colors.accent }]}>
+                  {t('discover.citiesEyebrow')}
+                </Text>
+                <Text style={[styles.heroTitle, { color: colors.text }]}>
+                  {t('discover.citiesIndexTitle')}
+                </Text>
+                {!hasSearch && totals.totalCities > 0 && (
+                  <Text style={[styles.heroSubtitle, { color: colors.gray600 }]}>
+                    {t('discover.citiesIndexSubtitle', {
+                      count: totals.totalCities,
+                      total: totals.totalEvents,
+                    })}
+                  </Text>
+                )}
+              </View>
+
+              {/* Search bar : toujours visible, debounce serveur. Le user
+                  peut chercher "yao" → matche "Yaoundé", "Yaoundé I" etc. */}
+              <View style={styles.searchBarWrap}>
+                <View
+                  style={[
+                    styles.searchBar,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: isDark ? colors.gray200 : 'rgba(0,0,0,0.06)',
+                    },
+                  ]}
+                >
+                  <Ionicons name="search" size={16} color={colors.gray500} />
+                  <TextInput
+                    style={[styles.searchInput, { color: colors.text }]}
+                    placeholder={t('discover.citiesSearchPlaceholder')}
+                    placeholderTextColor={colors.gray400}
+                    value={query}
+                    onChangeText={setQuery}
+                    returnKeyType="search"
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    accessibilityLabel={t('discover.citiesSearchPlaceholder')}
+                  />
+                  {query.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() => setQuery('')}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('common.clear') || 'Clear'}
+                    >
+                      <Ionicons name="close-circle" size={16} color={colors.gray400} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            </>
           }
-          numColumns={2}
-          columnWrapperStyle={styles.row}
-          contentContainerStyle={styles.gridContent}
-          renderItem={loading ? renderSkeletonCell : renderCity}
           ListEmptyComponent={
-            !loading ? (
+            showEmpty ? (
               <View style={styles.emptyContainer}>
                 <Ionicons
-                  name="location-outline"
+                  name={hasSearch ? 'search-outline' : 'location-outline'}
                   size={48}
                   color={colors.gray400}
                   style={{ marginBottom: Spacing.md }}
                 />
                 <Text style={[styles.emptyText, { color: colors.gray600 }]}>
-                  {t('discover.citiesIndexEmpty')}
+                  {hasSearch
+                    ? t('discover.citiesNoMatch', { query: debouncedQuery })
+                    : t('discover.citiesIndexEmpty')}
                 </Text>
+              </View>
+            ) : loading ? (
+              <View style={styles.skeletonGrid}>
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <View
+                    key={`skel-${idx}`}
+                    style={[styles.gridCard, styles.skeletonCard, { width: CARD_WIDTH }]}
+                  >
+                    <View style={styles.skeletonLineLg} />
+                    <View style={styles.skeletonLineSm} />
+                    <View style={styles.skeletonPill} />
+                  </View>
+                ))}
               </View>
             ) : null
           }
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          // Perf : on a max 200 villes ; pas besoin de virtualisation aggressive
+          // mais on garde des seuils raisonnables.
+          initialNumToRender={6}
+          maxToRenderPerBatch={6}
+          windowSize={11}
         />
       )}
     </SafeAreaView>
-  );
-}
-
-
-function renderSkeletonCell() {
-  // ColorTheme local pour cohérence — on relit via Hook impossible ici
-  // (callback), donc grayed-out via static style is OK pour skeleton.
-  return (
-    <View
-      style={[
-        styles.gridCard,
-        styles.skeletonCard,
-      ]}
-    >
-      <View style={styles.skeletonLineLg} />
-      <View style={styles.skeletonLineSm} />
-      <View style={styles.skeletonPill} />
-    </View>
   );
 }
 
@@ -332,7 +550,7 @@ const styles = StyleSheet.create({
   hero: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    paddingBottom: Spacing.lg,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -368,19 +586,71 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
 
-  // === Grid 2 colonnes ===
-  gridContent: {
+  // === SEARCH BAR ===
+  searchBarWrap: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing['2xl'],
-    gap: Spacing.md,
+    paddingBottom: Spacing.md,
   },
-  row: {
-    gap: Spacing.md,
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 44,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: FontFamily.regular,
+    fontSize: 14,
+    padding: 0,
   },
 
-  gridCard: {
+  // === SECTION HEADER ===
+  sectionHeader: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  sectionEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+  },
+  sectionTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.8,
+    lineHeight: 26,
     flex: 1,
-    height: 110,
+  },
+  sectionMeta: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    letterSpacing: -0.1,
+    marginLeft: 8,
+  },
+
+  // === ROW + CARDS ===
+  listContent: {
+    paddingBottom: Spacing['2xl'],
+  },
+  row: {
+    flexDirection: 'row',
+    paddingHorizontal: GRID_HORIZONTAL_PADDING,
+    gap: GRID_GAP,
+    marginBottom: GRID_GAP,
+  },
+  gridCard: {
+    height: CARD_HEIGHT,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     padding: Spacing.md,
@@ -402,7 +672,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
     letterSpacing: -0.1,
   },
-
   watermark: {
     position: 'absolute',
     top: -8,
@@ -413,7 +682,6 @@ const styles = StyleSheet.create({
     lineHeight: 56,
     zIndex: 1,
   },
-
   countPill: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
@@ -427,7 +695,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.1,
   },
 
-  // === Empty state ===
+  // === EMPTY STATE ===
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -442,7 +710,13 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // === Skeleton ===
+  // === SKELETON ===
+  skeletonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: GRID_HORIZONTAL_PADDING,
+    gap: GRID_GAP,
+  },
   skeletonCard: {
     backgroundColor: '#F3F4F6',
     borderColor: 'transparent',

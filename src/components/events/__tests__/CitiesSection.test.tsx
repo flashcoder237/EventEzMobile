@@ -13,9 +13,6 @@ import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 
 const mockNavigate = jest.fn();
-jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: mockNavigate }),
-}));
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -71,6 +68,20 @@ jest.mock('expo-linear-gradient', () => {
   return { LinearGradient: RN.View };
 });
 
+// Mock useFocusEffect (le composant l'utilise pour pauser le slideshow
+// quand le screen perd le focus). En test, on l'execute juste une fois
+// au mount comme si l'ecran etait focused.
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: mockNavigate }),
+  useFocusEffect: (cb: () => void | (() => void)) => {
+    const React = require('react');
+    React.useEffect(() => {
+      const cleanup = cb();
+      return typeof cleanup === 'function' ? cleanup : undefined;
+    }, []);
+  },
+}));
+
 const mockGetCities = jest.fn();
 jest.mock('../../../api', () => ({
   __esModule: true,
@@ -98,7 +109,6 @@ describe('CitiesSection', () => {
       },
     });
     const { findByText, getByText } = render(<CitiesSection />);
-
     expect(await findByText('Douala')).toBeTruthy();
     expect(getByText('Abidjan')).toBeTruthy();
     expect(getByText('PAR VILLE')).toBeTruthy();

@@ -26,7 +26,7 @@ import {
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -74,9 +74,12 @@ interface CityCardProps {
   city: CityWithCount;
   onPress: () => void;
   /**
-   * True quand la card est dans le viewport (visible a l'ecran).
-   * Sans ca, on lance des animations + intervals sur des cards offscreen
-   * → consommation batterie inutile + jank au scroll.
+   * True quand l'ecran Discover est focus. Sert a suspendre les animations
+   * quand l'utilisateur navigue ailleurs (gain batterie). On a essaye une
+   * detection viewport-level via FlatList.onViewableItemsChanged mais ca
+   * cause "Changing onViewableItemsChanged nullability on the fly is not
+   * supported" en prod + crash test env. La granularite "screen focus"
+   * est suffisante en pratique (10 cards = pas de gaspillage notable).
    */
   isVisible: boolean;
 }
@@ -323,21 +326,18 @@ function CitiesSectionImpl({ limit = 10 }: CitiesSectionProps) {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
 
-  // IDs des cards actuellement dans le viewport. Permet de ne lancer le
-  // slideshow QUE sur les cards visibles (gain batterie + perf scroll).
-  const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
-  const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 50,  // >= 50% visible = "vu"
-  }).current;
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: Array<{ key: string; isViewable: boolean }> }) => {
-      const next = new Set<string>();
-      for (const v of viewableItems) {
-        if (v.isViewable) next.add(v.key);
-      }
-      setVisibleIds(next);
-    },
-  ).current;
+  // Detection focus screen : true tant que Discover est focused.
+  // Quand l'utilisateur navigue ailleurs, on passe a false → toutes les
+  // CityCard suspendent leurs animations slideshow (gain batterie).
+  // Granularite "screen-level" car la viewport-level via FlatList est
+  // instable (cf. note dans CityCardProps.isVisible).
+  const [isFocused, setIsFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setIsFocused(true);
+      return () => setIsFocused(false);
+    }, []),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -428,21 +428,9 @@ function CitiesSectionImpl({ limit = 10 }: CitiesSectionProps) {
             <CityCard
               city={item}
               onPress={() => onCityPress(item)}
-              isVisible={visibleIds.has(item.name)}
+              isVisible={isFocused}
             />
           )}
-          // Tracking viewport pour ne lancer l'animation slideshow que sur
-          // les cards visibles (gain batterie sur les cards offscreen).
-          // `process.env.JEST_WORKER_ID` : en test env, FlatList virtualization
-          // + onViewableItemsChanged + Animated.timing async = race conditions
-          // qui causent "Unable to find node on an unmounted component".
-          // En prod le viewport tracking marche normalement.
-          {...(process.env.JEST_WORKER_ID === undefined
-            ? {
-                viewabilityConfig,
-                onViewableItemsChanged,
-              }
-            : {})}
           initialNumToRender={10}
           maxToRenderPerBatch={10}
           windowSize={10}
