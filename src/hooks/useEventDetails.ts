@@ -271,7 +271,7 @@ export function useEventDetails(
   const handleShare = async () => {
     if (!event) return;
 
-    const shareUrl = getEventUrl(event.id);
+    const shareUrl = getEventUrl(event.slug || event.id);
     const shareMessage = `${event.title}\n\n${event.short_description || event.description?.slice(0, 100) || ''}\n\n${formatDate(event.start_date)}\n${event.location_city || event.location_name || 'Lieu a confirmer'}\n\nDecouvre cet evenement sur EventEz: ${shareUrl}`;
 
     try {
@@ -291,7 +291,7 @@ export function useEventDetails(
 
   const handleShareToWhatsApp = async () => {
     if (!event) return;
-    const shareUrl = getEventUrl(event.id);
+    const shareUrl = getEventUrl(event.slug || event.id);
     const message = encodeURIComponent(`${event.title}\n\n${formatDate(event.start_date)}\n${event.location_city || 'En ligne'}\n\nDecouvre cet evenement: ${shareUrl}`);
     const url = `whatsapp://send?text=${message}`;
 

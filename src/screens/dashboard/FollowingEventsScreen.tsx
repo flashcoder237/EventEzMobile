@@ -742,7 +742,7 @@ export default function FollowingEventsScreen() {
   // don't change between renders for a given event, so memoization is safe).
   const handleEventPress = useCallback((event: Event) => {
     navigation.navigate('EventDetails', {
-      eventId: event.id,
+      eventId: event.slug || event.id,
       imageUrl: event.banner_image || event.category?.default_event_image || undefined,
     });
   }, [navigation]);

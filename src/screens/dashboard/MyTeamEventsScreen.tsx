@@ -52,6 +52,7 @@ interface TeamEvent {
   id: string;
   event: {
     id: string;
+    slug?: string;
     title: string;
     start_date: string | null;
     end_date: string | null;
@@ -122,7 +123,7 @@ export default function MyTeamEventsScreen() {
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
         <TouchableOpacity
           activeOpacity={TOUCH_OPACITY}
-          onPress={() => navigation.navigate('EventDetails', { eventId: item.event.id })}
+          onPress={() => navigation.navigate('EventDetails', { eventId: item.event.slug || item.event.id })}
         >
           {item.event.banner_url ? (
             <Image source={{ uri: item.event.banner_url }} style={styles.banner} resizeMode="cover" />
@@ -154,7 +155,7 @@ export default function MyTeamEventsScreen() {
 
           <TouchableOpacity
             activeOpacity={TOUCH_OPACITY}
-            onPress={() => navigation.navigate('EventDetails', { eventId: item.event.id })}
+            onPress={() => navigation.navigate('EventDetails', { eventId: item.event.slug || item.event.id })}
           >
             <Text style={[styles.title, { color: colors.gray900 }]} numberOfLines={2}>
               {item.event.title}
@@ -166,7 +167,7 @@ export default function MyTeamEventsScreen() {
             {canScan && (
               <TouchableOpacity
                 style={[styles.actionButton, { backgroundColor: colors.primary }]}
-                onPress={() => navigation.navigate('QRScanner', { eventId: item.event.id })}
+                onPress={() => navigation.navigate('QRScanner', { eventId: item.event.slug || item.event.id })}
                 activeOpacity={TOUCH_OPACITY}
               >
                 <Ionicons name="qr-code" size={16} color="#FFFFFF" />
@@ -178,7 +179,7 @@ export default function MyTeamEventsScreen() {
             {canModerate && (
               <TouchableOpacity
                 style={[styles.actionButtonSecondary, { borderColor: colors.gray200 }]}
-                onPress={() => navigation.navigate('EventDetails', { eventId: item.event.id })}
+                onPress={() => navigation.navigate('EventDetails', { eventId: item.event.slug || item.event.id })}
                 activeOpacity={TOUCH_OPACITY}
               >
                 <Ionicons name="chatbubbles-outline" size={16} color={colors.gray700} />
@@ -190,7 +191,7 @@ export default function MyTeamEventsScreen() {
             {canViewAnalytics && (
               <TouchableOpacity
                 style={[styles.actionButtonSecondary, { borderColor: colors.gray200 }]}
-                onPress={() => navigation.navigate('EventAnalytics', { eventId: item.event.id })}
+                onPress={() => navigation.navigate('EventAnalytics', { eventId: item.event.slug || item.event.id })}
                 activeOpacity={TOUCH_OPACITY}
               >
                 <Ionicons name="bar-chart-outline" size={16} color={colors.gray700} />

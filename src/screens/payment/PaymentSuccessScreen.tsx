@@ -72,7 +72,7 @@ interface SuccessContent {
 export default function PaymentSuccessScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<PaymentSuccessRouteProp>();
-  const { eventType, approvalStatus, eventTitle, registrationId, amount, currency, eventStartDate, eventId, referenceCode, paymentId } = route.params;
+  const { eventType, approvalStatus, eventTitle, registrationId, amount, currency, eventStartDate, eventId, eventSlug, referenceCode, paymentId } = route.params;
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -138,7 +138,7 @@ export default function PaymentSuccessScreen() {
     if (!eventId) return;
     try {
       const refSegment = user?.id ? `?ref=u${String(user.id).slice(0, 12)}` : '';
-      const url = `${getEventUrl(String(eventId))}${refSegment}`;
+      const url = `${getEventUrl(eventSlug || String(eventId))}${refSegment}`;
       const message = eventTitle
         ? `Je viens de prendre ma place pour « ${eventTitle} » sur EventEz 🎫\n\nViens avec moi : ${url}`
         : `Je viens de prendre ma place sur EventEz 🎫\n\nDécouvre l'événement : ${url}`;

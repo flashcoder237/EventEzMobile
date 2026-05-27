@@ -89,6 +89,7 @@ export function useOfflineTickets() {
       reference_code: string;
       event: {
         id: string;
+        slug?: string;
         title: string;
         start_date: string;
       };
@@ -156,7 +157,7 @@ export function useOfflineTickets() {
       const cachedTicket: CachedTicket = {
         ticketId: ticket.id,
         registrationId: ticket.registration.id,
-        eventId: ticket.registration.event.id,
+        eventId: ticket.registration.event.slug || ticket.registration.event.id,
         eventTitle: ticket.registration.event.title,
         eventDate: ticket.registration.event.start_date,
         ticketType: ticket.ticket_type_name || 'Billet',

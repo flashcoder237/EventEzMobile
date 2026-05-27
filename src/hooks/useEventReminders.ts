@@ -137,6 +137,7 @@ export function useEventReminders() {
   // Programmer un rappel pour un événement
   const scheduleReminder = useCallback(async (event: {
     id: string;
+    slug?: string;
     title: string;
     start_date: string;
     location_name?: string;
@@ -157,7 +158,7 @@ export function useEventReminders() {
     }
 
     const reminder: ScheduledReminder = {
-      eventId: event.id,
+      eventId: event.slug || event.id,
       eventTitle: event.title,
       eventDate: event.start_date,
       registrationId,
@@ -174,7 +175,7 @@ export function useEventReminders() {
             body: `L'événement "${event.title}" commence demain!`,
             data: {
               type: 'event_reminder',
-              eventId: event.id,
+              eventId: event.slug || event.id,
               registrationId,
               reminderType: '24h',
             },
@@ -200,7 +201,7 @@ export function useEventReminders() {
             body: `"${event.title}" commence bientôt${location ? ` à ${location}` : ''}!`,
             data: {
               type: 'event_reminder',
-              eventId: event.id,
+              eventId: event.slug || event.id,
               registrationId,
               reminderType: '1h',
             },
@@ -259,6 +260,7 @@ export function useEventReminders() {
   const scheduleMultipleReminders = useCallback(async (
     events: Array<{
       id: string;
+      slug?: string;
       title: string;
       start_date: string;
       location_name?: string;
@@ -294,6 +296,7 @@ export function useEventReminders() {
   // Basculer le rappel pour un événement
   const toggleReminder = useCallback(async (event: {
     id: string;
+    slug?: string;
     title: string;
     start_date: string;
     location_name?: string;

@@ -1313,6 +1313,7 @@ export type CustomFormField = FormField;
 
 export interface MapMarker {
   id: string;
+  slug?: string;
   title: string;
   lat: number;
   lng: number;

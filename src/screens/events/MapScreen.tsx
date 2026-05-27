@@ -352,7 +352,7 @@ export default function MapScreen() {
         <MapEventCard
           marker={selectedMarker}
           userLocation={userLocation}
-          onPress={() => navigation.navigate('EventDetails', { eventId: selectedMarker.id })}
+          onPress={() => navigation.navigate('EventDetails', { eventId: selectedMarker.slug || selectedMarker.id })}
           calculateDistance={calculateDistance}
         />
       )}

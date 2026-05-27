@@ -539,7 +539,7 @@ export default function MyEventsScreen() {
       {
         label: t('organizer.myEvents.actions.view'),
         icon: 'eye-outline',
-        onPress: () => navigation.navigate('EventDetails', { eventId: event.id }),
+        onPress: () => navigation.navigate('EventDetails', { eventId: event.slug || event.id }),
       },
     ];
     if (event.status === 'validated') {
@@ -547,17 +547,17 @@ export default function MyEventsScreen() {
         {
           label: t('organizer.myEvents.actions.scanQR'),
           icon: 'qr-code-outline',
-          onPress: () => navigation.navigate('QRScanner', { eventId: event.id }),
+          onPress: () => navigation.navigate('QRScanner', { eventId: event.slug || event.id }),
         },
         {
           label: t('organizer.myEvents.actions.stats'),
           icon: 'stats-chart-outline',
-          onPress: () => navigation.navigate('EventAnalytics', { eventId: event.id }),
+          onPress: () => navigation.navigate('EventAnalytics', { eventId: event.slug || event.id }),
         },
         {
           label: t('organizer.myEvents.actions.registrations'),
           icon: 'people-outline',
-          onPress: () => navigation.navigate('EventRegistrations', { eventId: event.id }),
+          onPress: () => navigation.navigate('EventRegistrations', { eventId: event.slug || event.id }),
         },
       );
     }
@@ -570,12 +570,12 @@ export default function MyEventsScreen() {
         {
           label: t('organizer.myEvents.actions.discountCodes'),
           icon: 'pricetag-outline',
-          onPress: () => navigation.navigate('DiscountManagement', { eventId: event.id }),
+          onPress: () => navigation.navigate('DiscountManagement', { eventId: event.slug || event.id }),
         },
         {
           label: t('organizer.myEvents.actions.linkSessions'),
           icon: 'link-outline',
-          onPress: () => navigation.navigate('EventSessionsLink', { eventId: event.id }),
+          onPress: () => navigation.navigate('EventSessionsLink', { eventId: event.slug || event.id }),
         },
         {
           label: t('organizer.myEvents.actions.addPhotos'),
@@ -595,7 +595,7 @@ export default function MyEventsScreen() {
         icon: 'people-outline',
         onPress: () =>
           navigation.navigate('TeamManagement', {
-            eventId: event.id,
+            eventId: event.slug || event.id,
             eventTitle: event.title,
           }),
       });
@@ -605,17 +605,17 @@ export default function MyEventsScreen() {
         {
           label: t('organizer.myEvents.actions.volunteers'),
           icon: 'hand-left-outline',
-          onPress: () => navigation.navigate('Volunteers', { eventId: event.id }),
+          onPress: () => navigation.navigate('Volunteers', { eventId: event.slug || event.id }),
         },
         {
           label: t('organizer.myEvents.actions.sponsors'),
           icon: 'briefcase-outline',
-          onPress: () => navigation.navigate('SponsorManagement', { eventId: event.id }),
+          onPress: () => navigation.navigate('SponsorManagement', { eventId: event.slug || event.id }),
         },
         {
           label: t('organizer.myEvents.actions.seatingPlans'),
           icon: 'grid-outline',
-          onPress: () => navigation.navigate('SeatingPlans', { eventId: event.id }),
+          onPress: () => navigation.navigate('SeatingPlans', { eventId: event.slug || event.id }),
         },
       );
     }
@@ -664,7 +664,7 @@ export default function MyEventsScreen() {
       eventActions.push({
         label: t('common.edit'),
         icon: 'create-outline',
-        onPress: () => navigation.navigate('EventEdit', { eventId: event.id }),
+        onPress: () => navigation.navigate('EventEdit', { eventId: event.slug || event.id }),
       });
     }
     // Sur un event validé, on autorise l'édition mais avec un warning : si
@@ -730,7 +730,7 @@ export default function MyEventsScreen() {
     const target = editValidatedTarget;
     setEditValidatedTarget(null);
     if (target) {
-      navigation.navigate('EventEdit', { eventId: target.id });
+      navigation.navigate('EventEdit', { eventId: target.slug || target.id });
     }
   };
 
@@ -757,7 +757,7 @@ export default function MyEventsScreen() {
             { backgroundColor: colors.card, borderColor: hairline },
             Shadows.lg,
           ]}
-          onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
+          onPress={() => navigation.navigate('EventDetails', { eventId: item.slug || item.id })}
           onLongPress={() => showEventActions(item)}
           activeOpacity={0.92}
           accessibilityRole="button"
@@ -942,7 +942,7 @@ export default function MyEventsScreen() {
               <>
                 <TouchableOpacity
                   style={[styles.primaryActionPill, Shadows.buttonPrimary]}
-                  onPress={() => navigation.navigate('QRScanner', { eventId: item.id })}
+                  onPress={() => navigation.navigate('QRScanner', { eventId: item.slug || item.id })}
                   activeOpacity={0.85}
                   accessibilityRole="button"
                   accessibilityLabel={t('organizer.myEvents.scanQRA11y')}
@@ -958,7 +958,7 @@ export default function MyEventsScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.actionChipE, { backgroundColor: colors.gray100 }]}
-                  onPress={() => navigation.navigate('EventRegistrations', { eventId: item.id })}
+                  onPress={() => navigation.navigate('EventRegistrations', { eventId: item.slug || item.id })}
                   activeOpacity={0.85}
                   accessibilityRole="button"
                   accessibilityLabel={t('organizer.myEvents.viewRegistrationsA11y')}
@@ -967,7 +967,7 @@ export default function MyEventsScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.actionChipE, { backgroundColor: colors.gray100 }]}
-                  onPress={() => navigation.navigate('EventAnalytics', { eventId: item.id })}
+                  onPress={() => navigation.navigate('EventAnalytics', { eventId: item.slug || item.id })}
                   activeOpacity={0.85}
                   accessibilityRole="button"
                   accessibilityLabel={t('organizer.myEvents.viewStatsA11y')}
@@ -999,7 +999,7 @@ export default function MyEventsScreen() {
             {(item.status === 'draft' || item.status === 'rejected' || item.status === 'changes_requested') && (
               <TouchableOpacity
                 style={[styles.actionChipE, { backgroundColor: colors.gray100 }]}
-                onPress={() => navigation.navigate('EventEdit', { eventId: item.id })}
+                onPress={() => navigation.navigate('EventEdit', { eventId: item.slug || item.id })}
                 activeOpacity={0.85}
                 accessibilityRole="button"
                 accessibilityLabel={t('organizer.myEvents.editA11y')}

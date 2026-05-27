@@ -612,6 +612,7 @@ export default function TicketPurchaseScreen() {
           registrationStatus: 'confirmed',
           approvalStatus: event?.auto_approve_registrations === false ? 'pending' : 'approved',
           eventTitle: event?.title,
+          eventSlug: event?.slug,
         });
       }
     } catch (error: any) {

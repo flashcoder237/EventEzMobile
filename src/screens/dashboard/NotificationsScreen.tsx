@@ -356,7 +356,7 @@ export default function NotificationsScreen() {
     const { notification_type, related_object_type, related_object_id, event, data } = selectedNotification;
 
     if (event && typeof event === 'object' && event.id) {
-      navigation.navigate('EventDetails', { eventId: event.id });
+      navigation.navigate('EventDetails', { eventId: event.slug || event.id });
       return;
     }
 

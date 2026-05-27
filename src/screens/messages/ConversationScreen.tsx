@@ -682,7 +682,7 @@ export default function ConversationScreen() {
   // fetch séparément car le serializer Conversation expose `event` comme
   // PrimaryKeyRelatedField (UUID seul) — pas le détail. Affiché en bannière
   // au-dessus des messages + en sous-titre du header.
-  const [eventContext, setEventContext] = useState<{ id: string; title: string; banner?: string | null } | null>(null);
+  const [eventContext, setEventContext] = useState<{ id: string; slug?: string; title: string; banner?: string | null } | null>(null);
   // Modale détaillée des messages en échec (failed après 3 retries). Permet
   // retry/delete unitaire au lieu de la perte silencieuse précédente.
   const [failedMessagesModalVisible, setFailedMessagesModalVisible] = useState(false);
@@ -720,6 +720,7 @@ export default function ConversationScreen() {
             if (ev?.id && ev?.title) {
               setEventContext({
                 id: String(ev.id),
+                slug: ev.slug,
                 title: ev.title,
                 banner: getMediaUrl(ev.banner_image || (ev as any).display_image),
               });
@@ -3057,7 +3058,7 @@ export default function ConversationScreen() {
     if (conversationType === 'direct' && state.otherUserId) {
       navigation.navigate('OrganizerProfile', { organizerId: String(state.otherUserId) });
     } else if (eventContext) {
-      navigation.navigate('EventDetails', { eventId: eventContext.id });
+      navigation.navigate('EventDetails', { eventId: eventContext.slug || eventContext.id });
     }
   };
 
@@ -3322,7 +3323,7 @@ export default function ConversationScreen() {
             styles.eventBanner,
             { backgroundColor: colors.card, borderColor: hairline },
           ]}
-          onPress={() => navigation.navigate('EventDetails', { eventId: eventContext.id })}
+          onPress={() => navigation.navigate('EventDetails', { eventId: eventContext.slug || eventContext.id })}
           activeOpacity={0.85}
           accessibilityRole="button"
           accessibilityLabel={t('conversation.openEventA11y', { name: eventContext.title })}
