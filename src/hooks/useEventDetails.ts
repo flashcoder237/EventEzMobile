@@ -3,7 +3,7 @@ import { ScrollView, Share, Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { eventsAPI, feedbacksAPI, messagesAPI, waitlistAPI, registrationsAPI, sessionsAPI, recommendationsAPI } from '../api';
+import { eventsAPI, feedbacksAPI, waitlistAPI, registrationsAPI, sessionsAPI, recommendationsAPI } from '../api';
 import { Event, RootStackParamList, Feedback, WaitlistEntry, Registration, Session } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useAlert } from '../contexts/AlertContext';
@@ -337,19 +337,27 @@ export function useEventDetails(
       return;
     }
 
-    try {
-      // Create or get existing conversation with organizer.
-      // Le backend ConversationViewSet.create dédoublonne par participants
-      // (`views.py:78-93`) → on récupère la conv existante si déjà créée.
-      const response = await messagesAPI.createConversation({
-        participant_ids: [Number(event.organizer.id)],
-      });
-
-      navigation.navigate('Conversation', { conversationId: response.data.id });
-    } catch (error) {
-      if (__DEV__) console.error('Erreur creation conversation:', error);
-      showError(t('common.error'), t('eventDetails.contactOrganizerError'));
-    }
+    // Pattern aligné sur OrganizerProfileScreen.handleContact : on navigue
+    // avec userId + userName, sans pré-créer la conversation côté backend.
+    // ConversationScreen passe en mode "isNewConversation=true" et appelle
+    // createConversation atomiquement AVEC le premier message lorsque
+    // l'utilisateur l'envoie.
+    //
+    // Bug précédent : pré-créer la conv ici via createConversation({participant_ids})
+    // (sans message) creait une Conversation vide côté backend. L'autre
+    // utilisateur voyait alors "en attente d'acceptation" sans qu'aucun
+    // message n'ait été envoyé — UX confuse et trace fantôme dans la liste
+    // des conversations de l'organisateur.
+    const organizerName =
+      event.organizer_name
+      || event.organizer.company_name
+      || `${event.organizer.first_name || ''} ${event.organizer.last_name || ''}`.trim()
+      || event.organizer.username
+      || '';
+    navigation.navigate('Conversation', {
+      userId: String(event.organizer.id),
+      userName: organizerName,
+    });
   };
 
   const handleSubmitReview = async () => {

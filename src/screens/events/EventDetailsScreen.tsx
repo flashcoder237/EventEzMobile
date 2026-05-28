@@ -1063,8 +1063,10 @@ export default function EventDetailsScreen() {
                 eventTitle={event?.title}
               />
 
-              {/* Section: Sponsors */}
-              <SponsorsTab eventId={eventId} />
+              {/* Section: Sponsors — passe event.id (UUID resolu) car
+                  /event-sponsors/by-event/ accepte un slug en filter et 500
+                  si on lui passe le slug du route param. */}
+              {event?.id && <SponsorsTab eventId={event.id} />}
             </React.Suspense>
           ) : (
             <View style={{ height: 320, justifyContent: 'center', alignItems: 'center' }}>
