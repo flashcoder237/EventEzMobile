@@ -180,12 +180,15 @@ export default function CitiesIndexScreen() {
 
     const userCities: CityWithCount[] = [];
     const byCountry = new Map<string, CityWithCount[]>();
+    // Cles speciales pour villes legacy sans pays — pas un nom de pays
+    // reel, donc on prefixe pour eviter une collision improbable.
+    const UNKNOWN_KEY = '__unknown_country__';
 
     for (const c of cities) {
       if (isUserCity(c, userTokens)) {
         userCities.push(c);
       } else {
-        const key = c.country || c.country_code || '—';
+        const key = c.country || c.country_code || UNKNOWN_KEY;
         const list = byCountry.get(key) || [];
         list.push(c);
         byCountry.set(key, list);
@@ -204,8 +207,12 @@ export default function CitiesIndexScreen() {
       });
     }
 
-    // Tri pays : par event_count total decroissant, puis alpha
+    // Tri pays : par event_count total decroissant, puis alpha.
+    // Les villes sans pays (UNKNOWN_KEY) sont poussees en fin de liste, peu
+    // importe leur event_count (cas legacy a faible volume, mieux ailleurs).
     const countryEntries = Array.from(byCountry.entries()).sort(([na, ca], [nb, cb]) => {
+      if (na === UNKNOWN_KEY && nb !== UNKNOWN_KEY) return 1;
+      if (nb === UNKNOWN_KEY && na !== UNKNOWN_KEY) return -1;
       const sumA = ca.reduce((a, c) => a + c.event_count, 0);
       const sumB = cb.reduce((a, c) => a + c.event_count, 0);
       if (sumB !== sumA) return sumB - sumA;
@@ -215,7 +222,7 @@ export default function CitiesIndexScreen() {
     for (const [country, list] of countryEntries) {
       out.push({
         key: country,
-        title: country,
+        title: country === UNKNOWN_KEY ? t('discover.citiesOtherCountries') : country,
         data: chunk(list, 2),
         totalEvents: list.reduce((a, c) => a + c.event_count, 0),
         totalCities: list.length,
