@@ -584,9 +584,16 @@ export default function EventSearchScreen() {
     });
   };
 
+  // ATTENTION : ce flag pilote le branchement render entre "vue d'accueil
+  // recherche" (historique + suggestions) et "vue resultats" (FlatList des
+  // events). hasFilter dans doSearch et hasActiveSearch DOIVENT inclure les
+  // memes filtres, sinon le fetch part mais on affiche pas les resultats
+  // (cas typique : tap d'une ville → state.city set, fetch OK, mais
+  // hasActiveSearch=false → l'user voit l'historique au lieu des events).
   const hasActiveSearch =
     state.debouncedQuery.trim().length >= 2 ||
     state.categoryId !== null ||
+    state.city !== null ||
     state.datePreset !== 'any' ||
     state.locationType !== 'any' ||
     state.priceFilter !== 'any' ||
