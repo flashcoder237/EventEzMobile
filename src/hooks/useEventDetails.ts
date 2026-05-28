@@ -3,11 +3,12 @@ import { ScrollView, Share, Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { eventsAPI, feedbacksAPI, waitlistAPI, registrationsAPI, sessionsAPI, recommendationsAPI } from '../api';
+import { eventsAPI, feedbacksAPI, messagesAPI, waitlistAPI, registrationsAPI, sessionsAPI, recommendationsAPI } from '../api';
 import { Event, RootStackParamList, Feedback, WaitlistEntry, Registration, Session } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useAlert } from '../contexts/AlertContext';
 import { getEventUrl } from '../constants/urls';
+import { findExistingDirectConversation } from '../lib/utils/messagingHelpers';
 
 // Dedup module-level — un même event ouvert plusieurs fois dans la session ne
 // remonte qu'une seule view au backend. Évite de polluer le signal recommandation
@@ -337,17 +338,23 @@ export function useEventDetails(
       return;
     }
 
-    // Pattern aligné sur OrganizerProfileScreen.handleContact : on navigue
-    // avec userId + userName, sans pré-créer la conversation côté backend.
-    // ConversationScreen passe en mode "isNewConversation=true" et appelle
-    // createConversation atomiquement AVEC le premier message lorsque
-    // l'utilisateur l'envoie.
-    //
-    // Bug précédent : pré-créer la conv ici via createConversation({participant_ids})
-    // (sans message) creait une Conversation vide côté backend. L'autre
-    // utilisateur voyait alors "en attente d'acceptation" sans qu'aucun
-    // message n'ait été envoyé — UX confuse et trace fantôme dans la liste
-    // des conversations de l'organisateur.
+    // 1) D'abord on cherche une conversation directe existante avec cet
+    //    organisateur. Si oui → on l'ouvre (préserve l'historique, évite la
+    //    duplication côté UI).
+    // 2) Si non → on navigue en mode "new conversation" (userId+userName).
+    //    ConversationScreen créera la conv atomiquement AVEC le premier
+    //    message envoyé par l'utilisateur. Pas de conv vide en DB, pas de
+    //    "en attente d'acceptation" intempestif côté destinataire.
+    const existingConv = await findExistingDirectConversation(
+      messagesAPI,
+      user.id,
+      event.organizer.id,
+    );
+    if (existingConv) {
+      navigation.navigate('Conversation', { conversationId: String(existingConv.id) });
+      return;
+    }
+
     const organizerName =
       event.organizer_name
       || event.organizer.company_name

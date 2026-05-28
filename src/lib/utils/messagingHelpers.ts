@@ -251,6 +251,48 @@ export function getMessageStatus(message: Message, otherUserId?: string | number
 /**
  * Groupe les réactions par emoji avec comptage
  */
+/**
+ * Cherche une conversation directe existante entre l'utilisateur courant et
+ * un autre user (typiquement un organisateur qu'on s'apprête à contacter).
+ *
+ * Retourne la conv si elle existe, null sinon. Pourquoi cette fonction :
+ *  - Ouvrir "Contacter" depuis un event ne doit PAS créer une nouvelle conv
+ *    si l'utilisateur en a déjà une avec cet organisateur — sinon on perd
+ *    le contexte de la discussion précédente (et on duplique côté UI).
+ *  - On évite aussi de pré-créer une conv vide via POST /conversations/
+ *    (provoquait "en attente d'acceptation" côté destinataire sans message).
+ *
+ * Implémentation client-side : on liste les conversations de l'utilisateur
+ * (déjà cachées par /conversations/) et on filtre type='direct' + autre
+ * participant. Pas d'endpoint backend dédié, donc on accepte le coût d'un
+ * GET /conversations/ — la liste est paginée mais la 1ère page contient
+ * les + récentes (largement suffisant pour le cas usuel).
+ */
+export async function findExistingDirectConversation(
+  api: { getConversations: (params?: any) => Promise<{ data: any }> },
+  currentUserId: number | string | undefined,
+  otherUserId: number | string,
+): Promise<{ id: string | number } | null> {
+  if (!currentUserId) return null;
+  try {
+    const res = await api.getConversations({ page_size: 100 });
+    const list: any[] = res.data?.results || res.data || [];
+    const otherId = String(otherUserId);
+    const myId = String(currentUserId);
+    return (
+      list.find((c) => {
+        if (c.conversation_type !== 'direct') return false;
+        const parts = c.participants || [];
+        if (parts.length !== 2) return false;
+        const ids = parts.map((p: any) => String(p.id ?? p));
+        return ids.includes(otherId) && ids.includes(myId);
+      }) || null
+    );
+  } catch {
+    return null; // Échec réseau → on laisse le caller traiter en lazy-create
+  }
+}
+
 export function groupReactions(reactions: any[] | undefined): Record<string, number> {
   if (!reactions || reactions.length === 0) return {};
 

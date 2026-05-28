@@ -20,11 +20,13 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { usersAPI, eventsAPI, getMediaUrl } from '../../api';
+import { usersAPI, eventsAPI, messagesAPI, getMediaUrl } from '../../api';
 import { ProfileSkeleton } from '../../components/ui/Skeleton';
 import FollowUserButton from '../../components/common/FollowUserButton';
 import { useAlert } from '../../contexts/AlertContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { findExistingDirectConversation } from '../../lib/utils/messagingHelpers';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList, User, Event } from '../../types';
 import { formatCompactNumber } from '../../lib/utils/numberFormatters';
@@ -51,6 +53,7 @@ export default function OrganizerProfileScreen() {
   const insets = useSafeAreaInsets();
   const route = useRoute<RouteProps>();
   const { showError, showSuccess } = useAlert();
+  const { user } = useAuth();
   const { colors } = useTheme();
   const { t } = useTranslation();
   const { organizerId } = route.params;
@@ -93,14 +96,26 @@ export default function OrganizerProfileScreen() {
     }
   };
 
-  const handleContact = useCallback(() => {
+  const handleContact = useCallback(async () => {
     if (!organizer) return;
-    // Navigate to a conversation with this organizer
+    // 1) Cherche une conversation directe existante avec cet organisateur.
+    //    Si oui → on l'ouvre (préserve l'historique, évite duplication).
+    // 2) Sinon → mode "new conversation" : la conv ne sera créée côté
+    //    backend que lorsque l'utilisateur enverra son premier message.
+    const existingConv = await findExistingDirectConversation(
+      messagesAPI,
+      user?.id,
+      organizer.id,
+    );
+    if (existingConv) {
+      navigation.navigate('Conversation', { conversationId: String(existingConv.id) });
+      return;
+    }
     navigation.navigate('Conversation', {
       userId: String(organizer.id),
       userName: getDisplayName(organizer),
     });
-  }, [organizer, navigation]);
+  }, [organizer, navigation, user?.id]);
 
   const handleOpenLink = useCallback((url: string | undefined, title?: string) => {
     if (!url) return;
