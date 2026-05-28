@@ -139,28 +139,39 @@ export function useEventDetails(
   const scrollViewRef = useRef<ScrollView | null>(null);
   const tabsOffsetY = useRef(0);
 
+  // `eventId` (route param) peut etre un slug ou un UUID — le detail endpoint
+  // accepte les deux (lookup_value_regex = [\w-]+). Mais les FILTRES backend
+  // (?event=X sur /registrations/, /sessions/, /waitlist/, /feedbacks/) sont
+  // strictement UUID : un slug renvoie 400/500. On differe ces fetches
+  // jusqu'a ce que fetchEvent ait resolu l'UUID via event.id.
+  const eventUuid = event?.id;
+
   useEffect(() => {
-    // En preview : event est déjà set depuis previewEvent au useState init.
-    // On skip toutes les fetches (rien à fetcher pour un event pas encore créé)
-    // et on remet à jour si le caller passe un nouveau previewEvent.
     if (isPreview) {
       setEvent(previewEvent as Event);
       setLoading(false);
       return;
     }
     fetchEvent();
-    fetchFeedbacks();
-    fetchSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId, isPreview]);
+
+  useEffect(() => {
+    // Tous les fetches "filter par event" attendent event.id pour eviter
+    // d'envoyer un slug a un filterset UUIDField.
+    if (isPreview || !eventUuid) return;
+    fetchFeedbacks(eventUuid);
+    fetchSessions(eventUuid);
     if (user) {
-      fetchWaitlistStatus();
-      fetchUserRegistration();
+      fetchWaitlistStatus(eventUuid);
+      fetchUserRegistration(eventUuid);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventId, user, isPreview]);
+  }, [eventUuid, user, isPreview]);
 
-  const fetchUserRegistration = async () => {
+  const fetchUserRegistration = async (uuid: string) => {
     try {
-      const response = await registrationsAPI.getRegistrations({ event: eventId, page_size: 1 });
+      const response = await registrationsAPI.getRegistrations({ event: uuid, page_size: 1 });
       const registrations = response.data?.results || response.data || [];
       const registration = registrations.find((r: Registration) => r.status !== 'cancelled');
       setUserRegistration(registration || null);
@@ -179,10 +190,13 @@ export function useEventDetails(
       setEvent(eventResponse.data);
       setIsFollowing(followResponse.data?.is_following || eventResponse.data.is_following || false);
       setFollowersCount(countResponse.data?.followers_count || eventResponse.data.followers_count || 0);
-      // Track view côté reco (une fois par session par event). Best effort.
-      if (!viewedEventsThisSession.has(eventId)) {
-        viewedEventsThisSession.add(eventId);
-        trackEventInteraction(eventId, 'view');
+      // Track view cote reco (une fois par session par event). Best effort.
+      // ATTENTION : recommandations API attend un UUID, eventId route param
+      // peut etre un slug → on track sur eventResponse.data.id (UUID resolu).
+      const uuid = eventResponse.data?.id;
+      if (uuid && !viewedEventsThisSession.has(uuid)) {
+        viewedEventsThisSession.add(uuid);
+        trackEventInteraction(uuid, 'view');
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement evenement:', error);
@@ -191,10 +205,10 @@ export function useEventDetails(
     }
   };
 
-  const fetchFeedbacks = async () => {
+  const fetchFeedbacks = async (uuid: string) => {
     setLoadingFeedbacks(true);
     try {
-      const response = await feedbacksAPI.getFeedbacks({ event: eventId });
+      const response = await feedbacksAPI.getFeedbacks({ event: uuid });
       const feedbacksList = response.data?.results || response.data || [];
       setFeedbacks(feedbacksList);
     } catch (error) {
@@ -204,10 +218,10 @@ export function useEventDetails(
     }
   };
 
-  const fetchSessions = async () => {
+  const fetchSessions = async (uuid: string) => {
     setLoadingSessions(true);
     try {
-      const response = await sessionsAPI.getSessions({ event: eventId });
+      const response = await sessionsAPI.getSessions({ event: uuid });
       const sessionsList = response.data?.results || response.data || [];
       // Trier par heure de debut
       sessionsList.sort((a: Session, b: Session) =>
@@ -221,9 +235,9 @@ export function useEventDetails(
     }
   };
 
-  const fetchWaitlistStatus = async () => {
+  const fetchWaitlistStatus = async (uuid: string) => {
     try {
-      const response = await waitlistAPI.getWaitlist({ event: eventId, page_size: 1 });
+      const response = await waitlistAPI.getWaitlist({ event: uuid, page_size: 1 });
       const entries = response.data?.results || response.data || [];
       setWaitlistEntry(entries[0] || null);
     } catch (error) {
@@ -237,9 +251,10 @@ export function useEventDetails(
       return;
     }
 
+    if (!eventUuid) return;
     setJoiningWaitlist(true);
     try {
-      const response = await waitlistAPI.joinWaitlist({ event: eventId });
+      const response = await waitlistAPI.joinWaitlist({ event: eventUuid });
       setWaitlistEntry(response.data);
       showSuccess('Succès', 'Vous avez rejoint la liste d\'attente. Vous serez notifié dès qu\'une place se libère.');
     } catch (error: any) {
@@ -348,10 +363,11 @@ export function useEventDetails(
       return;
     }
 
+    if (!eventUuid) return;
     setSubmittingReview(true);
     try {
       await feedbacksAPI.createFeedback({
-        event: eventId,
+        event: eventUuid,
         rating: reviewRating,
         comment: reviewComment.trim() || undefined,
       });
@@ -360,7 +376,7 @@ export function useEventDetails(
       setShowReviewForm(false);
       setReviewComment('');
       // Refresh feedbacks
-      fetchFeedbacks();
+      fetchFeedbacks(eventUuid);
     } catch (error: any) {
       const message = error.response?.data?.detail || 'Impossible de soumettre votre avis';
       showError('Erreur', message);
