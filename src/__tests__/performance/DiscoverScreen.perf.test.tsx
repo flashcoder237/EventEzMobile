@@ -74,14 +74,23 @@ jest.mock('react-native-reanimated', () => {
   };
 });
 
-jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({
-    navigate: jest.fn(),
-    goBack: jest.fn(),
-  }),
-  useRoute: () => ({ params: {} }),
-  useFocusEffect: (fn: any) => fn(),
-}));
+jest.mock('@react-navigation/native', () => {
+  const ReactActual = require('react');
+  return {
+    useNavigation: () => ({
+      navigate: jest.fn(),
+      goBack: jest.fn(),
+    }),
+    useRoute: () => ({ params: {} }),
+    // Le vrai useFocusEffect lance le callback dans un effet (au focus), PAS
+    // pendant le rendu. Un mock `(fn) => fn()` l'appelait à CHAQUE rendu →
+    // boucle infinie ("too many re-renders"). On le wrappe dans un useEffect
+    // (une fois au mount, comme un focus initial).
+    useFocusEffect: (cb: any) => {
+      ReactActual.useEffect(() => cb(), []);
+    },
+  };
+});
 
 const themeColors = {
   primary: '#4F46E5',
