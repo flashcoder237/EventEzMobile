@@ -97,6 +97,9 @@ jest.mock('../../../api', () => ({
     updateUserMessagingSettings: (...args: any[]) =>
       mockUpdateMessagingSettings(...args),
   },
+  languagesAPI: {
+    list: () => Promise.resolve({ data: [{ code: 'fr', label: 'Français' }, { code: 'en', label: 'English' }] }),
+  },
 }));
 
 // Hooks

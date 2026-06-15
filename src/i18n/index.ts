@@ -17,6 +17,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { getLocales } from 'expo-localization';
+import { getRemoteTranslation } from './translations';
 
 export const LANGUAGE_STORAGE_KEY = '@eventez_language';
 
@@ -24,18 +25,17 @@ const deviceLocale = getLocales()[0]?.languageCode ?? 'en';
 // Default = anglais. Français uniquement si le device est explicitement en fr.
 const initialLang: 'fr' | 'en' = deviceLocale === 'fr' ? 'fr' : 'en';
 
-// Chargement initial : seulement la langue active (statique, dans le bundle).
-const initialResources: Record<string, { translation: any }> = {};
-if (initialLang === 'fr') {
-  initialResources.fr = { translation: require('./locales/fr.json') };
-} else {
-  initialResources.en = { translation: require('./locales/en.json') };
-}
+// fr + en sont toujours bundlés : base offline + langue de fallback universelle.
+// Les autres langues sont chargées en OTA à la demande (cf. ./translations).
+const initialResources: Record<string, { translation: any }> = {
+  en: { translation: require('./locales/en.json') },
+  fr: { translation: require('./locales/fr.json') },
+};
 
 i18n.use(initReactI18next).init({
   resources: initialResources,
   lng: initialLang,
-  fallbackLng: initialLang, // Fallback sur la même langue au lieu de 'fr' force
+  fallbackLng: 'en', // toute clé/langue manquante → anglais (jamais de crash)
   interpolation: {
     escapeValue: false,
   },
@@ -48,18 +48,23 @@ i18n.use(initReactI18next).init({
  * Charge dynamiquement une langue secondaire et la rend disponible à i18next.
  * À appeler depuis SettingsScreen quand l'user choisit une autre langue.
  */
-export async function loadLanguage(lang: 'en' | 'fr'): Promise<void> {
+export async function loadLanguage(lang: string): Promise<void> {
   if (i18n.hasResourceBundle(lang, 'translation')) return;
-  const resources = lang === 'en'
-    ? require('./locales/en.json')
-    : require('./locales/fr.json');
-  i18n.addResourceBundle(lang, 'translation', resources, true, true);
+  // fr/en sont déjà chargées (bundle). Toute autre langue : OTA + cache disque.
+  if (lang === 'en' || lang === 'fr') return;
+  const remote = await getRemoteTranslation(lang);
+  if (remote) {
+    i18n.addResourceBundle(lang, 'translation', remote, true, true);
+  }
+  // Indisponible (pas d'URL distante, offline, ou {lang}.json absent) : aucun
+  // bundle ajouté → i18next retombe sur fallbackLng ('en'). Pas de crash.
 }
 
 /**
- * Change la langue active. Charge la ressource si nécessaire.
+ * Change la langue active. Charge la ressource (OTA si besoin) puis l'applique.
+ * Accepte n'importe quel code de langue ISO 639-1.
  */
-export async function changeLanguage(lang: 'en' | 'fr'): Promise<void> {
+export async function changeLanguage(lang: string): Promise<void> {
   await loadLanguage(lang);
   await i18n.changeLanguage(lang);
 }
@@ -81,12 +86,11 @@ export const i18nReady: Promise<void> = (async () => {
   try {
     const AsyncStorage = require('@react-native-async-storage/async-storage').default;
     const stored = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
-    if (stored === 'fr' || stored === 'en') {
+    if (stored && typeof stored === 'string') {
+      // N'importe quelle langue stockée (fr/en bundlées, autres en OTA).
       if (stored !== initialLang) {
         await changeLanguage(stored);
       }
-      // Si stored === initialLang : rien a faire, mais log debug pour
-      // confirmer que la preference utilisateur a bien ete trouvee.
       if (__DEV__) console.log(`[i18n] resolved language: ${stored} (stored override)`);
     } else if (__DEV__) {
       console.log(`[i18n] resolved language: ${initialLang} (device locale, no stored pref)`);

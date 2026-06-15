@@ -29,7 +29,8 @@ import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import { useBiometricPrefs } from '../../hooks/useBiometricPrefs';
 import { useTicketLockPref } from '../../hooks/useTicketLockPref';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { usersAPI, messagesAPI } from '../../api';
+import { usersAPI, messagesAPI, languagesAPI } from '../../api';
+import SearchableSelectModal from '../../components/common/SearchableSelectModal';
 import { RootStackParamList } from '../../types';
 import {
   FontFamily,
@@ -386,6 +387,16 @@ export default function SettingsScreen() {
 
   // Préférences
   const [language, setLanguage] = useState('fr');
+  const [languageModalOpen, setLanguageModalOpen] = useState(false);
+  const [languageList, setLanguageList] = useState<{ code: string; label: string }[]>([
+    { code: 'fr', label: 'Français (French)' },
+    { code: 'en', label: 'English' },
+  ]);
+  useEffect(() => {
+    languagesAPI.list()
+      .then((res) => { if (Array.isArray(res.data) && res.data.length) setLanguageList(res.data); })
+      .catch(() => {});
+  }, []);
   const [timezone, setTimezone] = useState('Africa/Douala');
 
   // Sécurité
@@ -608,11 +619,10 @@ export default function SettingsScreen() {
     // Prioriser la langue i18n active (source de vérité côté UI), fallback sur
     // la pref stockée en BDD si i18n n'est pas encore initialisé.
     const active = (i18n.language || language || 'en').slice(0, 2);
-    switch (active) {
-      case 'fr': return `🇫🇷 ${t('settings.french')}`;
-      case 'en': return `🇬🇧 ${t('settings.english')}`;
-      default: return `🇬🇧 ${t('settings.english')}`;
-    }
+    if (active === 'fr') return `🇫🇷 ${t('settings.french')}`;
+    if (active === 'en') return `🇬🇧 ${t('settings.english')}`;
+    const found = languageList.find((l) => l.code === active);
+    return found ? found.label : active.toUpperCase();
   };
 
   const getThemeLabel = () => {
@@ -634,7 +644,7 @@ export default function SettingsScreen() {
     }
   };
 
-  const persistAndApplyLanguage = async (lang: 'fr' | 'en') => {
+  const persistAndApplyLanguage = async (lang: string) => {
     setLanguage(lang);
     try {
       await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
@@ -642,29 +652,22 @@ export default function SettingsScreen() {
     } catch (error) {
       if (__DEV__) console.error('[Settings] failed to persist language', error);
     }
-    // Sync server-side preference (best-effort, non-bloquant) — endpoint dédié
-    // léger qui pilote la langue des emails / factures / notifications backend.
-    try {
-      await usersAPI.updateLanguage(lang);
-    } catch (error) {
-      if (__DEV__) console.warn('[Settings] backend language sync failed (offline?)', error);
+    // Sync server-side UNIQUEMENT pour fr/en : User.language pilote la langue
+    // des emails/factures/notifications backend, dont les templates n'existent
+    // qu'en fr/en. Une langue d'interface autre (ex. es) reste donc locale —
+    // les comms backend gardent fr/en. (Découplage volontaire : voir Phase 2.)
+    if (lang === 'fr' || lang === 'en') {
+      try {
+        await usersAPI.updateLanguage(lang);
+      } catch (error) {
+        if (__DEV__) console.warn('[Settings] backend language sync failed (offline?)', error);
+      }
+      handleUpdateSetting('language', lang);
     }
-    // Garde aussi le sync via le settings endpoint pour la rétrocompat
-    handleUpdateSetting('language', lang);
     showSuccess(t('settings.languageActivated'));
   };
 
-  const showLanguagePicker = () => {
-    showAlert(
-      t('settings.languageDialogTitle'),
-      t('settings.languageDialogSubtitle'),
-      [
-        { text: `🇬🇧 ${t('settings.english')}`, onPress: () => { persistAndApplyLanguage('en'); } },
-        { text: `🇫🇷 ${t('settings.french')}`, onPress: () => { persistAndApplyLanguage('fr'); } },
-        { text: t('common.cancel'), style: 'cancel' },
-      ]
-    );
-  };
+  const showLanguagePicker = () => setLanguageModalOpen(true);
 
   const showThemePicker = () => {
     showAlert(
@@ -1564,6 +1567,21 @@ export default function SettingsScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Sélecteur de langue de l'interface — toutes les langues. fr/en sont
+          bundlées ; les autres se téléchargent à la demande (OTA). */}
+      <SearchableSelectModal<{ code: string; label: string }>
+        visible={languageModalOpen}
+        onClose={() => setLanguageModalOpen(false)}
+        eyebrow={t('settings.languageEyebrow')}
+        title={t('settings.languageDialogTitle')}
+        searchPlaceholder={t('common.search', { defaultValue: 'Rechercher…' })}
+        items={languageList}
+        getKey={(l) => l.code}
+        getLabel={(l) => l.label}
+        selectedKey={(i18n.language || language || 'en').slice(0, 2)}
+        onSelect={(l) => persistAndApplyLanguage(l.code)}
+      />
     </SafeAreaView>
   );
 }
