@@ -60,6 +60,7 @@ interface EventStep1InfoProps {
   description: string;
   shortDescription: string;
   eventType: 'billetterie' | 'inscription';
+  language: 'fr' | 'en';
   categoryId: number | null;
   selectedTagIds: number[];
   customTags: string[];
@@ -85,6 +86,7 @@ interface EventStep1InfoProps {
   onDescriptionChange: (value: string) => void;
   onShortDescriptionChange: (value: string) => void;
   onEventTypeChange: (value: 'billetterie' | 'inscription') => void;
+  onLanguageChange: (value: 'fr' | 'en') => void;
   onCategoryChange: (value: number | null) => void;
   onTagsChange: (value: number[]) => void;
   onCustomTagAdd: (tag: string) => void;
@@ -127,6 +129,7 @@ export default function EventStep1Info({
   description,
   shortDescription,
   eventType,
+  language,
   categoryId,
   selectedTagIds,
   customTags,
@@ -146,6 +149,7 @@ export default function EventStep1Info({
   onDescriptionChange,
   onShortDescriptionChange,
   onEventTypeChange,
+  onLanguageChange,
   onCategoryChange,
   onTagsChange,
   onCustomTagAdd,
@@ -503,6 +507,32 @@ export default function EventStep1Info({
             />
             <Text style={[styles.typeOptionText, themed.typeOptionText, eventType === 'inscription' && styles.typeOptionTextActive]}>
               {t('componentsOrganizer.step1.eventTypeInscription')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Langue de rédaction du contenu (badge FR/EN) — pré-remplie depuis le
+          compte, modifiable. Le backend respecte ce choix. */}
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, themed.label]}>
+          {t('componentsOrganizer.step1.contentLanguageLabel', { defaultValue: 'Langue du contenu' })}
+        </Text>
+        <View style={styles.typeSelector}>
+          <TouchableOpacity
+            style={[styles.typeOption, themed.typeOption, language === 'fr' && styles.typeOptionActive]}
+            onPress={() => onLanguageChange('fr')}
+          >
+            <Text style={[styles.typeOptionText, themed.typeOptionText, language === 'fr' && styles.typeOptionTextActive]}>
+              Français
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.typeOption, themed.typeOption, language === 'en' && styles.typeOptionActive]}
+            onPress={() => onLanguageChange('en')}
+          >
+            <Text style={[styles.typeOptionText, themed.typeOptionText, language === 'en' && styles.typeOptionTextActive]}>
+              English
             </Text>
           </TouchableOpacity>
         </View>

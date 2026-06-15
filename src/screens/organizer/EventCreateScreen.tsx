@@ -90,6 +90,7 @@ export default function EventCreateScreen() {
     setDescription,
     setShortDescription,
     setEventType,
+    setLanguage,
     setCategoryId,
     setSelectedTagIds,
     handleCustomTagAdd,
@@ -583,6 +584,7 @@ export default function EventCreateScreen() {
                 description={form.description}
                 shortDescription={form.shortDescription}
                 eventType={form.eventType}
+                language={form.language}
                 categoryId={form.categoryId}
                 selectedTagIds={form.selectedTagIds}
                 customTags={form.customTags}
@@ -605,6 +607,7 @@ export default function EventCreateScreen() {
                 onDescriptionChange={setDescription}
                 onShortDescriptionChange={setShortDescription}
                 onEventTypeChange={setEventType}
+                onLanguageChange={setLanguage}
                 onCategoryChange={setCategoryId}
                 onTagsChange={setSelectedTagIds}
                 onCustomTagAdd={handleCustomTagAdd}

@@ -69,6 +69,7 @@ function buildFormData(form: EventFormState): FormData {
   formData.append('description', form.description);
   formData.append('short_description', form.shortDescription);
   formData.append('event_type', form.eventType);
+  formData.append('language', form.language);
   formData.append('category', String(form.categoryId));
   formData.append('start_date', form.startDate.toISOString());
   formData.append('end_date', form.endDate.toISOString());

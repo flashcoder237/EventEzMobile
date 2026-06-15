@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
+import { useAuth } from '../contexts/AuthContext';
 
 import {
   eventsAPI,
@@ -112,6 +113,8 @@ export interface EventFormState {
   description: string;
   shortDescription: string;
   eventType: 'billetterie' | 'inscription';
+  // Langue de rédaction (badge FR/EN). Pré-remplie depuis le compte, modifiable.
+  language: 'fr' | 'en';
   categoryId: number | null;
   selectedTagIds: number[];
   customTags: string[];
@@ -204,6 +207,7 @@ export interface UseEventFormReturn {
   setDescription: (value: string) => void;
   setShortDescription: (value: string) => void;
   setEventType: (value: 'billetterie' | 'inscription') => void;
+  setLanguage: (value: 'fr' | 'en') => void;
   setCategoryId: (value: number | null) => void;
   setSelectedTagIds: (value: number[]) => void;
   handleCustomTagAdd: (tag: string) => void;
@@ -310,7 +314,19 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
   const [description, setDescription] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [eventType, setEventType] = useState<'billetterie' | 'inscription'>('billetterie');
+  const [language, setLanguage] = useState<'fr' | 'en'>('fr');
   const [categoryId, setCategoryId] = useState<number | null>(null);
+
+  // Pré-remplir la langue de rédaction avec celle du compte (création seulement ;
+  // en édition, hydrateForm charge la langue de l'événement). L'organisateur
+  // peut la surcharger ; le backend respecte le choix explicite.
+  const { user: _authUser } = useAuth();
+  useEffect(() => {
+    if (editEventId) return;
+    const lang = (_authUser as any)?.language;
+    if (lang === 'fr' || lang === 'en') setLanguage(lang);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editEventId, _authUser]);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [customTags, setCustomTags] = useState<string[]>([]);
   const [bannerImage, setBannerImage] = useState<string | null>(null);
@@ -379,7 +395,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
   // ============================================
 
   const form: EventFormState = {
-    currentStep, loading, title, description, shortDescription, eventType,
+    currentStep, loading, title, description, shortDescription, eventType, language,
     categoryId, selectedTagIds, customTags, bannerImage, coverVideo, coverVideoUrl, galleryImages,
     startDate, endDate, registrationDeadline, hasRegistrationDeadline,
     locationType, locationName, locationCity, locationAddress, locationCountry,
@@ -820,6 +836,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
     if (data.description !== undefined) setDescription(data.description);
     if (data.shortDescription !== undefined) setShortDescription(data.shortDescription);
     if (data.eventType !== undefined) setEventType(data.eventType);
+    if (data.language !== undefined) setLanguage(data.language);
     if (data.categoryId !== undefined) setCategoryId(data.categoryId);
     if (data.selectedTagIds !== undefined) setSelectedTagIds(data.selectedTagIds);
     if (data.customTags !== undefined) setCustomTags(data.customTags);
@@ -882,6 +899,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
           description: event.description || '',
           shortDescription: event.short_description || '',
           eventType: event.event_type || 'billetterie',
+          language: (event.language === 'en' ? 'en' : 'fr'),
           categoryId: event.category
             ? (typeof event.category === 'object' ? event.category.id : event.category)
             : null,
@@ -960,7 +978,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
   return {
     form,
     goToNextStep, goToPrevStep, goToStep, validateStep,
-    setTitle, setDescription, setShortDescription, setEventType,
+    setTitle, setDescription, setShortDescription, setEventType, setLanguage,
     setCategoryId, setSelectedTagIds, handleCustomTagAdd, handleCustomTagRemove,
     pickImage, setBannerImage, pickCoverVideo, setCoverVideo, setCoverVideoUrl, pickGalleryImages, removeGalleryImage,
     setVisibility, setAccessCode,
