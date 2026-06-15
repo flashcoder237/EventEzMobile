@@ -1230,6 +1230,26 @@ export default function EventDetailsScreen() {
             <Ionicons name="checkmark-done-outline" size={18} color={colors.white} />
             <Text style={styles.ctaButtonText}>{t('eventDetails.ctaEnded')}</Text>
           </View>
+        ) : (event.is_external && event.source_url) ? (
+          <TouchableOpacity
+            onPress={() => Linking.openURL(event.source_url!).catch(() => {})}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={t('eventDetails.ctaExternal', { source: event.source_name || '' })}
+            style={styles.ctaGradientWrap}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.ctaGradient}
+            >
+              <Text style={styles.ctaButtonText}>
+                {t('eventDetails.ctaExternal', { source: event.source_name || t('eventDetails.ctaExternalFallback') })}
+              </Text>
+              <Ionicons name="open-outline" size={18} color={colors.white} />
+            </LinearGradient>
+          </TouchableOpacity>
         ) : (
           <TouchableOpacity
             onPress={requireAuth(
