@@ -11,6 +11,13 @@
  * for validation), mode édition (load + hydrate), reset.
  */
 
+// useEventForm lit user.language (pré-remplissage de la langue) via useAuth.
+// Le hook est rendu ici en isolation, hors AuthProvider → on stub useAuth.
+jest.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({ user: null }),
+  AuthProvider: ({ children }: { children: any }) => children,
+}));
+
 // Mock l'intégralité du module api (utilisé partout par useEventForm + sous-hooks)
 jest.mock('../../api', () => ({
   eventsAPI: {
