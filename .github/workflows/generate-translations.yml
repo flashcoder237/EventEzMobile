@@ -1,0 +1,83 @@
+name: Générer les traductions (i18n)
+
+# Génère les {lang}.json via Argos Translate DANS LE CLOUD (les modèles ~100 Mo
+# par langue se téléchargent sur les serveurs GitHub, pas sur ta connexion) puis
+# les pousse dans le repo public `eventez-i18n` servi par GitHub Pages.
+#
+# Déclenchement : onglet "Actions" → "Générer les traductions (i18n)" → Run.
+#
+# PRÉREQUIS (une fois) : un secret `I18N_TOKEN` dans ce repo
+#   (Settings → Secrets and variables → Actions → New repository secret) =
+#   un fine-grained PAT avec "Contents: Read and write" sur le repo eventez-i18n.
+
+on:
+  workflow_dispatch:
+    inputs:
+      langs:
+        description: 'Langues (ex: es,pt,de,it) ou "all" pour toutes celles couvertes par Argos'
+        required: true
+        default: 'es,pt,de,it'
+      only_missing:
+        description: 'Ne (re)traduire que les clés manquantes (préserve les corrections)'
+        type: boolean
+        default: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (repo mobile — source en.json + script)
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Cache des modèles Argos/Stanza entre les runs → re-téléchargement évité.
+      - name: Cache des modèles
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/argos-translate
+            ~/stanza_resources
+          key: argos-models-${{ github.run_id }}
+          restore-keys: |
+            argos-models-
+
+      - name: Installer Argos Translate
+        run: pip install argostranslate
+
+      - name: Checkout du repo de traductions (destination)
+        uses: actions/checkout@v4
+        with:
+          repository: flashcoder237/eventez-i18n
+          token: ${{ secrets.I18N_TOKEN }}
+          path: i18n-out
+
+      - name: Générer les traductions
+        run: |
+          set -e
+          if [ "${{ inputs.langs }}" = "all" ]; then
+            ARGS="--all"
+          else
+            ARGS="--langs ${{ inputs.langs }}"
+          fi
+          if [ "${{ inputs.only_missing }}" = "true" ]; then
+            ARGS="$ARGS --only-missing"
+          fi
+          echo "python scripts/translate_locales.py $ARGS --out i18n-out"
+          python scripts/translate_locales.py $ARGS --out i18n-out
+
+      - name: Commit + push vers eventez-i18n
+        working-directory: i18n-out
+        run: |
+          git config user.name "eventez-i18n-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add .
+          if git diff --cached --quiet; then
+            echo "Aucun changement à publier."
+            exit 0
+          fi
+          git commit -m "i18n: génération (${{ inputs.langs }})"
+          git push
