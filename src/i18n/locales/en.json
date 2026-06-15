@@ -568,6 +568,8 @@
     "ctaEnded": "Event ended",
     "ctaBuyTickets": "Buy tickets",
     "ctaRegister": "Register",
+    "ctaExternal": "Book on {{source}}",
+    "ctaExternalFallback": "the source site",
     "imageViewerClose": "Close viewer",
     "accessCodePlaceholder": "Enter access code",
     "shareEventA11y": "Share event",

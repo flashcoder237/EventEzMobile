@@ -568,6 +568,8 @@
     "ctaEnded": "Événement terminé",
     "ctaBuyTickets": "Acheter des billets",
     "ctaRegister": "S'inscrire",
+    "ctaExternal": "Réserver sur {{source}}",
+    "ctaExternalFallback": "le site source",
     "imageViewerClose": "Fermer la visionneuse",
     "accessCodePlaceholder": "Entrez le code d'accès",
     "shareEventA11y": "Partager l'évenement",

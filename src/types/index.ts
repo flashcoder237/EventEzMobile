@@ -233,6 +233,10 @@ export interface Event {
   // Recurrence
   is_recurring?: boolean;
   parent_event?: string | null;
+  // Événement externe (curation cold-start) : CTA redirige vers source_url.
+  is_external?: boolean;
+  source_url?: string;
+  source_name?: string;
   // Moderation IA
   ai_moderation_result?: Record<string, any> | null;
   moderated_by?: string;
