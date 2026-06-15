@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { Colors, Spacing, FontFamily, BorderRadius, FontSizes } from '../../cons
 import { Category, Tag, AIUsage, AIGeneratedEvent } from '../../types';
 import TagInput from '../common/TagInput';
 import SearchableSelectModal from '../common/SearchableSelectModal';
+import { languagesAPI } from '../../api';
 import AIQuickCreatePanel from '../events/AIQuickCreatePanel';
 import AIAssistButton from '../events/AIAssistButton';
 import EncouragementTip from './EncouragementTip';
@@ -60,7 +61,7 @@ interface EventStep1InfoProps {
   description: string;
   shortDescription: string;
   eventType: 'billetterie' | 'inscription';
-  language: 'fr' | 'en';
+  language: string;
   categoryId: number | null;
   selectedTagIds: number[];
   customTags: string[];
@@ -86,7 +87,7 @@ interface EventStep1InfoProps {
   onDescriptionChange: (value: string) => void;
   onShortDescriptionChange: (value: string) => void;
   onEventTypeChange: (value: 'billetterie' | 'inscription') => void;
-  onLanguageChange: (value: 'fr' | 'en') => void;
+  onLanguageChange: (value: string) => void;
   onCategoryChange: (value: number | null) => void;
   onTagsChange: (value: number[]) => void;
   onCustomTagAdd: (tag: string) => void;
@@ -179,6 +180,24 @@ export default function EventStep1Info({
   const hairline = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(17,17,16,0.08)';
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const selectedCategory = categories.find(c => c.id === categoryId) || null;
+
+  // Langues (langue de rédaction du contenu) — chargées depuis /api/languages/,
+  // fallback fr/en. Picker recherchable (183 langues).
+  const [languageModalOpen, setLanguageModalOpen] = useState(false);
+  const [languages, setLanguages] = useState<{ code: string; label: string }[]>([
+    { code: 'fr', label: 'Français (French)' },
+    { code: 'en', label: 'English' },
+  ]);
+  useEffect(() => {
+    let cancelled = false;
+    languagesAPI.list()
+      .then((res) => {
+        if (!cancelled && Array.isArray(res.data) && res.data.length) setLanguages(res.data);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+  const selectedLanguage = languages.find(l => l.code === language) || null;
 
   return (
     <View style={styles.stepContent}>
@@ -512,30 +531,28 @@ export default function EventStep1Info({
         </View>
       </View>
 
-      {/* Langue de rédaction du contenu (badge FR/EN) — pré-remplie depuis le
-          compte, modifiable. Le backend respecte ce choix. */}
+      {/* Langue de rédaction du contenu — pré-remplie depuis le compte,
+          modifiable. Picker recherchable (toutes les langues ISO 639-1). */}
       <View style={styles.inputGroup}>
         <Text style={[styles.label, themed.label]}>
           {t('componentsOrganizer.step1.contentLanguageLabel', { defaultValue: 'Langue du contenu' })}
         </Text>
-        <View style={styles.typeSelector}>
-          <TouchableOpacity
-            style={[styles.typeOption, themed.typeOption, language === 'fr' && styles.typeOptionActive]}
-            onPress={() => onLanguageChange('fr')}
-          >
-            <Text style={[styles.typeOptionText, themed.typeOptionText, language === 'fr' && styles.typeOptionTextActive]}>
-              Français
+        <TouchableOpacity
+          onPress={() => setLanguageModalOpen(true)}
+          style={[categorySelectStyles.trigger, { backgroundColor: colors.card, borderColor: hairline }]}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+        >
+          <View style={[categorySelectStyles.iconWell, { backgroundColor: `${colors.primary}14` }]}>
+            <Ionicons name="language-outline" size={18} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[categorySelectStyles.triggerLabel, { color: colors.text }]} numberOfLines={1}>
+              {selectedLanguage ? selectedLanguage.label : (language || 'fr')}
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.typeOption, themed.typeOption, language === 'en' && styles.typeOptionActive]}
-            onPress={() => onLanguageChange('en')}
-          >
-            <Text style={[styles.typeOptionText, themed.typeOptionText, language === 'en' && styles.typeOptionTextActive]}>
-              English
-            </Text>
-          </TouchableOpacity>
-        </View>
+          </View>
+          <Ionicons name="chevron-down" size={18} color={colors.gray400} />
+        </TouchableOpacity>
       </View>
 
       {/* Category — bouton-trigger qui ouvre un modal de recherche.
@@ -625,6 +642,19 @@ export default function EventStep1Info({
         onSelect={c => onCategoryChange(c.id)}
         onClear={() => onCategoryChange(null)}
         emptyText={t('componentsOrganizer.step1.categoryEmpty')}
+      />
+
+      <SearchableSelectModal<{ code: string; label: string }>
+        visible={languageModalOpen}
+        onClose={() => setLanguageModalOpen(false)}
+        eyebrow={t('componentsOrganizer.step1.contentLanguageLabel', { defaultValue: 'Langue du contenu' })}
+        title={t('componentsOrganizer.step1.contentLanguageLabel', { defaultValue: 'Langue du contenu' })}
+        searchPlaceholder={t('common.search', { defaultValue: 'Rechercher…' })}
+        items={languages}
+        getKey={l => l.code}
+        getLabel={l => l.label}
+        selectedKey={language || null}
+        onSelect={l => onLanguageChange(l.code)}
       />
 
       {/* Tags */}

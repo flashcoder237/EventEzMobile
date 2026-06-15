@@ -113,8 +113,9 @@ export interface EventFormState {
   description: string;
   shortDescription: string;
   eventType: 'billetterie' | 'inscription';
-  // Langue de rédaction (badge FR/EN). Pré-remplie depuis le compte, modifiable.
-  language: 'fr' | 'en';
+  // Langue de rédaction du contenu (code ISO 639-1). Pré-remplie depuis le
+  // compte, modifiable parmi toutes les langues.
+  language: string;
   categoryId: number | null;
   selectedTagIds: number[];
   customTags: string[];
@@ -207,7 +208,7 @@ export interface UseEventFormReturn {
   setDescription: (value: string) => void;
   setShortDescription: (value: string) => void;
   setEventType: (value: 'billetterie' | 'inscription') => void;
-  setLanguage: (value: 'fr' | 'en') => void;
+  setLanguage: (value: string) => void;
   setCategoryId: (value: number | null) => void;
   setSelectedTagIds: (value: number[]) => void;
   handleCustomTagAdd: (tag: string) => void;
@@ -314,7 +315,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
   const [description, setDescription] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [eventType, setEventType] = useState<'billetterie' | 'inscription'>('billetterie');
-  const [language, setLanguage] = useState<'fr' | 'en'>('fr');
+  const [language, setLanguage] = useState<string>('fr');
   const [categoryId, setCategoryId] = useState<number | null>(null);
 
   // Pré-remplir la langue de rédaction avec celle du compte (création seulement ;
@@ -899,7 +900,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
           description: event.description || '',
           shortDescription: event.short_description || '',
           eventType: event.event_type || 'billetterie',
-          language: (event.language === 'en' ? 'en' : 'fr'),
+          language: event.language || 'fr',
           categoryId: event.category
             ? (typeof event.category === 'object' ? event.category.id : event.category)
             : null,

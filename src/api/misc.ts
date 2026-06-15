@@ -5,6 +5,14 @@
 import api from './instance';
 
 // ============================================
+// LANGUAGES API (référentiel ISO 639-1, public)
+// ============================================
+
+export const languagesAPI = {
+  list: () => api.get<Array<{ code: string; label: string }>>('/languages/'),
+};
+
+// ============================================
 // WAITLIST API
 // ============================================
 

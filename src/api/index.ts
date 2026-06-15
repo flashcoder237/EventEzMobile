@@ -53,7 +53,7 @@ export { newslettersAPI, sponsorsAPI, liveAPI, cfpAPI, virtualRoomsAPI, recordin
 export { auditAPI, treasuryAPI, siteSettingsAPI, publicSettingsAPI } from './admin';
 
 // Misc — Waitlist, Seating, Volunteers, Event Team, Currency, Comparison, Export, AI, UTM & Webhooks
-export { waitlistAPI, waitlistSettingsAPI, seatingAPI, floorPlansAPI, volunteersAPI, eventTeamAPI, currencyAPI, comparisonAPI, exportAPI, aiAssistAPI, utmAPI, webhooksAPI } from './misc';
+export { languagesAPI, waitlistAPI, waitlistSettingsAPI, seatingAPI, floorPlansAPI, volunteersAPI, eventTeamAPI, currencyAPI, comparisonAPI, exportAPI, aiAssistAPI, utmAPI, webhooksAPI } from './misc';
 export type { EventStaffRole, EventStaffMember, EventStaffInvitationLookup } from './misc';
 
 // System Status / Incidents
