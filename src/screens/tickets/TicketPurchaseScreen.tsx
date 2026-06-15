@@ -155,6 +155,7 @@ export default function TicketPurchaseScreen() {
   const { config: commissionConfig } = useCommissionConfig(
     eventCountry,
     event?.currency,
+    event?.organizer?.id,
   );
 
   // SOURCE UNIQUE DE VERITE pour l'AFFICHAGE des prix : `event.currency`.

@@ -332,10 +332,15 @@ export const commissionsAPI = {
    *                       devise. Evite d'afficher un fixed_fee XAF pour un
    *                       event EUR.
    */
-  getConfig: (countryCode?: string, targetCurrency?: string) => {
+  getConfig: (countryCode?: string, targetCurrency?: string, organizerId?: string | number) => {
     const params: Record<string, string> = {};
     if (countryCode) params.country_code = countryCode;
     if (targetCurrency) params.target_currency = targetCurrency;
+    // organizer_id : applique un eventuel override de frais (promo lancement)
+    // pour que l'apercu == le montant debite.
+    if (organizerId !== undefined && organizerId !== null && organizerId !== '') {
+      params.organizer_id = String(organizerId);
+    }
     return api.get('/commissions/config/', { params });
   },
 
