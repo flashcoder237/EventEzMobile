@@ -33,6 +33,7 @@ interface CommissionConfig {
 export function useCommissionConfig(
   countryCode?: string,
   targetCurrency?: string,
+  organizerId?: string | number,
 ): CommissionConfig {
   const [config, setConfig] = useState<CommissionConfigResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,7 +46,7 @@ export function useCommissionConfig(
       setIsLoading(true);
       setIsError(false);
       try {
-        const res = await commissionsAPI.getConfig(countryCode, targetCurrency);
+        const res = await commissionsAPI.getConfig(countryCode, targetCurrency, organizerId);
         if (!cancelled) {
           setConfig(res.data);
         }
@@ -63,7 +64,7 @@ export function useCommissionConfig(
 
     fetchConfig();
     return () => { cancelled = true; };
-  }, [countryCode, targetCurrency]);
+  }, [countryCode, targetCurrency, organizerId]);
 
   return {
     config,

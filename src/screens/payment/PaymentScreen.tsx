@@ -658,6 +658,7 @@ export default function PaymentScreen() {
   const { config: commissionConfig } = useCommissionConfig(
     eventCountryCode,
     eventCurrencyCode,
+    (eventObj as any)?.organizer?.id,
   );
 
   const subtotal = calculateSubtotal();
