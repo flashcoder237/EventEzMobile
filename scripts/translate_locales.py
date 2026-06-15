@@ -161,6 +161,19 @@ def count_strings(node):
     return 1 if isinstance(node, str) and node.strip() else 0
 
 
+def count_missing(source, existing):
+    """Nombre de chaînes à traduire : présentes (non vides) dans la source mais
+    absentes/vides dans `existing`. Sert à sauter une langue déjà complète."""
+    if isinstance(source, dict):
+        ex = existing if isinstance(existing, dict) else {}
+        return sum(count_missing(v, ex.get(k)) for k, v in source.items())
+    if isinstance(source, list):
+        return sum(count_missing(x, None) for x in source)
+    if isinstance(source, str) and source.strip():
+        return 0 if (isinstance(existing, str) and existing.strip()) else 1
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description='Génère les traductions UI via Argos (gratuit, offline).')
     parser.add_argument('--langs', help='Codes séparés par des virgules (ex: es,pt,de).')
@@ -198,15 +211,29 @@ def main():
 
     for target in targets:
         print(f'\n→ {target}')
+        out_path = os.path.join(args.out, f'{target}.json')
+
+        existing = None
+        if args.only_missing and os.path.exists(out_path):
+            try:
+                with open(out_path, 'r', encoding='utf-8') as f:
+                    existing = json.load(f)
+            except Exception:
+                existing = None
+
+        # En --only-missing : si la cible couvre DÉJÀ toutes les clés, on saute
+        # sans même charger le modèle (économie de download + temps). C'est ce
+        # qui rend les runs réguliers quasi instantanés quand rien n'a changé.
+        if args.only_missing and existing is not None:
+            missing = count_missing(source, existing)
+            if missing == 0:
+                print('  ✓ déjà complet, ignoré (aucune clé manquante).')
+                continue
+            print(f'  {missing} clé(s) manquante(s) à traduire.')
+
         if not ensure_model(target):
             print(f'  ⚠ pas de modèle Argos en->{target}, ignoré (restera en anglais dans l\'app).')
             continue
-
-        existing = None
-        out_path = os.path.join(args.out, f'{target}.json')
-        if args.only_missing and os.path.exists(out_path):
-            with open(out_path, 'r', encoding='utf-8') as f:
-                existing = json.load(f)
 
         memo = {}
         fn = make_translator(target, memo)
@@ -215,15 +242,32 @@ def main():
         with open(out_path, 'w', encoding='utf-8') as f:
             json.dump(translated, f, ensure_ascii=False, indent=2)
         dt = time.time() - start
-        print(f'  ✓ {out_path} ({len(memo)} chaînes uniques, {dt:.0f}s)')
+        print(f'  ✓ {out_path} ({len(memo)} chaînes traduites, {dt:.0f}s)')
         generated.append(target)
 
-    # Manifest (timestamp = version simple pour invalider le cache plus tard)
-    manifest = {lang: int(time.time()) for lang in generated}
-    with open(os.path.join(args.out, 'manifest.json'), 'w', encoding='utf-8') as f:
+    # Manifest : liste TOUTES les langues présentes (générées ce run + déjà là).
+    # On conserve la version des langues inchangées, on bump celles (re)générées.
+    old_manifest = {}
+    manifest_path = os.path.join(args.out, 'manifest.json')
+    if os.path.exists(manifest_path):
+        try:
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                old_manifest = json.load(f)
+        except Exception:
+            old_manifest = {}
+    available = sorted(
+        f[:-5] for f in os.listdir(args.out)
+        if f.endswith('.json') and f != 'manifest.json'
+    )
+    now = int(time.time())
+    manifest = {
+        lang: (now if lang in generated else old_manifest.get(lang, now))
+        for lang in available
+    }
+    with open(manifest_path, 'w', encoding='utf-8') as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
 
-    print(f'\nTerminé. {len(generated)} langue(s) générée(s) dans {args.out}/')
+    print(f'\nTerminé. {len(generated)} langue(s) (re)générée(s) dans {args.out}/')
     print('Publie ce dossier sur ton hébergement statique et pointe')
     print('EXPO_PUBLIC_TRANSLATIONS_URL dessus (ex: https://<user>.github.io/eventez-i18n).')
 

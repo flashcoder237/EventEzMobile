@@ -4,23 +4,33 @@ name: Générer les traductions (i18n)
 # par langue se téléchargent sur les serveurs GitHub, pas sur ta connexion) puis
 # les pousse dans le repo public `eventez-i18n` servi par GitHub Pages.
 #
-# Déclenchement : onglet "Actions" → "Générer les traductions (i18n)" → Run.
+# DÉCLENCHEMENT :
+#   - AUTOMATIQUE : à chaque push sur `master` qui modifie en.json (les textes
+#     d'interface ont changé → il faut (re)traduire). Tourne en --all --only-missing
+#     → toutes les langues, en ne traduisant QUE les clés manquantes (les
+#     traductions existantes / corrigées à la main sont préservées).
+#   - MANUEL : onglet "Actions" → "Générer les traductions (i18n)" → Run
+#     (permet de choisir les langues et de forcer une re-traduction complète).
 #
 # PRÉREQUIS (une fois) : un secret `I18N_TOKEN` dans ce repo
 #   (Settings → Secrets and variables → Actions → New repository secret) =
 #   un fine-grained PAT avec "Contents: Read and write" sur le repo eventez-i18n.
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - 'src/i18n/locales/en.json'
   workflow_dispatch:
     inputs:
       langs:
         description: 'Langues (ex: es,pt,de,it) ou "all" pour toutes celles couvertes par Argos'
         required: true
-        default: 'es,pt,de,it'
+        default: 'all'
       only_missing:
-        description: 'Ne (re)traduire que les clés manquantes (préserve les corrections)'
+        description: 'Ne traduire que les clés manquantes (préserve les traductions existantes)'
         type: boolean
-        default: false
+        default: true
 
 jobs:
   generate:
@@ -58,12 +68,16 @@ jobs:
       - name: Générer les traductions
         run: |
           set -e
-          if [ "${{ inputs.langs }}" = "all" ]; then
+          # Push automatique → pas d'inputs : défauts "all" + only-missing.
+          # Déclenchement manuel → on respecte les inputs.
+          LANGS="${{ github.event.inputs.langs || 'all' }}"
+          ONLY="${{ github.event.inputs.only_missing || 'true' }}"
+          if [ "$LANGS" = "all" ]; then
             ARGS="--all"
           else
-            ARGS="--langs ${{ inputs.langs }}"
+            ARGS="--langs $LANGS"
           fi
-          if [ "${{ inputs.only_missing }}" = "true" ]; then
+          if [ "$ONLY" = "true" ]; then
             ARGS="$ARGS --only-missing"
           fi
           echo "python scripts/translate_locales.py $ARGS --out i18n-out"
@@ -79,5 +93,5 @@ jobs:
             echo "Aucun changement à publier."
             exit 0
           fi
-          git commit -m "i18n: génération (${{ inputs.langs }})"
+          git commit -m "i18n: génération auto (${{ github.event_name }})"
           git push
