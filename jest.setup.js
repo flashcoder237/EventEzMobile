@@ -195,6 +195,14 @@ jest.mock('expo-constants', () => ({
   easConfig: null,
 }));
 
+// expo-store-review (demande de note in-app)
+jest.mock('expo-store-review', () => ({
+  isAvailableAsync: jest.fn(() => Promise.resolve(false)),
+  hasAction: jest.fn(() => Promise.resolve(false)),
+  requestReview: jest.fn(() => Promise.resolve()),
+  storeUrl: jest.fn(() => null),
+}));
+
 // expo-haptics
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(() => Promise.resolve()),
