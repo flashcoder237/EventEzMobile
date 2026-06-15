@@ -46,6 +46,7 @@ import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { getEventUrl } from '../../constants/urls';
 import { paymentsAPI, invoicesAPI } from '../../api';
 import { getMediaUrl } from '../../api/config';
+import { maybeRequestReview } from '../../services/reviewService';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PaymentSuccessRouteProp = RouteProp<RootStackParamList, 'PaymentSuccess'>;
@@ -322,6 +323,17 @@ export default function PaymentSuccessScreen() {
   }, [eventType, approvalStatus, eventTitle, t]);
 
   const showConfetti = content.isSuccess;
+
+  // Demande de note in-app (ASO) — uniquement sur un vrai succès, et pas pour
+  // les invités (qui voient déjà la modale d'upgrade : on évite la collision).
+  // Délai pour laisser jouer l'animation/confetti avant de solliciter.
+  useEffect(() => {
+    if (!content.isSuccess || isGuest) return;
+    const t = setTimeout(() => {
+      void maybeRequestReview('payment_success');
+    }, 3500);
+    return () => clearTimeout(t);
+  }, [content.isSuccess, isGuest]);
 
   return (
     <EditorialCanvas edges={['top', 'bottom']}>
