@@ -257,13 +257,18 @@ function computeDateRange(preset: DatePreset): { start?: string; end?: string } 
       return { start: start.toISOString(), end: end.toISOString() };
     }
     case 'week': {
+      // "Cette semaine" = d'aujourd'hui jusqu'à la fin de la semaine en cours
+      // (dimanche, semaine commençant lundi), pas 7 jours glissants.
+      const day = startOfDay.getDay(); // 0=dimanche … 6=samedi
+      const daysToSunday = day === 0 ? 0 : 7 - day;
       const end = new Date(startOfDay);
-      end.setDate(end.getDate() + 7);
+      end.setDate(end.getDate() + daysToSunday + 1); // lundi 00:00 → inclut tout dimanche
       return { start: startOfDay.toISOString(), end: end.toISOString() };
     }
     case 'month': {
-      const end = new Date(startOfDay);
-      end.setMonth(end.getMonth() + 1);
+      // "Ce mois-ci" = jusqu'à la fin du mois calendaire (1er du mois suivant),
+      // pas ~30 jours glissants.
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
       return { start: startOfDay.toISOString(), end: end.toISOString() };
     }
     default: return {};
