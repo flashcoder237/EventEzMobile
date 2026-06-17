@@ -192,8 +192,10 @@ const initialState: State = {
 const getOrderingParam = (sort: SortOption): string => {
   switch (sort) {
     case 'popularity': return '-registration_count';
-    case 'price_asc': return 'min_price';
-    case 'price_desc': return '-min_price';
+    // Backend annote `price_min` (Min des prix de billets) et l'expose dans
+    // ordering_fields. 'min_price' était ignoré (param inexistant côté API).
+    case 'price_asc': return 'price_min';
+    case 'price_desc': return '-price_min';
     case 'date':
     default: return 'start_date';
   }
