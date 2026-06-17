@@ -566,9 +566,12 @@ export default function TicketPurchaseScreen() {
 
         showSuccess(t('common.success'), `${response.data.message || t('ticketPurchase.ticketsAddedSuccess')}`);
       } else {
-        // Mode création: créer une nouvelle inscription
+        // Mode création: créer une nouvelle inscription.
+        // IMPORTANT : le backend attend l'UUID de l'event (champ UUIDField). Selon
+        // l'écran d'origine, `eventId` (route param) peut être le SLUG → 400
+        // "Must be a valid UUID". On envoie donc l'id réel de l'event chargé.
         const registrationData: any = {
-          event: eventId,
+          event: event?.id || eventId,
           registration_type: event?.event_type || 'billetterie',
         };
 
