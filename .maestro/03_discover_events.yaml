@@ -1,7 +1,7 @@
 # Flow: Parcourir les événements
 # Vérifie la navigation et l'affichage des événements
 
-appId: com.eventez.mobile
+appId: net.overbrand.eventez
 name: "Discover - Browse Events"
 
 ---

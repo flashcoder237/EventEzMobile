@@ -1,7 +1,7 @@
 # Flow: Créer un événement (organisateur)
 # Vérifie le parcours de création d'événement multi-étapes
 
-appId: com.eventez.mobile
+appId: net.overbrand.eventez
 name: "Organizer - Create Event"
 
 env:

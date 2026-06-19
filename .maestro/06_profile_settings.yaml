@@ -1,7 +1,7 @@
 # Flow: Profil et paramètres
 # Vérifie la navigation dans le profil utilisateur
 
-appId: com.eventez.mobile
+appId: net.overbrand.eventez
 name: "Profile - View & Settings"
 
 ---

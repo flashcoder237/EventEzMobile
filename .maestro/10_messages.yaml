@@ -1,7 +1,7 @@
 # Flow: Messagerie
 # Vérifie l'accès et l'affichage de la messagerie
 
-appId: com.eventez.mobile
+appId: net.overbrand.eventez
 name: "Messages - Conversations"
 
 ---

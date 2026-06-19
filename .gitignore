@@ -40,6 +40,15 @@ yarn-error.*
 # EAS config (contient des clés API : Maps, OAuth, etc.) — voir eas.json.example
 eas.json
 
+# Clé du compte de service Google Play (eas submit) — secret, JAMAIS committer
+google-service-account.json
+eventez-*-*.json
+
+# Caches Python (scripts utilitaires)
+**/__pycache__/
+*.pyc
+
+
 # typescript
 *.tsbuildinfo
 

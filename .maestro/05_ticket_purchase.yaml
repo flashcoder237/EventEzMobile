@@ -1,7 +1,7 @@
 # Flow: Acheter un billet
 # Vérifie le parcours d'achat complet (billetterie)
 
-appId: com.eventez.mobile
+appId: net.overbrand.eventez
 name: "Ticket - Purchase Flow"
 
 ---

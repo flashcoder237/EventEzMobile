@@ -20,7 +20,7 @@ cd EventEzMobile
 npx expo run:android   # OU run:ios
 
 # 4. Variables d'environnement attendues par les flows
-export APP_ID=com.eventez.mobile
+export APP_ID=net.overbrand.eventez
 export TEST_EMAIL=test@example.com
 export TEST_PASSWORD=test_password
 export TEST_ORGANIZER_EMAIL=organizer@example.com

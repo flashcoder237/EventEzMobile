@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:811220905834:android:aab9ca46940a7a4213ff13",
+        "mobilesdk_app_id": "1:811220905834:android:0e65f61fdf2a80ef13ff13",
         "android_client_info": {
-          "package_name": "com.eventez.mobile"
+          "package_name": "net.overbrand.eventez"
         }
       },
       "oauth_client": [],

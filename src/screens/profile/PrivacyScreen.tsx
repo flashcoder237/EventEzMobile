@@ -148,7 +148,7 @@ Vous pouvez demander la suppression de votre compte à tout moment.`,
 • LIMITATION — restreindre le traitement
 • RETRAIT DU CONSENTEMENT — à tout moment
 
-Pour exercer ces droits, contactez : privacy@eventez.com`,
+Pour exercer ces droits, contactez : privacy@eventez.online`,
   },
   {
     num: '09',
@@ -186,7 +186,7 @@ Ces données sont stockées localement sur votre appareil et ne sont pas partag�
     title: 'Contact',
     content: `Pour toute question relative à vos données personnelles :
 
-• Email : privacy@eventez.com
+• Email : privacy@eventez.online
 • Adresse : Douala, Cameroun
 
 Vous avez également le droit d'introduire une réclamation auprès de l'autorité de contrôle compétente.`,

@@ -10,8 +10,13 @@
  *
  * Stratégie de résolution de la langue active :
  * 1. Init synchrone avec la langue du device (default = EN sauf si device locale = fr)
- * 2. Override async via AsyncStorage : si l'utilisateur a déjà fait un choix
- *    (LanguagePickerScreen au premier launch ou SettingsScreen), on l'applique.
+ * 2. Override async via AsyncStorage : si une préférence est déjà persistée
+ *    (auto-détectée au premier launch par RootNavigator, ou changée depuis
+ *    SettingsScreen), on l'applique.
+ *
+ * NB : il n'y a PAS d'écran de choix de langue au premier launch. La langue est
+ * auto-détectée depuis la locale du device (cf. RootNavigator) ; l'utilisateur
+ * la change ensuite dans Paramètres. (Un ancien LanguagePickerScreen a été retiré.)
  */
 
 import i18n from 'i18next';
@@ -70,10 +75,11 @@ export async function changeLanguage(lang: string): Promise<void> {
 }
 
 /**
- * Promise resoue UNE FOIS quand l'override AsyncStorage (choix utilisateur
- * persiste depuis LanguagePicker ou SettingsScreen) a ete applique. Le boot
- * doit l'attendre pour eviter qu'un cold start affiche la device locale alors
- * que l'utilisateur avait choisi une autre langue dans une session anterieure.
+ * Promise resoue UNE FOIS quand l'override AsyncStorage (préférence persistée :
+ * auto-détectée au premier launch ou changée depuis SettingsScreen) a ete
+ * applique. Le boot doit l'attendre pour eviter qu'un cold start affiche la
+ * device locale alors que l'utilisateur avait choisi une autre langue dans une
+ * session anterieure.
  *
  * Avant ce fix, l'override etait fait dans une IIFE fire-and-forget — un retard
  * ou un crash silencieux d'AsyncStorage laissait l'app figee sur la device

@@ -1,7 +1,7 @@
 # Flow: Voir les détails d'un événement
 # Vérifie l'affichage complet d'un événement
 
-appId: com.eventez.mobile
+appId: net.overbrand.eventez
 name: "Event - View Details"
 
 ---

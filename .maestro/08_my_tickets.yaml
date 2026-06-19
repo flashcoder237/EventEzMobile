@@ -1,7 +1,7 @@
 # Flow: Mes billets
 # Vérifie l'onglet Billets avec ses filtres
 
-appId: com.eventez.mobile
+appId: net.overbrand.eventez
 name: "Tickets - My Tickets"
 
 ---

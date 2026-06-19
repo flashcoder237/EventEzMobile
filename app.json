@@ -16,7 +16,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.eventez.mobile",
+      "bundleIdentifier": "net.overbrand.eventez",
       "usesAppleSignIn": true,
       "associatedDomains": [
         "applinks:eventez.online"
@@ -31,7 +31,7 @@
         "foregroundImage": "./assets/icon2.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.eventez.mobile",
+      "package": "net.overbrand.eventez",
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.WRITE_EXTERNAL_STORAGE",

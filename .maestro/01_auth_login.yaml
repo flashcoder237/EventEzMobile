@@ -1,7 +1,7 @@
 # Flow: Login utilisateur
 # Vérifie le parcours de connexion complet
 
-appId: com.eventez.mobile
+appId: net.overbrand.eventez
 name: "Auth - Login"
 
 ---

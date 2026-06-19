@@ -164,6 +164,10 @@ export default function NotificationsScreen() {
     system_message: { icon: 'information-circle', color: '#6B7280', label: t('notifications.typeSystem'), eyebrow: 'SYS' },
     custom_message: { icon: 'chatbubble', color: '#6366F1', label: t('notifications.typeMessage'), eyebrow: 'MSG' },
     ticket_purchase: { icon: 'ticket', color: '#A855F7', label: t('notifications.typeTicket'), eyebrow: 'TIX' },
+    event_suggestion: { icon: 'sparkles', color: '#F59E0B', label: t('notifications.typeSuggestion'), eyebrow: 'DÉCOUVERTE' },
+    event_low_stock: { icon: 'hourglass', color: '#F59E0B', label: t('notifications.typeLowStock'), eyebrow: 'URGENT' },
+    event_today: { icon: 'today', color: '#FF6B6B', label: t('notifications.typeToday'), eyebrow: "AUJOURD'HUI" },
+    winback: { icon: 'heart', color: '#4F46E5', label: t('notifications.typeWinback'), eyebrow: 'NOUVEAUTÉS' },
     default: { icon: 'notifications', color: '#6B7280', label: t('notifications.typeDefault'), eyebrow: 'INFO' },
   };
 

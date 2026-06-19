@@ -61,7 +61,7 @@ function withNotificationServiceExtension(config) {
 
     // Bundle ID = main + .NotificationService
     const mainBundleId =
-      config.ios?.bundleIdentifier || 'com.eventez.mobile';
+      config.ios?.bundleIdentifier || 'net.overbrand.eventez';
     const nseBundleId = `${mainBundleId}.NotificationService`;
 
     // Ajouter la cible NSE

@@ -1,7 +1,7 @@
 # Flow: Inscription utilisateur
 # Vérifie le parcours d'inscription complet
 
-appId: com.eventez.mobile
+appId: net.overbrand.eventez
 name: "Auth - Register"
 
 ---

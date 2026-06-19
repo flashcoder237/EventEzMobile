@@ -6,7 +6,7 @@
  * editorial canvas with per-slide numeral watermarks, accent word in coral.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -32,6 +32,7 @@ import Animated, {
 
 import { FontFamily } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { changeLanguage, LANGUAGE_STORAGE_KEY } from '../../i18n';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { getRegionalSlideHints } from '../../lib/utils/regionalSlideHints';
 import {
@@ -106,11 +107,30 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const [index, setIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
-  // Hints regionaux lus une seule fois au mount — la region device ne change
-  // pas en cours de session. La langue actuelle est passee pour selectionner
-  // les variantes FR/EN (Hambourg/Hamburg, Lisbonne/Lisbon, etc.).
+  // Hints regionaux — la region device ne change pas en cours de session, mais
+  // les variantes FR/EN (Hambourg/Hamburg, Lisbonne/Lisbon, etc.) doivent suivre
+  // la langue active (le toggle FR/EN ci-dessous la change en direct).
   // `null` = pas de mapping pour cette region → body neutre par defaut.
-  const regionalHints = useRef(getRegionalSlideHints(i18n.language)).current;
+  const regionalHints = useMemo(
+    () => getRegionalSlideHints(i18n.language),
+    [i18n.language],
+  );
+
+  // Langue active normalisee ('fr' / 'en') pour piloter le toggle. i18n.language
+  // peut etre 'fr-FR' selon la locale device → on ne garde que le code base.
+  const activeLang: 'fr' | 'en' = i18n.language?.startsWith('fr') ? 'fr' : 'en';
+
+  // Toggle FR/EN : change la langue en direct (les slides se re-rendent) ET
+  // persiste le choix pour les prochains launches (cf. i18nReady dans i18n/index).
+  const setLanguage = async (lang: 'fr' | 'en') => {
+    if (lang === activeLang) return;
+    try {
+      await changeLanguage(lang);
+      await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+    } catch (error) {
+      if (__DEV__) console.error('[Onboarding] language switch error:', error);
+    }
+  };
 
   // Pulsing coral dot in header (was the only animation on the original screen)
   const pulseScale = useSharedValue(1);
@@ -250,22 +270,52 @@ export default function OnboardingScreen({ onComplete }: Props) {
               <View style={[styles.pulseDot, { backgroundColor: colors.accent }]} />
             </View>
           </View>
-          {/* "Passer" — chip visible (pas un simple texte gris), masqué sur le
-              dernier slide où "Commencer" fait déjà sortir. */}
-          {!isLastSlide && (
-            <Pressable
-              onPress={() => completeAndExit(false)}
-              hitSlop={8}
-              style={[styles.skipPill, { backgroundColor: isDark ? colors.card : '#F4F0E8' }]}
-              accessibilityRole="button"
-              accessibilityLabel={t('auth.onboardingSkip')}
-            >
-              <Text style={[styles.skipText, { color: colors.gray700 }]}>
-                {t('auth.onboardingSkip')}
-              </Text>
-              <Ionicons name="arrow-forward" size={13} color={colors.gray700} />
-            </Pressable>
-          )}
+          <View style={styles.headerRight}>
+            {/* Toggle FR/EN — la langue est auto-détectée au 1er launch, ce
+                sélecteur permet de la corriger en un tap. Toujours visible. */}
+            <View style={[styles.langToggle, { backgroundColor: isDark ? colors.card : '#F4F0E8' }]}>
+              {(['fr', 'en'] as const).map((lng) => {
+                const active = activeLang === lng;
+                return (
+                  <Pressable
+                    key={lng}
+                    onPress={() => setLanguage(lng)}
+                    hitSlop={6}
+                    style={[styles.langOption, active && { backgroundColor: colors.primary }]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={lng === 'fr' ? 'Français' : 'English'}
+                  >
+                    <Text
+                      style={[
+                        styles.langOptionText,
+                        { color: active ? '#FFFFFF' : colors.gray600 },
+                      ]}
+                    >
+                      {lng.toUpperCase()}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* "Passer" — chip visible (pas un simple texte gris), masqué sur le
+                dernier slide où "Commencer" fait déjà sortir. */}
+            {!isLastSlide && (
+              <Pressable
+                onPress={() => completeAndExit(false)}
+                hitSlop={8}
+                style={[styles.skipPill, { backgroundColor: isDark ? colors.card : '#F4F0E8' }]}
+                accessibilityRole="button"
+                accessibilityLabel={t('auth.onboardingSkip')}
+              >
+                <Text style={[styles.skipText, { color: colors.gray700 }]}>
+                  {t('auth.onboardingSkip')}
+                </Text>
+                <Ionicons name="arrow-forward" size={13} color={colors.gray700} />
+              </Pressable>
+            )}
+          </View>
         </View>
 
         {/* === FEATURE PAGER (full-bleed cards with hero illustration) === */}
@@ -370,6 +420,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  langToggle: {
+    flexDirection: 'row',
+    borderRadius: 999,
+    padding: 2,
+  },
+  langOption: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    minWidth: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  langOptionText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.5,
   },
   wordmark: {
     fontFamily: FontFamily.displayExtraBold,

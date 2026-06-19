@@ -1,4 +1,4 @@
-appId: com.eventez.mobile
+appId: net.overbrand.eventez
 name: Cold open via deep link eventez://payment-success/{id}
 ---
 # Flow : simule le retour de WebBrowser apres paiement CinetPay/Stripe.

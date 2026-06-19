@@ -1,7 +1,7 @@
 # Flow: Déconnexion
 # Vérifie le parcours de déconnexion
 
-appId: com.eventez.mobile
+appId: net.overbrand.eventez
 name: "Auth - Logout"
 
 ---
