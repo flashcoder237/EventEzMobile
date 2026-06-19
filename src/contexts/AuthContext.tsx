@@ -74,6 +74,44 @@ async function applyUserLanguagePreference(user: User | null | undefined): Promi
   }
 }
 
+// ---- Cache utilisateur pour la restauration de session hors-ligne ----
+// Permet de rester authentifié (et d'accéder aux billets hors-ligne) quand
+// l'app démarre sans connexion : on restaure le dernier user connu au lieu de
+// déconnecter sur l'échec réseau de /users/me/.
+const CACHED_USER_KEY = 'auth:cached-user';
+const CACHED_USER_TTL = 30 * 24 * 60 * 60 * 1000; // 30 jours
+
+/** Persiste le dernier user connu (purgé au logout via CacheService.clearAll). */
+async function cacheCurrentUser(user: User | null | undefined): Promise<void> {
+  if (!user) return;
+  try {
+    await CacheService.set(CACHED_USER_KEY, user, CACHED_USER_TTL);
+  } catch (e) {
+    if (__DEV__) console.warn('[Auth] cacheCurrentUser failed', e);
+  }
+}
+
+/** Charge le dernier user connu (potentiellement périmé — utilisé hors-ligne). */
+async function loadCachedUser(): Promise<User | null> {
+  try {
+    const cached = await CacheService.get<User>(CACHED_USER_KEY);
+    return cached?.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Distingue une erreur transitoire (réseau coupé, timeout, 5xx) d'un échec
+ * d'auth franc (401/403). On ne déconnecte JAMAIS sur une erreur transitoire :
+ * la session est préservée. Aligné sur la logique de refresh de l'intercepteur
+ * (instance.ts) qui ne ferme la session que sur 401/403.
+ */
+function isTransientAuthError(error: any): boolean {
+  const status = error?.response?.status;
+  return status !== 401 && status !== 403;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   // isInitializing: true only during the first auth check at app start
   const [isInitializing, setIsInitializing] = useState(true);
@@ -153,8 +191,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setCrashUser({ id: user.id, email: user.email, role: user.role });
       // Sync i18n avec la préférence backend (si différente de l'AsyncStorage local)
       applyUserLanguagePreference(user);
+      // Persiste le user pour pouvoir restaurer la session hors-ligne au boot.
+      cacheCurrentUser(user);
     } catch (error) {
-      if (__DEV__) console.error('Erreur de vérification auth:', error);
+      // Hors-ligne / erreur transitoire (réseau, timeout, 5xx) : NE PAS
+      // déconnecter ni effacer les tokens. On restaure la dernière session
+      // connue depuis le cache → l'app et les billets hors-ligne restent
+      // accessibles. Seul un échec d'auth franc (401/403) ferme la session.
+      const storedToken = await getAccessToken();
+      if (storedToken && isTransientAuthError(error)) {
+        const cachedUser = await loadCachedUser();
+        if (cachedUser) {
+          if (__DEV__) console.log('[Auth] Hors-ligne — session restaurée depuis le cache');
+          setState({ user: cachedUser, isAuthenticated: true, isLoading: false });
+          return;
+        }
+        // Pas de user en cache : on ne peut pas afficher l'UI authentifiée,
+        // mais on CONSERVE les tokens pour une restauration au retour réseau.
+        if (__DEV__) console.log('[Auth] Hors-ligne sans user en cache — tokens conservés');
+        setState({ user: null, isAuthenticated: false, isLoading: false });
+        return;
+      }
+      // Échec d'auth franc → fermeture propre de la session.
+      if (__DEV__) console.error('Erreur de vérification auth (déconnexion):', error);
       try {
         await clearTokens();
       } catch (clearError) {
@@ -192,6 +251,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setCrashUser({ id: user.id, email: user.email, role: user.role });
       // Sync i18n avec la préférence backend (si différente de l'AsyncStorage local)
       applyUserLanguagePreference(user);
+      cacheCurrentUser(user);
       return user;
     } catch (error) {
       setState((prev) => ({ ...prev, isLoading: false }));
@@ -241,6 +301,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       EventEzAnalytics.signup('guest');
       setAnalyticsUser(user.id, { role: user.role || 'user' });
       setCrashUser({ id: user.id, email: user.email, role: user.role });
+      cacheCurrentUser(user);
       return user;
     } catch (error) {
       setState((prev) => ({ ...prev, isLoading: false }));
@@ -259,6 +320,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: true,
         isLoading: false,
       });
+      cacheCurrentUser(response.data);
     } catch (error) {
       setState((prev) => ({ ...prev, isLoading: false }));
       throw error;
@@ -356,6 +418,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await usersAPI.getCurrentUser();
       setState((prev) => ({ ...prev, user: response.data }));
+      cacheCurrentUser(response.data);
     } catch (error) {
       if (__DEV__) console.warn('[Auth] refreshUser failed:', error);
     }
@@ -368,6 +431,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...prev,
         user: response.data,
       }));
+      cacheCurrentUser(response.data);
     } catch (error) {
       throw error;
     }
@@ -376,6 +440,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Sync sans API call — utilisé après un PATCH déjà fait par l'écran.
   const syncUser = useCallback((user: User) => {
     setState((prev) => ({ ...prev, user }));
+    cacheCurrentUser(user);
   }, []);
 
   // Pour l'authentification sociale - met à jour l'utilisateur après connexion
@@ -397,6 +462,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAnalyticsUser(user.id, { role: user.role || 'user' });
     // Sync i18n avec la préférence backend (si différente de l'AsyncStorage local)
     applyUserLanguagePreference(user);
+    cacheCurrentUser(user);
   }, []);
 
   const value = useMemo(() => ({
