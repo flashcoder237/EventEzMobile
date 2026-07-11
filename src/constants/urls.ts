@@ -9,6 +9,22 @@ export function getEventUrl(eventId: string): string {
   return `${WEB_BASE_URL}/events/${eventId}`;
 }
 
+/**
+ * URL d'invitation virale vers un événement. Identique à getEventUrl mais
+ * ajoute un segment `?ref=u<id>` quand l'utilisateur est connecté, pour tracker
+ * l'acquisition organique côté backend (qui a amené qui). Le ref ne contient
+ * AUCUNE donnée sensible (juste un préfixe d'ID tronqué). C'est le lien à
+ * partager depuis la confirmation, le billet et le QR — jamais la référence
+ * privée du billet.
+ */
+export function getEventInviteUrl(
+  eventIdOrSlug: string,
+  userId?: string | number | null,
+): string {
+  const ref = userId ? `?ref=u${String(userId).slice(0, 12)}` : '';
+  return `${getEventUrl(eventIdOrSlug)}${ref}`;
+}
+
 export function getOrganizerUrl(organizerId: string): string {
   return `${WEB_BASE_URL}/organizers/${organizerId}`;
 }

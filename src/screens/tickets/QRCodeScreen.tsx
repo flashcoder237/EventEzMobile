@@ -32,7 +32,7 @@ import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import { useTicketLockPref } from '../../hooks/useTicketLockPref';
 import { ticketPurchasesAPI } from '../../api';
 import { TicketPurchase, RootStackParamList } from '../../types';
-import { getTicketVerificationUrl } from '../../constants/urls';
+import { getTicketVerificationUrl, getEventInviteUrl, WEB_BASE_URL } from '../../constants/urls';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
 import {
   FontSizes,
@@ -257,10 +257,16 @@ export default function QRCodeScreen() {
 
   const handleShare = async () => {
     if (!ticket) return;
-    const eventTitle = (ticket as any)?.event?.title || (ticket as any)?.event_title || t('qrCode.eventFallback');
+    const ev = (ticket as any)?.event;
+    const eventTitle = ev?.title || (ticket as any)?.event_title || t('qrCode.eventFallback');
+    // Boucle virale : on partage le lien PUBLIC de l'événement, pas la référence
+    // du billet (qui n'a aucun intérêt pour un ami et ne doit pas circuler).
+    const eventIdOrSlug = ev?.slug || ev?.id || (ticket as any)?.event_id;
     try {
+      const url = eventIdOrSlug ? getEventInviteUrl(String(eventIdOrSlug)) : WEB_BASE_URL;
       await Share.share({
-        message: t('qrCode.shareMessage', { event: eventTitle, ref: String(ticketId).slice(0, 8).toUpperCase() }),
+        message: t('qrCode.shareMessage', { event: eventTitle, url }),
+        url,
         title: t('qrCode.shareTitle'),
       });
     } catch (error) {

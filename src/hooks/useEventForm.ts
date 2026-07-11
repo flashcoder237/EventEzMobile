@@ -634,9 +634,13 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
       showAlert('Permission requise', 'Veuillez autoriser l\'accès à la galerie', undefined, 'warning');
       return;
     }
+    // On NE FORCE PLUS le recadrage (allowsEditing:false) : beaucoup
+    // d'organisateurs ont déjà une affiche prête et n'ont pas le temps de
+    // recadrer. L'image est prise telle quelle ; le resize 1920px ci-dessous
+    // préserve son ratio et l'affichage la cadre en cover (comme Eventbrite).
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true, aspect: [16, 9], quality: 0.8,
+      allowsEditing: false, quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
       try {

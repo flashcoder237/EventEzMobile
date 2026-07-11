@@ -19,7 +19,7 @@ import { useTranslation } from 'react-i18next';
 import QRCode from 'react-native-qrcode-svg';
 
 import { registrationsAPI, ticketTransfersAPI, paymentsAPI } from '../../api';
-import { getVerificationUrl } from '../../constants/urls';
+import { getVerificationUrl, getEventInviteUrl, WEB_BASE_URL } from '../../constants/urls';
 import { Registration, RootStackParamList } from '../../types';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
 import { TransferTicketModal } from '../../components/tickets';
@@ -197,9 +197,16 @@ export default function RegistrationDetailsScreen() {
     if (!registration) return;
     const event = registration.event_detail || registration.event;
     const eventTitle = typeof event === 'object' ? event.title : t('registrationDetails.eventFallback');
+    // Boucle virale : on partage le lien PUBLIC de l'événement (pas la référence
+    // privée du billet, qui n'apporte rien à un ami et ne devrait pas être
+    // diffusée). Le lien permet aux amis de découvrir ET d'acheter à leur tour.
+    const eventIdOrSlug =
+      typeof event === 'object' ? (event as any)?.slug || (event as any)?.id : undefined;
     try {
+      const url = eventIdOrSlug ? getEventInviteUrl(String(eventIdOrSlug)) : WEB_BASE_URL;
       await Share.share({
-        message: t('registrationDetails.shareMessage', { event: eventTitle, ref: registration.reference_code }),
+        message: t('registrationDetails.shareMessage', { event: eventTitle, url }),
+        url,
         title: t('registrationDetails.shareTitle'),
       });
     } catch (error) {
