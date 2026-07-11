@@ -89,6 +89,7 @@ import DraftsListScreen from '../screens/organizer/DraftsListScreen';
 import WalletScreen from '../screens/organizer/WalletScreen';
 import MyEventsScreen from '../screens/organizer/MyEventsScreen';
 import QRScannerScreen from '../screens/organizer/QRScannerScreen';
+import LiveOpsScreen from '../screens/organizer/LiveOpsScreen';
 import EventRegistrationsScreen from '../screens/organizer/EventRegistrationsScreen';
 
 // Organizer Screens — rare / power-user features (lazy-loaded for TTI gain)
@@ -387,6 +388,7 @@ export default function RootNavigator() {
       <Stack.Screen name="MyEvents" component={MyEventsScreen} />
       <Stack.Screen name="Drafts" component={DraftsListScreen} />
       <Stack.Screen name="QRScanner" component={QRScannerScreen} options={{ presentation: 'fullScreenModal' }} />
+      <Stack.Screen name="LiveOps" component={LiveOpsScreen} />
       <Stack.Screen name="EventAnalytics" component={EventAnalyticsScreen} />
       <Stack.Screen name="EventRegistrations" component={EventRegistrationsScreen} />
       <Stack.Screen name="DiscountManagement" component={DiscountManagementScreen} />

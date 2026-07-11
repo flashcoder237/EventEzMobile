@@ -103,6 +103,11 @@ export const registrationsAPI = {
   getRegistrationStats: (eventId: string) =>
     api.get('/registrations/stats/', { params: { event_id: eventId } }),
 
+  // Tableau de bord TEMPS RÉEL (mode live organisateur pendant l'event).
+  // Stats ticket-level + cadence + activité récente + timeline. Poller ~15-20s.
+  getLiveOps: (eventId: string) =>
+    api.get('/registrations/live-ops/', { params: { event_id: eventId } }),
+
   // Communication
   resendConfirmation: (registrationId: string) =>
     api.post(`/registrations/${registrationId}/resend_confirmation/`),

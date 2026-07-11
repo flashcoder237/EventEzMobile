@@ -1675,6 +1675,7 @@ export type RootStackParamList = {
   PayoutRequest: undefined;
   Subscription: undefined;
   QRScanner: { eventId: string };
+  LiveOps: { eventId: string };
   Scan: undefined;
   Terms: undefined;
   Privacy: undefined;
