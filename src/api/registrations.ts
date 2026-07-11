@@ -108,6 +108,11 @@ export const registrationsAPI = {
   getLiveOps: (eventId: string) =>
     api.get('/registrations/live-ops/', { params: { event_id: eventId } }),
 
+  // Mur de souvenirs : events auxquels l'utilisateur a assisté (check-in),
+  // chacun avec son numéro de série (le Nᵉ participant arrivé).
+  getAttendanceProofs: () =>
+    api.get('/ticket-purchases/attendance-proofs/'),
+
   // Communication
   resendConfirmation: (registrationId: string) =>
     api.post(`/registrations/${registrationId}/resend_confirmation/`),

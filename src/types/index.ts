@@ -1676,6 +1676,7 @@ export type RootStackParamList = {
   Subscription: undefined;
   QRScanner: { eventId: string };
   LiveOps: { eventId: string };
+  Memories: undefined;
   Scan: undefined;
   Terms: undefined;
   Privacy: undefined;

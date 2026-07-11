@@ -1130,6 +1130,17 @@
     "myPaymentsFilterPending": "Attente",
     "myPaymentsFilterFailed": "Échoués"
   },
+  "memories": {
+    "title": "Mes souvenirs",
+    "eyebrow": "COLLECTION",
+    "count": "{{count}} événement(s) vécu(s)",
+    "iWasThere": "J'Y ÉTAIS",
+    "share": "Partager",
+    "shareTitle": "Mon souvenir EventEz",
+    "emptyTitle": "Aucun souvenir pour l'instant",
+    "emptyText": "Assistez à un événement : votre badge de participation apparaîtra ici, avec votre numéro d'arrivée.",
+    "guest": "Invité"
+  },
   "profile": {
     "title": "Profil",
     "menu": "Menu",
@@ -1240,6 +1251,8 @@
     "verifiedSubtitle": "Compte vérifié",
     "actionRequired": "Action requise",
     "myAccountSection": "Mon compte",
+    "memoriesMenu": "Mes souvenirs",
+    "memoriesSubtitle": "Vos badges de participation",
     "editProfileMenu": "Modifier le profil",
     "addProfilePicture": "Ajoute une photo de profil",
     "myPaymentsMenu": "Mes paiements",

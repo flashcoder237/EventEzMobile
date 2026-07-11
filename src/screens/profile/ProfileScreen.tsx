@@ -401,6 +401,12 @@ export default function ProfileScreen() {
           <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>{t('profile.myAccountSection')}</Text>
           <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
             <MenuItem
+              icon="ribbon-outline"
+              title={t('profile.memoriesMenu')}
+              subtitle={t('profile.memoriesSubtitle')}
+              onPress={() => navigation.navigate('Memories')}
+            />
+            <MenuItem
               icon="person-outline"
               title={t('profile.editProfileMenu')}
               alert={

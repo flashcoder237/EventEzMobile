@@ -1130,6 +1130,17 @@
     "myPaymentsFilterPending": "Pending",
     "myPaymentsFilterFailed": "Failed"
   },
+  "memories": {
+    "title": "My memories",
+    "eyebrow": "COLLECTION",
+    "count": "{{count}} event(s) lived",
+    "iWasThere": "I WAS THERE",
+    "share": "Share",
+    "shareTitle": "My EventEz memory",
+    "emptyTitle": "No memories yet",
+    "emptyText": "Attend an event: your attendance badge will appear here, with your arrival number.",
+    "guest": "Guest"
+  },
   "profile": {
     "title": "Profile",
     "menu": "Menu",
@@ -1240,6 +1251,8 @@
     "verifiedSubtitle": "Verified account",
     "actionRequired": "Action required",
     "myAccountSection": "My account",
+    "memoriesMenu": "My memories",
+    "memoriesSubtitle": "Your attendance badges",
     "editProfileMenu": "Edit profile",
     "addProfilePicture": "Add a profile picture",
     "myPaymentsMenu": "My payments",
