@@ -60,6 +60,14 @@ export interface TourStep {
   padding?: number;
   /** Forme du spotlight — 'rect' pour boutons rectangulaires, 'circle' pour avatars */
   shape?: 'rect' | 'circle';
+  /**
+   * Si true, l'overlay re-mesure la cible en continu (suit le scroll / les
+   * cibles qui bougent). Par défaut false : on mesure jusqu'à obtenir une
+   * position valide puis on ARRÊTE le polling (cible statique = pas de
+   * `measure()` natif inutile toutes les 150ms). À activer sur les steps dont
+   * la cible est dans une zone scrollable.
+   */
+  follow?: boolean;
 }
 
 export interface TourTargetMeasurement {

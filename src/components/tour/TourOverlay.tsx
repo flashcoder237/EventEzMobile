@@ -23,10 +23,12 @@ import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
   TouchableOpacity,
   Pressable,
+  useWindowDimensions,
+  AccessibilityInfo,
 } from 'react-native';
+import Svg, { Defs, Mask, Rect as SvgRect, Circle as SvgCircle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useSharedValue,
@@ -43,9 +45,6 @@ import { useTour, TourStep, TourTargetMeasurement } from './FeatureTourContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { FontFamily, BorderRadius, Spacing } from '../../constants/theme';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-const COACHMARK_WIDTH = Math.min(SCREEN_WIDTH - 32, 360);
 const COACHMARK_GAP = 16; // espace minimal entre le spotlight et la bulle
 // Quand placement='top' (dock au bas de l'ecran), on remonte la bulle d'un
 // extra vers le centre — plus aere, plus equilibre visuellement.
@@ -56,6 +55,12 @@ export default function TourOverlay() {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const { steps, currentIndex, next, back, skip } = useTour();
+
+  // Dimensions RÉACTIVES (rotation / split-screen / iPad multitasking) —
+  // contrairement à Dimensions.get() figé au chargement du module, qui
+  // rendait le placement faux après une rotation. Aligné sur la tab bar.
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
+  const COACHMARK_WIDTH = Math.min(SCREEN_WIDTH - 32, 360);
 
   const step: TourStep | undefined = steps[currentIndex];
 
@@ -123,7 +128,16 @@ export default function TourOverlay() {
     setMeasurement(null);
     setMeasureError(false);
     hasMeasuredRef.current = false;
-    const interval = setInterval(measureTarget, 150);
+    // Polling de re-mesure. On ARRÊTE dès qu'une position valide est obtenue,
+    // SAUF si le step demande `follow` (cible scrollable/mobile) — evite un
+    // measure() natif toutes les 150ms pour rien sur les cibles statiques
+    // (tabs, boutons, la grande majorite des steps).
+    const interval = setInterval(() => {
+      measureTarget();
+      if (hasMeasuredRef.current && !step?.follow) {
+        clearInterval(interval);
+      }
+    }, 150);
     // Filet de sécurité : si rien n'a pu être mesuré après 6s, on passe en
     // mode dégradé (bulle centrée + hint) au lieu de rester bloqué. Le
     // polling continue : si la cible apparaît plus tard, on récupère.
@@ -162,6 +176,13 @@ export default function TourOverlay() {
     coachmarkOpacity.value = 0;
     coachmarkY.value = withSpring(0, { damping: 18, stiffness: 220 });
     coachmarkOpacity.value = withTiming(1, { duration: 250 });
+    // A11y : annonce le contenu du step aux lecteurs d'écran (VoiceOver /
+    // TalkBack), sinon la bulle apparaît en silence.
+    const s = steps[currentIndex];
+    if (s) {
+      AccessibilityInfo.announceForAccessibility(`${s.title}. ${s.body}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex]);
 
   const overlayStyle = useAnimatedStyle(() => ({ opacity: overlayOpacity.value }));
@@ -241,55 +262,63 @@ export default function TourOverlay() {
         overlayStyle,
       ]}
       pointerEvents="box-none"
+      // A11y : empêche VoiceOver/TalkBack de lire le contenu situé DERRIÈRE le
+      // voile pendant le tour (le focus reste sur la bulle).
+      accessibilityViewIsModal
     >
-        {/* Backdrop : 4 vues sombres autour du spotlight (donut effect) */}
+        {/* Voile sombre avec trou (spotlight) — cutout via masque SVG */}
         {measurement ? (
           <>
-            {/* Top */}
-            <Pressable
-              onPress={() => {
-                /* tap outside spotlight → no-op (force user to interact with bubble) */
-              }}
-              style={[
-                styles.backdrop,
-                { top: 0, left: 0, right: 0, height: spotY },
-              ]}
-            />
-            {/* Bottom */}
-            <Pressable
-              onPress={() => {}}
-              style={[
-                styles.backdrop,
-                {
-                  top: spotY + spotH,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                },
-              ]}
-            />
-            {/* Left */}
-            <Pressable
-              onPress={() => {}}
-              style={[
-                styles.backdrop,
-                { top: spotY, left: 0, width: spotX, height: spotH },
-              ]}
-            />
-            {/* Right */}
-            <Pressable
-              onPress={() => {}}
-              style={[
-                styles.backdrop,
-                {
-                  top: spotY,
-                  left: spotX + spotW,
-                  right: 0,
-                  height: spotH,
-                },
-              ]}
-            />
-            {/* Spotlight border + glow */}
+            {/* Tap-swallow plein écran : bloque toute interaction avec l'app
+                derrière pendant le tour (y compris la cible) — on avance via
+                Suivant / Passer. Remplace les 4 Pressables de l'ancien backdrop. */}
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => {}} />
+
+            {/* Cutout via masque SVG = VRAI trou de la bonne forme. L'ancien
+                backdrop en 4 rectangles ne pouvait produire qu'un trou
+                rectangulaire (coins non assombris autour d'une cible ronde
+                comme un avatar). blanc = zone sombre, noir = trou. */}
+            <Svg
+              width={SCREEN_WIDTH}
+              height={SCREEN_HEIGHT}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            >
+              <Defs>
+                <Mask id="tourSpotlight">
+                  <SvgRect x={0} y={0} width={SCREEN_WIDTH} height={SCREEN_HEIGHT} fill="#fff" />
+                  {isCircle ? (
+                    <SvgCircle
+                      cx={spotX + spotW / 2}
+                      cy={spotY + spotH / 2}
+                      r={Math.min(spotW, spotH) / 2}
+                      fill="#000"
+                    />
+                  ) : (
+                    <SvgRect
+                      x={spotX}
+                      y={spotY}
+                      width={spotW}
+                      height={spotH}
+                      rx={spotRadius}
+                      ry={spotRadius}
+                      fill="#000"
+                    />
+                  )}
+                </Mask>
+              </Defs>
+              <SvgRect
+                x={0}
+                y={0}
+                width={SCREEN_WIDTH}
+                height={SCREEN_HEIGHT}
+                fill="#0F0F1A"
+                fillOpacity={0.78}
+                mask="url(#tourSpotlight)"
+              />
+            </Svg>
+
+            {/* Border coral + glow autour du trou (pulse en opacité) */}
             <Animated.View
               pointerEvents="none"
               style={[
@@ -308,8 +337,8 @@ export default function TourOverlay() {
             />
           </>
         ) : (
-          /* Fallback: full backdrop while measuring */
-          <View style={[styles.backdrop, StyleSheet.absoluteFillObject]} />
+          /* Fallback pendant la mesure : voile plein + tap-swallow */
+          <Pressable style={[styles.backdrop, StyleSheet.absoluteFillObject]} onPress={() => {}} />
         )}
 
         {/* Coachmark bubble — ancrage par `top` OU `bottom` selon placement */}
