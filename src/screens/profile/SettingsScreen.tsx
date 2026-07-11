@@ -31,6 +31,7 @@ import { useTicketLockPref } from '../../hooks/useTicketLockPref';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { usersAPI, messagesAPI, languagesAPI } from '../../api';
 import SearchableSelectModal from '../../components/common/SearchableSelectModal';
+import AppIconPicker from '../../components/profile/AppIconPicker';
 import { RootStackParamList } from '../../types';
 import {
   FontFamily,
@@ -987,6 +988,11 @@ export default function SettingsScreen() {
             tone="primary"
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
+          )}
+          {matchesQuery(searchQuery, [t('settings.preferencesSectionEyebrow'), "icône de l'app", 'app icon', 'icone']) && (
+          <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 }}>
+            <AppIconPicker />
+          </View>
           )}
           {matchesQuery(searchQuery, [t('settings.preferencesSectionEyebrow'), t('eyebrow.timezoneSoon'), getTimezoneLabel()]) && (
           <OptionCard

@@ -141,7 +141,15 @@
       "expo-localization",
       "@react-native-community/datetimepicker",
       "expo-font",
-      "expo-quick-actions"
+      "expo-quick-actions",
+      [
+        "expo-dynamic-app-icon",
+        {
+          "nuit": { "image": "./assets/icons/icon_nuit.png", "prerendered": true },
+          "ocean": { "image": "./assets/icons/icon_ocean.png", "prerendered": true },
+          "or": { "image": "./assets/icons/icon_or.png", "prerendered": true }
+        }
+      ]
     ],
     "extra": {
       "eas": {
