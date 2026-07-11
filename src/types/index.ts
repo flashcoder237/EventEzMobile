@@ -406,6 +406,21 @@ export interface TicketType {
   min_per_order?: number;
   // Sessions incluses avec ce type de billet
   included_sessions?: string[];
+  // --- Pricing dynamique (paliers early-bird) — read-only backend ---
+  current_price?: number; // Prix effectif à cet instant (palier actif ou base)
+  pricing?: {
+    current_price: number;
+    base_price: number;
+    tier_label: string | null;
+    remaining_at_price: number | null; // "plus que N à ce prix"
+    until: string | null; // ISO — "jusqu'au ..."
+    next_price: number | null;
+  };
+  price_tiers?: Array<{
+    id: number; ticket_type: number; label: string; price: number;
+    starts_at: string | null; ends_at: string | null;
+    max_quantity: number | null; order: number;
+  }>;
   // --- Client-side aliases ---
   quantity_available?: number; // Alias client pour available_quantity
 }

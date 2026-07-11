@@ -360,12 +360,18 @@ export default function TicketPurchaseScreen() {
     setQtyModal(null);
   };
 
+  // Prix EFFECTIF affiché/facturé : le palier early-bird actif (current_price)
+  // s'il existe, sinon le prix de base. DOIT matcher ce que le backend facture
+  // (qui verrouille current_price dans unit_price à l'achat).
+  const effectivePrice = (tt: TicketType): number =>
+    typeof tt.current_price === 'number' ? tt.current_price : tt.price;
+
   const getSubtotal = () => {
     let total = 0;
     selections.forEach((quantity, ticketTypeId) => {
       const ticketType = ticketTypes.find(t => String(t.id) === String(ticketTypeId));
       if (ticketType) {
-        total += ticketType.price * quantity;
+        total += effectivePrice(ticketType) * quantity;
       }
     });
     return total;
@@ -854,7 +860,10 @@ export default function TicketPurchaseScreen() {
                 : (ticketType.quantity_total || 0) - (ticketType.quantity_sold || 0);
               const isAvailable = availableQty > 0 || (ticketType.quantity_total === undefined && ticketType.quantity_sold === undefined);
               const isSelected = quantity > 0;
-              const isFree = ticketType.price === 0;
+              const effPrice = effectivePrice(ticketType);
+              const isFree = effPrice === 0;
+              const pricing = ticketType.pricing;
+              const hasTier = !!pricing?.tier_label && effPrice < ticketType.price;
 
               const cardInner = (
                 <View
@@ -889,10 +898,16 @@ export default function TicketPurchaseScreen() {
                     )}
                     <View style={styles.bpMetaRow}>
                       <Text style={[styles.bpPrice, { color: colors.text }]}>
-                        {isFree ? t('ticketPurchase.freeBadge') : `${ticketType.price.toLocaleString()}`}
+                        {isFree ? t('ticketPurchase.freeBadge') : `${effPrice.toLocaleString()}`}
                       </Text>
                       {!isFree && (
                         <Text style={[styles.bpCurrency, { color: colors.gray500 }]}>{eventCurrencyLabel}</Text>
+                      )}
+                      {/* Prix de base barré quand un palier early-bird est actif */}
+                      {hasTier && (
+                        <Text style={[styles.bpStrikePrice, { color: colors.gray400 }]}>
+                          {ticketType.price.toLocaleString()}
+                        </Text>
                       )}
                       {availableQty > 0 && ticketType.quantity_total !== undefined && (
                         <>
@@ -904,6 +919,18 @@ export default function TicketPurchaseScreen() {
                         </>
                       )}
                     </View>
+                    {/* Badge d'urgence early-bird : "Early bird · plus que N à ce prix" */}
+                    {hasTier && (
+                      <View style={[styles.bpTierBadge, { backgroundColor: `${colors.accent}18` }]}>
+                        <Ionicons name="flash" size={11} color={colors.accent} />
+                        <Text style={[styles.bpTierText, { color: colors.accent }]} numberOfLines={1}>
+                          {pricing!.tier_label}
+                          {typeof pricing!.remaining_at_price === 'number'
+                            ? ` · ${t('ticketPurchase.tierRemaining', { count: pricing!.remaining_at_price })}`
+                            : ''}
+                        </Text>
+                      </View>
+                    )}
                   </View>
 
                   {/* === DASHED PERFORATION === */}
@@ -1087,7 +1114,7 @@ export default function TicketPurchaseScreen() {
                       <Text style={{ color: colors.gray400 }}> × {quantity}</Text>
                     </Text>
                     <Text style={[styles.receiptValue, { color: colors.text }]}>
-                      {(ticketType.price * quantity).toLocaleString()} {eventCurrencyLabel}
+                      {(effectivePrice(ticketType) * quantity).toLocaleString()} {eventCurrencyLabel}
                     </Text>
                   </View>
                 );
@@ -1965,6 +1992,27 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: 11,
     letterSpacing: 0.5,
+  },
+  bpStrikePrice: {
+    fontFamily: FontFamily.medium,
+    fontSize: 13,
+    textDecorationLine: 'line-through',
+    marginLeft: 2,
+  },
+  bpTierBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginTop: 6,
+  },
+  bpTierText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 0.3,
   },
   bpDot: {
     width: 3,

@@ -3974,6 +3974,7 @@
     "freeBadge": "FREE",
     "categoryBadge": "CAT · {{num}}",
     "ticketAvailable": "{{count}} left",
+    "tierRemaining": "only {{count}} left at this price",
     "ticketQty": "QUANTITY",
     "soldOut": "SOLD OUT",
     "removeTicketA11y": "Remove a ticket",
