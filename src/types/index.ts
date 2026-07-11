@@ -996,6 +996,9 @@ export interface OrganizerWallet {
   total_fees: number;
   currency: string;
   country?: string;
+  // Payout instantané : gains d'events terminés débloquables + taux de frais
+  instant_payout_eligible?: number;
+  instant_payout_fee_rate?: number;
   bank_name?: string;
   bank_account_name?: string;
   bank_account_number?: string;

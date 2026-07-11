@@ -207,6 +207,47 @@ export default function WalletScreen() {
     }
   };
 
+  const handleInstantPayout = () => {
+    const eligible = Number(wallet?.instant_payout_eligible || 0);
+    if (eligible <= 0) return;
+    const rate = Number(wallet?.instant_payout_fee_rate || 0.02);
+    const fee = Math.round(eligible * rate);
+    const net = eligible - fee;
+    const cur = wallet?.currency || 'XAF';
+    showAlert(
+      t('organizer.wallet.instantTitle'),
+      t('organizer.wallet.instantConfirm', {
+        gross: formatPrice(eligible),
+        net: formatPrice(net),
+        fee: formatPrice(fee),
+        pct: Math.round(rate * 100),
+        currency: cur,
+      }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('organizer.wallet.instantConfirmBtn'),
+          onPress: async () => {
+            try {
+              const res = await payoutsAPI.instantPayout();
+              const d: any = res.data;
+              showSuccess(
+                t('organizer.wallet.instantSuccess'),
+                t('organizer.wallet.instantSuccessMessage', {
+                  net: formatPrice(d?.net ?? net),
+                  currency: cur,
+                }),
+              );
+              fetchData();
+            } catch (error: any) {
+              showError(t('common.error'), error?.response?.data?.detail || t('organizer.wallet.instantError'));
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const handleCancelPayout = async (payout: Payout) => {
     showAlert(
       t('organizer.wallet.cancelPayoutTitle'),
@@ -726,6 +767,32 @@ export default function WalletScreen() {
             <Text style={[styles.miniStatEyebrow, { color: colors.gray500 }]}>{t('organizer.wallet.miniStatWithdrawn')}</Text>
           </View>
         </View>
+
+        {/* === PAYOUT INSTANTANÉ (events terminés) === */}
+        {Number(wallet?.instant_payout_eligible || 0) > 0 && (
+          <TouchableOpacity
+            style={[styles.instantCard, { backgroundColor: colors.card, borderColor: colors.primary }]}
+            onPress={handleInstantPayout}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={t('organizer.wallet.instantCardTitle')}
+          >
+            <View style={[styles.instantIcon, { backgroundColor: `${colors.primary}18` }]}>
+              <Ionicons name="flash" size={18} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.instantTitle, { color: colors.text }]}>{t('organizer.wallet.instantCardTitle')}</Text>
+              <Text style={[styles.instantSubtitle, { color: colors.gray500 }]} numberOfLines={2}>
+                {t('organizer.wallet.instantCardSubtitle', {
+                  amount: formatPrice(Number(wallet?.instant_payout_eligible || 0)),
+                  pct: Math.round(Number(wallet?.instant_payout_fee_rate || 0.02) * 100),
+                  currency: wallet?.currency || 'XAF',
+                })}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+          </TouchableOpacity>
+        )}
 
       {/* === COMMISSION CALLOUT === */}
       <View style={[styles.commissionCallout, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}>
@@ -1508,6 +1575,35 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
     paddingVertical: Spacing.md,
     ...Shadows.sm,
+  },
+  instantCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderRadius: BorderRadius.xl,
+    ...Shadows.sm,
+  },
+  instantIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  instantTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: 14,
+    letterSpacing: -0.2,
+  },
+  instantSubtitle: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 2,
   },
   miniStatCell: {
     flex: 1,

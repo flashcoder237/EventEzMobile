@@ -294,6 +294,13 @@ export const payoutsAPI = {
     payout_method: string;
   }) => api.post('/payouts/request_payout/', data),
 
+  /**
+   * Payout instantané : débloque immédiatement les gains d'événements TERMINÉS
+   * (avant le délai de 48h), contre des frais. Les fonds passent en
+   * available_balance, retrait ensuite via requestPayout.
+   */
+  instantPayout: () => api.post('/payouts/instant-payout/'),
+
   processPayout: (id: string, processData: {
     action: 'approve' | 'reject';
     notes?: string;
