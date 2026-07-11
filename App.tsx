@@ -83,6 +83,7 @@ import { RootStackParamList } from './src/types';
 // Services
 import { initAnalytics, trackScreenView } from './src/services/analyticsService';
 import { initCrashReporting } from './src/services/crashReporting';
+import QuickActionsBridge from './src/components/common/QuickActionsBridge';
 import { i18nReady } from './src/i18n';
 
 // Init Sentry au plus tôt — avant tout require de modules métier — pour
@@ -289,6 +290,8 @@ function AppContent() {
                     <InAppToastProvider>
                       <FeatureTourProvider>
                       <StatusBar style={isDark ? 'light' : 'dark'} />
+                      {/* Raccourcis d'icône (long-press) — role-aware, sans rendu */}
+                      <QuickActionsBridge />
                       {/* ORDRE des gates :
                           1. ForceUpdateGate — bloque l'app si version trop vieille
                              (passe au-dessus de Maintenance pour qu'on puisse forcer

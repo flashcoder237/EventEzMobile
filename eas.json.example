@@ -47,7 +47,9 @@
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "<google-oauth-android-client-id>",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "<google-oauth-web-client-id>",
         "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "<google-maps-android-key>",
-        "GOOGLE_MAPS_API_KEY": "<google-maps-android-key>"
+        "GOOGLE_MAPS_API_KEY": "<google-maps-android-key>",
+        "EXPO_PUBLIC_ENV": "production",
+        "EXPO_PUBLIC_SENTRY_DSN": "<sentry-dsn — de préférence via `eas secret:create --name EXPO_PUBLIC_SENTRY_DSN`>"
       }
     }
   },

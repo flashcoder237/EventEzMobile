@@ -33,6 +33,7 @@ import { useTicketLockPref } from '../../hooks/useTicketLockPref';
 import { ticketPurchasesAPI } from '../../api';
 import { TicketPurchase, RootStackParamList } from '../../types';
 import { getTicketVerificationUrl, getEventInviteUrl, WEB_BASE_URL } from '../../constants/urls';
+import { useTicketDisplayGuard } from '../../hooks/useTicketDisplayGuard';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
 import {
   FontSizes,
@@ -50,6 +51,8 @@ const QR_SIZE = Math.min(SCREEN_WIDTH - Spacing['2xl'] * 5, 260);
 
 export default function QRCodeScreen() {
   const { t } = useTranslation();
+  // Écran QR : luminosité max + écran éveillé + anti-capture pendant l'affichage
+  useTicketDisplayGuard();
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const route = useRoute<QRCodeRouteProp>();

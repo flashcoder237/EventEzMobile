@@ -140,7 +140,8 @@
       "expo-asset",
       "expo-localization",
       "@react-native-community/datetimepicker",
-      "expo-font"
+      "expo-font",
+      "expo-quick-actions"
     ],
     "extra": {
       "eas": {

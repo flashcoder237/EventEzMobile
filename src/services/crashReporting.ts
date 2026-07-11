@@ -42,15 +42,35 @@ export function initCrashReporting(opts: InitOptions = {}): void {
 
   const dsn = opts.dsn || process.env.EXPO_PUBLIC_SENTRY_DSN;
   if (!dsn) {
+    // ⚠️ PROD : sans DSN, aucun crash n'est reporté (on vole à l'aveugle).
+    // Provisionner via `eas secret:create --name EXPO_PUBLIC_SENTRY_DSN`.
+    // Cf. docs/MOBILE_PROD_READINESS.md.
     if (__DEV__) console.log('[CrashReporting] No DSN configured — Sentry not initialized');
     return;
   }
 
+  // Release/dist : sans ça, Sentry ne peut pas grouper par version ni relier
+  // les sourcemaps (stacks illisibles). On dérive de expo-constants. Le mapping
+  // sourcemaps complet nécessite en plus le plugin @sentry/react-native/expo
+  // (cf. docs/MOBILE_PROD_READINESS.md).
+  let Constants: any = null;
+  try {
+    Constants = require('expo-constants').default;
+  } catch {
+    Constants = null;
+  }
+  const appVersion: string | undefined = Constants?.expoConfig?.version;
+  const derivedRelease = appVersion ? `net.overbrand.eventez@${appVersion}` : undefined;
+  const environment =
+    opts.environment ||
+    process.env.EXPO_PUBLIC_ENV ||
+    (__DEV__ ? 'development' : 'production');
+
   try {
     sentry.init({
       dsn,
-      environment: opts.environment || (__DEV__ ? 'development' : 'production'),
-      release: opts.release,
+      environment,
+      release: opts.release || derivedRelease,
       // PII filtering : on retire les corps de requête pour ne pas balancer
       // mots de passe / tokens à Sentry. Les breadcrumbs restent utiles
       // (chemins, codes HTTP) pour debug.

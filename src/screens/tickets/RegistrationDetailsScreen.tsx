@@ -20,6 +20,7 @@ import QRCode from 'react-native-qrcode-svg';
 
 import { registrationsAPI, ticketTransfersAPI, paymentsAPI } from '../../api';
 import { getVerificationUrl, getEventInviteUrl, WEB_BASE_URL } from '../../constants/urls';
+import { useTicketDisplayGuard } from '../../hooks/useTicketDisplayGuard';
 import { Registration, RootStackParamList } from '../../types';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
 import { TransferTicketModal } from '../../components/tickets';
@@ -55,6 +56,8 @@ const QR_SIZE = Math.min(SCREEN_WIDTH - Spacing['2xl'] * 5, 260);
 
 export default function RegistrationDetailsScreen() {
   const { t } = useTranslation();
+  // Écran billet (QR) : luminosité max + écran éveillé + anti-capture
+  useTicketDisplayGuard();
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const route = useRoute<RegistrationDetailsRouteProp>();
