@@ -44,6 +44,7 @@ import { useTranslation } from 'react-i18next';
 import ConfettiEffect from '../../components/ui/ConfettiEffect';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { getEventUrl } from '../../constants/urls';
+import ShareTicketCardButton from '../../components/tickets/ShareTicketCardButton';
 import { paymentsAPI, invoicesAPI } from '../../api';
 import { getMediaUrl } from '../../api/config';
 import { maybeRequestReview } from '../../services/reviewService';
@@ -185,6 +186,22 @@ export default function PaymentSuccessScreen() {
       return days >= 0 ? days : null;
     } catch {
       return null;
+    }
+  }, [eventStartDate]);
+
+  // Date lisible pour la carte partageable (« sam. 12 juil. · 20:00 »).
+  const shareDateLabel = useMemo(() => {
+    if (!eventStartDate) return undefined;
+    try {
+      return new Date(eventStartDate).toLocaleDateString('fr-FR', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return undefined;
     }
   }, [eventStartDate]);
 
@@ -580,6 +597,12 @@ export default function PaymentSuccessScreen() {
                 {t('payment.successInviteLabel')}
               </Text>
             </TouchableOpacity>
+          )}
+
+          {/* Carte « J'y vais » partageable en story (boucle virale) — sur un
+              vrai succès avec un titre d'event. */}
+          {content.isSuccess && !!eventTitle && (
+            <ShareTicketCardButton eventTitle={eventTitle} dateLabel={shareDateLabel} />
           )}
 
           <TouchableOpacity
