@@ -1693,6 +1693,7 @@ export type RootStackParamList = {
   LiveOps: { eventId: string };
   Memories: undefined;
   EventAttendees: { eventId: string; registrationId: string };
+  EventPricingTiers: { eventId: string; eventCurrency?: string };
   Scan: undefined;
   Terms: undefined;
   Privacy: undefined;

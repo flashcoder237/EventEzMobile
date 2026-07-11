@@ -30,6 +30,29 @@ export const ticketTypesAPI = {
 };
 
 // ============================================
+// PRICE TIERS API (pricing dynamique / early-bird)
+// ============================================
+
+export interface PriceTierPayload {
+  ticket_type: number | string;
+  label: string;
+  price: number;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  max_quantity?: number | null;
+  order?: number;
+}
+
+export const priceTiersAPI = {
+  // Owner-scopé côté backend (organisateur de l'event uniquement).
+  list: () => api.get('/ticket-price-tiers/'),
+  create: (data: PriceTierPayload) => api.post('/ticket-price-tiers/', data),
+  update: (id: number | string, data: Partial<PriceTierPayload>) =>
+    api.patch(`/ticket-price-tiers/${id}/`, data),
+  remove: (id: number | string) => api.delete(`/ticket-price-tiers/${id}/`),
+};
+
+// ============================================
 // TICKET PURCHASES API
 // ============================================
 

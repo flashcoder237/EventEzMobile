@@ -268,6 +268,17 @@ export default function EventAnalyticsScreen() {
 
             <TouchableOpacity
               style={[styles.actionCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
+              onPress={() => navigation.navigate('EventPricingTiers', { eventId, eventCurrency: eventCurrencyCode })}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: `${colors.accent}15` }]}>
+                <Ionicons name="trending-up-outline" size={20} color={colors.accent} />
+              </View>
+              <Text style={[styles.actionText, { color: colors.text }]}>{t('organizer.eventAnalytics.actionTiers')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
               onPress={() => navigation.navigate('EventEdit', { eventId })}
               activeOpacity={0.7}
             >

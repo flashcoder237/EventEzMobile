@@ -18,7 +18,7 @@ export { eventsAPI, eventTemplatesAPI, categoriesAPI, tagsAPI } from './events';
 export { registrationsAPI } from './registrations';
 
 // Tickets, Transfers & Discounts
-export { ticketTypesAPI, ticketPurchasesAPI, ticketsAPI, ticketTransfersAPI, discountsAPI } from './tickets';
+export { ticketTypesAPI, ticketPurchasesAPI, ticketsAPI, ticketTransfersAPI, discountsAPI, priceTiersAPI } from './tickets';
 
 // Payments, Refunds, Invoices, Subscriptions, Wallet, Payouts & Commissions
 export { paymentsAPI, refundsAPI, invoicesAPI, subscriptionsAPI, walletAPI, payoutsAPI, commissionsAPI } from './payments';
