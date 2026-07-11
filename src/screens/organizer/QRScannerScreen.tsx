@@ -37,6 +37,7 @@ import {
 } from '../../components/tour';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { useCheckinQueue } from '../../hooks/useCheckinQueue';
+import { useCheckinManifest } from '../../hooks/useCheckinManifest';
 import { registrationsAPI, eventsAPI, sessionsAPI } from '../../api';
 import { RootStackParamList, Registration, Event } from '../../types';
 
@@ -94,6 +95,17 @@ export default function QRScannerScreen() {
   const [event, setEvent] = useState<Event | null>(null);
   const { play: playSound } = useSoundEffect();
   const { enqueue: enqueueOfflineScan, flush: flushQueue, pendingCount, isFlushing, isOnline } = useCheckinQueue();
+  // Manifeste de check-in offline : validation LOCALE des billets ticket-level.
+  const manifest = useCheckinManifest(eventId);
+
+  // Prépare l'offline : télécharge le manifeste tant qu'on est connecté, et
+  // pousse d'éventuels check-ins locaux restés en attente (ex: app relancée).
+  useEffect(() => {
+    if (!isOnline) return;
+    manifest.download().catch(() => {});
+    manifest.syncNow().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnline, eventId]);
 
   // Manual entry modal
   const [manualOpen, setManualOpen] = useState(false);
@@ -234,9 +246,17 @@ export default function QRScannerScreen() {
   const isValidUUID = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 
   const extractScanInfo = (data: string): ScanInfo => {
-    // Ticket-level : .../verify/t/{uuid} — testé EN PREMIER (pattern + précis)
-    const ticketMatch = data.match(new RegExp(`\\/verify\\/t\\/(${UUID_RE.source})`, 'i'));
-    if (ticketMatch) return { kind: 'ticket_purchase', ticketId: ticketMatch[1], raw: data };
+    // Ticket-level : .../verify/t/{id} — testé EN PREMIER (pattern + précis).
+    // L'id est un BigAutoField (ENTIER) côté backend ; on tolère aussi un UUID
+    // (rétro-compat). On capture une suite hex/tiret/chiffre puis on valide
+    // précisément (UUID strict OU entier) pour ne pas accepter de QR étrangers.
+    const ticketMatch = data.match(/\/verify\/t\/([0-9a-f-]{1,40})/i);
+    if (ticketMatch) {
+      const id = ticketMatch[1];
+      if (isValidUUID(id) || /^\d+$/.test(id)) {
+        return { kind: 'ticket_purchase', ticketId: id, raw: data };
+      }
+    }
 
     // Registration-level : .../verify/{uuid}
     const regMatch = data.match(new RegExp(`\\/verify\\/(${UUID_RE.source})`, 'i'));
@@ -332,6 +352,51 @@ export default function QRScannerScreen() {
 
       // ─── Mode ENTRÉE PRINCIPALE : check-in registration / billet ────────
       if (!isOnline) {
+        // Validation LOCALE via manifeste (ticket-level uniquement). Vrai
+        // vert/rouge à la porte sans réseau, au lieu d'un succès optimiste.
+        if (info.kind === 'ticket_purchase' && manifest.ready) {
+          const local = manifest.verifyTicket(info.ticketId);
+          const synthetic = {
+            id: info.ticketId,
+            user_name: local.holderName,
+            reference_code: local.reference,
+            registration_type: local.ticketType,
+          } as unknown as Registration;
+
+          if (local.status === 'unknown') {
+            setScanResult({ success: false, message: t('organizer.qrScanner.offlineUnknownTicket') });
+            setStats(prev => ({ ...prev, scanned: prev.scanned + 1, failed: prev.failed + 1 }));
+            playSound('scan-fail');
+            vibrateFail();
+            return;
+          }
+          if (local.status === 'already') {
+            setScanResult({
+              success: true,
+              registration: synthetic,
+              alreadyCheckedIn: true,
+              message: t('organizer.qrScanner.offlineAlready'),
+            });
+            setStats(prev => ({ ...prev, scanned: prev.scanned + 1, success: prev.success + 1 }));
+            playSound('scan-success');
+            vibrateSuccess();
+            return;
+          }
+          // valid → enregistre localement (persisté + poussé en batch au retour réseau)
+          await manifest.recordCheckin(info.ticketId);
+          setScanResult({
+            success: true,
+            registration: synthetic,
+            message: t('organizer.qrScanner.offlineValidated'),
+          });
+          setStats(prev => ({ ...prev, scanned: prev.scanned + 1, success: prev.success + 1 }));
+          playSound('scan-success');
+          vibrateSuccess();
+          return;
+        }
+
+        // Fallback : registration-level (legacy) ou manifeste indispo → file
+        // optimiste (vérifiée côté serveur au flush).
         await enqueueOfflineScan(
           info.kind === 'ticket_purchase' ? info.raw : info.registrationId,
           autoCheckIn,
@@ -750,6 +815,24 @@ export default function QRScannerScreen() {
 
           {/* Hint chips bas du viewfinder : offline + saisie manuelle */}
           <View style={styles.chipRow}>
+            {/* Préparation offline : manifeste téléchargé → scan validé localement */}
+            {manifest.ready && (
+              <View style={[styles.hintChip, styles.hintChipReady]}>
+                <Ionicons
+                  name={manifest.isDownloading ? 'sync' : 'cloud-done'}
+                  size={14}
+                  color="#34D399"
+                />
+                <Text style={styles.hintChipText}>
+                  {manifest.pendingSyncCount > 0
+                    ? t('organizer.qrScanner.offlineReadyPending', {
+                        count: manifest.count,
+                        pending: manifest.pendingSyncCount,
+                      })
+                    : t('organizer.qrScanner.offlineReady', { count: manifest.count })}
+                </Text>
+              </View>
+            )}
             {(!isOnline || pendingCount > 0) && (
               <TouchableOpacity
                 style={[styles.hintChip, styles.hintChipDanger]}
@@ -1338,6 +1421,10 @@ const styles = StyleSheet.create({
   hintChipDanger: {
     backgroundColor: 'rgba(220, 38, 38, 0.85)',
     borderColor: 'rgba(220, 38, 38, 0.9)',
+  },
+  hintChipReady: {
+    backgroundColor: 'rgba(16, 185, 129, 0.16)',
+    borderColor: 'rgba(52, 211, 153, 0.45)',
   },
   hintChipText: {
     fontFamily: FontFamily.semiBold,

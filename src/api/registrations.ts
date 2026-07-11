@@ -86,6 +86,19 @@ export const registrationsAPI = {
   bulkCheckIn: (registrationIds: string[]) =>
     api.post('/registrations/bulk_check_in/', { registration_ids: registrationIds }),
 
+  // ── Check-in OFFLINE ────────────────────────────────────────────────
+  // Manifeste : liste des billets valides d'un event, téléchargée une fois
+  // (connecté) pour permettre au scanner de VÉRIFIER les QR localement, sans
+  // réseau. Un ticket_id présent = billet authentique de cet event.
+  getCheckinManifest: (eventId: string) =>
+    api.get('/ticket-purchases/checkin-manifest/', { params: { event_id: eventId } }),
+
+  // Remonte les check-ins effectués hors-ligne (batch, idempotent).
+  syncCheckins: (
+    eventId: string,
+    checkins: Array<{ ticket_id: string; checked_in_at?: string }>,
+  ) => api.post('/ticket-purchases/checkin-sync/', { event_id: eventId, checkins }),
+
   // Statistiques
   getRegistrationStats: (eventId: string) =>
     api.get('/registrations/stats/', { params: { event_id: eventId } }),
