@@ -113,6 +113,14 @@ export const registrationsAPI = {
   getAttendanceProofs: () =>
     api.get('/ticket-purchases/attendance-proofs/'),
 
+  // Networking « qui est là » : annuaire des participants opt-in d'un event
+  // (réservé aux participants confirmés). + toggle de sa propre visibilité.
+  getEventDirectory: (eventId: string) =>
+    api.get('/registrations/event-directory/', { params: { event_id: eventId } }),
+
+  setNetworkingOptIn: (registrationId: string, optIn: boolean) =>
+    api.post(`/registrations/${registrationId}/networking/`, { opt_in: optIn }),
+
   // Communication
   resendConfirmation: (registrationId: string) =>
     api.post(`/registrations/${registrationId}/resend_confirmation/`),

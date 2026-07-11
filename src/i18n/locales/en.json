@@ -518,9 +518,22 @@
     "nearbyTeaserTitle": "Enable location to see what's happening around you",
     "nearbyTeaserCTA": "Enable"
   },
+  "attendees": {
+    "title": "Who's here",
+    "eyebrow": "VISIBLE ATTENDEES",
+    "count": "{{count}} people to meet",
+    "optInTitle": "Make me visible",
+    "optInSubtitle": "Appear in the directory so other attendees can message you.",
+    "invisibleHint": "You are invisible — turn on to be seen too.",
+    "message": "Message",
+    "connected": "Connected",
+    "empty": "Nobody is visible yet. Be the first to turn on your networking!"
+  },
   "eventDetails": {
     "eyebrow": "EVENT",
     "eyebrowWithCategory": "EVENT · {{category}}",
+    "networkingCta": "Who's here",
+    "networkingSubtitle": "Meet the other attendees",
     "loadingError": "Event not found",
     "loadingErrorEyebrow": "Not found",
     "loadingErrorMessage": "The link may have expired.",

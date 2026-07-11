@@ -979,6 +979,30 @@ export default function EventDetailsScreen() {
             </View>
           )}
 
+          {/* Section: Networking « Qui est là » — réservé aux participants confirmés */}
+          {userRegistration &&
+            ['confirmed', 'checked_in', 'completed'].includes(userRegistration.status) && (
+            <TouchableOpacity
+              style={[styles.networkingCard, { backgroundColor: colors.primaryBg, borderColor: `${colors.primary}33` }]}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('EventAttendees', {
+                eventId: event.id,
+                registrationId: userRegistration.id,
+              })}
+              accessibilityRole="button"
+              accessibilityLabel={t('eventDetails.networkingCta')}
+            >
+              <View style={[styles.infoIconContainer, { backgroundColor: colors.surface }]}>
+                <Ionicons name="people-circle-outline" size={22} color={colors.primary} />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={[styles.infoTitle, { color: colors.gray900 }]}>{t('eventDetails.networkingCta')}</Text>
+                <Text style={[styles.infoSubtitle, { color: colors.gray500 }]}>{t('eventDetails.networkingSubtitle')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+
           {/* Section: Gallery */}
           {allImages.length > 1 && (
             <View style={[styles.gallerySection, { borderTopColor: colors.gray100 }]}>
@@ -1597,6 +1621,15 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.lg,
+  },
+  networkingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginTop: Spacing.md,
   },
   infoIconContainer: {
     width: 44,

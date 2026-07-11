@@ -518,9 +518,22 @@
     "nearbyTeaserTitle": "Active ta position pour voir ce qui bouge dans ton coin",
     "nearbyTeaserCTA": "Activer"
   },
+  "attendees": {
+    "title": "Qui est là",
+    "eyebrow": "PARTICIPANTS VISIBLES",
+    "count": "{{count}} personne(s) à rencontrer",
+    "optInTitle": "Me rendre visible",
+    "optInSubtitle": "Apparaissez dans l'annuaire pour que les autres participants puissent vous écrire.",
+    "invisibleHint": "Vous êtes invisible — activez pour être vu aussi.",
+    "message": "Message",
+    "connected": "Connecté",
+    "empty": "Personne n'est encore visible. Soyez le premier à activer votre networking !"
+  },
   "eventDetails": {
     "eyebrow": "ÉVÉNEMENT",
     "eyebrowWithCategory": "ÉVÉNEMENT · {{category}}",
+    "networkingCta": "Qui est là",
+    "networkingSubtitle": "Rencontrez les autres participants",
     "loadingError": "Évenement non trouvé",
     "loadingErrorEyebrow": "Introuvable",
     "loadingErrorMessage": "Le lien a peut-être expiré.",
