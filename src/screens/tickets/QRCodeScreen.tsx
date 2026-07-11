@@ -34,6 +34,7 @@ import { ticketPurchasesAPI } from '../../api';
 import { TicketPurchase, RootStackParamList } from '../../types';
 import { getTicketVerificationUrl, getEventInviteUrl, WEB_BASE_URL } from '../../constants/urls';
 import { useTicketDisplayGuard } from '../../hooks/useTicketDisplayGuard';
+import AddToWalletButton from '../../components/tickets/AddToWalletButton';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
 import {
   FontSizes,
@@ -789,6 +790,12 @@ export default function QRCodeScreen() {
                 tone="lime"
                 icon="add-circle"
               />
+            )}
+
+            {/* Ajouter le billet à Apple / Google Wallet (se masque si l'intégration
+                n'est pas configurée côté serveur, cf. AddToWalletButton). */}
+            {(ticket.status === 'confirmed' || ticket.status === 'completed') && (
+              <AddToWalletButton ticketId={String(ticketId)} />
             )}
           </View>
 

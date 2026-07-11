@@ -3,6 +3,7 @@
 // ============================================
 
 import api from './instance';
+import { API_BASE_URL } from './config';
 
 // ============================================
 // TICKET TYPES API
@@ -53,6 +54,20 @@ export const ticketPurchasesAPI = {
 
   getMyPurchases: () =>
     api.get('/ticket-purchases/my_purchases/'),
+
+  // ── Wallet passes (Apple / Google) ──
+  // Statut de config serveur : { apple_enabled, google_enabled }.
+  getWalletStatus: () =>
+    api.get('/ticket-purchases/wallet-status/'),
+
+  // URL « Enregistrer dans Google Wallet » : { save_url }.
+  getGooglePassUrl: (id: string) =>
+    api.get(`/ticket-purchases/${id}/google-pass/`),
+
+  // URL du .pkpass Apple (à télécharger AUTHENTIFIÉ via FileSystem.downloadAsync
+  // avec le header Authorization — l'endpoint est owner-scopé).
+  applePassUrl: (id: string) =>
+    `${API_BASE_URL}/ticket-purchases/${id}/apple-pass/`,
 };
 
 // Alias for backward compatibility
