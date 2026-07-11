@@ -1,5 +1,24 @@
 {
+  "wallet": {
+    "stripeOnboardingError": "Erreur Stripe",
+    "stripeOnboardingUnexpected": "Reponse Stripe inattendue, reessayez plus tard.",
+    "stripeOnboardingFailed": "Echec de l'onboarding Stripe",
+    "stripeConnectActiveTitle": "Stripe Connect actif.",
+    "stripeConnectActiveBody": "Vos revenus arrivent directement sur votre compte bancaire (payouts automatiques).",
+    "stripeOnboardingInProgressTitle": "Verification Stripe en cours",
+    "stripeOnboardingInProgressBody": "L'onboarding Stripe est commence mais incomplet. Sans cela, EventEz ne peut pas vous transferer vos revenus.",
+    "stripeContinueVerification": "Continuer la verification",
+    "stripeOnboardingCTATitle": "Activez vos paiements via Stripe",
+    "stripeOnboardingCTABody": "Pour recevoir vos revenus directement sur votre compte bancaire, completez votre profil Stripe Connect (verification + coordonnees bancaires).",
+    "stripeStartOnboarding": "Commencer l'onboarding"
+  },
+  "eventCreate": {
+    "unsupportedCountryTitle": "Pays non disponible",
+    "unsupportedCountryMessage": "EventEz ne traite pas encore les paiements dans ce pays ({{country}}). La création de l'événement sera refusée."
+  },
   "common": {
+    "signIn": "Se connecter",
+    "info": "Info",
     "loading": "Chargement...",
     "error": "Erreur",
     "errorLoading": "Erreur de chargement",
@@ -1394,6 +1413,7 @@
     "qrShareSubtitle": "Faites scanner ce code pour partager votre profil"
   },
   "settings": {
+    "whoCanContactCurrent": "ANTI-SPAM",
     "title": "Paramètres",
     "account": "Compte",
     "preferences": "Préférences",
@@ -1939,6 +1959,7 @@
     "notificationsMessage": "Tu es à jour !"
   },
   "time": {
+    "unknownDate": "date inconnue",
     "today": "Aujourd'hui",
     "tomorrow": "Demain",
     "yesterday": "Hier",
@@ -2513,6 +2534,11 @@
     "errorGeneric": "Une erreur est survenue"
   },
   "verificationForm": {
+    "pdfOpenError": "Impossible d'ouvrir le document.",
+    "zoomImageA11y": "Agrandir l'image",
+    "openPdfA11y": "Ouvrir le PDF",
+    "tapToZoom": "Toucher pour agrandir",
+    "tapToOpen": "Toucher pour ouvrir",
     "headerEyebrow": "CONFIANCE • KYC",
     "headerTitle": "Vérification",
     "verifiedBadge": "VÉRIFIÉ",
@@ -2695,6 +2721,7 @@
     "eventsInRadius": " dans {{radius}} km"
   },
   "organizerProfile": {
+    "unknownOrganizer": "Organisateur inconnu",
     "eyebrowVerified": "PROFIL · VÉRIFIÉ",
     "eyebrow": "PROFIL",
     "title": "Organisateur",
@@ -3036,6 +3063,7 @@
       "metaInPerson": "Présentiel"
     },
     "step1": {
+      "contentLanguageLabel": "Langue du contenu",
       "title": "À quoi ressemble votre événement ?",
       "description": "Commencez par l'affiche et l'histoire. Les détails pratiques viennent ensuite.",
       "bannerLabel": "Affiche",
@@ -3588,6 +3616,7 @@
     "cancelButton": "Annuler"
   },
   "conversation": {
+    "replyOriginalNotLoaded": "Le message original n'est pas encore chargé. Remonte pour le voir.",
     "watermark": "CHAT",
     "messageSent": "Message envoyé",
     "undo": "Annuler",
@@ -5417,6 +5446,7 @@
       "actions": {
         "view": "Voir l'événement",
         "scanQR": "Scanner QR (Check-in)",
+        "team": "Equipe",
         "stats": "Statistiques",
         "registrations": "Inscriptions",
         "discountCodes": "Codes promo",
@@ -5479,6 +5509,18 @@
       "actionEditValidatedDesc": "Champs critiques → re-validation"
     },
     "volunteer": {
+      "tabReceived": "Reçues ({{count}})",
+      "acceptTitle": "Accepter la candidature",
+      "acceptMessage": "Confirmer l'acceptation de cette candidature ? Le benevole sera notifie.",
+      "accept": "Accepter",
+      "rejectTitle": "Refuser la candidature",
+      "rejectMessage": "Confirmer le refus ? Le benevole sera notifie.",
+      "reject": "Refuser",
+      "shareMessage": "Devenez benevole pour cet evenement : {{url}}",
+      "shareLinkA11y": "Partager le lien d'inscription benevole",
+      "emptyReceivedTitle": "Aucune candidature recue",
+      "emptyReceivedText": "Les benevoles qui postuleront a vos roles apparaitront ici.",
+      "appliedFor": "Pour le role :",
       "watermark": "VOL",
       "headerEyebrow": "L'équipe derrière",
       "headerTitle": "Bénévoles",
