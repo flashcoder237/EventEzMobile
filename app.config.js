@@ -38,6 +38,9 @@ module.exports = ({ config }) => {
   expo.plugins = [
     ...(expo.plugins || []),
     ['@react-native-google-signin/google-signin', { iosUrlScheme }],
+    // Force jvmTarget=17 sur tous les modules Kotlin (fix mismatch Java 17 /
+    // Kotlin 11 de expo-dynamic-app-icon au build Android).
+    './plugins/withAndroidKotlinJvmTarget',
   ];
 
   return { ...config, ...expo };
