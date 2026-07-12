@@ -1,4 +1,5 @@
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
+import { haptics } from '../../utils/haptics';
 import {
   View,
   Text,
@@ -122,6 +123,9 @@ function FollowEventButtonImpl({
     }
   };
 
+  // Garde anti double-tap (l'UI bascule instantanément, sans spinner).
+  const toggleInFlight = useRef(false);
+
   const handleToggleFollow = async () => {
     if (!user) {
       navigation.navigate('Login');
@@ -129,29 +133,41 @@ function FollowEventButtonImpl({
     }
 
     requireVerification(async () => {
-      setIsLoading(true);
+      if (toggleInFlight.current) return;
+      toggleInFlight.current = true;
+
+      const next = !isFollowing;
+      // UI OPTIMISTE : on bascule immédiatement (feel instantané), on rollback
+      // seulement si l'API échoue.
+      haptics.selection();
+      setIsFollowing(next);
+      if (showFollowerCount) {
+        setFollowersCount(prev => (next ? prev + 1 : Math.max(0, prev - 1)));
+      }
+      onFollowChange?.(next);
+      if (next) {
+        // Moment idéal pour demander la permission push : l'utilisateur vient
+        // de signaler qu'il veut être tenu au courant. No-op si déjà traité.
+        maybePromptForPushPermission();
+      }
 
       try {
-        if (isFollowing) {
-          await eventsAPI.unfollowEvent(eventId);
-          setIsFollowing(false);
-          if (showFollowerCount) setFollowersCount(prev => Math.max(0, prev - 1));
-          onFollowChange?.(false);
-        } else {
+        if (next) {
           await eventsAPI.followEvent(eventId, preferences);
-          setIsFollowing(true);
-          if (showFollowerCount) setFollowersCount(prev => prev + 1);
-          onFollowChange?.(true);
-          // Moment idéal pour demander la permission push : l'utilisateur
-          // vient de signaler explicitement qu'il veut être tenu au courant.
-          // No-op si déjà demandé / déjà accordé / déjà refusé (dédup interne).
-          maybePromptForPushPermission();
+        } else {
+          await eventsAPI.unfollowEvent(eventId);
         }
       } catch (error) {
         if (__DEV__) console.error('Error toggling follow:', error);
+        // Rollback
+        setIsFollowing(!next);
+        if (showFollowerCount) {
+          setFollowersCount(prev => (next ? Math.max(0, prev - 1) : prev + 1));
+        }
+        onFollowChange?.(!next);
         showError(t('common.error'), t('componentsEvents.followError'));
       } finally {
-        setIsLoading(false);
+        toggleInFlight.current = false;
       }
     });
   };

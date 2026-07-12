@@ -153,6 +153,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const appState = useRef(AppState.currentState);
   const navigation = useNavigation();
+
+  // Badge d'app : reflète sur l'icône le total de notifications + messages non
+  // lus (feel « pro », comme les grandes apps). Se met à 0 tout seul quand tout
+  // est lu ou au logout (les compteurs retombent à 0). No-op si non supporté.
+  useEffect(() => {
+    const total = Math.max(0, unreadNotificationCount + unreadMessageCount);
+    (async () => {
+      try {
+        const Notif = await import('expo-notifications');
+        await Notif.setBadgeCountAsync(total);
+      } catch {
+        /* badge non supporté sur cet appareil → ignore */
+      }
+    })();
+  }, [unreadNotificationCount, unreadMessageCount]);
   // Fix memory leak : timer pour la navigation differee apres tap notification.
   // Stocke dans un ref pour pouvoir clearTimeout au unmount ET avant chaque
   // nouveau timeout (sinon plusieurs timers peuvent s'accumuler si l'init
