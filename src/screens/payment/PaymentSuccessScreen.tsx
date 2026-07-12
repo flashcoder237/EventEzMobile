@@ -43,6 +43,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useTranslation } from 'react-i18next';
 import ConfettiEffect from '../../components/ui/ConfettiEffect';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
+import { haptics } from '../../utils/haptics';
 import { getEventUrl } from '../../constants/urls';
 import ShareTicketCardButton from '../../components/tickets/ShareTicketCardButton';
 import { paymentsAPI, invoicesAPI } from '../../api';
@@ -340,6 +341,11 @@ export default function PaymentSuccessScreen() {
   }, [eventType, approvalStatus, eventTitle, t]);
 
   const showConfetti = content.isSuccess;
+
+  // Retour haptique de succès (célébration tactile, en plus du son + confetti).
+  useEffect(() => {
+    if (content.isSuccess) haptics.success();
+  }, [content.isSuccess]);
 
   // Demande de note in-app (ASO) — uniquement sur un vrai succès, et pas pour
   // les invités (qui voient déjà la modale d'upgrade : on évite la collision).

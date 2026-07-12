@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { FontFamily } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { haptics } from '../../utils/haptics';
 
 // Lazy-require : le module natif (config plugin) n'est présent qu'APRÈS un
 // rebuild. En Expo Go / build sans le plugin, `require` peut throw → on dégrade
@@ -55,6 +56,7 @@ export default function AppIconPicker() {
       // pointerait vers un alias inexistant `MainActivityDEFAULT` → échec).
       const res = mod?.setAppIcon(key === 'DEFAULT' ? '' : key);
       if (!mod || res === false) throw new Error('unsupported');
+      haptics.selection();
       setCurrent(key);
     } catch {
       Alert.alert(

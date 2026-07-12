@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Vibration,
   Modal,
   ActivityIndicator,
   Dimensions,
@@ -38,6 +37,7 @@ import {
 import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { useCheckinQueue } from '../../hooks/useCheckinQueue';
 import { useCheckinManifest } from '../../hooks/useCheckinManifest';
+import { haptics } from '../../utils/haptics';
 import { registrationsAPI, eventsAPI, sessionsAPI } from '../../api';
 import { RootStackParamList, Registration, Event } from '../../types';
 
@@ -290,8 +290,9 @@ export default function QRScannerScreen() {
   };
 
   // Pattern haptique différencié — succès = 1 vibration courte, échec = 2 saccades
-  const vibrateSuccess = () => Vibration.vibrate([0, 80]);
-  const vibrateFail = () => Vibration.vibrate([0, 120, 80, 120]);
+  // Retour haptique premium au portique (bien plus « pro » qu'un buzz brut).
+  const vibrateSuccess = () => haptics.success();
+  const vibrateFail = () => haptics.error();
 
   /**
    * Traite un scan en routant vers la bonne API selon :

@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { haptics } from '../../utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
@@ -78,6 +79,13 @@ function GradientButtonComponent({
 }: GradientButtonProps) {
   const { colors, isDark } = useTheme();
   const isDisabled = disabled || loading;
+
+  // Retour haptique premium sur le CTA (léger, uniquement si actionnable).
+  const handlePress = () => {
+    if (isDisabled) return;
+    haptics.light();
+    onPress();
+  };
 
   const getSizeStyle = (): ViewStyle => {
     switch (size) {
@@ -233,7 +241,7 @@ function GradientButtonComponent({
   if (variant === 'primary') {
     return (
       <TouchableOpacity
-        onPress={onPress}
+        onPress={handlePress}
         disabled={isDisabled}
         activeOpacity={TOUCH_OPACITY}
         accessible={true}
@@ -266,7 +274,7 @@ function GradientButtonComponent({
 
   return (
     <TouchableOpacity
-      onPress={onPress}
+      onPress={handlePress}
       disabled={isDisabled}
       activeOpacity={TOUCH_OPACITY}
       accessible={true}
