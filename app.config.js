@@ -41,6 +41,9 @@ module.exports = ({ config }) => {
     // Force jvmTarget=17 sur tous les modules Kotlin (fix mismatch Java 17 /
     // Kotlin 11 de expo-dynamic-app-icon au build Android).
     './plugins/withAndroidKotlinJvmTarget',
+    // Rend les icônes alternatives adaptatives sur Android (sinon marges du
+    // traitement legacy). DOIT rester après expo-dynamic-app-icon.
+    './plugins/withAdaptiveAlternateIcons',
   ];
 
   return { ...config, ...expo };

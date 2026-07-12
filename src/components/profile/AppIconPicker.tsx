@@ -49,7 +49,11 @@ export default function AppIconPicker() {
     if (key === current) return;
     const mod = getIconModule();
     try {
-      const res = mod?.setAppIcon(key);
+      // Retour au défaut : le composant natif est `<pkg>.MainActivity` (sans
+      // suffixe). expo-dynamic-app-icon construit `MainActivity${name}`, donc
+      // pour le défaut il faut passer une chaîne VIDE (pas 'DEFAULT', qui
+      // pointerait vers un alias inexistant `MainActivityDEFAULT` → échec).
+      const res = mod?.setAppIcon(key === 'DEFAULT' ? '' : key);
       if (!mod || res === false) throw new Error('unsupported');
       setCurrent(key);
     } catch {
