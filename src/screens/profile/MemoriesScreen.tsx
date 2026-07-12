@@ -112,6 +112,7 @@ export default function MemoriesScreen() {
           <Text style={[styles.subtitle, { color: colors.gray500 }]}>
             {t('memories.count', { count: proofs.length })}
           </Text>
+          {proofs.length >= 2 && <RecapCard proofs={proofs} colors={colors} t={t} />}
           {proofs.map((p) => (
             <MemoryCard key={p.event_id} proof={p} colors={colors} isDark={isDark} t={t} />
           ))}
@@ -214,6 +215,117 @@ function MemoryCard({
   );
 }
 
+/**
+ * Récap agrégé « Mon parcours EventEz » — calculé côté client depuis les proofs
+ * déjà chargés (zéro backend, zéro friction). Affiche 3 stats + une carte story
+ * partageable façon Wrapped.
+ */
+function RecapCard({
+  proofs, colors, t,
+}: {
+  proofs: Proof[]; colors: any; t: (k: string, o?: any) => string;
+}) {
+  const cardRef = useRef<View>(null);
+  const [busy, setBusy] = useState(false);
+
+  const total = proofs.length;
+  const cities = new Set(
+    proofs.map((p) => (p.city || '').trim().toLowerCase()).filter(Boolean),
+  ).size;
+  const firsts = proofs.filter((p) => p.serial === 1).length;
+
+  const stats: { value: number; label: string }[] = [
+    { value: total, label: t('memories.recapEvents') },
+    { value: cities, label: t('memories.recapCities') },
+    { value: firsts, label: t('memories.recapFirst') },
+  ];
+
+  const share = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const uri = await captureRef(cardRef, { format: 'png', quality: 1, result: 'tmpfile' });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: t('memories.recapTitle') });
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <View style={[styles.recapCard, { borderColor: colors.border }]}>
+      <LinearGradient
+        colors={['#4F46E5', '#A855F7', '#FF6B6B']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={styles.recapInner}>
+        <View style={styles.recapHead}>
+          <Text style={styles.recapEyebrow}>{t('memories.recapEyebrow')}</Text>
+          <Text style={styles.recapTitle}>{t('memories.recapTitle')}</Text>
+        </View>
+        <View style={styles.recapStatsRow}>
+          {stats.map((s, i) => (
+            <View key={i} style={styles.recapStat}>
+              <Text style={styles.recapStatValue}>{s.value}</Text>
+              <Text style={styles.recapStatLabel} numberOfLines={2}>{s.label}</Text>
+            </View>
+          ))}
+        </View>
+        <TouchableOpacity
+          onPress={share}
+          disabled={busy}
+          activeOpacity={0.85}
+          style={styles.recapShareBtn}
+          accessibilityRole="button"
+          accessibilityLabel={t('memories.recapShare')}
+        >
+          {busy ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Ionicons name="share-social" size={15} color="#FFFFFF" />
+          )}
+          <Text style={styles.recapShareText}>{t('memories.recapShare')}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Carte STORY hors-écran (9:16) capturée au partage */}
+      <View style={styles.offscreen} pointerEvents="none">
+        <View ref={cardRef} collapsable={false} style={styles.recapStory}>
+          <LinearGradient
+            colors={['#4F46E5', '#A855F7', '#FF6B6B']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.recapStoryInner}>
+            <Text style={styles.recapStoryEyebrow}>{t('memories.recapEyebrow')}</Text>
+            <Text style={styles.recapStoryTitle}>{t('memories.recapTitle')}</Text>
+            <View style={styles.recapStoryStats}>
+              {stats.map((s, i) => (
+                <View key={i} style={styles.recapStoryStat}>
+                  <Text style={styles.recapStoryValue}>{s.value}</Text>
+                  <Text style={styles.recapStoryLabel}>{s.label}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={styles.recapStoryBrand}>
+              <Ionicons name="ticket" size={18} color="#FFFFFF" />
+              <Text style={styles.recapStoryBrandText}>EventEz</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const RECAP_STORY_W = 340;
+const RECAP_STORY_H = 604;
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, padding: Spacing.xl },
@@ -259,4 +371,36 @@ const styles = StyleSheet.create({
     paddingVertical: 12, borderTopWidth: 1,
   },
   shareText: { fontFamily: FontFamily.semiBold, fontSize: 13, letterSpacing: 0.2 },
+
+  // Récap agrégé (carte visible)
+  recapCard: { borderRadius: BorderRadius['2xl'], overflow: 'hidden', borderWidth: 1 },
+  recapInner: { padding: Spacing.lg, gap: Spacing.md },
+  recapHead: { gap: 2 },
+  recapEyebrow: { fontFamily: FontFamily.bold, fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,0.85)' },
+  recapTitle: { fontFamily: FontFamily.displayExtraBold, fontSize: 22, letterSpacing: -0.6, color: '#FFFFFF' },
+  recapStatsRow: { flexDirection: 'row', gap: Spacing.sm },
+  recapStat: {
+    flex: 1, backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: BorderRadius.lg,
+    paddingVertical: 12, paddingHorizontal: 8, alignItems: 'center', gap: 2,
+  },
+  recapStatValue: { fontFamily: FontFamily.displayExtraBold, fontSize: 26, color: '#FFFFFF', letterSpacing: -0.5 },
+  recapStatLabel: { fontFamily: FontFamily.medium, fontSize: 11, color: 'rgba(255,255,255,0.9)', textAlign: 'center' },
+  recapShareBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.22)', borderRadius: BorderRadius.full, paddingVertical: 11,
+  },
+  recapShareText: { color: '#FFFFFF', fontFamily: FontFamily.semiBold, fontSize: 13, letterSpacing: 0.2 },
+
+  // Carte story hors-écran
+  offscreen: { position: 'absolute', left: -9999, top: 0, width: RECAP_STORY_W, height: RECAP_STORY_H },
+  recapStory: { width: RECAP_STORY_W, height: RECAP_STORY_H, borderRadius: 28, overflow: 'hidden' },
+  recapStoryInner: { flex: 1, padding: 32, justifyContent: 'space-between' },
+  recapStoryEyebrow: { fontFamily: FontFamily.bold, fontSize: 13, letterSpacing: 2.5, color: 'rgba(255,255,255,0.9)' },
+  recapStoryTitle: { fontFamily: FontFamily.displayExtraBold, fontSize: 36, letterSpacing: -1.2, lineHeight: 40, color: '#FFFFFF', marginTop: 8 },
+  recapStoryStats: { gap: 20, marginVertical: 24 },
+  recapStoryStat: { gap: 2 },
+  recapStoryValue: { fontFamily: FontFamily.displayExtraBold, fontSize: 52, letterSpacing: -2, lineHeight: 56, color: '#FFFFFF' },
+  recapStoryLabel: { fontFamily: FontFamily.semiBold, fontSize: 16, color: 'rgba(255,255,255,0.9)' },
+  recapStoryBrand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  recapStoryBrandText: { fontFamily: FontFamily.displayExtraBold, fontSize: 22, letterSpacing: -0.6, color: '#FFFFFF' },
 });

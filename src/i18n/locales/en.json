@@ -1204,7 +1204,13 @@
     "shareTitle": "My EventEz memory",
     "emptyTitle": "No memories yet",
     "emptyText": "Attend an event: your attendance badge will appear here, with your arrival number.",
-    "guest": "Guest"
+    "guest": "Guest",
+    "recapEyebrow": "MY JOURNEY",
+    "recapTitle": "My EventEz recap",
+    "recapShare": "Share my recap",
+    "recapEvents": "events lived",
+    "recapCities": "cities",
+    "recapFirst": "times arrived #1"
   },
   "profile": {
     "title": "Profile",

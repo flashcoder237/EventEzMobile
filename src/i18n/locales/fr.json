@@ -1204,7 +1204,13 @@
     "shareTitle": "Mon souvenir EventEz",
     "emptyTitle": "Aucun souvenir pour l'instant",
     "emptyText": "Assistez à un événement : votre badge de participation apparaîtra ici, avec votre numéro d'arrivée.",
-    "guest": "Invité"
+    "guest": "Invité",
+    "recapEyebrow": "MON PARCOURS",
+    "recapTitle": "Mon récap EventEz",
+    "recapShare": "Partager mon récap",
+    "recapEvents": "événements vécus",
+    "recapCities": "villes",
+    "recapFirst": "fois arrivé #1"
   },
   "profile": {
     "title": "Profil",
