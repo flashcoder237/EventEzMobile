@@ -41,6 +41,8 @@ import FollowEventButton from '../../components/events/FollowEventButton';
 import EventCoverMedia from '../../components/events/EventCoverMedia';
 import FollowUserButton from '../../components/common/FollowUserButton';
 import AddToCalendarButton from '../../components/events/AddToCalendarButton';
+import EventWeather from '../../components/events/EventWeather';
+import EventCountdown from '../../components/events/EventCountdown';
 // Tabs visibles immédiatement (above-the-fold) : import statique.
 import AboutTab from '../../components/events/AboutTab';
 import TicketsTab from '../../components/events/TicketsTab';
@@ -576,6 +578,19 @@ export default function EventDetailsScreen() {
               {formatDate(event.start_date)} · {formatTime(event.start_date)}
             </Text>
           </View>
+
+          {/* Compte à rebours live + météo du jour J (zéro friction, s'effacent
+              d'eux-mêmes si non pertinents : event passé / hors prévision). */}
+          <EventCountdown
+            startDate={event.start_date}
+            endDate={event.end_date}
+            style={{ alignSelf: 'flex-start', marginTop: Spacing.sm }}
+          />
+          <EventWeather
+            latitude={event.location_latitude}
+            longitude={event.location_longitude}
+            date={event.start_date}
+          />
 
           {/* Title — display extra-bold, no italic */}
           <Text style={[styles.title, { color: colors.gray900 }]}>{event.title}</Text>

@@ -35,6 +35,7 @@ import { TicketPurchase, RootStackParamList } from '../../types';
 import { getTicketVerificationUrl, getEventInviteUrl, WEB_BASE_URL } from '../../constants/urls';
 import { useTicketDisplayGuard } from '../../hooks/useTicketDisplayGuard';
 import AddToWalletButton from '../../components/tickets/AddToWalletButton';
+import EventCountdown from '../../components/events/EventCountdown';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
 import {
   FontSizes,
@@ -480,6 +481,14 @@ export default function QRCodeScreen() {
                   </View>
                 )}
               </View>
+
+              {/* Compte à rebours LIVE jusqu'au début (s'efface si l'event est
+                  passé). Zéro friction : pur affichage local. */}
+              <EventCountdown
+                startDate={event?.start_date}
+                endDate={event?.end_date}
+                style={{ marginTop: Spacing.sm }}
+              />
 
               {/* CTA discret : voir l'événement */}
               <TouchableOpacity

@@ -1,4 +1,12 @@
 {
+  "countdown": {
+    "startsIn": "Débute dans",
+    "live": "En cours",
+    "d": "j",
+    "h": "h",
+    "m": "min",
+    "s": "s"
+  },
   "wallet": {
     "stripeOnboardingError": "Erreur Stripe",
     "stripeOnboardingUnexpected": "Reponse Stripe inattendue, reessayez plus tard.",
