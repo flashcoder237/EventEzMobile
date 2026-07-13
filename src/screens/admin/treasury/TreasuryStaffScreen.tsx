@@ -19,6 +19,7 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { useAlert } from '../../../contexts/AlertContext';
 import { treasuryAPI } from '../../../api';
+import { fetchAllPages } from '../../../lib/utils/fetchAllPages';
 import { RootStackParamList, StaffMember, StaffPayment } from '../../../types';
 import Badge from '../../../components/ui/Badge';
 import RoleGuard from '../../../components/auth/RoleGuard';
@@ -63,12 +64,13 @@ function TreasuryStaffContent() {
 
   const fetchData = async () => {
     try {
-      const [staffRes, paymentsRes] = await Promise.all([
-        treasuryAPI.getStaffMembers().catch(() => ({ data: [] })),
-        treasuryAPI.getStaffPayments().catch(() => ({ data: [] })),
+      // Charge toutes les pages (staff + paiements) — la liste plafonnait à 20.
+      const [staffAll, paymentsAll] = await Promise.all([
+        fetchAllPages((p) => treasuryAPI.getStaffMembers(p)).catch(() => []),
+        fetchAllPages((p) => treasuryAPI.getStaffPayments(p)).catch(() => []),
       ]);
-      setStaff(staffRes.data?.results || staffRes.data || []);
-      setPayments(paymentsRes.data?.results || paymentsRes.data || []);
+      setStaff(staffAll);
+      setPayments(paymentsAll);
     } catch (error) {
       if (__DEV__) console.error('Erreur staff:', error);
     } finally {

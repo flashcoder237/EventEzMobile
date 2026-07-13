@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -71,8 +72,14 @@ function UserManagementContent() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageRef = useRef(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
+  const PAGE_SIZE = 20;
 
   // Multi-select state — long-press sur une card pour entrer en mode sélection.
   // Tap sur les cards toggle l'inclusion dans selectedIds (string user.id).
@@ -82,27 +89,52 @@ function UserManagementContent() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const isSelecting = selectedIds.size > 0;
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
+  // Pagination CÔTÉ SERVEUR + scroll infini : on ne charge qu'une page à la fois
+  // (recherche + filtre rôle appliqués par le backend). Évite de rapatrier toute
+  // la table sur data cellulaire. `count` alimente le compteur, `next` le hasMore.
+  const loadPage = async (pageToLoad: number, mode: 'replace' | 'append' | 'refresh') => {
+    if (mode === 'append') setLoadingMore(true);
+    else if (mode === 'refresh') setRefreshing(true);
+    else setLoading(true);
     try {
-      const res = await usersAPI.getUsers({ page_size: 100 });
-      const data = res.data?.results || res.data || [];
-      setUsers(data);
+      const params: Record<string, any> = { page: pageToLoad, page_size: PAGE_SIZE };
+      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+      if (roleFilter !== 'all') params.role = roleFilter;
+      const res = await usersAPI.getUsers(params);
+      const data = res.data;
+      const results = Array.isArray(data) ? data : (data?.results || []);
+      pageRef.current = pageToLoad;
+      setHasMore(Array.isArray(data) ? false : !!data?.next);
+      setTotalCount(typeof data?.count === 'number' ? data.count : results.length);
+      setUsers((prev) => (mode === 'append' ? [...prev, ...results] : results));
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement utilisateurs:', error);
-      showError(t('common.error'), t('admin.users.loadError'));
+      if (mode !== 'append') showError(t('common.error'), t('admin.users.loadError'));
     } finally {
       setLoading(false);
+      setRefreshing(false);
+      setLoadingMore(false);
     }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchUsers();
-    setRefreshing(false);
+  // Debounce de la recherche → évite une requête par frappe.
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(id);
+  }, [searchQuery]);
+
+  // (Re)charge la 1re page au montage et à chaque changement de recherche/filtre.
+  useEffect(() => {
+    loadPage(1, 'replace');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, roleFilter]);
+
+  const onRefresh = () => loadPage(1, 'refresh');
+
+  const onEndReached = () => {
+    if (hasMore && !loadingMore && !loading && !refreshing) {
+      loadPage(pageRef.current + 1, 'append');
+    }
   };
 
   const toggleSelect = (id: string) => {
@@ -163,7 +195,7 @@ function UserManagementContent() {
         );
       }
       // Refetch pour synchroniser l'UI avec l'état serveur
-      await fetchUsers();
+      await loadPage(1, 'replace');
       cancelSelection();
     });
   };
@@ -191,16 +223,6 @@ function UserManagementContent() {
       t('admin.users.bulk.activateConfirm', { count: selectedIds.size }),
       (n) => t('admin.users.bulk.activateSuccess', { count: n }),
     );
-
-  const filteredUsers = users.filter(u => {
-    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
-    if (!matchesRole) return false;
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    const name = `${u.first_name || ''} ${u.last_name || ''}`.toLowerCase();
-    const email = (u.email || '').toLowerCase();
-    return name.includes(q) || email.includes(q);
-  });
 
   const renderUser = ({ item }: { item: User }) => {
     const id = String(item.id);
@@ -301,12 +323,15 @@ function UserManagementContent() {
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.users.title')}</Text>
         </View>
         <View style={[styles.countPill, { backgroundColor: `${colors.primary}15` }]}>
-          <Text style={[styles.countText, { color: colors.primary }]}>{filteredUsers.length}</Text>
+          <Text style={[styles.countText, { color: colors.primary }]}>{totalCount}</Text>
         </View>
         <ExportButton
           endpoint="/users/export/"
           filename="utilisateurs"
-          params={roleFilter !== 'all' ? { role: roleFilter } : {}}
+          params={{
+            ...(roleFilter !== 'all' ? { role: roleFilter } : {}),
+            ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
+          }}
           compact
         />
       </View>
@@ -341,7 +366,7 @@ function UserManagementContent() {
       </View>
 
       <FlatList
-        data={filteredUsers}
+        data={users}
         renderItem={renderUser}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={[
@@ -352,11 +377,22 @@ function UserManagementContent() {
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={styles.listFooter}>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Ionicons name="people-outline" size={48} color={colors.gray300} />
-            <Text style={[styles.emptyText, { color: colors.gray500 }]}>{t('admin.users.empty')}</Text>
-          </View>
+          loading ? null : (
+            <View style={styles.empty}>
+              <Ionicons name="people-outline" size={48} color={colors.gray300} />
+              <Text style={[styles.emptyText, { color: colors.gray500 }]}>{t('admin.users.empty')}</Text>
+            </View>
+          )
         }
       />
 
@@ -466,6 +502,7 @@ const styles = StyleSheet.create({
   },
   filterText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
   listContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl, flexGrow: 1 },
+  listFooter: { paddingVertical: Spacing.lg, alignItems: 'center' },
   userCard: {
     borderRadius: BorderRadius.xl,
     borderWidth: 1,

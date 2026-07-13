@@ -21,6 +21,7 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { useAlert } from '../../../contexts/AlertContext';
 import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { treasuryAPI } from '../../../api';
+import { fetchAllPages } from '../../../lib/utils/fetchAllPages';
 import { RootStackParamList, Shareholder, DividendDistribution } from '../../../types';
 import Badge from '../../../components/ui/Badge';
 import RoleGuard from '../../../components/auth/RoleGuard';
@@ -137,12 +138,13 @@ function TreasuryShareholdersContent() {
 
   const fetchData = async () => {
     try {
-      const [shRes, divRes] = await Promise.all([
-        treasuryAPI.getShareholders().catch(() => ({ data: [] })),
-        treasuryAPI.getDividends().catch(() => ({ data: [] })),
+      // Charge toutes les pages (actionnaires + dividendes) — pas juste 20.
+      const [shAll, divAll] = await Promise.all([
+        fetchAllPages((p) => treasuryAPI.getShareholders(p)).catch(() => []),
+        fetchAllPages((p) => treasuryAPI.getDividends(p)).catch(() => []),
       ]);
-      setShareholders(shRes.data?.results || shRes.data || []);
-      setDividends(divRes.data?.results || divRes.data || []);
+      setShareholders(shAll);
+      setDividends(divAll);
     } catch (error) {
       if (__DEV__) console.error('Erreur actionnaires:', error);
     } finally {

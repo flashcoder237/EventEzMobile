@@ -21,6 +21,7 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { useAlert } from '../../../contexts/AlertContext';
 import { treasuryAPI } from '../../../api';
+import { fetchAllPages } from '../../../lib/utils/fetchAllPages';
 import { RootStackParamList, Expense } from '../../../types';
 import Badge from '../../../components/ui/Badge';
 import RoleGuard from '../../../components/auth/RoleGuard';
@@ -151,8 +152,8 @@ function TreasuryExpensesContent() {
 
   const fetchExpenses = async () => {
     try {
-      const res = await treasuryAPI.getExpenses();
-      const data = res.data?.results || res.data || [];
+      // Filtres/pagination côté client → charger toutes les pages (pas juste 20).
+      const data = await fetchAllPages((p) => treasuryAPI.getExpenses(p));
       setExpenses(data);
     } catch (error) {
       if (__DEV__) console.error('Erreur depenses:', error);
