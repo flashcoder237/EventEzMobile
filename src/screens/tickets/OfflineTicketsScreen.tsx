@@ -20,6 +20,7 @@ import {
   editorial,
 } from '../../components/ui/editorial';
 import { useOfflineTickets, CachedTicket } from '../../hooks/useOfflineTickets';
+import { useTicketDisplayGuard } from '../../hooks/useTicketDisplayGuard';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -39,6 +40,10 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const FR_MONTHS_SHORT = ['JAN', 'FÉV', 'MAR', 'AVR', 'MAI', 'JUN', 'JUL', 'AOÛ', 'SEP', 'OCT', 'NOV', 'DÉC'];
 
 export default function OfflineTicketsScreen() {
+  // Cet écran affiche les QR de billets scannables (hors-ligne) → on bloque la
+  // capture d'écran (anti-fraude), on pousse la luminosité et on garde l'écran
+  // éveillé, comme QRCodeScreen / RegistrationDetailsScreen. Restauré au blur.
+  useTicketDisplayGuard();
   const { t, i18n } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { showSuccess, showConfirm } = useAlert();
