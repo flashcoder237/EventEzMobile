@@ -14,7 +14,6 @@ import {
   Share,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../contexts/AuthContext';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -62,13 +61,14 @@ export default function VolunteerScreen() {
   const route = useRoute<VolunteerRouteProp>();
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { user } = useAuth();
   const eventId = route.params?.eventId;
-  // Mode organizer : on est arrivé depuis MyEvents → eventId présent + user
-  // est organisateur. Affiche un bouton "Créer un rôle". Le backend rejette
-  // toute création par un user qui n'est pas organizer de l'event, donc le
-  // gating UI ici sert uniquement à éviter de présenter une option morte.
-  const isOrganizerView = !!eventId && (user?.role === 'organizer' || user?.role === 'admin');
+  // Vue organisateur = l'utilisateur GÈRE réellement cet event. Le flag `manage`
+  // est posé par l'appelant : MyEvents (toujours), ou EventDetails uniquement si
+  // l'utilisateur est le propriétaire/admin de l'event. On ne se base PLUS sur
+  // le rôle global (`user.role === 'organizer'`) : sinon n'importe quel
+  // organisateur voyait les contrôles de gestion sur l'event d'autrui, et si le
+  // rôle n'était pas peuplé tout le monde tombait sur la vue bénévole.
+  const isOrganizerView = !!eventId && route.params?.manage === true;
 
   const [roles, setRoles] = useState<VolunteerRole[]>([]);
   const [applications, setApplications] = useState<VolunteerApplication[]>([]);
@@ -564,6 +564,110 @@ export default function VolunteerScreen() {
     );
   };
 
+  // Candidature reçue (vue organizer). Refactorée pour utiliser le StyleSheet +
+  // les couleurs du thème + l'i18n, comme les autres cartes (avant : styles
+  // inline avec couleurs et libellés en dur → incohérent + non dark-mode).
+  const renderReceivedCard = ({ item }: { item: VolunteerApplication }) => {
+    const applicantName =
+      item.applicant_name || item.applicant_email || t('organizer.volunteer.anonymous', { defaultValue: 'Anonyme' });
+    const isProcessing = actionLoading === item.id;
+    const canAct = item.status === 'pending';
+    const statusColors: Record<string, { label: string; color: string; bg: string }> = {
+      pending: { label: t('organizer.volunteer.statusPending'), color: colors.warning, bg: colors.warningLight },
+      approved: { label: t('organizer.volunteer.statusApproved'), color: colors.success, bg: colors.successLight },
+      accepted: { label: t('organizer.volunteer.statusApproved'), color: colors.success, bg: colors.successLight },
+      rejected: { label: t('organizer.volunteer.statusRejected'), color: colors.error, bg: colors.errorLight },
+      withdrawn: { label: t('organizer.volunteer.statusWithdrawn'), color: colors.textLight, bg: colors.gray100 },
+    };
+    const sc = statusColors[item.status] || statusColors.pending;
+
+    return (
+      <View style={[styles.applicationCard, { backgroundColor: colors.card }]}>
+        <View style={styles.applicationHeader}>
+          <View style={[styles.receivedAvatar, { backgroundColor: colors.primaryBg }]}>
+            <Ionicons name="person-outline" size={18} color={colors.primary} />
+          </View>
+          <View style={styles.applicationInfo}>
+            <Text style={[styles.applicationRole, { color: colors.text }]} numberOfLines={1}>{applicantName}</Text>
+            {item.applicant_email ? (
+              <Text style={[styles.applicationApplicant, { color: colors.textSecondary }]} numberOfLines={1}>
+                {item.applicant_email}
+              </Text>
+            ) : null}
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: sc.bg }]}>
+            <Text style={[styles.statusText, { color: sc.color }]}>{sc.label}</Text>
+          </View>
+        </View>
+
+        {(item.role_title || item.role_name) ? (
+          <Text style={[styles.receivedRoleLine, { color: colors.textSecondary }]}>
+            {t('organizer.volunteer.appliedFor', { defaultValue: 'Pour le rôle :' })}{' '}
+            <Text style={{ color: colors.primary, fontFamily: FontFamily.semiBold }}>
+              {item.role_title || item.role_name}
+            </Text>
+          </Text>
+        ) : null}
+
+        {item.motivation ? (
+          <View style={styles.receivedField}>
+            <Text style={[styles.receivedFieldLabel, { color: colors.textLight }]}>
+              {t('organizer.volunteer.motivationLabel', { defaultValue: 'Motivation' })}
+            </Text>
+            <Text style={[styles.receivedFieldValue, { color: colors.textSecondary }]}>{item.motivation}</Text>
+          </View>
+        ) : null}
+        {item.availability ? (
+          <View style={styles.receivedField}>
+            <Text style={[styles.receivedFieldLabel, { color: colors.textLight }]}>
+              {t('organizer.volunteer.availabilityLabel', { defaultValue: 'Disponibilité' })}
+            </Text>
+            <Text style={[styles.receivedFieldValue, { color: colors.textSecondary }]}>{item.availability}</Text>
+          </View>
+        ) : null}
+        {item.experience ? (
+          <View style={styles.receivedField}>
+            <Text style={[styles.receivedFieldLabel, { color: colors.textLight }]}>
+              {t('organizer.volunteer.experienceLabel', { defaultValue: 'Expérience' })}
+            </Text>
+            <Text style={[styles.receivedFieldValue, { color: colors.textSecondary }]}>{item.experience}</Text>
+          </View>
+        ) : null}
+
+        {canAct ? (
+          <View style={styles.receivedActions}>
+            <TouchableOpacity
+              onPress={() => handleAcceptApplication(item)}
+              disabled={isProcessing}
+              style={[styles.receivedActionBtn, { backgroundColor: colors.successLight }]}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color={colors.success} />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                  <Text style={[styles.receivedActionText, { color: colors.success }]}>
+                    {t('organizer.volunteer.accept', { defaultValue: 'Accepter' })}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleRejectApplication(item)}
+              disabled={isProcessing}
+              style={[styles.receivedActionBtn, { backgroundColor: colors.errorLight }]}
+            >
+              <Ionicons name="close-circle" size={16} color={colors.error} />
+              <Text style={[styles.receivedActionText, { color: colors.error }]}>
+                {t('organizer.volunteer.reject', { defaultValue: 'Refuser' })}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+      </View>
+    );
+  };
+
   if (loading) {
     return (
       <EditorialCanvas edges={['top']}>
@@ -769,125 +873,7 @@ export default function VolunteerScreen() {
               </Text>
             </View>
           }
-          renderItem={({ item }) => {
-            const applicantName =
-              item.applicant_name || item.applicant_email || 'Anonyme';
-            const isProcessing = actionLoading === item.id;
-            const canAct = item.status === 'pending';
-            const statusColor =
-              item.status === 'pending' ? '#F59E0B' :
-              item.status === 'approved' || item.status === 'accepted' ? '#10B981' :
-              item.status === 'rejected' ? '#EF4444' : colors.gray500;
-            return (
-              <View style={[
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.gray100,
-                  borderWidth: 1,
-                  borderRadius: 16,
-                  padding: 16,
-                  marginBottom: 12,
-                },
-              ]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <Ionicons name="person-circle-outline" size={28} color={colors.primary} />
-                  <View style={{ flex: 1, marginLeft: 8 }}>
-                    <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 14, color: colors.gray900 }}>
-                      {applicantName}
-                    </Text>
-                    {item.applicant_email && (
-                      <Text style={{ fontSize: 12, color: colors.gray500 }} numberOfLines={1}>
-                        {item.applicant_email}
-                      </Text>
-                    )}
-                  </View>
-                  <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: `${statusColor}18` }}>
-                    <Text style={{ fontSize: 11, fontWeight: '600', color: statusColor, textTransform: 'uppercase' }}>
-                      {item.status}
-                    </Text>
-                  </View>
-                </View>
-                {(item.role_title || item.role_name) && (
-                  <Text style={{ fontSize: 12, color: colors.gray600, marginBottom: 6 }}>
-                    {t('organizer.volunteer.appliedFor', {
-                      defaultValue: 'Pour le role :',
-                    })}{' '}
-                    <Text style={{ color: colors.primary, fontFamily: FontFamily.semiBold }}>
-                      {item.role_title || item.role_name}
-                    </Text>
-                  </Text>
-                )}
-                {item.motivation && (
-                  <View style={{ marginTop: 6 }}>
-                    <Text style={{ fontSize: 11, color: colors.gray500, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                      Motivation
-                    </Text>
-                    <Text style={{ fontSize: 13, color: colors.gray700, marginTop: 2 }}>
-                      {item.motivation}
-                    </Text>
-                  </View>
-                )}
-                {item.availability && (
-                  <View style={{ marginTop: 6 }}>
-                    <Text style={{ fontSize: 11, color: colors.gray500, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                      Disponibilite
-                    </Text>
-                    <Text style={{ fontSize: 13, color: colors.gray700, marginTop: 2 }}>
-                      {item.availability}
-                    </Text>
-                  </View>
-                )}
-                {item.experience && (
-                  <View style={{ marginTop: 6 }}>
-                    <Text style={{ fontSize: 11, color: colors.gray500, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                      Experience
-                    </Text>
-                    <Text style={{ fontSize: 13, color: colors.gray700, marginTop: 2 }}>
-                      {item.experience}
-                    </Text>
-                  </View>
-                )}
-                {canAct && (
-                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-                    <TouchableOpacity
-                      onPress={() => handleAcceptApplication(item)}
-                      disabled={isProcessing}
-                      style={{
-                        flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-                        gap: 6, paddingVertical: 10, borderRadius: 999,
-                        backgroundColor: '#D1FAE5', borderWidth: 1, borderColor: '#6EE7B7',
-                      }}
-                    >
-                      {isProcessing ? (
-                        <ActivityIndicator size="small" color="#047857" />
-                      ) : (
-                        <>
-                          <Ionicons name="checkmark-circle" size={16} color="#047857" />
-                          <Text style={{ color: '#047857', fontFamily: FontFamily.semiBold, fontSize: 13 }}>
-                            {t('organizer.volunteer.accept', { defaultValue: 'Accepter' })}
-                          </Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleRejectApplication(item)}
-                      disabled={isProcessing}
-                      style={{
-                        flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-                        gap: 6, paddingVertical: 10, borderRadius: 999,
-                        backgroundColor: '#FEE2E2', borderWidth: 1, borderColor: '#FCA5A5',
-                      }}
-                    >
-                      <Ionicons name="close-circle" size={16} color="#991B1B" />
-                      <Text style={{ color: '#991B1B', fontFamily: FontFamily.semiBold, fontSize: 13 }}>
-                        {t('organizer.volunteer.reject', { defaultValue: 'Refuser' })}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            );
-          }}
+          renderItem={renderReceivedCard}
         />
       )}
       {activeTab === 'tasks' && (
@@ -1053,6 +1039,15 @@ const styles = StyleSheet.create({
   applicationDate: { fontSize: FontSizes.xs, color: Colors.textLight },
   withdrawButton: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 2, backgroundColor: Colors.errorLight, borderRadius: BorderRadius.lg },
   withdrawText: { fontSize: FontSizes.xs, fontWeight: '600', color: Colors.error },
+  // Received application card (organizer)
+  receivedAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.sm },
+  receivedRoleLine: { fontSize: FontSizes.xs, marginBottom: Spacing.xs },
+  receivedField: { marginTop: Spacing.xs + 2 },
+  receivedFieldLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2 },
+  receivedFieldValue: { fontSize: FontSizes.sm, lineHeight: 18 },
+  receivedActions: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md },
+  receivedActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: Spacing.sm + 2, borderRadius: BorderRadius.full },
+  receivedActionText: { fontSize: FontSizes.sm, fontWeight: '700' },
   // Empty
   emptyState: { alignItems: 'center', paddingVertical: Spacing.xl * 2 },
   emptyText: { fontSize: FontSizes.md, color: Colors.textLight, fontWeight: '600', marginTop: Spacing.md },

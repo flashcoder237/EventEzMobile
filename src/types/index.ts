@@ -1712,7 +1712,10 @@ export type RootStackParamList = {
   Referrals: undefined;
   Gamification: undefined;
   LiveEvent: { eventId: string };
-  Volunteers: { eventId?: string };
+  // `manage` = l'utilisateur gère CET event (propriétaire ou admin) → vue
+  // organisateur (créer des rôles, candidatures reçues). Sinon vue bénévole
+  // (postuler). Basé sur la propriété réelle de l'event, pas le rôle global.
+  Volunteers: { eventId?: string; manage?: boolean };
   // Equipe d'evenement (organisateur invite scanner/moderateur/etc.)
   TeamManagement: { eventId: string; eventTitle?: string };
   TeamInvitation: { token: string };

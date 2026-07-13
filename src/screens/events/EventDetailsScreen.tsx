@@ -845,7 +845,12 @@ export default function EventDetailsScreen() {
             eventId={eventId}
             isFollowing={isFollowing}
             onFollowChange={handleFollowChange}
-            onNavigateVolunteers={() => navigation.navigate('Volunteers', { eventId: event.slug || event.id })}
+            onNavigateVolunteers={() => navigation.navigate('Volunteers', {
+              eventId: event.slug || event.id,
+              // Vue gestion seulement si l'utilisateur possède réellement cet
+              // event (ou est admin) ; sinon vue bénévole (postuler).
+              manage: (!!user && String(event.organizer?.id) === String(user.id)) || user?.role === 'admin',
+            })}
           />
 
           {/* Section: Good to Know — 2-col icon grid (soft editorial) */}

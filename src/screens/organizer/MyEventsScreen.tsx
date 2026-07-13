@@ -605,7 +605,7 @@ export default function MyEventsScreen() {
         {
           label: t('organizer.myEvents.actions.volunteers'),
           icon: 'hand-left-outline',
-          onPress: () => navigation.navigate('Volunteers', { eventId: event.slug || event.id }),
+          onPress: () => navigation.navigate('Volunteers', { eventId: event.slug || event.id, manage: true }),
         },
         {
           label: t('organizer.myEvents.actions.sponsors'),
