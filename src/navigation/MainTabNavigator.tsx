@@ -147,12 +147,14 @@ const TAB_ORDER: TabName[] = ['Discover', 'Saved', 'MessagesTab', 'MyTickets', '
 // Icônes : on utilise UNIQUEMENT la version filled (pas d'outline) pour un
 // rendu plus bold et solide. La distinction actif/inactif passe par la
 // couleur (blanc sur gradient vs couleur de marque sur transparent).
-const tabConfig: Record<TabName, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
-  Discover: { icon: 'compass', label: 'Découvrir' },
-  Saved: { icon: 'bookmark', label: 'Favoris' },
-  MessagesTab: { icon: 'chatbubble', label: 'Messages' },
-  MyTickets: { icon: 'ticket', label: 'Billets' },
-  Profile: { icon: 'person', label: 'Profil' },
+// Libellés via clés i18n (résolues au render avec t()) — sinon le menu reste
+// figé dans la langue de build au lieu de suivre le choix de l'utilisateur.
+const tabConfig: Record<TabName, { icon: keyof typeof Ionicons.glyphMap; labelKey: string }> = {
+  Discover: { icon: 'compass', labelKey: 'tabs.discover' },
+  Saved: { icon: 'bookmark', labelKey: 'tabs.saved' },
+  MessagesTab: { icon: 'chatbubble', labelKey: 'tabs.messages' },
+  MyTickets: { icon: 'ticket', labelKey: 'tabs.tickets' },
+  Profile: { icon: 'person', labelKey: 'tabs.profile' },
 };
 
 // Couleur de la pilule active par onglet — interprétation éditoriale (palette
@@ -213,6 +215,10 @@ const TabSlot = memo(function TabSlot({
   activePillMaxWidth,
 }: TabSlotProps) {
   const config = tabConfig[routeName];
+  // useTranslation rend ce composant réactif au changement de langue (même
+  // memoïsé : le hook force le re-render via son state interne).
+  const { t } = useTranslation();
+  const label = t(config.labelKey);
   const widthValue = useSharedValue(isFocused ? 1 : 0);
   const slotRef = useRef<any>(null);
   const tourCtx = useTour();
@@ -298,7 +304,7 @@ const TabSlot = memo(function TabSlot({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={isFocused ? { selected: true } : {}}
-      accessibilityLabel={config.label}
+      accessibilityLabel={label}
       android_ripple={{ color: 'rgba(0,0,0,0.06)', borderless: true }}
       style={[
         styles.tabSlotBox,
@@ -414,7 +420,7 @@ const TabSlot = memo(function TabSlot({
             numberOfLines={1}
             style={[styles.tabLabelActive, { color: activeColor }]}
           >
-            {config.label.toUpperCase()}
+            {label.toUpperCase()}
           </Text>
         )}
       </View>
