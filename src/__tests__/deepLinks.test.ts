@@ -23,6 +23,7 @@ import {
   getTicketVerificationUrl,
   getVolunteerSignupUrl,
   getTeamInvitationUrl,
+  stripLocalePrefix,
 } from '../constants/urls';
 
 describe('URL builders web (partage + OG)', () => {
@@ -230,5 +231,46 @@ describe('Universal links (https) — alignement web/mobile', () => {
   it('les URL volunteer utilisent /events/{id}/volunteer', () => {
     const url = getVolunteerSignupUrl('evt-1');
     expect(url).toMatch(/^https:\/\/[^/]+\/events\/[^/]+\/volunteer$/);
+  });
+});
+
+
+describe('stripLocalePrefix — tolérance i18n du routeur de deep links', () => {
+  /**
+   * Le web est en routing next-intl `as-needed` : FR non préfixé, EN sous /en.
+   * Le linking mobile ne connait que les chemins non préfixés. Ce helper retire
+   * une locale entrante éventuelle avant getStateFromPath pour rester robuste.
+   */
+
+  it('retire le préfixe /en en tête (avec slash initial)', () => {
+    expect(stripLocalePrefix('/en/events/evt-123')).toBe('/events/evt-123');
+    expect(stripLocalePrefix('/en/team-invitation/tk_team')).toBe('/team-invitation/tk_team');
+  });
+
+  it('retire aussi /fr (défaut explicite) et gère l’absence de slash initial', () => {
+    expect(stripLocalePrefix('/fr/transfer/tk1/accept')).toBe('/transfer/tk1/accept');
+    expect(stripLocalePrefix('en/events/in/douala')).toBe('/events/in/douala');
+  });
+
+  it('laisse intact un chemin non préfixé (cas nominal FR)', () => {
+    expect(stripLocalePrefix('/events/evt-123')).toBe('/events/evt-123');
+    expect(stripLocalePrefix('/team-invitation/tk_team')).toBe('/team-invitation/tk_team');
+  });
+
+  it('ne touche PAS un token qui commence par en/fr (segment non-locale)', () => {
+    // "enrollment" et "french-token" ne sont pas des segments de locale complets
+    expect(stripLocalePrefix('/events/enrollment-2026')).toBe('/events/enrollment-2026');
+    expect(stripLocalePrefix('/team-invitation/enXYZ')).toBe('/team-invitation/enXYZ');
+    expect(stripLocalePrefix('/frobnicate/x')).toBe('/frobnicate/x');
+  });
+
+  it('ne retire une locale qu’en position initiale', () => {
+    // "en" en 3e segment (improbable mais sûr) reste intact
+    expect(stripLocalePrefix('/events/in/en')).toBe('/events/in/en');
+  });
+
+  it('un chemin réduit à la seule locale retombe sur "/"', () => {
+    expect(stripLocalePrefix('/en')).toBe('/');
+    expect(stripLocalePrefix('/fr')).toBe('/');
   });
 });

@@ -35,7 +35,7 @@ patchDefaultFont(RNText);
 patchDefaultFont(RNTextInput);
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as NavigationBar from 'expo-navigation-bar';
-import { NavigationContainer, LinkingOptions, NavigationState } from '@react-navigation/native';
+import { NavigationContainer, LinkingOptions, NavigationState, getStateFromPath } from '@react-navigation/native';
 import { navigationRef } from './src/navigation/navigationRef';
 import { loadNavigationState, saveNavigationState } from './src/lib/navigationPersistence';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -77,7 +77,7 @@ import AnimatedSplash from './src/components/common/AnimatedSplash';
 import RootNavigator from './src/navigation/RootNavigator';
 import VerificationGuardModal from './src/components/auth/VerificationGuardModal';
 import LockGate from './src/components/auth/LockGate';
-import { DEEP_LINK_SCHEME, WEB_BASE_URL } from './src/constants/urls';
+import { DEEP_LINK_SCHEME, WEB_BASE_URL, stripLocalePrefix } from './src/constants/urls';
 import { RootStackParamList } from './src/types';
 
 // Services
@@ -126,6 +126,12 @@ const linking: LinkingOptions<RootStackParamList> = {
     `${DEEP_LINK_SCHEME}://`,
     WEB_BASE_URL,
   ],
+  // Filet i18n : le web est en routing `as-needed` (FR sur `/`, EN sur `/en`).
+  // Les AASA/intent-filters ne ciblent que le non préfixé, donc l'app ne devrait
+  // jamais recevoir `/en/...` — mais si ça arrive (lien EN partagé, future
+  // entrée AASA `/en/*`), on retire la locale avant de router pour retomber sur
+  // les patterns de `config.screens`. Cf. stripLocalePrefix (constants/urls.ts).
+  getStateFromPath: (path, options) => getStateFromPath(stripLocalePrefix(path), options),
   config: {
     screens: {
       EventDetails: 'events/:eventId',
@@ -143,6 +149,12 @@ const linking: LinkingOptions<RootStackParamList> = {
       EventSearch: 'events/in/:city',
       OrganizerProfile: 'organizers/:organizerId',
       SpeakerDetails: 'speakers/:speakerId',
+      // ⚠️ payment-success / payment-failed sont des deep links CUSTOM SCHEME
+      // uniquement (`eventez://payment-success/{id}`), consommés par
+      // openAuthSessionAsync au retour du navigateur in-app (cf.
+      // PaymentScreen.tsx). Ils n'ont PAS d'entrée AASA/intent-filter https :
+      // les vraies pages web sont /payment/success|error/[id] et ne doivent pas
+      // être interceptées comme universal links (ça casserait le retour de paiement).
       PaymentSuccess: 'payment-success/:paymentId',
       PaymentFailed: 'payment-failed/:paymentId',
       // Ouverture login depuis le web (ex : après vérification email via browser).

@@ -58,3 +58,30 @@ export function getVolunteerSignupUrl(eventId: string): string {
 export function getTeamInvitationUrl(token: string): string {
   return `${WEB_BASE_URL}/team-invitation/${token}`;
 }
+
+// Locales gérées par le web (next-intl, routing `as-needed` : FR sur `/`, EN
+// sur `/en`). Utilisé uniquement pour tolérer un préfixe entrant côté deep link.
+export const WEB_LOCALES = ['en', 'fr'] as const;
+
+/**
+ * Retire un éventuel segment de locale en tête d'un chemin de deep link.
+ *
+ * Le web est en routing `as-needed` : le FR (défaut) reste non préfixé
+ * (`/events/x`) et l'EN est préfixé (`/en/events/x`). Les AASA (iOS) et
+ * intent-filters (Android) ne ciblent QUE les chemins non préfixés, et tous
+ * nos builders d'URL émettent du non préfixé — donc en théorie l'app ne reçoit
+ * jamais `/en/...`. Ce helper est un filet de sécurité : si un lien EN partagé
+ * (ou une future entrée AASA `/en/*`) atteint quand même le routeur, on retombe
+ * sur le chemin canonique reconnu par `linking.config.screens`.
+ *
+ * Ne retire qu'un segment de locale COMPLET en tête (`/en`, `en/`, `/en/…`),
+ * jamais un token qui commencerait par "en"/"fr" (`/team-invitation/enXYZ` est
+ * intact), ni une locale en position non initiale.
+ */
+export function stripLocalePrefix(path: string): string {
+  const stripped = path.replace(
+    new RegExp(`^\\/?(?:${WEB_LOCALES.join('|')})(?=\\/|$)`),
+    '',
+  );
+  return stripped || '/';
+}

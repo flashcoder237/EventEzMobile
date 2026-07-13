@@ -20,10 +20,7 @@
       "usesAppleSignIn": true,
       "associatedDomains": [
         "applinks:eventez.online"
-      ],
-      "infoPlist": {
-        "UIBackgroundModes": ["audio"]
-      }
+      ]
     },
     "android": {
       "googleServicesFile": "./google-services.json",
@@ -35,7 +32,9 @@
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.READ_EXTERNAL_STORAGE"
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ],
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -62,16 +61,6 @@
               "scheme": "https",
               "host": "eventez.online",
               "pathPrefix": "/speakers/"
-            },
-            {
-              "scheme": "https",
-              "host": "eventez.online",
-              "pathPrefix": "/payment-success/"
-            },
-            {
-              "scheme": "https",
-              "host": "eventez.online",
-              "pathPrefix": "/payment-failed/"
             },
             {
               "scheme": "https",
