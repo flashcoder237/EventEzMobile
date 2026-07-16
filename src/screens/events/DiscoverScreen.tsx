@@ -1194,7 +1194,7 @@ export default function DiscoverScreen() {
 
   // === MAIN RENDER ===
   return (
-    <EditorialCanvas edges={['top']}>
+    <EditorialCanvas edges={['top']} glow="indigo">
       <WatermarkNumeral>EZ</WatermarkNumeral>
       <View style={styles.safeArea}>
         {/* === FLOATING NETWORK PILL ===

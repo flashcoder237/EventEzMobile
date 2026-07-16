@@ -577,6 +577,8 @@ export const SpringPresets = {
   bouncy: { damping: 10, stiffness: 300, mass: 0.8 },
   slow: { damping: 25, stiffness: 120, mass: 1.2 },
   micro: { damping: 18, stiffness: 500, mass: 0.5 },
+  // Bottom-sheets / drawers : près du critique (pas de rebond), descente franche.
+  sheet: { damping: 30, stiffness: 300, mass: 0.6 },
 };
 
 /** Espacements de section standards */

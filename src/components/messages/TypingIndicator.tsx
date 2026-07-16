@@ -21,6 +21,7 @@ import Animated, {
 import { useTranslation } from 'react-i18next';
 import { Colors, FontFamily, FontSizes, Spacing } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 interface TypingIndicatorProps {
   typingUsers: string[];
@@ -30,6 +31,7 @@ interface TypingIndicatorProps {
 export default function TypingIndicator({ typingUsers, compact = false }: TypingIndicatorProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const reducedMotion = useReducedMotion();
 
   // 3 dots — shared values sur l'UI thread
   const dot1 = useSharedValue(0);
@@ -38,6 +40,14 @@ export default function TypingIndicator({ typingUsers, compact = false }: Typing
 
   useEffect(() => {
     if (typingUsers.length === 0) return;
+
+    if (reducedMotion) {
+      // Pas de rebond : trois points visibles et statiques.
+      dot1.value = 1;
+      dot2.value = 1;
+      dot3.value = 1;
+      return;
+    }
 
     const cycle = () =>
       withRepeat(
@@ -61,7 +71,7 @@ export default function TypingIndicator({ typingUsers, compact = false }: Typing
       dot2.value = 0;
       dot3.value = 0;
     };
-  }, [typingUsers.length]);
+  }, [typingUsers.length, reducedMotion]);
 
   const dot1Style = useAnimatedStyle(() => ({
     opacity: interpolate(dot1.value, [0, 1], [0.3, 1]),

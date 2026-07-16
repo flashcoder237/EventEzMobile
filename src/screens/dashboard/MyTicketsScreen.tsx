@@ -20,6 +20,7 @@ import Animated, {
   withDelay,
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { LinearGradient } from 'expo-linear-gradient';
 import ExportButton from '../../components/common/ExportButton';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
@@ -216,9 +217,11 @@ function ShimmerBand({
   textColor: string;
   delay?: number;
 }) {
+  const reducedMotion = useReducedMotion();
   const progress = useSharedValue(-1);
 
   useEffect(() => {
+    if (reducedMotion) return;
     progress.value = withDelay(
       delay,
       withRepeat(
@@ -227,7 +230,7 @@ function ShimmerBand({
         false,
       ),
     );
-  }, [delay, progress]);
+  }, [delay, progress, reducedMotion]);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: progress.value * 120 }],

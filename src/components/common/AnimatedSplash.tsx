@@ -246,14 +246,16 @@ function ProgressBar({ colors, isDark }: { colors: typeof Colors; isDark: boolea
     ],
   }));
 
+  // Perf : scaleX (GPU) plutôt que d'animer `width` (layout). Origine gauche → la
+  // barre se remplit de la gauche vers la droite.
   const fillStyle = useAnimatedStyle(() => ({
-    width: `${fillProgress.value}%` as any,
+    transform: [{ scaleX: fillProgress.value / 100 }],
   }));
 
   return (
     <Animated.View style={[styles.progressContainer, containerStyle]}>
       <View style={[styles.progressTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }]}>
-        <Animated.View style={[styles.progressFill, fillStyle]}>
+        <Animated.View style={[styles.progressFill, { width: '100%', transformOrigin: '0% 50%' }, fillStyle]}>
           <LinearGradient
             colors={[colors.primary, colors.secondary, colors.primary]}
             start={{ x: 0, y: 0.5 }}
@@ -278,7 +280,7 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
     // Fade out and finish
     containerOpacity.value = withDelay(
       TOTAL_DURATION,
-      withTiming(0, { duration: 400, easing: Easing.in(Easing.ease) }, () => {
+      withTiming(0, { duration: 400, easing: Easing.out(Easing.ease) }, () => {
         runOnJS(onFinish)();
       })
     );

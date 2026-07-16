@@ -80,12 +80,16 @@ const AnimatedBar = memo(function AnimatedBar({
     );
   }, [heightPct, reducedMotion, delayMs, progress]);
 
+  // Perf : on scale (GPU) au lieu d'animer `height` (layout+paint à chaque frame).
+  // Le wrap occupe sa hauteur finale, transformOrigin bas → la barre pousse du sol.
   const animStyle = useAnimatedStyle(() => ({
-    height: `${heightPct * progress.value}%` as any,
+    transform: [{ scaleY: progress.value }],
   }));
 
   return (
-    <Animated.View style={[styles.barWrap, animStyle]}>
+    <Animated.View
+      style={[styles.barWrap, { height: `${heightPct}%` as any, transformOrigin: '50% 100%' }, animStyle]}
+    >
       <LinearGradient
         colors={gradientColors}
         start={{ x: 0, y: 0 }}

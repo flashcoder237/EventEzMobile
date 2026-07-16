@@ -41,6 +41,35 @@ export const EditorialColors = {
 export const pickCanvas = (isDark: boolean, darkBg: string) =>
   isDark ? darkBg : EditorialColors.canvas;
 
+// ── Depth gradient (apple-design §12 materials & depth, §14 no moving bg, §16 restraint)
+// Le fond gagne une matière "éclairée par le haut" : un poil plus clair en haut, la
+// base au milieu, un rien plus profond en bas. Statique, à peine perceptible. Dérivé de
+// la couleur de base pour que light & dark restent cohérents avec le reste de l'app.
+const clampByte = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
+const shade = (hex: string, amt: number): string => {
+  const m = hex.replace('#', '');
+  const full = m.length === 3 ? m.split('').map((c) => c + c).join('') : m;
+  const r = clampByte(parseInt(full.slice(0, 2), 16) + amt);
+  const g = clampByte(parseInt(full.slice(2, 4), 16) + amt);
+  const b = clampByte(parseInt(full.slice(4, 6), 16) + amt);
+  return `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+};
+
+/** Trois arrêts de dégradé (haut → base → bas) pour le fond du canvas. */
+export const pickCanvasGradient = (
+  isDark: boolean,
+  darkBg: string,
+): [string, string, string] => {
+  const base = isDark ? darkBg : EditorialColors.canvas;
+  // Le sombre a besoin d'un peu plus de séparation que le clair pour être lisible.
+  const up = isDark ? 12 : 6;
+  const down = isDark ? -14 : -7;
+  return [shade(base, up), base, shade(base, down)];
+};
+
+/** Positions des arrêts : lumière concentrée vers le haut, chute douce vers le bas. */
+export const canvasGradientLocations: [number, number, number] = [0, 0.42, 1];
+
 export const pickWatermark = (isDark: boolean) =>
   isDark ? 'rgba(255,255,255,0.04)' : 'rgba(17,17,16,0.04)';
 

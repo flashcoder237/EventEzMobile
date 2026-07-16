@@ -18,6 +18,7 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -139,9 +140,11 @@ function proximityPill(days: number | null, t: (k: string, opts?: any) => string
 // Pulsing heart (reanimated)
 // ============================================================
 function PulsingHeart({ color = Colors.accent, size = 24 }: { color?: string; size?: number }) {
+  const reducedMotion = useReducedMotion();
   const scale = useSharedValue(1);
 
   React.useEffect(() => {
+    if (reducedMotion) return;
     scale.value = withRepeat(
       withSequence(
         withTiming(1.18, { duration: 1000, easing: Easing.bezier(0.4, 0, 0.6, 1) }),
@@ -150,7 +153,7 @@ function PulsingHeart({ color = Colors.accent, size = 24 }: { color?: string; si
       -1,
       false,
     );
-  }, [scale]);
+  }, [scale, reducedMotion]);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],

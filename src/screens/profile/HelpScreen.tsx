@@ -173,7 +173,10 @@ const FAQ_STATIC = [
   },
 ];
 
-const SUPPORT_EMAIL = 'support@eventez.app';
+const SUPPORT_EMAIL = 'support@eventez.online';
+// ⚠️ PLACEHOLDER — remplacer par le VRAI numéro WhatsApp support (format
+// international sans + ni espaces, ex. 2376XXXXXXXX).
+const SUPPORT_WHATSAPP = '237688009657';
 
 const AccordionItem = memo(({ item, isOpen, onToggle, idx }: {
   item: FAQItem;
@@ -283,7 +286,7 @@ export default function HelpScreen() {
     Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(t('helpCenter.emailSubject'))}`);
   };
   const handleContactWhatsApp = () => {
-    Linking.openURL(`https://wa.me/237600000000?text=${encodeURIComponent(t('helpCenter.whatsappMessage'))}`);
+    Linking.openURL(`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(t('helpCenter.whatsappMessage'))}`);
   };
 
   return (

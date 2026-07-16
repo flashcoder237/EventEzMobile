@@ -116,7 +116,7 @@ function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
       `SUMMARY:${(event.title || '').replace(/[,;\\]/g, '\\$&')}`,
       `DESCRIPTION:${(event.short_description || '').replace(/[,;\\]/g, '\\$&').replace(/\n/g, '\\n')}`,
       `LOCATION:${(event.location_name || '').replace(/[,;\\]/g, '\\$&')}`,
-      `UID:${event.id}@eventez.app`,
+      `UID:${event.id}@eventez.online`,
       'END:VEVENT',
       'END:VCALENDAR',
     ].join('\r\n');

@@ -31,6 +31,7 @@ import ReAnimated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { BorderRadius, Spacing } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 const AnimatedLinearGradient = ReAnimated.createAnimatedComponent(LinearGradient);
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -56,15 +57,18 @@ function SkeletonComponent({
   style,
 }: SkeletonProps) {
   const { colors } = useTheme();
+  const reducedMotion = useReducedMotion();
   const translateX = useSharedValue(-1);
 
   useEffect(() => {
+    // En reduced-motion : placeholder gris statique, pas de shimmer qui boucle.
+    if (reducedMotion) return;
     translateX.value = withRepeat(
       withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
       -1,
       false
     );
-  }, []);
+  }, [reducedMotion]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -118,15 +122,18 @@ function PrimarySkeletonComponent({
   borderRadius = BorderRadius.sm,
   style,
 }: SkeletonProps) {
+  const reducedMotion = useReducedMotion();
   const translateX = useSharedValue(-1);
 
   useEffect(() => {
+    // En reduced-motion : placeholder gris statique, pas de shimmer qui boucle.
+    if (reducedMotion) return;
     translateX.value = withRepeat(
       withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
       -1,
       false
     );
-  }, []);
+  }, [reducedMotion]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [

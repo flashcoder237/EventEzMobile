@@ -148,7 +148,7 @@ Notre responsabilité totale ne peut excéder le montant que vous nous avez pay�
     icon: 'mail-outline',
     title: 'Contact',
     content: `Pour toute question concernant ces conditions :
-• Email : support@eventez.com
+• Email : support@eventez.online
 • Adresse : Douala, Cameroun
 
 Ces conditions sont régies par les lois camerounaises.`,

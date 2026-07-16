@@ -29,6 +29,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { RootStackParamList } from '../../types';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import {
   Colors,
   FontSizes,
@@ -206,6 +207,7 @@ export default function PaymentSuccessScreen() {
     }
   }, [eventStartDate]);
 
+  const reducedMotion = useReducedMotion();
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
   const ringScale = useSharedValue(1);
@@ -249,11 +251,14 @@ export default function PaymentSuccessScreen() {
   useEffect(() => {
     scale.value = withSpring(1, { damping: 10, stiffness: 100 });
     opacity.value = withDelay(300, withSpring(1));
-    ringScale.value = withRepeat(
-      withTiming(1.4, { duration: 1800, easing: Easing.bezier(0.4, 0, 0.6, 1) }),
-      -1,
-      false,
-    );
+    // L'anneau pulse à l'infini — coupé en reduced-motion (on garde l'anneau statique).
+    if (!reducedMotion) {
+      ringScale.value = withRepeat(
+        withTiming(1.4, { duration: 1800, easing: Easing.bezier(0.4, 0, 0.6, 1) }),
+        -1,
+        false,
+      );
+    }
     // Son de confirmation paiement (respecte la pref utilisateur)
     playSound('payment-success');
   }, []);

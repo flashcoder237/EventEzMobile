@@ -147,10 +147,12 @@ export function ScaleOnMount({
   delay = 0,
   style,
 }: ScaleOnMountProps) {
-  const scale = useSharedValue(0.8);
-  const opacity = useSharedValue(0);
+  const reducedMotion = useReducedMotion();
+  const scale = useSharedValue(reducedMotion ? 1 : 0.8);
+  const opacity = useSharedValue(reducedMotion ? 1 : 0);
 
   useEffect(() => {
+    if (reducedMotion) return;
     scale.value = withDelay(delay, withSpring(1, SpringPresets.bouncy));
     opacity.value = withDelay(delay, withTiming(1, { duration: 200 }));
   }, []);
@@ -159,6 +161,10 @@ export function ScaleOnMount({
     opacity: opacity.value,
     transform: [{ scale: scale.value }],
   }));
+
+  if (reducedMotion) {
+    return <View style={style}>{children}</View>;
+  }
 
   return (
     <Animated.View style={[animatedStyle, style]}>
@@ -182,10 +188,12 @@ export function PulsingBadge({
   active = true,
   style,
 }: PulsingBadgeProps) {
+  const reducedMotion = useReducedMotion();
   const scale = useSharedValue(1);
 
   useEffect(() => {
-    if (active) {
+    // Ne pas démarrer la pulsation infinie si l'utilisateur a réduit les animations.
+    if (active && !reducedMotion) {
       scale.value = withRepeat(
         withSequence(
           withTiming(1.15, { duration: 600, easing: Easing.inOut(Easing.ease) }),
@@ -201,7 +209,7 @@ export function PulsingBadge({
       // Stop the infinite withRepeat when active toggles or component unmounts
       cancelAnimation(scale);
     };
-  }, [active]);
+  }, [active, reducedMotion]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -299,9 +307,11 @@ export function SectionEntrance({
   delay = 0,
   style,
 }: SectionEntranceProps) {
-  const progress = useSharedValue(0);
+  const reducedMotion = useReducedMotion();
+  const progress = useSharedValue(reducedMotion ? 1 : 0);
 
   useEffect(() => {
+    if (reducedMotion) return;
     progress.value = withDelay(
       delay,
       withTiming(1, { duration: 500, easing: Easing.out(Easing.cubic) })
@@ -314,6 +324,10 @@ export function SectionEntrance({
       { translateY: interpolate(progress.value, [0, 1], [24, 0]) },
     ],
   }));
+
+  if (reducedMotion) {
+    return <View style={style}>{children}</View>;
+  }
 
   return (
     <Animated.View style={[animatedStyle, style]}>
@@ -337,9 +351,11 @@ export function SlideIn({
   delay = 0,
   style,
 }: SlideInProps) {
-  const progress = useSharedValue(0);
+  const reducedMotion = useReducedMotion();
+  const progress = useSharedValue(reducedMotion ? 1 : 0);
 
   useEffect(() => {
+    if (reducedMotion) return;
     progress.value = withDelay(
       delay,
       withSpring(1, SpringPresets.gentle)
@@ -352,6 +368,10 @@ export function SlideIn({
       { translateX: interpolate(progress.value, [0, 1], [40, 0]) },
     ],
   }));
+
+  if (reducedMotion) {
+    return <View style={style}>{children}</View>;
+  }
 
   return (
     <Animated.View style={[animatedStyle, style]}>

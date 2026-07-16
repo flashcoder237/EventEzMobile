@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
 import { registrationsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
@@ -76,6 +77,7 @@ export default function LiveOpsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
   const pulse = useRef(new Animated.Value(1)).current;
+  const reducedMotion = useReducedMotion();
 
   const load = useCallback(async () => {
     try {
@@ -94,18 +96,24 @@ export default function LiveOpsScreen() {
     useCallback(() => {
       load();
       const id = setInterval(load, POLL_MS);
-      const anim = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulse, { toValue: 0.3, duration: 700, useNativeDriver: true }),
-          Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true }),
-        ]),
-      );
-      anim.start();
+      // Pulsation « live » — coupée en reduced-motion (indicateur statique).
+      let anim: ReturnType<typeof Animated.loop> | undefined;
+      if (reducedMotion) {
+        pulse.setValue(1);
+      } else {
+        anim = Animated.loop(
+          Animated.sequence([
+            Animated.timing(pulse, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+            Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true }),
+          ]),
+        );
+        anim.start();
+      }
       return () => {
         clearInterval(id);
-        anim.stop();
+        anim?.stop();
       };
-    }, [load, pulse]),
+    }, [load, pulse, reducedMotion]),
   );
 
   const onRefresh = useCallback(async () => {

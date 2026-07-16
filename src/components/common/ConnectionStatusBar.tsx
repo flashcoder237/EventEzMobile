@@ -10,6 +10,7 @@ import Animated, {
   cancelAnimation,
 } from 'react-native-reanimated';
 import { useConnection } from '../../contexts/ConnectionContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 const STATUS_COLORS = {
   offline: '#DC2626',
@@ -23,6 +24,7 @@ const BAR_HEIGHT = 4;
 export default function ConnectionStatusBar() {
   const { status } = useConnection();
   const insets = useSafeAreaInsets();
+  const reducedMotion = useReducedMotion();
   const opacity = useSharedValue(0);
   const scaleX = useSharedValue(0);
 
@@ -35,16 +37,20 @@ export default function ConnectionStatusBar() {
 
     if (status !== 'online') {
       hasEverShown.current = true;
-      // Show and pulse
+      // Show and pulse — en reduced-motion, barre solide sans pulsation.
       scaleX.value = withTiming(1, { duration: 300 });
-      opacity.value = withRepeat(
-        withSequence(
-          withTiming(1, { duration: 600 }),
-          withTiming(0.4, { duration: 600 }),
-        ),
-        -1, // infinite
-        true,
-      );
+      if (reducedMotion) {
+        opacity.value = withTiming(1, { duration: 200 });
+      } else {
+        opacity.value = withRepeat(
+          withSequence(
+            withTiming(1, { duration: 600 }),
+            withTiming(0.4, { duration: 600 }),
+          ),
+          -1, // infinite
+          true,
+        );
+      }
     } else if (prev !== 'online' && hasEverShown.current) {
       // Back online — solid green briefly then fade out
       cancelAnimation(opacity);
@@ -56,7 +62,7 @@ export default function ConnectionStatusBar() {
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [status]);
+  }, [status, reducedMotion]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,

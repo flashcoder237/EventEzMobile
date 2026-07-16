@@ -30,6 +30,7 @@ import {
   TOUCH_OPACITY,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { formatDuration } from '../../lib/utils/messagingHelpers';
 
 // #9 Mini-waveform live affichee pendant l'enregistrement. Maintient un
@@ -136,6 +137,7 @@ function InputToolbar({
   onCancelEdit,
 }: InputToolbarProps) {
   const { colors, isDark } = useTheme();
+  const reducedMotion = useReducedMotion();
   const { t } = useTranslation();
   const inputRef = useRef<TextInput>(null);
   const recordingAnim = useRef(new Animated.Value(1)).current;
@@ -145,7 +147,7 @@ function InputToolbar({
 
   // Animation de pulsation pendant l'enregistrement
   useEffect(() => {
-    if (isRecording) {
+    if (isRecording && !reducedMotion) {
       const animation = Animated.loop(
         Animated.sequence([
           Animated.timing(recordingAnim, {
@@ -165,7 +167,7 @@ function InputToolbar({
     } else {
       recordingAnim.setValue(1);
     }
-  }, [isRecording]);
+  }, [isRecording, reducedMotion]);
 
   const canSend = (value.trim().length > 0 || attachedFiles.length > 0) && !sending;
 

@@ -269,10 +269,11 @@ export default function TourOverlay() {
         {/* Voile sombre avec trou (spotlight) — cutout via masque SVG */}
         {measurement ? (
           <>
-            {/* Tap-swallow plein écran : bloque toute interaction avec l'app
-                derrière pendant le tour (y compris la cible) — on avance via
-                Suivant / Passer. Remplace les 4 Pressables de l'ancien backdrop. */}
-            <Pressable style={StyleSheet.absoluteFill} onPress={() => {}} />
+            {/* Tap EN DEHORS du cadre de présentation (la bulle) = arrêter le tour
+                sur cet écran. La bulle est rendue au-dessus de ce Pressable, donc
+                un tap dessus (ou sur ses boutons) ne déclenche PAS `skip`. Tout le
+                reste — voile sombre ET cible mise en avant — ferme le tour. */}
+            <Pressable style={StyleSheet.absoluteFill} onPress={skip} />
 
             {/* Cutout via masque SVG = VRAI trou de la bonne forme. L'ancien
                 backdrop en 4 rectangles ne pouvait produire qu'un trou
@@ -337,8 +338,8 @@ export default function TourOverlay() {
             />
           </>
         ) : (
-          /* Fallback pendant la mesure : voile plein + tap-swallow */
-          <Pressable style={[styles.backdrop, StyleSheet.absoluteFillObject]} onPress={() => {}} />
+          /* Fallback pendant la mesure : voile plein — tap hors bulle = arrêt du tour */
+          <Pressable style={[styles.backdrop, StyleSheet.absoluteFillObject]} onPress={skip} />
         )}
 
         {/* Coachmark bubble — ancrage par `top` OU `bottom` selon placement */}

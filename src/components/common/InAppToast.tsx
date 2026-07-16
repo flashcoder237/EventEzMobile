@@ -33,6 +33,7 @@ import Animated, {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useTheme } from '../../contexts/ThemeContext';
 import { FontFamily, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 export type InAppToastIcon = 'message' | 'notification' | 'success' | 'warning' | 'info';
 
@@ -75,7 +76,9 @@ export const InAppToast: React.FC<InAppToastProps> = ({
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { t } = useTranslation();
-  const translateY = useSharedValue(-200);
+  const reducedMotion = useReducedMotion();
+  // En reduced-motion : pas de slide (translateY reste à 0), on garde le fondu.
+  const translateY = useSharedValue(reducedMotion ? 0 : -200);
   const opacity = useSharedValue(0);
 
   const iconConfig = ICON_MAP[icon];
@@ -83,17 +86,23 @@ export const InAppToast: React.FC<InAppToastProps> = ({
   const dismiss = useCallback(
     (immediate = false) => {
       const dur = immediate ? 0 : SLIDE_DURATION;
-      translateY.value = withTiming(-200, { duration: dur, easing: Easing.in(Easing.cubic) });
+      // Sortie en ease-out (symétrique à l'entrée), pas ease-in. En reduced-motion,
+      // on ne bouge pas : seul le fondu d'opacité fait le feedback.
+      if (!reducedMotion) {
+        translateY.value = withTiming(-200, { duration: dur, easing: Easing.out(Easing.cubic) });
+      }
       opacity.value = withTiming(0, { duration: dur }, (finished) => {
         if (finished) runOnJS(onDismiss)(id);
       });
     },
-    [id, onDismiss, translateY, opacity],
+    [id, onDismiss, translateY, opacity, reducedMotion],
   );
 
   useEffect(() => {
-    // Slide-in
-    translateY.value = withTiming(0, { duration: SLIDE_DURATION, easing: Easing.out(Easing.cubic) });
+    // Slide-in (sauté en reduced-motion : translateY est déjà à 0)
+    if (!reducedMotion) {
+      translateY.value = withTiming(0, { duration: SLIDE_DURATION, easing: Easing.out(Easing.cubic) });
+    }
     opacity.value = withTiming(1, { duration: SLIDE_DURATION });
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 

@@ -15,7 +15,6 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withSpring,
-  Easing,
   runOnJS,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -23,7 +22,7 @@ import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
-import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
+import { FontFamily, Spacing, BorderRadius, SpringPresets } from '../../constants/theme';
 
 export type EventActionStyle = 'default' | 'destructive';
 
@@ -92,10 +91,10 @@ export default function EventActionsSheet({
       translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.6 });
       backdropOpacity.value = withTiming(1, { duration: 220 });
     } else {
-      translateY.value = withTiming(SCREEN_HEIGHT, {
-        duration: 220,
-        easing: Easing.in(Easing.cubic),
-      });
+      // Fermeture au ressort (symétrique à l'ouverture, interruptible) — damping
+      // élevé = descente franche sans rebond. Ne jamais utiliser Easing.in sur une
+      // sortie gestuelle (démarre lent, l'utilisateur regarde le départ).
+      translateY.value = withSpring(SCREEN_HEIGHT, SpringPresets.sheet);
       backdropOpacity.value = withTiming(0, { duration: 180 });
     }
   }, [visible, translateY, backdropOpacity]);

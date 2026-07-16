@@ -29,6 +29,7 @@ import Animated, {
   withSequence,
   Easing,
 } from 'react-native-reanimated';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 import { FontFamily } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -133,9 +134,11 @@ export default function OnboardingScreen({ onComplete }: Props) {
   };
 
   // Pulsing coral dot in header (was the only animation on the original screen)
+  const reducedMotion = useReducedMotion();
   const pulseScale = useSharedValue(1);
   const pulseOpacity = useSharedValue(0.75);
   useEffect(() => {
+    if (reducedMotion) return;
     pulseScale.value = withRepeat(
       withSequence(
         withTiming(2.2, { duration: 1200, easing: Easing.out(Easing.ease) }),
@@ -152,7 +155,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
       -1,
       false,
     );
-  }, [pulseScale, pulseOpacity]);
+  }, [pulseScale, pulseOpacity, reducedMotion]);
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulseScale.value }],
     opacity: pulseOpacity.value,
