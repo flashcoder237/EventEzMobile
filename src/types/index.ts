@@ -1735,6 +1735,8 @@ export type RootStackParamList = {
   DashboardDetails: { dashboardId: string };
   SeatingPlans: { eventId: string };
   SeatingPlanEditor: { planId: string };
+  // Gestion des stands (salon exposants) — organisateur
+  BoothManagement: { eventId: string };
   Help: undefined;
   AnalyticsDashboard: undefined;
   Reports: undefined;

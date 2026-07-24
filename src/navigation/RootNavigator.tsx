@@ -107,6 +107,7 @@ const DashboardsScreen = withSuspense(lazy(() => import('../screens/organizer/Da
 const DashboardDetailsScreen = withSuspense(lazy(() => import('../screens/organizer/DashboardDetailsScreen')));
 const SeatingPlansScreen = withSuspense(lazy(() => import('../screens/organizer/SeatingPlansScreen')));
 const SeatingPlanEditorScreen = withSuspense(lazy(() => import('../screens/organizer/SeatingPlanEditorScreen')));
+const BoothManagementScreen = withSuspense(lazy(() => import('../screens/organizer/BoothManagementScreen')));
 
 // Moderation Screens (lazy — staff only)
 const ModerationScreen = withSuspense(lazy(() => import('../screens/moderation/ModerationScreen')));
@@ -408,6 +409,7 @@ export default function RootNavigator() {
       <Stack.Screen name="Dashboards" component={DashboardsScreen} />
       <Stack.Screen name="DashboardDetails" component={DashboardDetailsScreen} />
       <Stack.Screen name="SeatingPlans" component={SeatingPlansScreen} />
+      <Stack.Screen name="BoothManagement" component={BoothManagementScreen} />
       <Stack.Screen name="SeatingPlanEditor" component={SeatingPlanEditorScreen} />
 
       {/* Moderation Screens */}

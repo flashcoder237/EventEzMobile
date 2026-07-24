@@ -617,6 +617,11 @@ export default function MyEventsScreen() {
           icon: 'grid-outline',
           onPress: () => navigation.navigate('SeatingPlans', { eventId: event.slug || event.id }),
         },
+        {
+          label: t('organizer.myEvents.actions.exhibitors', { defaultValue: 'Exposants & stands' }),
+          icon: 'storefront-outline',
+          onPress: () => navigation.navigate('BoothManagement', { eventId: event.slug || event.id }),
+        },
       );
     }
     if (configActions.length > 0) {

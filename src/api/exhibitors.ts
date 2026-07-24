@@ -28,4 +28,39 @@ export const exhibitorsAPI = {
   // ── Annuaire public (visiteur, sans auth) ─────────────────────────
   getPublicDirectory: (eventSlugOrId: string) =>
     api.get(`/events/${eventSlugOrId}/exhibitor-directory/`),
+
+  // ── ORGANISATEUR : gestion des stands ─────────────────────────────
+  // Miroir des methodes web (exhibitorsAPI). Permet de gerer un salon depuis
+  // le mobile : categories tarifaires, stands, candidatures d'exposants.
+
+  // Categories (grille tarifaire des stands)
+  getCategories: (params?: { event?: string }) =>
+    api.get('/booth-categories/', { params }),
+  createCategory: (data: {
+    event: string; name: string; base_price: number | string;
+    surface_sqm?: number | string; allow_installments?: boolean;
+    deposit_percentage?: number; description?: string;
+  }) => api.post('/booth-categories/', data),
+  updateCategory: (id: string, data: any) => api.patch(`/booth-categories/${id}/`, data),
+  deleteCategory: (id: string) => api.delete(`/booth-categories/${id}/`),
+
+  // Stands (emplacements)
+  getBooths: (params?: { event?: string; status?: string }) =>
+    api.get('/booths/', { params }),
+  createBooth: (data: {
+    event: string; code: string; category: string; status?: string;
+    price_override?: number | string;
+  }) => api.post('/booths/', data),
+  updateBooth: (id: string, data: any) => api.patch(`/booths/${id}/`, data),
+  deleteBooth: (id: string) => api.delete(`/booths/${id}/`),
+
+  // Candidatures d'exposants
+  getApplications: (params?: { event?: string; status?: string }) =>
+    api.get('/booth-applications/', { params }),
+  acceptApplication: (id: string, data?: { booth?: string; review_notes?: string }) =>
+    api.post(`/booth-applications/${id}/accept/`, data || {}),
+  rejectApplication: (id: string, reviewNotes?: string) =>
+    api.post(`/booth-applications/${id}/reject/`, { review_notes: reviewNotes || '' }),
+  waitlistApplication: (id: string, reviewNotes?: string) =>
+    api.post(`/booth-applications/${id}/waitlist/`, { review_notes: reviewNotes || '' }),
 };
