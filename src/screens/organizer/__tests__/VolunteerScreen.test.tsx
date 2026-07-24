@@ -17,7 +17,10 @@ const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate, goBack: mockGoBack }),
-  useRoute: () => ({ params: { eventId: 'event-42' } }),
+  // `manage: true` : la vue organisateur (bouton « Créer un rôle », gestion) est
+  // désormais gardée par `route.params.manage === true` (VolunteerScreen.tsx:71).
+  // Sans ce flag, l'écran rend la vue bénévole publique, pas le bouton de création.
+  useRoute: () => ({ params: { eventId: 'event-42', manage: true } }),
 }));
 
 const themeColors = {
