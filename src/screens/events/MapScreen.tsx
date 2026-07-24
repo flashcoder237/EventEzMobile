@@ -347,6 +347,26 @@ export default function MapScreen() {
         </Text>
       </View>
 
+      {/* État vide : carte sans aucun marqueur (aucun événement à proximité, ou
+          aucun événement du tout). Overlay non-bloquant, centré. */}
+      {!loading && filteredMarkers.length === 0 && (
+        <View style={styles.emptyOverlay} pointerEvents="box-none">
+          <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="map-outline" size={32} color={colors.primary} />
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>
+              {activeFiltersCount > 0
+                ? t('map.emptyFilteredTitle', { defaultValue: 'Aucun événement ici' })
+                : t('map.emptyTitle', { defaultValue: 'Aucun événement à proximité' })}
+            </Text>
+            <Text style={[styles.emptyDesc, { color: colors.gray500 }]}>
+              {activeFiltersCount > 0
+                ? t('map.emptyFilteredDesc', { defaultValue: 'Essayez d\'élargir le rayon ou de modifier vos filtres.' })
+                : t('map.emptyDesc', { defaultValue: 'Élargissez le rayon de recherche ou revenez bientôt.' })}
+            </Text>
+          </View>
+        </View>
+      )}
+
       {/* Selected Event Card */}
       {selectedMarker && (
         <MapEventCard
@@ -541,6 +561,32 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.white,
+  },
+  emptyOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+  },
+  emptyCard: {
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: BorderRadius['2xl'],
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    maxWidth: 320,
+    gap: Spacing.xs,
+  },
+  emptyTitle: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.md,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+  },
+  emptyDesc: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.sm,
+    textAlign: 'center',
   },
   topBar: {
     position: 'absolute',

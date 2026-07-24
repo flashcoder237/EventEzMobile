@@ -2732,7 +2732,11 @@
     "applyFilters": "Appliquer les filtres",
     "eventsCount_one": "{{count}} événement",
     "eventsCount_other": "{{count}} événements",
-    "eventsInRadius": " dans {{radius}} km"
+    "eventsInRadius": " dans {{radius}} km",
+    "emptyTitle": "Aucun événement à proximité",
+    "emptyDesc": "Élargissez le rayon de recherche ou revenez bientôt.",
+    "emptyFilteredTitle": "Aucun événement ici",
+    "emptyFilteredDesc": "Essayez d'élargir le rayon ou de modifier vos filtres."
   },
   "organizerProfile": {
     "unknownOrganizer": "Organisateur inconnu",
