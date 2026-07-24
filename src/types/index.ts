@@ -1737,6 +1737,8 @@ export type RootStackParamList = {
   SeatingPlanEditor: { planId: string };
   // Gestion des stands (salon exposants) — organisateur
   BoothManagement: { eventId: string };
+  // Éditeur visuel de plan (drag tactile des zones/stands)
+  BoothPlanEditor: { floorPlanId: string; eventId: string };
   Help: undefined;
   AnalyticsDashboard: undefined;
   Reports: undefined;

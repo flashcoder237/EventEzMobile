@@ -146,6 +146,16 @@ export const floorPlansAPI = {
 
   getById: (id: string) =>
     api.get(`/floor-plans/${id}/`),
+
+  // Zones du plan (miroir web) — necessaires a l'editeur de plan mobile (drag).
+  getAreas: (params?: { floor_plan?: string }) =>
+    api.get('/floor-plan-areas/', { params }),
+  createArea: (data: any) =>
+    api.post('/floor-plan-areas/', data),
+  updateArea: (id: string, data: any) =>
+    api.patch(`/floor-plan-areas/${id}/`, data),
+  deleteArea: (id: string) =>
+    api.delete(`/floor-plan-areas/${id}/`),
 };
 
 // ============================================

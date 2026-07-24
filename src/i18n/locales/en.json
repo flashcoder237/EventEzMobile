@@ -5186,6 +5186,7 @@
       "noAreas": "No booth zone on the plan. Create the plan on web.",
       "assignBooth": "Assign a booth",
       "noBoothToAssign": "No available booth to assign.",
+      "visualPlan": "Visual plan (drag & drop)",
       "accept": "Accept",
       "reject": "Reject",
       "accepted": "Application accepted",
@@ -5203,6 +5204,18 @@
         "rejected": "Rejected",
         "waitlisted": "Waitlisted"
       }
+    },
+    "boothPlan": {
+      "eyebrow": "PLAN",
+      "title": "Visual plan",
+      "hint": "Drag a booth to place it. Two fingers to move/zoom the plan.",
+      "loadError": "Couldn't load the plan.",
+      "addError": "Couldn't add.",
+      "saved": "Plan saved",
+      "saveError": "Save failed.",
+      "save": "Save",
+      "unsaved": "{{count}} change(s)",
+      "upToDate": "Up to date"
     },
     "seatingPlans": {
       "eyebrow": "VENUE & SEATS",

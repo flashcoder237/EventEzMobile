@@ -70,6 +70,7 @@ export default function BoothManagementScreen() {
   const [booths, setBooths] = useState<Booth[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [areas, setAreas] = useState<FloorArea[]>([]);
+  const [floorPlanId, setFloorPlanId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -99,10 +100,12 @@ export default function BoothManagementScreen() {
         const fpRes = await floorPlansAPI.getByEvent(eventId);
         const plans = fpRes.data?.results || fpRes.data || [];
         const firstPlan = Array.isArray(plans) ? plans[0] : plans;
+        setFloorPlanId(firstPlan?.id || null);
         const planAreas: FloorArea[] = firstPlan?.areas || [];
         setAreas(planAreas.filter((a) => a.area_type === 'booth'));
       } catch {
         setAreas([]);
+        setFloorPlanId(null);
       }
     } catch (error: any) {
       showError(t('common.error'), t('organizer.booths.loadError', { defaultValue: 'Impossible de charger les stands.' }));
@@ -390,6 +393,22 @@ export default function BoothManagementScreen() {
           renderItem={renderItem as any}
           contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+          ListHeaderComponent={
+            // Accès à l'éditeur de plan visuel (drag) — onglet Stands, si un plan
+            // existe. Le plan se crée côté seating ("Plans de placement").
+            tab === 'booths' && floorPlanId ? (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('BoothPlanEditor', { floorPlanId, eventId })}
+                style={[styles.planBtn, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}30` }]}
+              >
+                <Ionicons name="map-outline" size={18} color={colors.primary} />
+                <Text style={[styles.planBtnText, { color: colors.primary }]}>
+                  {t('organizer.booths.visualPlan', { defaultValue: 'Plan visuel (glisser-déposer)' })}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+              </TouchableOpacity>
+            ) : null
+          }
           ListEmptyComponent={
             <View style={styles.center}>
               <Text style={[styles.emptyText, { color: colors.gray500 }]}>{emptyText}</Text>
@@ -493,6 +512,8 @@ const styles = StyleSheet.create({
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   actionText: { fontFamily: FontFamily.medium, fontSize: FontSizes.sm },
   emptyText: { fontFamily: FontFamily.regular, fontSize: FontSizes.md, textAlign: 'center' },
+  planBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderWidth: 1, borderRadius: BorderRadius['2xl'], paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, marginBottom: Spacing.sm },
+  planBtnText: { flex: 1, fontFamily: FontFamily.semiBold, fontSize: FontSizes.md },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: Spacing.lg },
   modalCard: { width: '100%', maxWidth: 400, borderRadius: BorderRadius['2xl'], padding: Spacing.lg },
   modalTitle: { fontFamily: FontFamily.bold, fontSize: FontSizes.lg, marginBottom: Spacing.md },
