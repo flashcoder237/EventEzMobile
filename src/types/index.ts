@@ -1719,6 +1719,10 @@ export type RootStackParamList = {
   // Equipe d'evenement (organisateur invite scanner/moderateur/etc.)
   TeamManagement: { eventId: string; eventTitle?: string };
   TeamInvitation: { token: string };
+  // Mariage : RSVP public par token (deep link invitations/accept/{token})
+  WeddingRsvp: { token: string };
+  // Mariage : liste de cadeaux publique (deep link events/{slug}/gift-registry)
+  WeddingGiftRegistry: { slug: string };
   // Vue user-side : "Mes events en equipe" — events ou je suis staff actif
   MyTeamEvents: undefined;
   DiscountManagement: { eventId: string };

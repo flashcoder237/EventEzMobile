@@ -126,6 +126,8 @@ const LiveEventScreen = withSuspense(lazy(() => import('../screens/events/LiveEv
 const VolunteerScreen = withSuspense(lazy(() => import('../screens/organizer/VolunteerScreen')));
 const TeamManagementScreen = withSuspense(lazy(() => import('../screens/organizer/TeamManagementScreen')));
 const TeamInvitationAcceptScreen = withSuspense(lazy(() => import('../screens/events/TeamInvitationAcceptScreen')));
+const WeddingRsvpScreen = withSuspense(lazy(() => import('../screens/events/WeddingRsvpScreen')));
+const WeddingGiftRegistryScreen = withSuspense(lazy(() => import('../screens/events/WeddingGiftRegistryScreen')));
 const MyTeamEventsScreen = withSuspense(lazy(() => import('../screens/dashboard/MyTeamEventsScreen')));
 const SubscriptionScreen = withSuspense(lazy(() => import('../screens/dashboard/SubscriptionScreen')));
 
@@ -425,6 +427,8 @@ export default function RootNavigator() {
       {/* Equipe d'event : gestion organisateur + ecran d'acceptation invitation */}
       <Stack.Screen name="TeamManagement" component={TeamManagementScreen} />
       <Stack.Screen name="TeamInvitation" component={TeamInvitationAcceptScreen} />
+      <Stack.Screen name="WeddingRsvp" component={WeddingRsvpScreen} />
+      <Stack.Screen name="WeddingGiftRegistry" component={WeddingGiftRegistryScreen} />
       <Stack.Screen name="MyTeamEvents" component={MyTeamEventsScreen} />
       <Stack.Screen name="Subscription" component={SubscriptionScreen} />
 

@@ -15,6 +15,7 @@ import { seatingAPI, floorPlansAPI } from '../../api';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
+import ExhibitorsSection from './ExhibitorsSection';
 
 interface SeatingZone {
   id: string;
@@ -129,6 +130,8 @@ export default function VenueTab({ eventId }: VenueTabProps) {
           <Ionicons name="map-outline" size={40} color={colors.gray300} />
           <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>{t('componentsEvents.venueEmpty')}</Text>
         </View>
+        {/* Les exposants peuvent exister même sans plan de salle. */}
+        <ExhibitorsSection eventId={eventId} />
       </View>
     );
   }
@@ -307,6 +310,9 @@ export default function VenueTab({ eventId }: VenueTabProps) {
           ))}
         </>
       )}
+
+      {/* Annuaire des exposants (ne s'affiche que s'il y en a) */}
+      <ExhibitorsSection eventId={eventId} />
     </View>
   );
 }

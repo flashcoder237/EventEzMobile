@@ -171,6 +171,10 @@ const linking: LinkingOptions<RootStackParamList> = {
       // unique. Ouvre TeamInvitationAcceptScreen qui affiche les details et
       // permet d'accepter ou decliner.
       TeamInvitation: 'team-invitation/:token',
+      // Mariage — RSVP par token (cf. web /invitations/accept/[token]).
+      WeddingRsvp: 'invitations/accept/:token',
+      // Mariage — liste de cadeaux (cf. web /events/[slug]/gift-registry).
+      WeddingGiftRegistry: 'events/:slug/gift-registry',
       // Deep link de retour après souscription web (Play Billing compliance —
       // cf. SubscriptionScreen.tsx). Le web appelle eventez://subscription
       // ou https://eventez.online/dashboard/subscription a la fin du paiement,

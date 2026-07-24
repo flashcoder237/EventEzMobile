@@ -38,7 +38,7 @@ import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { useCheckinQueue } from '../../hooks/useCheckinQueue';
 import { useCheckinManifest } from '../../hooks/useCheckinManifest';
 import { haptics } from '../../utils/haptics';
-import { registrationsAPI, eventsAPI, sessionsAPI } from '../../api';
+import { registrationsAPI, eventsAPI, sessionsAPI, exhibitorsAPI } from '../../api';
 import { RootStackParamList, Registration, Event } from '../../types';
 
 interface ScanSession {
@@ -233,6 +233,7 @@ export default function QRScannerScreen() {
   // ré-envoyé tel quel au backend qui parse aussi de son côté.
   type ScanInfo =
     | { kind: 'ticket_purchase'; ticketId: string; raw: string }
+    | { kind: 'booth_badge'; badgeId: string; raw: string }
     | { kind: 'registration'; registrationId: string; raw: string }
     | null;
 
@@ -256,6 +257,12 @@ export default function QRScannerScreen() {
       if (isValidUUID(id) || /^\d+$/.test(id)) {
         return { kind: 'ticket_purchase', ticketId: id, raw: data };
       }
+    }
+
+    // Badge exposant : .../verify/b/{uuid} — l'id est un UUID côté backend.
+    const badgeMatch = data.match(/\/verify\/b\/([0-9a-f-]{1,40})/i);
+    if (badgeMatch && isValidUUID(badgeMatch[1])) {
+      return { kind: 'booth_badge', badgeId: badgeMatch[1], raw: data };
     }
 
     // Registration-level : .../verify/{uuid}
@@ -286,7 +293,10 @@ export default function QRScannerScreen() {
   const extractRegistrationId = (data: string): string | null => {
     const info = extractScanInfo(data);
     if (!info) return null;
-    return info.kind === 'registration' ? info.registrationId : info.ticketId;
+    if (info.kind === 'registration') return info.registrationId;
+    if (info.kind === 'ticket_purchase') return info.ticketId;
+    if (info.kind === 'booth_badge') return info.badgeId;
+    return null;
   };
 
   // Pattern haptique différencié — succès = 1 vibration courte, échec = 2 saccades
@@ -305,7 +315,12 @@ export default function QRScannerScreen() {
   const processCheckIn = async (info: NonNullable<ScanInfo>, source: 'qr' | 'manual') => {
     setProcessing(true);
     try {
-      const localId = info.kind === 'ticket_purchase' ? info.ticketId : info.registrationId;
+      const localId =
+        info.kind === 'ticket_purchase'
+          ? info.ticketId
+          : info.kind === 'booth_badge'
+            ? info.badgeId
+            : info.registrationId;
 
       // ─── Mode SESSION : marquer la présence à la session sélectionnée ────
       if (scanMode.kind === 'session') {
@@ -396,14 +411,23 @@ export default function QRScannerScreen() {
           return;
         }
 
-        // Fallback : registration-level (legacy) ou manifeste indispo → file
-        // optimiste (vérifiée côté serveur au flush).
-        await enqueueOfflineScan(
-          info.kind === 'ticket_purchase' ? info.raw : info.registrationId,
-          autoCheckIn,
-          eventId,
-          { kind: info.kind === 'ticket_purchase' ? 'ticket_purchase' : 'registration' },
-        );
+        // Fallback : registration-level (legacy), badge exposant, ou manifeste
+        // indispo → file optimiste (vérifiée côté serveur au flush).
+        const offlinePayload =
+          info.kind === 'ticket_purchase'
+            ? info.raw
+            : info.kind === 'booth_badge'
+              ? info.raw
+              : info.registrationId;
+        const offlineKind =
+          info.kind === 'ticket_purchase'
+            ? 'ticket_purchase'
+            : info.kind === 'booth_badge'
+              ? 'booth_badge'
+              : 'registration';
+        await enqueueOfflineScan(offlinePayload, autoCheckIn, eventId, {
+          kind: offlineKind,
+        });
         setScanResult({
           success: true,
           message: autoCheckIn
@@ -420,11 +444,13 @@ export default function QRScannerScreen() {
         return;
       }
 
-      // Choix endpoint : ticket-level si le QR contient /verify/t/{...},
-      // registration-level (legacy) sinon. Le backend gère les deux flux.
-      const response = info.kind === 'ticket_purchase'
-        ? await registrationsAPI.verifyAndCheckInTicket(info.raw, autoCheckIn)
-        : await registrationsAPI.verifyAndCheckIn(info.registrationId, autoCheckIn);
+      // Choix endpoint : badge exposant (/verify/b/), ticket-level (/verify/t/),
+      // registration-level (legacy) sinon. Le backend gère chaque flux.
+      const response = info.kind === 'booth_badge'
+        ? await exhibitorsAPI.verifyAndCheckInBadge(info.raw, autoCheckIn)
+        : info.kind === 'ticket_purchase'
+          ? await registrationsAPI.verifyAndCheckInTicket(info.raw, autoCheckIn)
+          : await registrationsAPI.verifyAndCheckIn(info.registrationId, autoCheckIn);
 
       const data: any = response.data;
       const registration = (data?.registration as Registration) || (data as Registration);

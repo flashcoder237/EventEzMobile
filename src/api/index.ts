@@ -16,6 +16,11 @@ export { eventsAPI, eventTemplatesAPI, categoriesAPI, tagsAPI } from './events';
 
 // Registrations
 export { registrationsAPI } from './registrations';
+export { exhibitorsAPI } from './exhibitors';
+
+// Wedding — RSVP par token + liste de cadeaux / cagnotte
+export { weddingsAPI } from './weddings';
+export type { RSVPPayload } from './weddings';
 
 // Tickets, Transfers & Discounts
 export { ticketTypesAPI, ticketPurchasesAPI, ticketsAPI, ticketTransfersAPI, discountsAPI, priceTiersAPI } from './tickets';

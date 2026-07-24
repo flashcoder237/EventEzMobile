@@ -59,6 +59,18 @@ export function getTeamInvitationUrl(token: string): string {
   return `${WEB_BASE_URL}/team-invitation/${token}`;
 }
 
+// URL de la page RSVP mariage (token). Cible du deep link
+// `eventez://invitations/accept/{token}`.
+export function getWeddingRsvpUrl(token: string): string {
+  return `${WEB_BASE_URL}/invitations/accept/${token}`;
+}
+
+// URL de la liste de cadeaux mariage (slug event). Cible du deep link
+// `eventez://events/{slug}/gift-registry`.
+export function getWeddingGiftRegistryUrl(slug: string): string {
+  return `${WEB_BASE_URL}/events/${slug}/gift-registry`;
+}
+
 // Locales gérées par le web (next-intl, routing `as-needed` : FR sur `/`, EN
 // sur `/en`). Utilisé uniquement pour tolérer un préfixe entrant côté deep link.
 export const WEB_LOCALES = ['en', 'fr'] as const;

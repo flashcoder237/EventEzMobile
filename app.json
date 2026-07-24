@@ -81,6 +81,11 @@
               "scheme": "https",
               "host": "eventez.online",
               "pathPrefix": "/team-invitation/"
+            },
+            {
+              "scheme": "https",
+              "host": "eventez.online",
+              "pathPrefix": "/invitations/"
             }
           ],
           "category": [

@@ -23,6 +23,8 @@ import {
   getTicketVerificationUrl,
   getVolunteerSignupUrl,
   getTeamInvitationUrl,
+  getWeddingRsvpUrl,
+  getWeddingGiftRegistryUrl,
   stripLocalePrefix,
 } from '../constants/urls';
 
@@ -81,6 +83,18 @@ describe('URL builders web (partage + OG)', () => {
     it('construit l\'URL invitation equipe avec token', () => {
       expect(getTeamInvitationUrl('tk_abc123')).toBe(
         `${WEB_BASE_URL}/team-invitation/tk_abc123`,
+      );
+    });
+
+    it('construit l\'URL RSVP mariage avec token', () => {
+      expect(getWeddingRsvpUrl('tk_wed')).toBe(
+        `${WEB_BASE_URL}/invitations/accept/tk_wed`,
+      );
+    });
+
+    it('construit l\'URL liste de cadeaux avec slug', () => {
+      expect(getWeddingGiftRegistryUrl('mariage-alice-bob')).toBe(
+        `${WEB_BASE_URL}/events/mariage-alice-bob/gift-registry`,
       );
     });
   });
@@ -155,6 +169,18 @@ describe('Deep link path parsing — simulation getStateFromPath', () => {
       uri: 'eventez://team-invitation/tk_team',
       expectedScreen: 'TeamInvitation',
       expectedParam: { token: 'tk_team' },
+    },
+    {
+      // Mariage — RSVP par token
+      uri: 'eventez://invitations/accept/tk_wed',
+      expectedScreen: 'WeddingRsvp',
+      expectedParam: { token: 'tk_wed' },
+    },
+    {
+      // Mariage — liste de cadeaux par slug event
+      uri: 'eventez://events/mariage-alice-bob/gift-registry',
+      expectedScreen: 'WeddingGiftRegistry',
+      expectedParam: { slug: 'mariage-alice-bob' },
     },
     {
       uri: 'eventez://subscription',

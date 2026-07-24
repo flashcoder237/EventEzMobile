@@ -15,7 +15,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
-import { registrationsAPI, sessionsAPI } from '../api';
+import { registrationsAPI, sessionsAPI, exhibitorsAPI } from '../api';
 
 const QUEUE_KEY = 'eventez:checkin_queue:v1';
 
@@ -25,7 +25,7 @@ const QUEUE_KEY = 'eventez:checkin_queue:v1';
  * - 'ticket_purchase' : QR ticket-level → POST /registrations/verify_and_check_in_ticket/
  * - 'session_attendance' : scan dans le contexte d'une session → POST /sessions/{id}/scan_attendance/
  */
-export type CheckinKind = 'registration' | 'ticket_purchase' | 'session_attendance';
+export type CheckinKind = 'registration' | 'ticket_purchase' | 'session_attendance' | 'booth_badge';
 
 export interface CheckinQueueEntry {
   /** Local UUID for the entry (collision-safe with concurrent scans). */
@@ -138,6 +138,8 @@ export function useCheckinQueue() {
           const kind: CheckinKind = entry.kind || 'registration';
           if (kind === 'ticket_purchase') {
             await registrationsAPI.verifyAndCheckInTicket(entry.registrationId, entry.autoCheckIn);
+          } else if (kind === 'booth_badge') {
+            await exhibitorsAPI.verifyAndCheckInBadge(entry.registrationId, entry.autoCheckIn);
           } else if (kind === 'session_attendance' && entry.sessionId) {
             await sessionsAPI.scanAttendance(entry.sessionId, entry.registrationId);
           } else {
