@@ -5211,6 +5211,7 @@
       "hint": "Drag a booth to place it. Two fingers to move/zoom the plan.",
       "loadError": "Couldn't load the plan.",
       "addError": "Couldn't add.",
+      "noCategory": "Create a booth category first (Booths tab).",
       "saved": "Plan saved",
       "saveError": "Save failed.",
       "save": "Save",

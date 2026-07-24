@@ -136,6 +136,9 @@ export default function BoothPlanEditorScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Première catégorie disponible : requise pour créer un vrai Booth (réservable)
+  // lié à la zone ajoutée. Sans catégorie, on invite à en créer une d'abord.
+  const [firstCategoryId, setFirstCategoryId] = useState<string | null>(null);
 
   // Transform du canvas (pan + zoom).
   const scale = useSharedValue(0.5);
@@ -147,9 +150,10 @@ export default function BoothPlanEditorScreen() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [planRes, areasRes] = await Promise.all([
+      const [planRes, areasRes, catRes] = await Promise.all([
         floorPlansAPI.getById(floorPlanId),
         floorPlansAPI.getAreas({ floor_plan: floorPlanId }),
+        exhibitorsAPI.getCategories({ event: eventId }),
       ]);
       const p = planRes.data;
       setPlan({ width: p?.width || 1000, height: p?.height || 600 });
@@ -161,12 +165,14 @@ export default function BoothPlanEditorScreen() {
         x: a.x, y: a.y, width: a.width, height: a.height,
         color: a.color || AREA_COLORS[a.area_type] || AREA_COLORS.other,
       })));
+      const cats = catRes.data?.results || catRes.data || [];
+      setFirstCategoryId(cats.length > 0 ? cats[0].id : null);
     } catch {
       showError(t('common.error'), t('organizer.boothPlan.loadError', { defaultValue: 'Impossible de charger le plan.' }));
     } finally {
       setLoading(false);
     }
-  }, [floorPlanId, t]);
+  }, [floorPlanId, eventId, t]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -174,18 +180,41 @@ export default function BoothPlanEditorScreen() {
     setAreas((prev) => prev.map((a) => (a.id === id ? { ...a, x, y, dirty: true } : a)));
   }, []);
 
-  // Ajoute un stand au centre du viewport actuel.
+  // Ajoute un VRAI stand : crée un Booth réservable (via la 1re catégorie) +
+  // sa zone sur le plan, et les LIE (Booth.floor_plan_area). Cohérent avec le
+  // web — un stand du plan correspond à un stand réel, pas à une déco.
+  // Décalage en cascade pour ne pas empiler les zones (sinon seule la dernière
+  // est attrapable au drag).
   const addBooth = useCallback(async () => {
+    if (!firstCategoryId) {
+      showError('', t('organizer.boothPlan.noCategory', {
+        defaultValue: 'Créez d\'abord une catégorie de stand (onglet Stands).',
+      }));
+      return;
+    }
     try {
-      const res = await floorPlansAPI.createArea({
+      const n = areas.length;
+      const bx = snap(120 + (n % 6) * 120);
+      const by = snap(120 + Math.floor(n / 6) * 100);
+      const code = `S${areas.filter((a) => a.area_type === 'booth').length + 1}`;
+      // 1. Zone sur le plan.
+      const areaRes = await floorPlansAPI.createArea({
         floor_plan: floorPlanId,
-        name: `S${areas.filter((a) => a.area_type === 'booth').length + 1}`,
-        area_type: 'booth',
-        x: snap(200), y: snap(200), width: 100, height: 80,
-        color: AREA_COLORS.booth,
-        is_clickable: true,
+        name: code, area_type: 'booth',
+        x: bx, y: by, width: 100, height: 80,
+        color: AREA_COLORS.booth, is_clickable: true,
       });
-      const a = res.data;
+      const a = areaRes.data;
+      // 2. Stand réservable lié à la zone.
+      try {
+        await exhibitorsAPI.createBooth({
+          event: eventId, code, category: firstCategoryId,
+          status: 'available',
+        }).then((r) => exhibitorsAPI.updateBooth(r.data.id, { floor_plan_area: a.id }));
+      } catch {
+        // La zone existe déjà ; on ne bloque pas le placement si le Booth échoue
+        // (ex: code déjà pris). L'organisateur pourra corriger côté Stands.
+      }
       setAreas((prev) => [...prev, {
         id: a.id, name: a.name, area_type: 'booth',
         x: a.x, y: a.y, width: a.width, height: a.height, color: a.color,
@@ -194,7 +223,7 @@ export default function BoothPlanEditorScreen() {
     } catch {
       showError(t('common.error'), t('organizer.boothPlan.addError', { defaultValue: 'Ajout impossible.' }));
     }
-  }, [areas, floorPlanId, t]);
+  }, [areas, floorPlanId, eventId, firstCategoryId, t]);
 
   const save = useCallback(async () => {
     setSaving(true);
@@ -241,9 +270,6 @@ export default function BoothPlanEditorScreen() {
     ],
   }));
 
-  // Déselection sur tap dans le vide.
-  const tapEmpty = Gesture.Tap().onEnd(() => runOnJS(setSelectedId)(null));
-
   // Grille (statique, dessinée une fois).
   const gridLines: React.ReactNode[] = [];
   for (let x = 0; x <= plan.width; x += GRID) {
@@ -280,7 +306,7 @@ export default function BoothPlanEditorScreen() {
         <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
       ) : (
         <View style={[styles.canvasWrap, { borderColor: hairline }]}>
-          <GestureDetector gesture={Gesture.Simultaneous(canvasGesture, tapEmpty)}>
+          <GestureDetector gesture={canvasGesture}>
             <Animated.View style={styles.canvasViewport}>
               <Animated.View style={[styles.canvas, canvasStyle, { width: plan.width, height: plan.height }]}>
                 {/* Fond + grille */}

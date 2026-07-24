@@ -5208,6 +5208,7 @@
       "hint": "Glissez un stand pour le placer. 2 doigts pour déplacer/zoomer le plan.",
       "loadError": "Impossible de charger le plan.",
       "addError": "Ajout impossible.",
+      "noCategory": "Créez d'abord une catégorie de stand (onglet Stands).",
       "saved": "Plan enregistré",
       "saveError": "Échec de l'enregistrement.",
       "save": "Enregistrer",
