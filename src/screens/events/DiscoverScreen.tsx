@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   InteractionManager,
   Share,
+  Alert,
 } from 'react-native';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -545,6 +546,26 @@ export default function DiscoverScreen() {
     [loadMoreForYou],
   );
 
+  // Empty state : « Préviens-moi » → active les notifications push pour que
+  // l'utilisateur soit alerté dès qu'un premier événement est publié. C'est le
+  // hook d'engagement d'une base vide (sinon rien ne ramène l'utilisateur).
+  const handleEnableNotifications = useCallback(async () => {
+    try {
+      const { pushNotificationService } = await import('../../services/pushNotificationService');
+      const granted = await pushNotificationService.requestPermissions();
+      Alert.alert(
+        granted
+          ? t('discover.notifyOnTitle', { defaultValue: 'C\'est noté !' })
+          : t('discover.notifyOffTitle', { defaultValue: 'Notifications désactivées' }),
+        granted
+          ? t('discover.notifyOnBody', { defaultValue: 'Tu seras prévenu dès que les premiers événements arrivent.' })
+          : t('discover.notifyOffBody', { defaultValue: 'Active les notifications dans les réglages pour être prévenu.' }),
+      );
+    } catch {
+      // silencieux — ne jamais bloquer l'écran d'accueil sur une erreur de perm.
+    }
+  }, [t]);
+
   // Acquisition robuste d'une position. getCurrentPositionAsync({}) seul est
   // peu fiable (GPS froid → peut hang ou échouer). On tente d'abord le dernier
   // fix connu (instantané), puis un fix frais avec une précision raisonnable
@@ -1038,9 +1059,19 @@ export default function DiscoverScreen() {
                   <Text style={styles.categoryName} numberOfLines={2}>
                     {cat.name}
                   </Text>
-                  <Text style={styles.categoryCount}>
-                    {cat.event_count ?? (cat as any).events_count ?? 0} événements
-                  </Text>
+                  {/* Ne pas afficher « 0 événements » : au lancement, six cartes
+                      affichant « 0 » crient un marché mort. On montre plutôt une
+                      invite neutre « Explorer ». */}
+                  {(() => {
+                    const n = cat.event_count ?? (cat as any).events_count ?? 0;
+                    return (
+                      <Text style={styles.categoryCount}>
+                        {n > 0
+                          ? t('discover.categoryCount', { count: n, defaultValue: `${n} événements` })
+                          : t('discover.categoryExplore', { defaultValue: 'Explorer' })}
+                      </Text>
+                    );
+                  })()}
                 </View>
               </TouchableOpacity>
             </StaggeredItem>
@@ -1743,13 +1774,13 @@ export default function DiscoverScreen() {
                         width: 72,
                         height: 72,
                         borderRadius: 36,
-                        backgroundColor: colors.gray100,
+                        backgroundColor: colors.primary + '18',
                         alignItems: 'center',
                         justifyContent: 'center',
                         marginBottom: Spacing.md,
                       }}
                     >
-                      <Ionicons name="calendar-outline" size={32} color={colors.gray400} />
+                      <Ionicons name="sparkles-outline" size={30} color={colors.primary} />
                     </View>
                     <Text
                       style={{
@@ -1760,7 +1791,7 @@ export default function DiscoverScreen() {
                         letterSpacing: -0.4,
                       }}
                     >
-                      Rien à l'horizon pour l'instant
+                      {t('discover.emptyTitle', { defaultValue: 'Les premiers événements arrivent' })}
                     </Text>
                     <Text
                       style={{
@@ -1769,11 +1800,30 @@ export default function DiscoverScreen() {
                         color: colors.gray500,
                         textAlign: 'center',
                         marginTop: 6,
-                        maxWidth: 280,
+                        maxWidth: 300,
                       }}
                     >
-                      Les organisateurs préparent encore leurs événements. Reviens bientôt !
+                      {t('discover.emptyDesc', { defaultValue: 'Sois le premier informé quand ça bouge près de chez toi.' })}
                     </Text>
+                    <TouchableOpacity
+                      onPress={handleEnableNotifications}
+                      activeOpacity={0.85}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                        marginTop: Spacing.lg,
+                        backgroundColor: colors.primary,
+                        paddingHorizontal: Spacing.lg,
+                        paddingVertical: Spacing.sm + 2,
+                        borderRadius: 999,
+                      }}
+                    >
+                      <Ionicons name="notifications-outline" size={16} color="#FFFFFF" />
+                      <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 14, color: '#FFFFFF' }}>
+                        {t('discover.emptyNotifyCta', { defaultValue: 'Préviens-moi' })}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 )}
 

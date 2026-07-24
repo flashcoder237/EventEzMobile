@@ -544,7 +544,17 @@
     "headerTitle": "What's happening",
     "nearbyTeaserEyebrow": "NEAR YOU",
     "nearbyTeaserTitle": "Enable location to see what's happening around you",
-    "nearbyTeaserCTA": "Enable"
+    "nearbyTeaserCTA": "Enable",
+    "categoryExplore": "Explore",
+    "categoryCount_one": "{{count}} event",
+    "categoryCount_other": "{{count}} events",
+    "emptyTitle": "The first events are coming",
+    "emptyDesc": "Be the first to know when things kick off near you.",
+    "emptyNotifyCta": "Notify me",
+    "notifyOnTitle": "You're all set!",
+    "notifyOnBody": "We'll let you know as soon as the first events go live.",
+    "notifyOffTitle": "Notifications off",
+    "notifyOffBody": "Enable notifications in settings to be alerted."
   },
   "pricingTiers": {
     "title": "Price tiers",

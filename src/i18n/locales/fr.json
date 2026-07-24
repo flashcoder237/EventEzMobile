@@ -544,7 +544,17 @@
     "headerTitle": "Ce qui bouge",
     "nearbyTeaserEyebrow": "PRÈS DE TOI",
     "nearbyTeaserTitle": "Active ta position pour voir ce qui bouge dans ton coin",
-    "nearbyTeaserCTA": "Activer"
+    "nearbyTeaserCTA": "Activer",
+    "categoryExplore": "Explorer",
+    "categoryCount_one": "{{count}} événement",
+    "categoryCount_other": "{{count}} événements",
+    "emptyTitle": "Les premiers événements arrivent",
+    "emptyDesc": "Sois le premier informé quand ça bouge près de chez toi.",
+    "emptyNotifyCta": "Préviens-moi",
+    "notifyOnTitle": "C'est noté !",
+    "notifyOnBody": "Tu seras prévenu dès que les premiers événements arrivent.",
+    "notifyOffTitle": "Notifications désactivées",
+    "notifyOffBody": "Active les notifications dans les réglages pour être prévenu."
   },
   "pricingTiers": {
     "title": "Paliers de prix",
