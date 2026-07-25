@@ -20,7 +20,14 @@
       "usesAppleSignIn": true,
       "associatedDomains": [
         "applinks:eventez.online"
-      ]
+      ],
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Permet à EventEz d'ajouter vos photos à vos messages et à vos événements.",
+        "NSPhotoLibraryAddUsageDescription": "Permet à EventEz d'enregistrer vos billets et les images reçues dans votre galerie.",
+        "NSMicrophoneUsageDescription": "Permet à EventEz d'enregistrer des messages vocaux dans vos conversations.",
+        "NSFaceIDUsageDescription": "Permet à EventEz de déverrouiller l'application et de confirmer vos actions sensibles avec Face ID.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "googleServicesFile": "./google-services.json",
