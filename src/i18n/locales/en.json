@@ -8,6 +8,8 @@
     "s": "s"
   },
   "wallet": {
+    "addToApple": "Add to Apple Wallet",
+    "saveToGoogle": "Save to Google Wallet",
     "stripeOnboardingError": "Stripe error",
     "stripeOnboardingUnexpected": "Unexpected Stripe response, please try again later.",
     "stripeOnboardingFailed": "Stripe onboarding failed",
@@ -5087,6 +5089,9 @@
     "authSoon": "AUTHENTICATION · SOON",
     "connectionsSoon": "CONNECTIONS · SOON",
     "visibility": "VISIBILITY",
+    "visibilitySoon": "VISIBILITY · SOON",
+    "attendeesSoon": "EVENTS · SOON",
+    "readingSoon": "MESSAGES · SOON",
     "messaging": "MESSAGING",
     "reading": "READING",
     "presence": "PRESENCE",

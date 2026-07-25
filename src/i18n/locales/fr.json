@@ -8,6 +8,8 @@
     "s": "s"
   },
   "wallet": {
+    "addToApple": "Ajouter à Apple Wallet",
+    "saveToGoogle": "Enregistrer dans Google Wallet",
     "stripeOnboardingError": "Erreur Stripe",
     "stripeOnboardingUnexpected": "Reponse Stripe inattendue, reessayez plus tard.",
     "stripeOnboardingFailed": "Echec de l'onboarding Stripe",
@@ -5084,6 +5086,9 @@
     "authSoon": "AUTHENTIFICATION · BIENTÔT",
     "connectionsSoon": "CONNEXIONS · BIENTÔT",
     "visibility": "VISIBILITÉ",
+    "visibilitySoon": "VISIBILITÉ · BIENTÔT",
+    "attendeesSoon": "ÉVÉNEMENTS · BIENTÔT",
+    "readingSoon": "MESSAGES · BIENTÔT",
     "messaging": "MESSAGERIE",
     "reading": "LECTURE",
     "presence": "PRÉSENCE",

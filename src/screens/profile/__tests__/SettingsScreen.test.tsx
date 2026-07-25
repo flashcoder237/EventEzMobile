@@ -252,17 +252,16 @@ describe('SettingsScreen', () => {
     });
   });
 
-  it('toggles "Apparaître dans Qui y va" → calls updateUserSettings', async () => {
+  it('un toggle de notification actif → appelle updateUserSettings', async () => {
     const { findByText, UNSAFE_getAllByType } = render(<SettingsScreen />);
     // Attend que les settings soient chargés
     await findByText('Notifications par email');
 
-    // Switches : on prend tous les Switch et on cherche celui de show_in_attendees
-    // est plus simple : on simule via findByText sur le label puis on trouve le Switch frère.
-    // À défaut, on appelle directement le callback du toggle public_profile en
-    // tappant sur la card row → mais OptionCard sans onPress ne réagit pas.
-    // Approche plus directe : on appelle la fonction handleToggle par le côté
-    // public via le toggle Switch. On utilise UNSAFE_getAllByType + onValueChange.
+    // NB: public_profile / show_in_attendees / show_read_receipts sont désormais
+    // désactivés ("Coming soon" — non persistés par le backend, cf. allowlist).
+    // Ce test vérifie donc qu'un toggle de notification ENCORE actif (email,
+    // notify_*) persiste bien via updateUserSettings. On itère sur tous les
+    // Switch non-disabled et on garde le premier qui déclenche l'appel.
     const RN = require('react-native');
     const switches = UNSAFE_getAllByType(RN.Switch);
     expect(switches.length).toBeGreaterThan(0);

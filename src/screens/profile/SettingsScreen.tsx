@@ -1180,44 +1180,32 @@ export default function SettingsScreen() {
             right={<SoftToggle value={loginNotifications} onToggle={() => {}} disabled />}
           />
           )}
-          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowPublicProfile'), t('eyebrow.visibility')]) && (
+          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowPublicProfile'), t('eyebrow.visibilitySoon')]) && (
           <OptionCard
             icon="eye-outline"
-            eyebrow={t('eyebrow.visibility')}
+            eyebrow={t('eyebrow.visibilitySoon')}
             title={t('settings.rowPublicProfile')}
-            right={
-              <SoftToggle
-                value={publicProfile}
-                onToggle={(v) => handleToggle('public_profile', v, setPublicProfile)}
-              />
-            }
+            disabled
+            right={<SoftToggle value={publicProfile} onToggle={() => {}} disabled />}
           />
           )}
-          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowShowInGoing'), t('eyebrow.events')]) && (
+          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowShowInGoing'), t('eyebrow.attendeesSoon')]) && (
           <OptionCard
             icon="people-outline"
-            eyebrow={t('eyebrow.events')}
+            eyebrow={t('eyebrow.attendeesSoon')}
             title={t('settings.rowShowInGoing')}
-            right={
-              <SoftToggle
-                value={showInAttendees}
-                onToggle={(v) => handleToggle('show_in_attendees', v, setShowInAttendees)}
-              />
-            }
+            disabled
+            right={<SoftToggle value={showInAttendees} onToggle={() => {}} disabled />}
           />
           )}
-          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowReadConfirmations'), t('settings.rowReadConfirmationsSubtitle'), t('eyebrow.messages')]) && (
+          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowReadConfirmations'), t('settings.rowReadConfirmationsSubtitle'), t('eyebrow.readingSoon')]) && (
           <OptionCard
             icon="checkmark-done-outline"
-            eyebrow={t('eyebrow.messages')}
+            eyebrow={t('eyebrow.readingSoon')}
             title={t('settings.rowReadConfirmations')}
             subtitle={t('settings.rowReadConfirmationsSubtitle')}
-            right={
-              <SoftToggle
-                value={showReadReceipts}
-                onToggle={(v) => handleToggle('show_read_receipts', v, setShowReadReceipts)}
-              />
-            }
+            disabled
+            right={<SoftToggle value={showReadReceipts} onToggle={() => {}} disabled />}
           />
           )}
         </View>
