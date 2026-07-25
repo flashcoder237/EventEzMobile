@@ -199,13 +199,26 @@ export default function LoginScreen() {
     return () => clearTimeout(t);
   }, [resendCooldown]);
 
+  // Après un login social réussi : si le compte vient d'être créé, on propose
+  // l'écran de complétion de profil (une seule fois) ; sinon flux normal.
+  const afterSocialLogin = (result: { user?: any; created?: boolean }) => {
+    if (result.created) {
+      navigation.navigate('CompleteProfile', {
+        returnScreen: safeReturnScreen,
+        returnParams,
+      });
+    } else {
+      dismissAfterLogin(result.user);
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     // rememberMe transmis au hook → setTokens persiste (ou non) selon la case.
     const result = await googleSignIn(rememberMe);
     if (result.success && result.user) {
       await SecureStore.setItemAsync(REMEMBER_ME_KEY, rememberMe.toString());
       await setUser(result.user);
-      dismissAfterLogin(result.user);
+      afterSocialLogin(result);
     } else if (result.error && result.error !== 'Connexion annulée') {
       showError(t('auth.googleError'), result.error);
     }
@@ -216,7 +229,7 @@ export default function LoginScreen() {
     if (result.success && result.user) {
       await SecureStore.setItemAsync(REMEMBER_ME_KEY, rememberMe.toString());
       await setUser(result.user);
-      dismissAfterLogin(result.user);
+      afterSocialLogin(result);
     } else if (result.error && result.error !== 'Connexion annulée') {
       showError(t('auth.appleError'), result.error);
     }

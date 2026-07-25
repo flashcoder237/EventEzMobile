@@ -13,6 +13,9 @@ interface SocialAuthResult {
   success: boolean;
   user?: User;
   error?: string;
+  /** true uniquement à la 1re création de compte (social) → proposer la
+   *  complétion de profil une seule fois. Fourni par le backend. */
+  created?: boolean;
 }
 
 // Lazy loader pour Google Sign-In : le module natif n'est pas dans Expo Go,
@@ -60,9 +63,9 @@ export function useGoogleAuth() {
       }
 
       const apiResponse = await authAPI.googleSignIn(idToken);
-      const { access, refresh, user } = apiResponse.data;
+      const { access, refresh, user, created } = apiResponse.data;
       await setTokens(access, refresh, rememberMe);
-      return { success: true, user };
+      return { success: true, user, created: Boolean(created) };
     } catch (error: any) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
         return { success: false, error: 'Connexion annulée' };
@@ -179,12 +182,12 @@ export function useAppleAuth() {
         user: Object.keys(userData).length > 0 ? userData : undefined,
       });
 
-      const { access, refresh, user } = response.data;
+      const { access, refresh, user, created } = response.data;
 
       // Stocker les tokens
       await setTokens(access, refresh, rememberMe);
 
-      return { success: true, user };
+      return { success: true, user, created: Boolean(created) };
     } catch (error: any) {
       // Gérer l'annulation par l'utilisateur
       if (error.code === 'ERR_REQUEST_CANCELED') {

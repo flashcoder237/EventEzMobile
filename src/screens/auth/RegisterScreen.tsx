@@ -121,14 +121,23 @@ export default function RegisterScreen() {
     }
   };
 
-  // Inscription sociale = compte cree + connecte en un tap. dispatchAfterAuth
-  // route ensuite vers returnScreen / Main (les comptes Google/Apple sont
-  // verifies d'office, pas de passage par VerifyEmail).
+  // Inscription sociale = compte cree + connecte en un tap. Un compte
+  // nouvellement cree (result.created) passe par l'ecran de completion de
+  // profil (skippable) ; sinon dispatchAfterAuth route vers returnScreen / Main
+  // (les comptes Google/Apple sont verifies d'office, pas de VerifyEmail).
+  const afterSocialSignUp = (result: { user?: any; created?: boolean }) => {
+    if (result.created) {
+      navigation.navigate('CompleteProfile', { returnScreen, returnParams });
+    } else {
+      dispatchAfterAuth(navigation, result.user, returnScreen, returnParams);
+    }
+  };
+
   const handleGoogleSignUp = async () => {
     const result = await googleSignIn();
     if (result.success && result.user) {
       await setUser(result.user);
-      dispatchAfterAuth(navigation, result.user, returnScreen, returnParams);
+      afterSocialSignUp(result);
     } else if (result.error && result.error !== 'Connexion annulée') {
       showError(t('auth.googleError'), result.error);
     }
@@ -138,7 +147,7 @@ export default function RegisterScreen() {
     const result = await appleSignIn();
     if (result.success && result.user) {
       await setUser(result.user);
-      dispatchAfterAuth(navigation, result.user, returnScreen, returnParams);
+      afterSocialSignUp(result);
     } else if (result.error && result.error !== 'Connexion annulée') {
       showError(t('auth.appleError'), result.error);
     }

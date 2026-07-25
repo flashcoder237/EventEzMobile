@@ -1611,6 +1611,8 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   ResetPassword: { token: string };
   VerifyEmail: { email?: string; skippable?: boolean; returnScreen?: string | null; returnParams?: any };
+  // Complétion de profil après 1re inscription social (Google/Apple). Skippable.
+  CompleteProfile: { returnScreen?: string | null; returnParams?: any };
   // Écran consommé par le deep link `https://eventez.online/verify-email/{token}`.
   // Différent de `VerifyEmail` (page de relance post-inscription) : ici on a un
   // token à valider via l'API et on affiche le résultat (succès/expiré/invalide).
@@ -1773,6 +1775,8 @@ export type AuthStackParamList = {
   ForgotPassword: undefined;
   ResetPassword: { token: string };
   VerifyEmail: { email?: string; skippable?: boolean; returnScreen?: string | null; returnParams?: any };
+  // Complétion de profil après 1re inscription social (Google/Apple). Skippable.
+  CompleteProfile: { returnScreen?: string | null; returnParams?: any };
   // Écran consommé par le deep link `https://eventez.online/verify-email/{token}`.
   // Différent de `VerifyEmail` (page de relance post-inscription) : ici on a un
   // token à valider via l'API et on affiche le résultat (succès/expiré/invalide).
