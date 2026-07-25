@@ -253,6 +253,22 @@ export default function SubscriptionScreen() {
 
   const planOrder: PlanName[] = ['free', 'essential', 'premium'];
 
+  // Remise annuelle réelle, calculée depuis les prix (et non figée à -20% dans
+  // les traductions, alors que la remise réelle = 2 mois offerts = ~16,7%).
+  // Retourne un entier de % ou null si non calculable (plans gratuits/absents).
+  const yearlyDiscountPercent: number | null = (() => {
+    for (const name of ['essential', 'premium'] as PlanName[]) {
+      const p = plans.find((pl) => pl.name === name);
+      const monthly = p ? Number(p.monthly_price) : 0;
+      const yearly = p ? Number(p.yearly_price) : 0;
+      if (monthly > 0 && yearly > 0) {
+        const pct = Math.round((1 - yearly / (monthly * 12)) * 100);
+        return pct > 0 ? pct : null;
+      }
+    }
+    return null;
+  })();
+
   const isUpgrade = (targetPlan: PlanName): boolean => {
     const currentIdx = planOrder.indexOf(currentPlanName);
     const targetIdx = planOrder.indexOf(targetPlan);
@@ -600,9 +616,11 @@ export default function SubscriptionScreen() {
               >
                 {t('subscriptionForm.yearly')}
               </Text>
-              <View style={[styles.saveBadge, { backgroundColor: violet + '18' }]}>
-                <Text style={[styles.saveBadgeText, { color: violet }]}>{t('subscriptionForm.discountPill')}</Text>
-              </View>
+              {yearlyDiscountPercent !== null && (
+                <View style={[styles.saveBadge, { backgroundColor: violet + '18' }]}>
+                  <Text style={[styles.saveBadgeText, { color: violet }]}>-{yearlyDiscountPercent}%</Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </View>

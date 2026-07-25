@@ -451,7 +451,6 @@
     "tickets": "Billets",
     "profile": "Profil"
   },
-
   "languagePicker": {
     "eyebrow": "BIENVENUE",
     "titleStart": "Choisis ta ",
@@ -468,7 +467,6 @@
     "searchPlaceholder": "Rechercher un pays",
     "noResult": "Aucun pays trouvé"
   },
-
   "authGuard": {
     "eyebrow": "Accès réservé",
     "loginCta": "Se connecter",
@@ -3047,23 +3045,64 @@
     "errorTitle": "Erreur"
   },
   "country": {
-    "CM": "Cameroun", "CI": "Côte d'Ivoire", "SN": "Sénégal",
-    "KE": "Kenya", "GH": "Ghana", "UG": "Ouganda", "NG": "Nigeria",
-    "BF": "Burkina Faso", "ML": "Mali", "TG": "Togo", "BJ": "Bénin",
-    "NE": "Niger", "CD": "RD Congo", "GN": "Guinée",
-    "FR": "France", "DE": "Allemagne", "ES": "Espagne", "IT": "Italie",
-    "PT": "Portugal", "NL": "Pays-Bas", "BE": "Belgique", "AT": "Autriche",
-    "IE": "Irlande", "FI": "Finlande", "LU": "Luxembourg", "GR": "Grèce",
-    "SK": "Slovaquie", "SI": "Slovénie", "EE": "Estonie", "LT": "Lituanie",
-    "LV": "Lettonie", "CY": "Chypre", "MT": "Malte", "HR": "Croatie",
-    "GB": "Royaume-Uni", "CH": "Suisse", "SE": "Suède", "NO": "Norvège",
-    "DK": "Danemark", "PL": "Pologne", "CZ": "Rép. tchèque", "HU": "Hongrie",
-    "RO": "Roumanie", "BG": "Bulgarie",
-    "US": "États-Unis", "CA": "Canada", "MX": "Mexique",
-    "JP": "Japon", "AU": "Australie", "NZ": "Nouvelle-Zélande",
-    "SG": "Singapour", "HK": "Hong Kong", "MY": "Malaisie", "TH": "Thaïlande",
-    "ID": "Indonésie", "IN": "Inde",
-    "AE": "Émirats AU", "BR": "Brésil",
+    "CM": "Cameroun",
+    "CI": "Côte d'Ivoire",
+    "SN": "Sénégal",
+    "KE": "Kenya",
+    "GH": "Ghana",
+    "UG": "Ouganda",
+    "NG": "Nigeria",
+    "BF": "Burkina Faso",
+    "ML": "Mali",
+    "TG": "Togo",
+    "BJ": "Bénin",
+    "NE": "Niger",
+    "CD": "RD Congo",
+    "GN": "Guinée",
+    "FR": "France",
+    "DE": "Allemagne",
+    "ES": "Espagne",
+    "IT": "Italie",
+    "PT": "Portugal",
+    "NL": "Pays-Bas",
+    "BE": "Belgique",
+    "AT": "Autriche",
+    "IE": "Irlande",
+    "FI": "Finlande",
+    "LU": "Luxembourg",
+    "GR": "Grèce",
+    "SK": "Slovaquie",
+    "SI": "Slovénie",
+    "EE": "Estonie",
+    "LT": "Lituanie",
+    "LV": "Lettonie",
+    "CY": "Chypre",
+    "MT": "Malte",
+    "HR": "Croatie",
+    "GB": "Royaume-Uni",
+    "CH": "Suisse",
+    "SE": "Suède",
+    "NO": "Norvège",
+    "DK": "Danemark",
+    "PL": "Pologne",
+    "CZ": "Rép. tchèque",
+    "HU": "Hongrie",
+    "RO": "Roumanie",
+    "BG": "Bulgarie",
+    "US": "États-Unis",
+    "CA": "Canada",
+    "MX": "Mexique",
+    "JP": "Japon",
+    "AU": "Australie",
+    "NZ": "Nouvelle-Zélande",
+    "SG": "Singapour",
+    "HK": "Hong Kong",
+    "MY": "Malaisie",
+    "TH": "Thaïlande",
+    "ID": "Indonésie",
+    "IN": "Inde",
+    "AE": "Émirats AU",
+    "BR": "Brésil",
     "INTL": "Autre pays"
   },
   "componentsPayment": {
@@ -3265,7 +3304,7 @@
       "infoBox": "Cette étape est optionnelle. Vous pouvez ajouter des sessions plus tard depuis votre tableau de bord.",
       "noSessionsTitle": "Aucune session",
       "noSessionsText": "Cliquez sur \"Ajouter une session\" pour commencer",
-      "addSession": "Ajouter une session",
+      "addSession": "Ajouter",
       "sessionIndex": "Session {{index}}",
       "sessionTitleLabel": "Titre de la session *",
       "sessionTitlePlaceholder": "Ex: Conférence inaugurale",
@@ -3337,7 +3376,6 @@
       "addResource": "Ajouter",
       "resourceTitlePlaceholder": "Titre",
       "sessionsSectionLabel": "Sessions",
-      "addSession": "Ajouter",
       "customOption": "Personnalisé",
       "levelCustomPlaceholder": "Ex: Tous publics, Expert, ...",
       "languageCustomPlaceholder": "Ex: Arabe, Swahili, Japonais, ...",
@@ -3622,7 +3660,6 @@
     "choosePlan": "Choisir un plan",
     "monthly": "Mensuel",
     "yearly": "Annuel",
-    "discountPill": "-20%",
     "badgePopular": "Populaire",
     "badgeCurrent": "Plan actuel",
     "perMonth": "mois",
@@ -3751,8 +3788,6 @@
     "mediaPhotosEmpty": "Aucune photo dans cette conversation",
     "mediaDocumentsEmpty": "Aucun document dans cette conversation",
     "viewParticipants": "Voir les participants",
-    "viewParticipantsCount_one": "{{count}} participant",
-    "viewParticipantsCount_other": "{{count}} participants",
     "participantsEyebrow": "MEMBRES DU GROUPE",
     "participantsEmpty": "Aucun participant",
     "participantYou": "(vous)",
@@ -4446,7 +4481,6 @@
     "emptySentTitle": "Aucun transfert envoyé",
     "emptySentSubtitle": "Vos transferts de billets envoyés apparaîtront ici."
   },
-
   "componentsEvents": {
     "aiUnlimited": "IA illimitée",
     "aiLimitReached": "Limite IA atteinte",
@@ -4733,7 +4767,6 @@
     "similarEventsTitle": "Événements similaires",
     "similarEventA11y": "Voir {{title}}"
   },
-
   "componentsCommon": {
     "exportTitle": "Choisir le format",
     "exportButton": "Exporter",
@@ -4815,7 +4848,6 @@
     "followPrefsSaveA11y": "Enregistrer les préférences",
     "inAppToastA11y": "{{title}}. {{body}}. Touchez pour ouvrir."
   },
-
   "messageRequests": {
     "eyebrow": "ANTI-SPAM",
     "title": "Demandes de messages",
@@ -4827,7 +4859,6 @@
     "emptySubtitle": "Les demandes des personnes hors de votre réseau apparaîtront ici. Acceptez ou refusez pour qu'elles passent dans votre messagerie.",
     "noPreview": "(message vide)"
   },
-
   "connections": {
     "eyebrow": "RÉSEAU",
     "title": "Mes connexions",
@@ -4864,7 +4895,6 @@
     "permissionSubtitle": "Pour scanner un QR, EventEz a besoin d'accéder à la caméra.",
     "permissionGrant": "Autoriser la caméra"
   },
-
   "componentsMessages": {
     "inputJoinFile": "Joindre un fichier",
     "inputJoinFileHint": "Images max 5 Mo, fichiers max 10 Mo",
@@ -4872,14 +4902,14 @@
     "inputSend": "Envoyer",
     "inputRecordVoice": "Enregistrer un message vocal",
     "actionSelect": "Sélectionner",
-    "forwardSendA11y_one": "Transférer à {{count}} destinataire",
-    "forwardSendA11y_other": "Transférer à {{count}} destinataires",
-    "groupMutedCount_one": "{{count}} membre muté",
-    "groupMutedCount_other": "{{count}} membres mutés",
+    "forwardSendA11y_one": "Envoyer à 1 destinataire",
+    "forwardSendA11y_other": "Envoyer à {{count}} destinataires",
+    "groupMutedCount_one": "{{count}} muté",
+    "groupMutedCount_other": "{{count}} mutés",
     "quotaDeleteIn_one": "Suppression dans {{count}} jour",
     "quotaDeleteIn_other": "Suppression dans {{count}} jours",
-    "quotaReadOnlyDays_one": "Lecture seule pendant {{count}} jour",
-    "quotaReadOnlyDays_other": "Lecture seule pendant {{count}} jours",
+    "quotaReadOnlyDays_one": " (dans {{count}} jour)",
+    "quotaReadOnlyDays_other": " (dans {{count}} jours)",
     "inputReplyTo": "Répondre à {{name}}",
     "inputEditing": "Modifier le message",
     "inputPlaceholder": "Écrivez votre message...",
@@ -4924,7 +4954,6 @@
     "actionReply": "Répondre",
     "actionReact": "Réagir",
     "actionForward": "Transférer",
-    "actionSelect": "Sélectionner",
     "actionCopy": "Copier",
     "actionStar": "Marquer",
     "replyDeleted": "Message supprimé",
@@ -4944,8 +4973,6 @@
     "forwardEmptyNoContact": "Aucun contact disponible",
     "forwardSendSingular": "Envoyer à 1 destinataire",
     "forwardSendPlural": "Envoyer à {{count}} destinataires",
-    "forwardSendA11y_one": "Envoyer à 1 destinataire",
-    "forwardSendA11y_other": "Envoyer à {{count}} destinataires",
     "reportEyebrow": "MODÉRATION",
     "reportTitle": "Signaler ce message",
     "reportSubtitle": "Choisis la raison principale. Notre équipe examinera ton signalement sous 24h.",
@@ -4979,12 +5006,8 @@
     "quotaReadOnlyTitle": "Lecture seule — sauvegardez maintenant",
     "quotaReadOnlyTextScheduled": "Cette discussion sera supprimée le {{date}}",
     "quotaReadOnlyTextSoon": "Cette discussion sera supprimée bientôt",
-    "quotaReadOnlyDays_one": " (dans {{count}} jour)",
-    "quotaReadOnlyDays_other": " (dans {{count}} jours)",
     "quotaReadOnlyEnd": ". Plus aucun nouveau message ne peut être envoyé.",
     "quotaSaveBtn": "Sauvegarder",
-    "quotaDeleteIn_one": "Suppression dans {{count}} jour",
-    "quotaDeleteIn_other": "Suppression dans {{count}} jours",
     "quotaSavedRelative": "Sauvegardé {{relative}}",
     "relativeNow": "à l'instant",
     "relativeMin": "il y a {{count}} min",
@@ -5010,8 +5033,6 @@
     "groupHeaderSubtitle": "Réservé à l'organisateur",
     "groupSectionWho": "Qui peut écrire ?",
     "groupSectionMembers": "Membres du groupe ({{count}})",
-    "groupMutedCount_one": "{{count}} muté",
-    "groupMutedCount_other": "{{count}} mutés",
     "groupBadgeOrganizer": "ORGANISATEUR",
     "groupBadgeMuted": "MUTÉ",
     "groupBtnUnmute": "Démuter",
@@ -5028,7 +5049,6 @@
     "typingMany": "{{name}} et {{count}} autres écrivent",
     "messageEdited": "modifié"
   },
-
   "componentsAuth": {
     "verifyEmailSentTitle": "Email envoyé",
     "verifyEmailSentMsg": "Consultez votre boîte de réception pour vérifier votre compte.",
@@ -5057,7 +5077,6 @@
     "lockUnlock": "Déverrouiller",
     "lockUnlockA11y": "Déverrouiller l'application"
   },
-
   "componentsProfile": {
     "suggestEyebrow": "POUR VOUS",
     "suggestStepsLabel": "{{done}} / {{total}} ÉTAPES",
