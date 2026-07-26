@@ -63,4 +63,15 @@ export const exhibitorsAPI = {
     api.post(`/booth-applications/${id}/reject/`, { review_notes: reviewNotes || '' }),
   waitlistApplication: (id: string, reviewNotes?: string) =>
     api.post(`/booth-applications/${id}/waitlist/`, { review_notes: reviewNotes || '' }),
+
+  // ── Vente déléguée (config salon par l'hôte) ─────────────────────────────
+  getSalesConfig: (params: { event: string }) =>
+    api.get('/exhibitor-sales-config/', { params }),
+  createSalesConfig: (data: {
+    event: string; enabled?: boolean;
+    host_revenue_share_pct?: number; default_fee_bearer?: string;
+  }) => api.post('/exhibitor-sales-config/', data),
+  updateSalesConfig: (id: string, data: {
+    enabled?: boolean; host_revenue_share_pct?: number; default_fee_bearer?: string;
+  }) => api.patch(`/exhibitor-sales-config/${id}/`, data),
 };

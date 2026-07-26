@@ -40,6 +40,14 @@ export const eventsAPI = {
   getMyEvents: () =>
     api.get('/events/my_events/'),
 
+  // ── Événements satellites (exposant sous-organisateur) ───────────────────
+  getSatelliteEvents: (params: { host_event: string; status?: string }) =>
+    api.get('/events/', { params }),
+  hostApproveEvent: (id: string) =>
+    api.post(`/events/${id}/host-approve/`),
+  hostRejectEvent: (id: string, reason: string) =>
+    api.post(`/events/${id}/host-reject/`, { reason }),
+
   uploadImages: (id: string, formData: FormData) =>
     fetchUpload('POST', `/events/${id}/upload_images/`, formData),
 

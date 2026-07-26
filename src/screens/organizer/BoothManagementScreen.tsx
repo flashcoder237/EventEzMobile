@@ -36,6 +36,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { exhibitorsAPI, floorPlansAPI } from '../../api';
 import type { RootStackParamList } from '../../types';
+import SalesDelegationTab from './SalesDelegationTab';
 import {
   FontFamily,
   FontSizes,
@@ -47,7 +48,7 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'BoothManagement'>;
 
-type Tab = 'booths' | 'categories' | 'applications';
+type Tab = 'booths' | 'categories' | 'applications' | 'sales';
 
 interface BoothCategory { id: string; name: string; base_price: string; }
 interface Booth { id: string; code: string; category: string; status: string; floor_plan_area?: string | null; }
@@ -343,6 +344,7 @@ export default function BoothManagementScreen() {
     { key: 'booths', label: t('organizer.booths.tabBooths', { defaultValue: 'Stands' }), icon: 'storefront-outline' },
     { key: 'categories', label: t('organizer.booths.tabCategories', { defaultValue: 'Catégories' }), icon: 'pricetags-outline' },
     { key: 'applications', label: t('organizer.booths.tabApplications', { defaultValue: 'Candidatures' }), icon: 'document-text-outline' },
+    { key: 'sales', label: t('organizer.booths.tabSales', { defaultValue: 'Vente déléguée' }), icon: 'cash-outline' },
   ];
 
   const data = tab === 'booths' ? booths : tab === 'categories' ? categories : applications;
@@ -386,6 +388,8 @@ export default function BoothManagementScreen() {
 
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
+      ) : tab === 'sales' ? (
+        <SalesDelegationTab eventId={eventId} />
       ) : (
         <FlatList
           data={data as any[]}
