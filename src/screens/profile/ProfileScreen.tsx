@@ -344,6 +344,11 @@ export default function ProfileScreen() {
                 onPress={() => navigation.navigate('MyEvents')}
               />
               <MenuItem
+                icon="storefront-outline"
+                title={t('profile.myBoothMenu', { defaultValue: 'Mon stand' })}
+                onPress={() => navigation.navigate('MyBooth')}
+              />
+              <MenuItem
                 icon="wallet-outline"
                 title={t('profile.myWalletMenu')}
                 onPress={() => navigation.navigate('Wallet')}

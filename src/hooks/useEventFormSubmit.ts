@@ -14,12 +14,18 @@ export function useEventFormSubmit(
   validateStep: (step: number) => boolean,
   showError: AlertActions['showError'],
   editEventId?: string,
+  hostEventId?: string,
 ) {
   const handleSubmit = useCallback(async (): Promise<string | null> => {
     if (!validateStep(form.currentStep)) return null;
 
     try {
       const formData = buildFormData(form);
+      // Événement satellite (exposant sous-organisateur) : rattacher au salon
+      // hôte. Le backend refuse si l'exposant n'a pas de contrat de vente accepté.
+      if (hostEventId && !editEventId) {
+        formData.append('host_event', hostEventId);
+      }
       const response = editEventId
         ? await eventsAPI.updateEvent(editEventId, formData)
         : await eventsAPI.createEvent(formData);
@@ -57,7 +63,7 @@ export function useEventFormSubmit(
       );
       return null;
     }
-  }, [form, validateStep, showError, editEventId]);
+  }, [form, validateStep, showError, editEventId, hostEventId]);
 
   return handleSubmit;
 }

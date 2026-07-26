@@ -64,6 +64,15 @@ export const exhibitorsAPI = {
   waitlistApplication: (id: string, reviewNotes?: string) =>
     api.post(`/booth-applications/${id}/waitlist/`, { review_notes: reviewNotes || '' }),
 
+  // ── ESPACE EXPOSANT : mes réservations de stand ──────────────────────────
+  getMyBookings: () => api.get('/booth-bookings/'),
+
+  // ── Vente déléguée : contrats de l'exposant ──────────────────────────────
+  getSalesContracts: (params?: { event?: string }) =>
+    api.get('/exhibitor-sales-contracts/', { params }),
+  acceptSalesContract: (id: string, data?: { fee_bearer?: string }) =>
+    api.post(`/exhibitor-sales-contracts/${id}/accept/`, data || {}),
+
   // ── Vente déléguée (config salon par l'hôte) ─────────────────────────────
   getSalesConfig: (params: { event: string }) =>
     api.get('/exhibitor-sales-config/', { params }),

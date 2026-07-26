@@ -295,7 +295,7 @@ async function persistImageToDisk(uri: string): Promise<string> {
 // Hook
 // ============================================
 
-export function useEventForm(alertActions: AlertActions, editEventId?: string): UseEventFormReturn {
+export function useEventForm(alertActions: AlertActions, editEventId?: string, hostEventId?: string): UseEventFormReturn {
   const { showAlert, showSuccess, showError } = alertActions;
   // Strategie "Event mono-devise" : la devise provient du wallet de l'organisateur
   // (l'event herite de wallet.currency a sa creation, docs/CURRENCY_STRATEGY.md).
@@ -417,7 +417,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
 
   const validateStep = useEventFormValidation(form, showError);
 
-  const handleSubmit = useEventFormSubmit(form, validateStep, showError, editEventId);
+  const handleSubmit = useEventFormSubmit(form, validateStep, showError, editEventId, hostEventId);
 
   // Wrap handleSubmit with loading state
   const handleSubmitWithLoading = useCallback(async (): Promise<string | null> => {

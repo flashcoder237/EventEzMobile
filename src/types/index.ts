@@ -1683,9 +1683,10 @@ export type RootStackParamList = {
   Connections: undefined;
   ConnectionScanner: undefined;
   Map: { eventId?: string };
-  EventCreate: { draftId?: string } | undefined;
+  EventCreate: { draftId?: string; hostEventId?: string } | undefined;
   EventEdit: { eventId: string };
   MyEvents: undefined;
+  MyBooth: undefined;
   EventAnalytics: { eventId: string };
   EventRegistrations: { eventId: string };
   SessionDetails: { sessionId: string };

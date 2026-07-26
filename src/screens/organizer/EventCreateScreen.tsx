@@ -56,6 +56,8 @@ export default function EventCreateScreen() {
   // Le screen est utilise pour Create et Edit. En Edit, route.params.eventId existe.
   const eventId = (route.params as EditRouteType['params'] | undefined)?.eventId;
   const draftId = (route.params as { draftId?: string } | undefined)?.draftId;
+  // Événement satellite : créé rattaché à un salon hôte (exposant sous-organisateur).
+  const hostEventId = (route.params as { hostEventId?: string } | undefined)?.hostEventId;
   const isEditing = !!eventId;
 
   const { t } = useTranslation();
@@ -150,7 +152,7 @@ export default function EventCreateScreen() {
     resetForm,
     hydrateForm,
     formatDate,
-  } = useEventForm(alertActions, eventId);
+  } = useEventForm(alertActions, eventId, hostEventId);
 
   // Stripe Phase 1 : badge "Pays non disponible" si l'organisateur saisit
   // un pays hors NotchPay/CinetPay/Stripe. Le backend refusera de toute
