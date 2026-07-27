@@ -52,6 +52,7 @@ interface PendingEvent {
   status: string;
   created_at: string;
   banner_image?: string;
+  category?: { id: string | number; name: string } | null;
   // Le serializer backend (EventListSerializer) expose `organizer_name` (string),
   // pas un objet `organizer` complet. Le fallback `organizer` reste typé pour
   // la retro-compat si un autre endpoint retourne l'objet imbrique.
@@ -66,6 +67,7 @@ interface PendingEvent {
 }
 
 type FilterType = 'all' | 'billetterie' | 'inscription';
+type SortKey = 'oldest' | 'newest' | 'startDate' | 'title';
 
 const BILLET_COLOR = '#4F46E5';
 const INSCRIPTION_COLOR = '#A855F7';
@@ -87,6 +89,8 @@ export default function ModerationScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<SortKey>('oldest');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -288,25 +292,58 @@ export default function ModerationScreen() {
     inscription: events.filter(e => e.event_type === 'inscription').length,
   }), [events]);
 
+  // Catégories réellement présentes dans la file (pour peupler le filtre).
+  const availableCategories = useMemo(() => {
+    const map = new Map<string, string>();
+    events.forEach((e) => {
+      if (e.category?.id != null) map.set(String(e.category.id), e.category.name || String(e.category.id));
+    });
+    return Array.from(map, ([id, name]) => ({ id, name }));
+  }, [events]);
+
   const filteredEvents = useMemo(() => {
     let result = [...events];
     if (filterType !== 'all') {
       result = result.filter(e => e.event_type === filterType);
     }
+    if (filterCategory !== 'all') {
+      result = result.filter(e => String(e.category?.id) === filterCategory);
+    }
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter(e =>
         e.title.toLowerCase().includes(query) ||
+        e.organizer_name?.toLowerCase().includes(query) ||
         e.organizer?.full_name?.toLowerCase().includes(query) ||
         e.organizer?.email?.toLowerCase().includes(query) ||
         e.location_city?.toLowerCase().includes(query)
       );
     }
-    // Tri par ancienneté de soumission (les plus anciens d'abord) — respecte le SLA
-    // affiché aux organizers (24h en moyenne).
-    result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    // Tri configurable. Par défaut : plus anciens d'abord — respecte le SLA affiché
+    // aux organizers (24h en moyenne).
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'startDate': {
+          const ta = a.start_date ? new Date(a.start_date).getTime() : Infinity;
+          const tb = b.start_date ? new Date(b.start_date).getTime() : Infinity;
+          return ta - tb;
+        }
+        case 'title':
+          return (a.title || '').localeCompare(b.title || '');
+        case 'oldest':
+        default:
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
+    });
     return result;
-  }, [events, filterType, searchQuery]);
+  }, [events, filterType, filterCategory, searchQuery, sortBy]);
+
+  const SORT_CYCLE: SortKey[] = ['oldest', 'newest', 'startDate', 'title'];
+  const cycleSort = () => {
+    setSortBy((prev) => SORT_CYCLE[(SORT_CYCLE.indexOf(prev) + 1) % SORT_CYCLE.length]);
+  };
 
   // Compteur d'events en retard (> 24h en attente) pour alerter sur le SLA
   const overdueCount = useMemo(() => {
@@ -600,7 +637,7 @@ export default function ModerationScreen() {
       </AnimatedIllustration>
       <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('moderation.emptyTitle')}</Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-        {searchQuery || filterType !== 'all'
+        {searchQuery || filterType !== 'all' || filterCategory !== 'all'
           ? t('moderation.emptyTextFiltered')
           : t('moderation.emptyTextDefault')}
       </Text>
@@ -776,9 +813,9 @@ export default function ModerationScreen() {
           )}
         </View>
 
-        {/* Filters */}
-        <View style={styles.filtersRow}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm }}>
+        {/* Filters (type) + tri */}
+        <View style={[styles.filtersRow, { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }]}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm }} style={{ flex: 1 }}>
             {filters.map((f) => {
               const active = filterType === f.key;
               return (
@@ -800,7 +837,48 @@ export default function ModerationScreen() {
               );
             })}
           </ScrollView>
+          {/* Toggle de tri — tap pour cycler oldest → newest → date → titre */}
+          <TouchableOpacity
+            style={[styles.sortToggle, { backgroundColor: colors.card, borderColor: hairline }]}
+            onPress={cycleSort}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t('moderation.sortA11y', { defaultValue: 'Changer le tri' })}
+          >
+            <Ionicons name="swap-vertical" size={13} color={colors.gray600} />
+            <Text style={[styles.sortToggleText, { color: colors.gray600 }]} numberOfLines={1}>
+              {t(`moderation.sort_${sortBy}`)}
+            </Text>
+          </TouchableOpacity>
         </View>
+
+        {/* Filtre catégorie — n'apparaît que si la file contient ≥ 2 catégories */}
+        {availableCategories.length > 1 && (
+          <View style={{ marginBottom: Spacing.sm }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm }}>
+              {[{ id: 'all', name: t('moderation.filterAllCategories', { defaultValue: 'Toutes catégories' }) }, ...availableCategories].map((c) => {
+                const active = filterCategory === String(c.id);
+                return (
+                  <TouchableOpacity
+                    key={String(c.id)}
+                    style={[
+                      styles.filterPill,
+                      active
+                        ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                        : { backgroundColor: colors.card, borderColor: hairline },
+                    ]}
+                    onPress={() => setFilterCategory(String(c.id))}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.filterText, { color: active ? '#fff' : colors.gray600 }]}>
+                      {c.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Events list */}
         <View style={{ marginTop: Spacing.sm }}>
@@ -1273,6 +1351,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   filterText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
+  sortToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    maxWidth: 130,
+  },
+  sortToggleText: { fontFamily: FontFamily.semiBold, fontSize: 11 },
 
   // Card — aligne sur EventCard (radius 18, image hero + date tile flottante)
   card: {
