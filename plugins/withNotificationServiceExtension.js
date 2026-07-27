@@ -20,6 +20,12 @@ const NSE_TARGET_NAME = 'EventEzNotificationService';
 const NSE_SOURCE_FILE = 'NotificationService.swift';
 const NSE_PLIST_FILE = 'NotificationService-Info.plist';
 
+// Apple Team ID (Brice Kisito Banfack Temena — Individual). Requis pour signer
+// la NSE : sur EAS Build (non-interactif), une target d'extension sans
+// DEVELOPMENT_TEAM échoue avec « Signing ... requires a development team ».
+// Peut être surchargé via la variable d'env EXPO_APPLE_TEAM_ID.
+const APPLE_TEAM_ID = process.env.EXPO_APPLE_TEAM_ID || '9T6HK8G8B5';
+
 function withNotificationServiceExtension(config) {
   // 1. Modifier l'app principale : déjà OK via expo-notifications plugin.
   //    On ne touche pas au Info.plist principal — l'extension a son propre plist.
@@ -101,6 +107,9 @@ function withNotificationServiceExtension(config) {
         config.buildSettings.INFOPLIST_FILE = `${NSE_TARGET_NAME}/Info.plist`;
         config.buildSettings.PRODUCT_BUNDLE_IDENTIFIER = nseBundleId;
         config.buildSettings.CODE_SIGN_STYLE = 'Automatic';
+        // DEVELOPMENT_TEAM explicite : sans elle, la signature de l'extension
+        // échoue sur EAS Build (« requires a development team »).
+        config.buildSettings.DEVELOPMENT_TEAM = APPLE_TEAM_ID;
         config.buildSettings.TARGETED_DEVICE_FAMILY = '"1,2"';
       }
     }

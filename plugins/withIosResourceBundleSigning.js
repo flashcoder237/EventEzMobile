@@ -24,12 +24,21 @@ const fs = require('fs');
 const path = require('path');
 
 const MARKER = '# eventez:disable-resource-bundle-signing';
+// On teste PRODUCT_TYPE dans les build_settings de chaque config (fiable sur
+// toutes les versions de CocoaPods, contrairement à target.product_type qui
+// n'est pas toujours résolu au post_install). Tout target dont le PRODUCT_TYPE
+// est un bundle (resource bundle) voit sa signature désactivée : elle n'est pas
+// requise car le bundle est embarqué dans l'app déjà signée.
 const SNIPPET = `
     ${MARKER}
     installer.pods_project.targets.each do |target|
-      if target.respond_to?(:product_type) && target.product_type == 'com.apple.product-type.bundle'
-        target.build_configurations.each do |config|
+      target.build_configurations.each do |config|
+        if config.build_settings['PRODUCT_TYPE'] == 'com.apple.product-type.bundle'
           config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+          config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
+          config.build_settings['CODE_SIGNING_IDENTITY'] = ''
+          config.build_settings['CODE_SIGN_IDENTITY'] = ''
+          config.build_settings['EXPANDED_CODE_SIGN_IDENTITY'] = ''
         end
       end
     end
