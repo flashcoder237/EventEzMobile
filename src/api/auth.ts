@@ -135,6 +135,10 @@ export const usersAPI = {
   getUserSettings: () =>
     api.get('/users/me/settings/'),
 
+  /** Compteurs agrégés « action requise » (badges de menu) selon le rôle. */
+  getBadgeCounts: () =>
+    api.get('/users/me/badge-counts/'),
+
   // Privacy : bloquer / débloquer / lister les utilisateurs bloqués
   blockUser: (userId: string | number) =>
     api.post(`/users/${userId}/block/`),

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { AppState, AppStateStatus, Platform, Linking } from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { notificationsAPI, messagesAPI, invitationsAPI, ticketTransfersAPI, eventsAPI } from '../api';
+import { notificationsAPI, messagesAPI, invitationsAPI, ticketTransfersAPI, usersAPI } from '../api';
 import { useAuth } from './AuthContext';
 import pushNotificationService, { PushNotificationData } from '../services/pushNotificationService';
 import PushPermissionModal from '../components/common/PushPermissionModal';
@@ -97,6 +97,9 @@ interface NotificationContextType {
   pendingInvitationCount: number;
   pendingTransferCount: number;
   pendingModerationCount: number;
+  salesContractCount: number;
+  exhibitorApplicationsCount: number;
+  satellitesToApproveCount: number;
   /** Total items awaiting user action (notifs + messages + invitations + transfers) */
   totalPendingCount: number;
   loading: boolean;
@@ -137,6 +140,9 @@ interface UnreadCountsContextType {
   pendingInvitationCount: number;
   pendingTransferCount: number;
   pendingModerationCount: number;
+  salesContractCount: number;
+  exhibitorApplicationsCount: number;
+  satellitesToApproveCount: number;
   totalPendingCount: number;
 }
 
@@ -149,8 +155,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [pendingInvitationCount, setPendingInvitationCount] = useState(0);
   const [pendingTransferCount, setPendingTransferCount] = useState(0);
-  // Badge modérateur : events en attente de validation (0 pour les non-modérateurs).
+  // Badges « action requise » par rôle (alimentés par /users/me/badge-counts/).
   const [pendingModerationCount, setPendingModerationCount] = useState(0);
+  const [salesContractCount, setSalesContractCount] = useState(0);
+  const [exhibitorApplicationsCount, setExhibitorApplicationsCount] = useState(0);
+  const [satellitesToApproveCount, setSatellitesToApproveCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -432,19 +441,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         setPendingTransferCount(Array.isArray(transfers) ? transfers.length : 0);
       }
 
-      // Badge modération : uniquement pour les modérateurs/admins (l'endpoint
-      // renvoie 0 aux autres, mais on évite l'appel inutile).
-      const role = user?.role;
-      const isModerator = role === 'moderator' || role === 'admin' || (user as any)?.is_staff;
-      if (isModerator) {
-        try {
-          const modRes = await eventsAPI.getModerationPendingCount();
-          setPendingModerationCount(modRes.data?.count || 0);
-        } catch {
-          /* silencieux : le badge modération reste à sa valeur précédente */
-        }
-      } else {
-        setPendingModerationCount(0);
+      // Badges « action requise » agrégés (modération, invitations exposant,
+      // candidatures, satellites, contrat…) en un seul appel. Le backend renvoie
+      // 0 pour ce qui ne concerne pas le rôle.
+      try {
+        const badgeRes = await usersAPI.getBadgeCounts();
+        const b = badgeRes.data || {};
+        setPendingModerationCount(b.moderation || 0);
+        setSalesContractCount(b.sales_contract || 0);
+        setExhibitorApplicationsCount(b.exhibitor_applications || 0);
+        setSatellitesToApproveCount(b.satellites_to_approve || 0);
+      } catch {
+        /* silencieux : les badges gardent leur valeur précédente */
       }
     } catch (error) {
       if (__DEV__) console.error('Error fetching unread counts:', error);
@@ -626,6 +634,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setPendingInvitationCount(0);
       setPendingTransferCount(0);
       setPendingModerationCount(0);
+      setSalesContractCount(0);
+      setExhibitorApplicationsCount(0);
+      setSatellitesToApproveCount(0);
       setPushToken(null);
       setPushEnabled(false);
 
@@ -738,6 +749,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     pendingInvitationCount,
     pendingTransferCount,
     pendingModerationCount,
+    salesContractCount,
+    exhibitorApplicationsCount,
+    satellitesToApproveCount,
     totalPendingCount,
     loading,
     pushToken,
@@ -759,6 +773,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     pendingInvitationCount,
     pendingTransferCount,
     pendingModerationCount,
+    salesContractCount,
+    exhibitorApplicationsCount,
+    satellitesToApproveCount,
     totalPendingCount,
     loading,
     pushToken,
@@ -781,6 +798,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     pendingInvitationCount,
     pendingTransferCount,
     pendingModerationCount,
+    salesContractCount,
+    exhibitorApplicationsCount,
+    satellitesToApproveCount,
     totalPendingCount,
   }), [
     unreadNotificationCount,
@@ -788,6 +808,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     pendingInvitationCount,
     pendingTransferCount,
     pendingModerationCount,
+    salesContractCount,
+    exhibitorApplicationsCount,
+    satellitesToApproveCount,
     totalPendingCount,
   ]);
 
