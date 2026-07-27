@@ -164,6 +164,8 @@ export default function NotificationsScreen() {
     system_message: { icon: 'information-circle', color: '#6B7280', label: t('notifications.typeSystem'), eyebrow: 'SYS' },
     custom_message: { icon: 'chatbubble', color: '#6366F1', label: t('notifications.typeMessage'), eyebrow: 'MSG' },
     ticket_purchase: { icon: 'ticket', color: '#A855F7', label: t('notifications.typeTicket'), eyebrow: 'TIX' },
+    event_pending_moderation: { icon: 'shield-checkmark', color: '#4F46E5', label: t('notifications.typePendingModeration'), eyebrow: 'À VALIDER' },
+    moderation_queue_reminder: { icon: 'shield-checkmark', color: '#E0A800', label: t('notifications.typeModerationReminder'), eyebrow: 'MODÉRATION' },
     event_suggestion: { icon: 'sparkles', color: '#F59E0B', label: t('notifications.typeSuggestion'), eyebrow: 'DÉCOUVERTE' },
     event_low_stock: { icon: 'hourglass', color: '#F59E0B', label: t('notifications.typeLowStock'), eyebrow: 'URGENT' },
     event_today: { icon: 'today', color: '#FF6B6B', label: t('notifications.typeToday'), eyebrow: "AUJOURD'HUI" },
@@ -359,6 +361,13 @@ export default function NotificationsScreen() {
 
     const { notification_type, related_object_type, related_object_id, event, data } = selectedNotification;
 
+    // Notifs de modération → file de modération (pas la page publique de l'event).
+    // Prioritaire sur le routage related_object=event ci-dessous.
+    if (notification_type === 'event_pending_moderation' || notification_type === 'moderation_queue_reminder') {
+      navigation.navigate('Moderation');
+      return;
+    }
+
     if (event && typeof event === 'object' && event.id) {
       navigation.navigate('EventDetails', { eventId: event.slug || event.id });
       return;
@@ -415,6 +424,7 @@ export default function NotificationsScreen() {
     if (notification.related_object_type && notification.related_object_id) return true;
     if (notification.data?.event_id || notification.data?.registration_id) return true;
     if (['registration', 'registration_confirmation', 'payment', 'payment_confirmation', 'message'].includes(notification.notification_type)) return true;
+    if (['event_pending_moderation', 'moderation_queue_reminder'].includes(notification.notification_type)) return true;
     return false;
   };
 

@@ -1722,6 +1722,8 @@
     "typeLowStock": "Low stock",
     "typeToday": "Today",
     "typeWinback": "What's new",
+    "typePendingModeration": "To review",
+    "typeModerationReminder": "Moderation queue",
     "typeDefault": "Notification",
     "filterAllTab": "All",
     "filterUnreadTab": "Unread",

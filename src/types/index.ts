@@ -783,6 +783,8 @@ export type NotificationType =
   | 'system_message'
   | 'custom_message'
   | 'feature_request'
+  | 'event_pending_moderation'
+  | 'moderation_queue_reminder'
   | 'general';
 
 // Type de canal de notification

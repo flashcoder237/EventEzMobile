@@ -1722,6 +1722,8 @@
     "typeLowStock": "Stock limité",
     "typeToday": "Aujourd'hui",
     "typeWinback": "Nouveautés",
+    "typePendingModeration": "À valider",
+    "typeModerationReminder": "File de modération",
     "typeDefault": "Notification",
     "filterAllTab": "Toutes",
     "filterUnreadTab": "Non lues",
