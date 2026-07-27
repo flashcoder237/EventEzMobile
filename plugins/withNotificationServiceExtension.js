@@ -1,15 +1,28 @@
 /**
  * withNotificationServiceExtension — Expo config plugin
  *
- * Ajoute une Notification Service Extension iOS au projet au moment du
- * `eas build`. La NSE intercepte les push avec `mutable-content: 1` et
- * télécharge l'image dans `attachments` → BigPictureStyle natif iOS.
+ * ⚠️ DÉSACTIVÉ (non listé dans app.json > plugins) depuis le 2026-07-27.
  *
- * Sans ce plugin, les notifs riches iOS s'affichent en banner texte simple
- * même avec image_url dans le payload.
+ * Raison : la NSE exige son propre provisioning profile (bundle ID
+ * net.overbrand.eventez.NotificationService) qu'EAS ne génère pas
+ * automatiquement pour une extension ajoutée par config plugin → build iOS
+ * bloqué. Surtout, l'analyse a montré qu'elle est INOPÉRANTE en l'état : le
+ * chemin FCM direct → NSE ne fonctionne pas sur iOS sans le SDK Firebase iOS
+ * (@react-native-firebase + GoogleService-Info.plist), absent ici. Le
+ * `getDevicePushTokenAsync()` iOS renvoie un token APNs que firebase-admin ne
+ * sait pas router → fallback Expo Push. Les images riches iOS passent donc
+ * désormais par Expo Push (`richContent.image` + `mutableContent`, ajouté côté
+ * backend dans _send_expo_push), SANS aucune NSE.
  *
- * Pré-requis backend : payload APNs avec `aps.mutable-content = 1` +
- * `data.image_url` (déjà fait par fcm_service.py).
+ * Pour réactiver un jour (rendu natif avancé) : (1) ajouter le SDK Firebase iOS
+ * pour obtenir un vrai token FCM, (2) re-lister ce plugin, (3) fournir le
+ * provisioning profile de l'extension via credentials.json. Le code de la NSE
+ * (plugins/notification-service-extension/) est conservé intact.
+ *
+ * ─── Rôle d'origine (quand actif) ───
+ * Ajoute une Notification Service Extension iOS au projet au `eas build`. La
+ * NSE intercepte les push `mutable-content: 1` et télécharge l'image dans
+ * `attachments` → rendu riche natif iOS.
  */
 
 const { withXcodeProject, withInfoPlist } = require('@expo/config-plugins');

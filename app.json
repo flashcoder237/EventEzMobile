@@ -128,7 +128,6 @@
       ],
       "./plugins/withNetworkSecurity",
       "./plugins/withRemoveProblematicPermissions",
-      "./plugins/withNotificationServiceExtension",
       "./plugins/withNotifeeMavenRepo",
       "expo-web-browser",
       "expo-audio",
