@@ -357,10 +357,11 @@ describe('PaymentScreen', () => {
     mockCreatePayment.mockResolvedValueOnce({ data: { id: 'pay-1' } });
     mockProcessMobileMoney.mockResolvedValueOnce({ data: { ok: true } });
 
-    const { findByText, findByLabelText } = render(<PaymentScreen />);
+    const { findByText, findByLabelText, findByTestId } = render(<PaymentScreen />);
     fireEvent.press(await findByText('MTN Mobile Money'));
 
     const payBtn = await findByLabelText('Confirmer le paiement');
+    fireEvent.press(await findByTestId('terms-checkbox'));
     fireEvent.press(payBtn);
 
     await waitFor(() => {
@@ -391,10 +392,11 @@ describe('PaymentScreen', () => {
       data: { authorization_url: 'https://checkout.example.com/abc' },
     });
 
-    const { findByText, findByLabelText } = render(<PaymentScreen />);
+    const { findByText, findByLabelText, findByTestId } = render(<PaymentScreen />);
     fireEvent.press(await findByText('Carte bancaire'));
 
     const payBtn = await findByLabelText('Confirmer le paiement');
+    fireEvent.press(await findByTestId('terms-checkbox'));
     fireEvent.press(payBtn);
 
     await waitFor(() => {
@@ -417,10 +419,11 @@ describe('PaymentScreen', () => {
   it('does NOT submit when biometric confirm is rejected', async () => {
     mockBiometricConfirm.mockResolvedValueOnce(false);
 
-    const { findByText, findByLabelText } = render(<PaymentScreen />);
+    const { findByText, findByLabelText, findByTestId } = render(<PaymentScreen />);
     fireEvent.press(await findByText('MTN Mobile Money'));
 
     const payBtn = await findByLabelText('Confirmer le paiement');
+    fireEvent.press(await findByTestId('terms-checkbox'));
     fireEvent.press(payBtn);
 
     await waitFor(() => {
@@ -434,10 +437,11 @@ describe('PaymentScreen', () => {
       response: { data: { detail: 'Provider down' } },
     });
 
-    const { findByText, findByLabelText } = render(<PaymentScreen />);
+    const { findByText, findByLabelText, findByTestId } = render(<PaymentScreen />);
     fireEvent.press(await findByText('MTN Mobile Money'));
 
     const payBtn = await findByLabelText('Confirmer le paiement');
+    fireEvent.press(await findByTestId('terms-checkbox'));
     fireEvent.press(payBtn);
 
     await waitFor(() => {

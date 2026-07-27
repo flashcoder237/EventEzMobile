@@ -281,6 +281,7 @@ export default function PaymentScreen() {
   const [cancelling, setCancelling] = useState(false);
   const [verifyingManually, setVerifyingManually] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [countryConfig, setCountryConfig] = useState<CountryPaymentConfig | null>(null);
   const [dynamicMethods, setDynamicMethods] = useState<PaymentMethodOption[]>([]);
   // Drapeau d'échec du fetch des méthodes → bandeau d'erreur tappable (retry).
@@ -732,6 +733,15 @@ export default function PaymentScreen() {
     // Protection contre double soumission
     if (processing) {
       if (__DEV__) console.log('[Payment] Soumission ignorée - déjà en cours');
+      return;
+    }
+
+    // Conditions de vente : consentement explicite obligatoire avant de payer.
+    if (!termsAccepted) {
+      showError(
+        t('common.error'),
+        t('payment.termsRequired', { defaultValue: 'Vous devez accepter les conditions de vente pour continuer.' }),
+      );
       return;
     }
 
@@ -1785,6 +1795,30 @@ export default function PaymentScreen() {
                 )}
               </View>
             )}
+
+            {/* Acceptation des conditions de vente (obligatoire) */}
+            <TouchableOpacity
+              testID="terms-checkbox"
+              onPress={() => setTermsAccepted((v) => !v)}
+              activeOpacity={0.8}
+              style={styles.termsRowPay}
+            >
+              <Ionicons
+                name={termsAccepted ? 'checkbox' : 'square-outline'}
+                size={22}
+                color={termsAccepted ? colors.primary : colors.gray400}
+              />
+              <Text style={[styles.termsTextPay, { color: colors.gray600 }]}>
+                {t('payment.termsAcceptPrefix', { defaultValue: "J'accepte les " })}
+                <Text
+                  style={[styles.termsLinkPay, { color: colors.primary }]}
+                  onPress={() => navigation.navigate('Terms' as never)}
+                >
+                  {t('payment.termsLink', { defaultValue: 'conditions générales de vente' })}
+                </Text>
+                {t('payment.termsAcceptSuffix', { defaultValue: ' et la politique de remboursement.' })}
+              </Text>
+            </TouchableOpacity>
           </KeyboardAwareScrollView>
 
           {/* === BOTTOM CTA === */}
@@ -2216,6 +2250,23 @@ const styles = StyleSheet.create({
   },
   payButton: {
     width: '100%',
+  },
+
+  termsRowPay: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 20,
+    marginHorizontal: 16,
+  },
+  termsTextPay: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  termsLinkPay: {
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 
   // Processing Status Screen

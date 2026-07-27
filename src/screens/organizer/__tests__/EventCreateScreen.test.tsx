@@ -29,7 +29,9 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 const mockShowAlert = jest.fn();
-const mockShowConfirm = jest.fn();
+// La garde CGU (mode création) passe par showConfirm : on exécute le callback
+// onConfirm pour simuler l'acceptation par l'utilisateur (3e argument).
+const mockShowConfirm = jest.fn((_title, _msg, onConfirm) => onConfirm?.());
 const mockShowSuccess = jest.fn();
 const mockShowError = jest.fn();
 jest.mock('../../../contexts/AlertContext', () => ({

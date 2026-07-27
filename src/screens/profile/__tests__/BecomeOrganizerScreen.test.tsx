@@ -174,7 +174,7 @@ describe('BecomeOrganizerScreen', () => {
     mockBecomeOrganizer.mockResolvedValueOnce({ data: { ok: true } });
     mockGetCurrentUser.mockResolvedValueOnce({ data: { id: 1, role: 'organizer' } });
 
-    const { getByText, findByText, getByLabelText } = render(<BecomeOrganizerScreen />);
+    const { getByText, findByText, getByLabelText, getByTestId } = render(<BecomeOrganizerScreen />);
 
     goNext(getByText); // step 2
     await findByText('Particulier');
@@ -185,6 +185,7 @@ describe('BecomeOrganizerScreen', () => {
     goNext(getByText); // step 4
     await findByText('Prêt à commencer !');
 
+    fireEvent.press(getByTestId('organizer-terms-checkbox'));
     fireEvent.press(getByLabelText('Confirmer'));
 
     await waitFor(() => {
@@ -211,7 +212,7 @@ describe('BecomeOrganizerScreen', () => {
     mockBecomeOrganizer.mockResolvedValueOnce({ data: { ok: true } });
     mockGetCurrentUser.mockResolvedValueOnce({ data: { id: 1, role: 'organizer' } });
 
-    const { getByText, findByText, getByPlaceholderText, getByLabelText } = render(
+    const { getByText, findByText, getByPlaceholderText, getByLabelText, getByTestId } = render(
       <BecomeOrganizerScreen />,
     );
 
@@ -228,6 +229,7 @@ describe('BecomeOrganizerScreen', () => {
     goNext(getByText); // step 4
     await findByText('Prêt à commencer !');
 
+    fireEvent.press(getByTestId('organizer-terms-checkbox'));
     fireEvent.press(getByLabelText('Confirmer'));
 
     await waitFor(() => {
@@ -247,7 +249,7 @@ describe('BecomeOrganizerScreen', () => {
       response: { data: { detail: 'Profil déjà organisateur' } },
     });
 
-    const { getByText, findByText, getByLabelText } = render(<BecomeOrganizerScreen />);
+    const { getByText, findByText, getByLabelText, getByTestId } = render(<BecomeOrganizerScreen />);
 
     goNext(getByText); // step 2
     await findByText('Particulier');
@@ -256,6 +258,7 @@ describe('BecomeOrganizerScreen', () => {
     goNext(getByText); // step 4
     await findByText('Prêt à commencer !');
 
+    fireEvent.press(getByTestId('organizer-terms-checkbox'));
     fireEvent.press(getByLabelText('Confirmer'));
 
     await waitFor(() => {

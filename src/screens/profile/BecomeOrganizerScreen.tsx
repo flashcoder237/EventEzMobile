@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ViewStyle,
+  TouchableOpacity,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -170,6 +171,7 @@ export default function BecomeOrganizerScreen() {
     { icon: BENEFIT_ICONS[3], title: t('becomeOrganizerForm.benefit4Title'), desc: t('becomeOrganizerForm.benefit4Desc') },
   ];
   const [isLoading, setIsLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const progressAnim = useRef(new Animated.Value(1)).current;
 
@@ -248,6 +250,14 @@ export default function BecomeOrganizerScreen() {
   };
 
   const handleSubmit = async () => {
+    // Charte organisateur : acceptation explicite obligatoire.
+    if (!termsAccepted) {
+      showError(
+        t('common.error', { defaultValue: 'Erreur' }),
+        t('becomeOrganizerForm.termsRequired', { defaultValue: 'Vous devez accepter la charte organisateur pour continuer.' }),
+      );
+      return;
+    }
     setIsLoading(true);
     try {
       const data: any = {
@@ -546,6 +556,30 @@ export default function BecomeOrganizerScreen() {
         </Text>
         <Text style={[styles.testimonialAuthor, { color: colors.gray500 }]}>{t('becomeOrganizerForm.testimonialAuthor')}</Text>
       </View>
+
+      {/* Acceptation de la charte organisateur (obligatoire) */}
+      <TouchableOpacity
+        testID="organizer-terms-checkbox"
+        onPress={() => setTermsAccepted((v) => !v)}
+        activeOpacity={0.8}
+        style={styles.termsRow}
+      >
+        <Ionicons
+          name={termsAccepted ? 'checkbox' : 'square-outline'}
+          size={22}
+          color={termsAccepted ? colors.primary : colors.gray400}
+        />
+        <Text style={[styles.termsText, { color: colors.gray600 }]}>
+          {t('becomeOrganizerForm.termsAcceptPrefix', { defaultValue: "J'accepte les " })}
+          <Text
+            style={[styles.termsLink, { color: colors.primary }]}
+            onPress={() => navigation.navigate('Terms' as never)}
+          >
+            {t('becomeOrganizerForm.termsLink', { defaultValue: 'conditions générales' })}
+          </Text>
+          {t('becomeOrganizerForm.termsAcceptSuffix', { defaultValue: " et la charte organisateur." })}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -1073,6 +1107,24 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     color: Colors.gray500,
+  },
+
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 16,
+    paddingHorizontal: 4,
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+    fontFamily: FontFamily.regular,
+  },
+  termsLink: {
+    fontFamily: FontFamily.semiBold,
+    textDecorationLine: 'underline',
   },
 
   // Footer

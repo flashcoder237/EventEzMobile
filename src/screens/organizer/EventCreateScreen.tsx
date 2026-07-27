@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -259,7 +259,25 @@ export default function EventCreateScreen() {
     navigation.goBack();
   }, [isEditing, saveNow, navigation]);
 
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
   const onSubmit = async () => {
+    // Acceptation des CGU obligatoire à la PUBLICATION (pas en édition). On
+    // demande le consentement explicite une fois via une confirmation, puis on
+    // enchaîne directement la soumission (pas de re-lecture du state, qui serait
+    // stale au moment du callback).
+    if (!isEditing && !termsAccepted) {
+      showConfirm(
+        t('organizer.eventCreate.termsTitle', { defaultValue: 'Conditions générales' }),
+        t('organizer.eventCreate.termsMessage', { defaultValue: "En publiant, vous acceptez les conditions générales d'utilisation d'EventEz et certifiez que les informations sont exactes." }),
+        () => { setTermsAccepted(true); doSubmit(); },
+      );
+      return;
+    }
+    doSubmit();
+  };
+
+  const doSubmit = async () => {
     const result = await handleSubmit();
     if (!result) return;
 
