@@ -286,11 +286,35 @@ Apple teste l'app avec un vrai compte. Fournir tout ce qui évite un rejet
 | Champ | Valeur |
 |---|---|
 | **Sign-In required?** | Oui pour certaines actions (navigation possible sans compte — browse-first) |
-| **Compte de démo — e-mail** | ⚠️ **À créer** (ex. `review@eventez.online`) — un compte réel qui fonctionne |
-| **Compte de démo — mot de passe** | ⚠️ **À renseigner** |
+| **Compte de démo — e-mail** | `review@eventez.online` |
+| **Compte de démo — mot de passe** | ⚠️ **À renseigner** (celui généré à la création du compte) |
 | **Contact — prénom / nom** | Brice Temena |
 | **Contact — e-mail** | brice.temena@gmail.com |
 | **Contact — téléphone** | ⚠️ **À renseigner** (numéro joignable) |
+
+### ⚙️ Compte de revue à créer (admin Django → Nouvel utilisateur)
+
+Un **compte ORGANISATEUR** — il couvre à la fois le parcours participant (parcourir,
+acheter, messagerie, billet QR/Wallet) ET la partie organisateur mise en avant dans la
+fiche (créer/gérer un événement, check-in). **Ni admin, ni modérateur** (back-office
+hors périmètre grand public, risque de dérouter le testeur).
+
+| Champ du formulaire | Valeur |
+|---|---|
+| **Email** | `review@eventez.online` — domaine `@eventez.online` **protégé** de `clear_demo_data` (compte durable, ne sera pas purgé) |
+| **Nom d'utilisateur** | `apple_review` |
+| **Prénom / Nom** | `Apple` / `Review` |
+| **Téléphone** | un E.164 valide (pas besoin de recevoir de SMS) |
+| **Mot de passe** | **« Générer » puis NOTER** (≥ 8 car.) → à coller dans App Store Connect |
+| **Rôle** | ☑️ **Organisateur** |
+| **Compte actif** | ☑️ **Oui** (sinon connexion impossible) |
+| **Profil vérifié** | ☑️ **Oui** (sinon mur de vérification → rejet « impossible de tester ») |
+
+> **Étape indispensable après création** : se connecter avec ce compte et **créer
+> 1 événement publié/validé avec un type de billet GRATUIT (prix 0)**. Cela permet au
+> testeur Apple de vérifier le parcours d'inscription + billet QR **sans paiement réel**
+> (cohérent avec la note de revue « aucun débit réel en test »). Sans événement
+> testable, l'app paraît vide → risque de rejet.
 
 ### Notes pour la revue (à coller dans « Notes »)
 ```
