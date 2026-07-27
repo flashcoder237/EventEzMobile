@@ -42,7 +42,7 @@ dans le code** (`app.json`, `app.config.js`, `eas.json`, `src/`) — pas d'inven
 | **Version marketing (CFBundleShortVersionString)** | `1.0.0` | app.json |
 | **Build number (CFBundleVersion)** | Géré par **EAS** (`appVersionSource: remote`, `autoIncrement` en prod) — pas de valeur en dur | eas.json |
 | **Nom principal / Primary language** | Français (France) | — |
-| **Catégorie principale** | Événements (Events) | — |
+| **Catégorie principale** | **Style de vie** (Lifestyle) — ⚠️ l'App Store n'a PAS de catégorie « Événements » (contrairement au Play Store) ; Lifestyle est le rangement standard des apps de billetterie/sorties sur iOS | À sélectionner dans App Store Connect → Distribution → Informations sur l'app → Catégorie |
 | **Catégorie secondaire** | Réseaux sociaux (Social Networking) *(facultatif)* | — |
 | **URL de confidentialité** | https://eventez.online/privacy | — |
 | **URL support** | https://eventez.online/contact | — |
