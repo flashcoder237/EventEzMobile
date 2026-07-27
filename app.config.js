@@ -44,6 +44,9 @@ module.exports = ({ config }) => {
     // Rend les icônes alternatives adaptatives sur Android (sinon marges du
     // traitement legacy). DOIT rester après expo-dynamic-app-icon.
     './plugins/withAdaptiveAlternateIcons',
+    // iOS : désactive la signature des resource bundles (Xcode 14+ l'exige
+    // sinon, ce qui casse le build EAS sur des pods comme GoogleMaps).
+    './plugins/withIosResourceBundleSigning',
   ];
 
   return { ...config, ...expo };
