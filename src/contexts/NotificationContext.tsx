@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { AppState, AppStateStatus, Platform, Linking } from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { notificationsAPI, messagesAPI, invitationsAPI, ticketTransfersAPI } from '../api';
+import { notificationsAPI, messagesAPI, invitationsAPI, ticketTransfersAPI, eventsAPI } from '../api';
 import { useAuth } from './AuthContext';
 import pushNotificationService, { PushNotificationData } from '../services/pushNotificationService';
 import PushPermissionModal from '../components/common/PushPermissionModal';
@@ -96,6 +96,7 @@ interface NotificationContextType {
   unreadMessageCount: number;
   pendingInvitationCount: number;
   pendingTransferCount: number;
+  pendingModerationCount: number;
   /** Total items awaiting user action (notifs + messages + invitations + transfers) */
   totalPendingCount: number;
   loading: boolean;
@@ -135,18 +136,21 @@ interface UnreadCountsContextType {
   unreadMessageCount: number;
   pendingInvitationCount: number;
   pendingTransferCount: number;
+  pendingModerationCount: number;
   totalPendingCount: number;
 }
 
 const UnreadCountsContext = createContext<UnreadCountsContextType | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [pendingInvitationCount, setPendingInvitationCount] = useState(0);
   const [pendingTransferCount, setPendingTransferCount] = useState(0);
+  // Badge modérateur : events en attente de validation (0 pour les non-modérateurs).
+  const [pendingModerationCount, setPendingModerationCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -427,10 +431,25 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         const transfers = transferResult.value.data?.results || transferResult.value.data || [];
         setPendingTransferCount(Array.isArray(transfers) ? transfers.length : 0);
       }
+
+      // Badge modération : uniquement pour les modérateurs/admins (l'endpoint
+      // renvoie 0 aux autres, mais on évite l'appel inutile).
+      const role = user?.role;
+      const isModerator = role === 'moderator' || role === 'admin' || (user as any)?.is_staff;
+      if (isModerator) {
+        try {
+          const modRes = await eventsAPI.getModerationPendingCount();
+          setPendingModerationCount(modRes.data?.count || 0);
+        } catch {
+          /* silencieux : le badge modération reste à sa valeur précédente */
+        }
+      } else {
+        setPendingModerationCount(0);
+      }
     } catch (error) {
       if (__DEV__) console.error('Error fetching unread counts:', error);
     }
-  }, [isAuthenticated, pushEnabled]);
+  }, [isAuthenticated, pushEnabled, user]);
 
   const fetchNotifications = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -606,6 +625,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setUnreadMessageCount(0);
       setPendingInvitationCount(0);
       setPendingTransferCount(0);
+      setPendingModerationCount(0);
       setPushToken(null);
       setPushEnabled(false);
 
@@ -717,6 +737,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     unreadMessageCount,
     pendingInvitationCount,
     pendingTransferCount,
+    pendingModerationCount,
     totalPendingCount,
     loading,
     pushToken,
@@ -737,6 +758,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     unreadMessageCount,
     pendingInvitationCount,
     pendingTransferCount,
+    pendingModerationCount,
     totalPendingCount,
     loading,
     pushToken,
@@ -758,12 +780,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     unreadMessageCount,
     pendingInvitationCount,
     pendingTransferCount,
+    pendingModerationCount,
     totalPendingCount,
   }), [
     unreadNotificationCount,
     unreadMessageCount,
     pendingInvitationCount,
     pendingTransferCount,
+    pendingModerationCount,
     totalPendingCount,
   ]);
 

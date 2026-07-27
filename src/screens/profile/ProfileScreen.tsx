@@ -52,7 +52,7 @@ export default function ProfileScreen() {
   const { showAlert, showConfirm } = useAlert();
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
-  const { unreadNotificationCount, unreadMessageCount, pendingInvitationCount, pendingTransferCount } = useUnreadCounts();
+  const { unreadNotificationCount, unreadMessageCount, pendingInvitationCount, pendingTransferCount, pendingModerationCount } = useUnreadCounts();
   const [showMyQR, setShowMyQR] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
@@ -322,6 +322,7 @@ export default function ProfileScreen() {
                 title={t('profile.moderationQueue')}
                 subtitle={t('profile.moderationQueueSubtitle')}
                 onPress={() => navigation.navigate('Moderation')}
+                badge={pendingModerationCount}
                 isLast
               />
             </View>

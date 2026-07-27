@@ -92,6 +92,10 @@ export const eventsAPI = {
   getPendingValidation: () =>
     api.get('/events/pending_validation/'),
 
+  // Badge modérateur : nombre d'events en attente de validation (léger).
+  getModerationPendingCount: () =>
+    api.get('/events/moderation-pending-count/'),
+
   // Event Following
   followEvent: (id: string, preferences?: {
     notification_preference?: 'all' | 'important' | 'none';
