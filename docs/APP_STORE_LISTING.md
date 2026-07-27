@@ -25,8 +25,9 @@ dans le code** (`app.json`, `app.config.js`, `eas.json`, `src/`) — pas d'inven
 - [ ] **Sign-In / logins** (guideline 4.8) — §8
 - [ ] **UGC & modération** (guideline 1.2) — §9
 - [ ] **App Review** : compte de démo + notes — §10
-- [ ] **Assets** (icône 1024, captures, iPad ?) — §11
-- [ ] Vérifs techniques build (buildNumber EAS, iPad) — §12
+- [ ] **Captures 6,5"** (1 à 10, format exact) — §11
+- [ ] Vérifs techniques build (buildNumber EAS) — §12
+- [ ] **Champs de la page version + Build + Publication** — §13
 
 ---
 
@@ -324,19 +325,43 @@ EN:
 
 ---
 
-## 11. Assets requis (à préparer)
+## 11. Aperçus et captures d'écran (App Store Connect → « Aperçus et captures d'écran »)
 
-- **Icône App Store** 1024×1024 px, sans transparence, sans coins arrondis
-  (`assets/icon2.png` convient — déjà opaque).
-- **Captures d'écran** obligatoires :
-  - iPhone 6.7" (ex. 1290×2796) — au moins 1, jusqu'à 10.
-  - iPhone 6.5" (ex. 1242×2688) — au moins 1.
-  - **iPad : NON requis** — `ios.supportsTablet: false` dans `app.json`, l'app est
-    iPhone-only. Aucune capture iPad à fournir. ✅
-- **Aperçu vidéo** (facultatif).
+> ⚠️ App Store Connect **exige au moins 1 capture** pour la taille demandée avant de
+> pouvoir soumettre. **Les 3 premières** apparaissent sur les fiches d'installation —
+> soigne-les. Apple réutilise ces captures **pour toutes les langues** (pas besoin d'en
+> refaire en anglais).
 
-Idées d'écrans à capturer : carte des événements, détail d'un événement, achat de
-billet, billet avec QR + bouton Wallet, tableau de bord organisateur, scan de check-in.
+### iPhone — **écran de 6,5 pouces** (SEULE taille demandée par le formulaire)
+- **Dimensions acceptées (au pixel près)** : `1242 × 2688`, `2688 × 1242`, `1284 × 2778`
+  ou `2778 × 1284` px (portrait ou paysage).
+- **Quantité** : de **1 à 10**. (Sur ta capture d'écran : **7/10** — déjà suffisant pour
+  soumettre ; tu peux compléter jusqu'à 10.)
+- **Format** : PNG ou JPEG, sans transparence, sans coins arrondis ni encoche ajoutée.
+
+### iPad — **NON requis**
+`ios.supportsTablet: false` dans `app.json` → app iPhone-only. **Aucune capture iPad**
+à fournir. ✅ (Le formulaire affiche un onglet iPad, mais il n'est pas obligatoire ici.)
+
+### Apple Watch / App iMessage — **NON concernés**
+L'app n'utilise ni WatchKit ni le framework Messages → rien à fournir dans ces onglets.
+
+### Aperçu vidéo (App Preview) — **facultatif**
+0/3 requis. À ignorer pour le premier envoi.
+
+### Icône App Store (dans le build, pas dans ce formulaire)
+1024×1024 px, opaque, sans coins arrondis (`assets/icon2.png` convient). Elle est
+embarquée dans le build EAS, pas téléversée ici.
+
+### Idées d'écrans à capturer (7 à 10)
+Carte des événements · détail d'un événement · achat de billet (choix méthode) ·
+billet avec QR + bouton « Ajouter à Wallet » · tableau de bord organisateur ·
+scan de check-in · messagerie. → Les **3 premières** = les plus vendeuses (carte,
+détail événement, billet QR).
+
+> 💡 Générer les captures au bon format : lancer l'app dans le **simulateur iPhone
+> (14 Plus / 15 Plus = 6,5")**, `Cmd+S` pour capturer — la résolution native tombe
+> pile dans les dimensions acceptées.
 
 ---
 
@@ -363,10 +388,60 @@ permission utilisée sans string. `NSContactsUsageDescription` **absent** — no
    + `autoIncrement` en prod). Vérifier que le 1er build EAS pousse bien un buildNumber,
    sinon la soumission échoue.
 2. **`supportsTablet: false`** → app iPhone-only, **aucune capture iPad requise** (cf. §11).
-3. **Plugin `@react-native-google-signin` déclaré deux fois** (`app.json` + `app.config.js`) :
-   à dédupliquer pour éviter un warning de config (non bloquant App Store).
+3. **Plugin `@react-native-google-signin`** : ~~déclaré deux fois~~ → **corrigé**
+   (dédupliqué, source unique = `app.config.js` alimenté par
+   `EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME`). ✅
 4. **`ITSAppUsesNonExemptEncryption: false`** déjà présent → pas de re-déclaration
    export-compliance à chaque build.
+
+---
+
+## 13. Champs de la page « App iOS Version 1.0 » (soumission)
+
+Correspondance directe avec le formulaire App Store Connect que tu remplis :
+
+| Section du formulaire | Quoi mettre | Référence |
+|---|---|---|
+| **Texte promotionnel** | Voir §2 (FR) / §3 (EN) — ≤ 170 car. | §2/§3 |
+| **Description** | Voir §2 (FR) / §3 (EN) — ≤ 4000 car. | §2/§3 |
+| **Mots-clés** | Voir §2 (FR) / §3 (EN) — ≤ 100 car. | §2/§3 |
+| **URL de l'assistance** | `https://eventez.online/contact` | §1 |
+| **URL marketing** | `https://eventez.online` | §1 |
+| **Version** | `1.0.0` | §1 |
+| **Copyright** | `2026 OverBrand` | §1 |
+| **Fichier de couverture géographique** | *Aucun* (laisser vide — pas de restriction géo) | — |
+
+### Build
+- Téléverse le build via **EAS** : `eas submit -p ios --profile production` (ou
+  Transporter). Le build apparaît ensuite dans la section « Build » à sélectionner.
+- **Chiffrement / conformité des exportations** : rien à téléverser. Comme
+  `ITSAppUsesNonExemptEncryption:false` est dans l'Info.plist, Apple **ne demande pas**
+  de documents CCATS (cf. §6). Si l'UI insiste : répondre « utilise uniquement du
+  chiffrement standard exempté (HTTPS) ».
+
+### Achats intégrés et abonnements
+- **Ne rien ajouter ici.** L'app n'utilise pas l'IAP Apple (cf. §5). L'abonnement
+  organisateur est un service B2B hors StoreKit → à expliquer dans les Remarques.
+
+### Game Center
+- **Non concerné** (l'app n'utilise pas Game Center).
+
+### Informations utiles à la vérification de l'app
+- **Connexion requise** : ✅ cocher (certaines actions exigent un compte).
+- **Nom d'utilisateur / Mot de passe** : ⚠️ **compte de démo RÉEL à créer et tester**
+  (ex. `review@eventez.online`). Sans ça → rejet « impossible de tester ». (cf. §10)
+- **Coordonnées** : Prénom `Brice` · Nom `Temena` · E-mail `brice.temena@gmail.com`
+  · **Téléphone ⚠️ à renseigner** (numéro joignable).
+- **Remarques (≤ 4000 car.)** : coller le bloc FR+EN de §10 (browse-first, paiements
+  externes non-IAP, abonnement B2B, suppression de compte, logins).
+- **Pièce jointe** : facultatif (ex. courte vidéo de parcours si utile). Non requis.
+
+### Publication de la version dans l'App Store
+Trois choix — **recommandé : « Publier manuellement »** pour un 1er lancement (tu
+déclenches la mise en ligne quand tu es prêt, après approbation) :
+- *Manuellement* → tu publies d'un clic après approbation. **← recommandé.**
+- *Automatiquement* → mise en ligne dès l'approbation (sans contrôle du timing).
+- *Automatiquement après une date* → publication planifiée après approbation.
 
 ---
 
