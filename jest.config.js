@@ -8,7 +8,6 @@
 /** @type {import('jest').Config} */
 module.exports = {
   preset: 'jest-expo',
-  setupFilesAfterEach: undefined, // (alias non utilisé, on utilise setupFiles)
   setupFiles: ['./jest.setup.js'],
   testPathIgnorePatterns: [
     '/node_modules/',
