@@ -202,6 +202,18 @@ export default function EventCreateScreen() {
             text: t('organizer.eventCreate.resume'),
             onPress: async () => {
               const data = await loadDraft();
+              // [DIAG brouillon] à retirer : trace ce que le restore charge
+              // réellement (billets/sessions signalés manquants au restore).
+              if (__DEV__) {
+                console.log('[DraftResume] loaded:', data ? {
+                  eventType: (data as any).eventType,
+                  isFree: (data as any).isFree,
+                  currentStep: (data as any).currentStep,
+                  ticketTypes: (data as any).ticketTypes?.length ?? 'undef',
+                  sessions: (data as any).sessions?.length ?? 'undef',
+                  formFields: (data as any).formFields?.length ?? 'undef',
+                } : null);
+              }
               if (data) hydrateForm(data);
             },
           },
