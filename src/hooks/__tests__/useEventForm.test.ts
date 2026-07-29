@@ -456,6 +456,148 @@ describe('useEventForm', () => {
       expect(mockedEventsAPI.submitForValidation).toHaveBeenCalledWith('evt-123');
     });
 
+    // ─── Couverture des sous-ressources selon event_type ────────────────────
+    // Régression : le submit doit envoyer LES BONS appels API selon le type
+    // d'event et les toggles. Un trou ici (billetterie + form fields non testé)
+    // avait laissé passer un 400 backend en prod.
+
+    // Construit un form BILLETTERIE valide (titre/desc/catégorie/ville + 1 ticket).
+    function setupValidBilletterie(result: any) {
+      act(() => result.current.setTitle('Concert'));
+      act(() => result.current.setDescription('Description here'));
+      act(() => result.current.setCategoryId(1));
+      act(() => result.current.setLocationCity('Yaoundé'));
+      act(() => result.current.setEndDate(new Date(Date.now() + 7200000)));
+      act(() => result.current.setEventType('billetterie'));
+      act(() => result.current.addTicketType());
+      act(() => result.current.updateTicketType(0, 'name', 'Standard'));
+      act(() => result.current.updateTicketType(0, 'price', '5000'));
+    }
+
+    it('billetterie: creates ticket types with full payload', async () => {
+      const alerts = makeAlerts();
+      mockedEventsAPI.createEvent.mockResolvedValueOnce({ data: { id: 'evt-b1' } } as any);
+      mockedEventsAPI.submitForValidation.mockResolvedValueOnce({ data: {} } as any);
+
+      const { result } = renderHook(() => useEventForm(alerts));
+      setupValidBilletterie(result);
+
+      await act(async () => { await result.current.handleSubmit(); });
+
+      expect(mockedTicketTypesAPI.createTicketType).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'evt-b1',
+          name: 'Standard',
+          price: 5000,
+          quantity_total: 100,
+          max_per_order: 10,
+          min_per_order: 1,
+          is_visible: true,
+        }),
+      );
+      // Pas de form fields sans le toggle.
+      expect(mockedEventsAPI.createFormField).not.toHaveBeenCalled();
+    });
+
+    it('billetterie + showFormFieldsForBilletterie: creates form fields (regression 400)', async () => {
+      const alerts = makeAlerts();
+      mockedEventsAPI.createEvent.mockResolvedValueOnce({ data: { id: 'evt-b2' } } as any);
+      mockedEventsAPI.submitForValidation.mockResolvedValueOnce({ data: {} } as any);
+      mockedEventsAPI.createFormField.mockResolvedValue({ data: { id: 'ff1' } } as any);
+
+      const { result } = renderHook(() => useEventForm(alerts));
+      setupValidBilletterie(result);
+      // Active la collecte d'infos complémentaires + 1 champ complet.
+      act(() => result.current.setShowFormFieldsForBilletterie(true));
+      act(() => result.current.addFormField());
+      act(() => result.current.updateFormField(0, 'label', 'Taille du t-shirt'));
+      act(() => result.current.updateFormField(0, 'field_type', 'select'));
+      act(() => result.current.updateFormField(0, 'required', true));
+      act(() => result.current.updateFormField(0, 'options', 'S,M,L,XL'));
+
+      await act(async () => { await result.current.handleSubmit(); });
+
+      // Le cœur du bug : le form field DOIT être envoyé pour une billetterie.
+      expect(mockedEventsAPI.createFormField).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'evt-b2',
+          label: 'Taille du t-shirt',
+          field_type: 'select',
+          required: true,
+          options: 'S,M,L,XL',
+          order: 0,
+        }),
+      );
+      // Et les tickets restent créés en parallèle.
+      expect(mockedTicketTypesAPI.createTicketType).toHaveBeenCalled();
+    });
+
+    it('billetterie + toggle ON but 0 fields: does NOT call createFormField', async () => {
+      const alerts = makeAlerts();
+      mockedEventsAPI.createEvent.mockResolvedValueOnce({ data: { id: 'evt-b3' } } as any);
+      mockedEventsAPI.submitForValidation.mockResolvedValueOnce({ data: {} } as any);
+
+      const { result } = renderHook(() => useEventForm(alerts));
+      setupValidBilletterie(result);
+      act(() => result.current.setShowFormFieldsForBilletterie(true));
+      // aucun addFormField()
+
+      await act(async () => { await result.current.handleSubmit(); });
+
+      expect(mockedEventsAPI.createFormField).not.toHaveBeenCalled();
+    });
+
+    it('inscription: form field payload carries every field', async () => {
+      const alerts = makeAlerts();
+      mockedEventsAPI.createEvent.mockResolvedValueOnce({ data: { id: 'evt-i1' } } as any);
+      mockedEventsAPI.submitForValidation.mockResolvedValueOnce({ data: {} } as any);
+      mockedEventsAPI.createFormField.mockResolvedValue({ data: { id: 'ff1' } } as any);
+
+      const { result } = renderHook(() => useEventForm(alerts));
+      act(() => result.current.setTitle('Atelier'));
+      act(() => result.current.setDescription('Desc'));
+      act(() => result.current.setCategoryId(1));
+      act(() => result.current.setLocationCity('Douala'));
+      act(() => result.current.setEndDate(new Date(Date.now() + 7200000)));
+      act(() => result.current.setIsFree(true));
+      act(() => result.current.setEventType('inscription'));
+      act(() => result.current.addFormField());
+      act(() => result.current.updateFormField(0, 'label', 'Email'));
+      act(() => result.current.updateFormField(0, 'field_type', 'email'));
+      act(() => result.current.updateFormField(0, 'required', true));
+      act(() => result.current.updateFormField(0, 'placeholder', 'vous@mail.com'));
+      act(() => result.current.updateFormField(0, 'help_text', 'Pour vous contacter'));
+
+      await act(async () => { await result.current.handleSubmit(); });
+
+      expect(mockedEventsAPI.createFormField).toHaveBeenCalledWith({
+        event: 'evt-i1',
+        label: 'Email',
+        field_type: 'email',
+        required: true,
+        placeholder: 'vous@mail.com',
+        help_text: 'Pour vous contacter',
+        options: '',
+        order: 0,
+      });
+      // Une billetterie n'aurait pas de ticket ici.
+      expect(mockedTicketTypesAPI.createTicketType).not.toHaveBeenCalled();
+    });
+
+    it('inscription: does NOT create ticket types', async () => {
+      const alerts = makeAlerts();
+      mockedEventsAPI.createEvent.mockResolvedValueOnce({ data: { id: 'evt-i2' } } as any);
+      mockedEventsAPI.submitForValidation.mockResolvedValueOnce({ data: {} } as any);
+
+      const { result } = renderHook(() => useEventForm(alerts));
+      setupValidForm(result); // inscription + 1 form field
+
+      await act(async () => { await result.current.handleSubmit(); });
+
+      expect(mockedTicketTypesAPI.createTicketType).not.toHaveBeenCalled();
+      expect(mockedEventsAPI.createFormField).toHaveBeenCalled();
+    });
+
     it('updates event + does NOT call submitForValidation in edit mode', async () => {
       const alerts = makeAlerts();
       mockedEventsAPI.getEvent.mockResolvedValueOnce({
