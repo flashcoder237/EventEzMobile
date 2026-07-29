@@ -27,6 +27,7 @@ jest.mock('../../api', () => ({
     uploadImages: jest.fn(),
     submitForValidation: jest.fn(),
     createFormField: jest.fn(),
+    updateFormFields: jest.fn(() => Promise.resolve({ data: [] })),
   },
   categoriesAPI: {
     getCategories: jest.fn(() => Promise.resolve({ data: { results: [] } })),
@@ -36,9 +37,13 @@ jest.mock('../../api', () => ({
   },
   ticketTypesAPI: {
     createTicketType: jest.fn(() => Promise.resolve({ data: { id: 'tt1' } })),
+    updateTicketType: jest.fn(() => Promise.resolve({ data: {} })),
+    deleteTicketType: jest.fn(() => Promise.resolve({ data: {} })),
   },
   sessionsAPI: {
     createSession: jest.fn(() => Promise.resolve({ data: { id: 'ss1' } })),
+    updateSession: jest.fn(() => Promise.resolve({ data: {} })),
+    deleteSession: jest.fn(() => Promise.resolve({ data: {} })),
   },
   aiAssistAPI: {
     generate: jest.fn(),
@@ -596,6 +601,98 @@ describe('useEventForm', () => {
 
       expect(mockedTicketTypesAPI.createTicketType).not.toHaveBeenCalled();
       expect(mockedEventsAPI.createFormField).toHaveBeenCalled();
+    });
+
+    it('edit mode: charge billets + form fields + sessions depuis getEvent (régression)', async () => {
+      const alerts = makeAlerts();
+      mockedEventsAPI.getEvent.mockResolvedValueOnce({
+        data: {
+          id: 'evt-full',
+          title: 'Concert', description: 'd', short_description: '',
+          event_type: 'billetterie',
+          category: { id: 2, name: 'Musique' }, tags: [],
+          start_date: new Date('2026-09-01T18:00:00Z').toISOString(),
+          end_date: new Date('2026-09-01T22:00:00Z').toISOString(),
+          location_type: 'in_person', location_city: 'Yaoundé', location_country: 'Cameroun',
+          visibility: 'public', fee_bearer: 'participant', auto_approve_registrations: true,
+          ticket_types: [
+            { name: 'VIP', description: '', price: '10000', quantity_total: '50',
+              sales_start: '2026-08-01T00:00:00Z', sales_end: '2026-09-01T18:00:00Z',
+              is_visible: true, max_per_order: 5, min_per_order: 1 },
+          ],
+          form_fields: [
+            { label: 'Taille', field_type: 'select', required: true, options: 'S,M,L', order: 0 },
+          ],
+          sessions: [
+            { title: 'Première partie', session_type: 'talk',
+              start_time: '2026-09-01T18:30:00Z', end_time: '2026-09-01T19:30:00Z',
+              location: 'Scène', max_capacity: 200 },
+          ],
+        },
+      } as any);
+
+      const { result } = renderHook(() => useEventForm(alerts, 'evt-full'));
+
+      await waitFor(() => expect(result.current.form.title).toBe('Concert'));
+
+      // Billets chargés + convertis (price/quantity en string, dates en Date).
+      expect(result.current.form.ticketTypes).toHaveLength(1);
+      expect(result.current.form.ticketTypes[0].name).toBe('VIP');
+      expect(result.current.form.ticketTypes[0].price).toBe('10000');
+      expect(result.current.form.ticketTypes[0].max_per_order).toBe('5');
+      expect(result.current.form.ticketTypes[0].sales_start instanceof Date).toBe(true);
+
+      // Champs de formulaire chargés.
+      expect(result.current.form.formFields).toHaveLength(1);
+      expect(result.current.form.formFields[0].label).toBe('Taille');
+      expect(result.current.form.showFormFieldsForBilletterie).toBe(true);
+
+      // Sessions chargées.
+      expect(result.current.form.sessions).toHaveLength(1);
+      expect(result.current.form.sessions[0].title).toBe('Première partie');
+      expect(result.current.form.sessions[0].max_capacity).toBe('200');
+      expect(result.current.form.sessions[0].start_time instanceof Date).toBe(true);
+    });
+
+    it('edit mode: synchronise billets (PUT existant, POST nouveau, DELETE retiré) — anti-doublon', async () => {
+      const alerts = makeAlerts();
+      const mockedTickets = ticketTypesAPI as jest.Mocked<typeof ticketTypesAPI>;
+      mockedEventsAPI.getEvent.mockResolvedValueOnce({
+        data: {
+          id: 'evt-sync', title: 'Fest', description: 'd', short_description: '',
+          event_type: 'billetterie', category: { id: 1 }, tags: [],
+          start_date: new Date('2026-09-01T18:00:00Z').toISOString(),
+          end_date: new Date('2026-09-01T22:00:00Z').toISOString(),
+          location_type: 'in_person', location_city: 'Yaoundé', location_country: 'Cameroun',
+          visibility: 'public', fee_bearer: 'participant', auto_approve_registrations: true,
+          ticket_types: [
+            { id: 'TK_KEEP', name: 'VIP', price: '10000', quantity_total: '50', is_visible: true,
+              sales_start: '2026-08-01T00:00:00Z', sales_end: '2026-09-01T18:00:00Z', max_per_order: 5, min_per_order: 1 },
+            { id: 'TK_DEL', name: 'Early', price: '5000', quantity_total: '20', is_visible: true,
+              sales_start: '2026-08-01T00:00:00Z', sales_end: '2026-09-01T18:00:00Z', max_per_order: 5, min_per_order: 1 },
+          ],
+          form_fields: [], sessions: [],
+        },
+      } as any);
+      mockedEventsAPI.updateEvent.mockResolvedValueOnce({ data: { id: 'evt-sync' } } as any);
+
+      const { result } = renderHook(() => useEventForm(alerts, 'evt-sync'));
+      await waitFor(() => expect(result.current.form.ticketTypes).toHaveLength(2));
+
+      // Modifie le 1er (TK_KEEP), supprime le 2e (TK_DEL), ajoute un nouveau.
+      act(() => result.current.updateTicketType(0, 'price', '12000'));
+      act(() => result.current.removeTicketType(1));
+      act(() => result.current.addTicketType());
+      act(() => result.current.updateTicketType(1, 'name', 'Nouveau'));
+
+      await act(async () => { await result.current.handleSubmit(); });
+
+      // TK_KEEP → PUT ; nouveau → POST ; TK_DEL → DELETE.
+      expect(mockedTickets.updateTicketType).toHaveBeenCalledWith('TK_KEEP', expect.objectContaining({ price: 12000 }));
+      expect(mockedTickets.createTicketType).toHaveBeenCalledWith(expect.objectContaining({ name: 'Nouveau' }));
+      expect(mockedTickets.deleteTicketType).toHaveBeenCalledWith('TK_DEL');
+      // Anti-régression : on ne re-POST PAS le billet conservé.
+      expect(mockedTickets.createTicketType).toHaveBeenCalledTimes(1);
     });
 
     it('updates event + does NOT call submitForValidation in edit mode', async () => {

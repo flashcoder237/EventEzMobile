@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -28,6 +28,8 @@ export { STEPS, LOCATION_TYPES, FIELD_TYPES, SESSION_TYPES } from './useEventFor
 // ============================================
 
 export interface TicketTypeForm {
+  /** UUID serveur si le billet existe déjà (mode édition). Absent = nouveau. */
+  id?: string;
   name: string;
   description: string;
   price: string;
@@ -50,6 +52,8 @@ export interface FormFieldForm {
 }
 
 export interface SessionForm {
+  /** UUID serveur si la session existe déjà (mode édition). Absent = nouvelle. */
+  id?: string;
   title: string;
   description: string;
   session_type: string;
@@ -375,6 +379,11 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
   const [speakers, setSpeakers] = useState<SpeakerForm[]>([]);
   const [sessions, setSessions] = useState<SessionForm[]>([]);
 
+  // IDs des billets/sessions chargés en édition — sert au submit à détecter les
+  // suppressions (present à l'origine mais plus dans le form → DELETE serveur).
+  const originalTicketIdsRef = useRef<string[]>([]);
+  const originalSessionIdsRef = useRef<string[]>([]);
+
   // Step validation errors — populated when goToNextStep fails. Les
   // components Step1/2/3 lisent ce map pour appliquer un border rouge sur
   // les champs invalides. Reset à null à chaque édition de champ.
@@ -417,7 +426,10 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
 
   const validateStep = useEventFormValidation(form, showError);
 
-  const handleSubmit = useEventFormSubmit(form, validateStep, showError, editEventId, hostEventId);
+  const handleSubmit = useEventFormSubmit(form, validateStep, showError, editEventId, hostEventId, {
+    originalTicketIds: originalTicketIdsRef,
+    originalSessionIds: originalSessionIdsRef,
+  });
 
   // Wrap handleSubmit with loading state
   const handleSubmitWithLoading = useCallback(async (): Promise<string | null> => {
@@ -899,12 +911,79 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
       try {
         const response = await eventsAPI.getEvent(editEventId);
         const event = response.data;
+
+        // Billets existants → format TicketTypeForm (price/quantity en string,
+        // dates en Date). Sans ça, la section billets s'affichait VIDE en édition.
+        const ticketTypes: TicketTypeForm[] = (event.ticket_types || []).map((tk: any) => ({
+          id: tk.id ? String(tk.id) : undefined,
+          name: tk.name || '',
+          description: tk.description || '',
+          price: tk.price != null ? String(tk.price) : '0',
+          quantity_total: tk.quantity_total != null ? String(tk.quantity_total) : '100',
+          sales_start: tk.sales_start ? new Date(tk.sales_start) : new Date(),
+          sales_end: tk.sales_end ? new Date(tk.sales_end) : new Date(),
+          is_visible: tk.is_visible !== undefined ? tk.is_visible : true,
+          max_per_order: tk.max_per_order != null ? String(tk.max_per_order) : '10',
+          min_per_order: tk.min_per_order != null ? String(tk.min_per_order) : '1',
+        }));
+
+        // Champs de formulaire existants → format FormFieldForm.
+        const formFields: FormFieldForm[] = (event.form_fields || []).map((f: any, i: number) => ({
+          label: f.label || '',
+          field_type: f.field_type || 'text',
+          required: !!f.required,
+          placeholder: f.placeholder || '',
+          help_text: f.help_text || '',
+          options: f.options || '',
+          order: f.order ?? i,
+        }));
+
+        // Sessions existantes → format SessionForm (les liens track/speaker par
+        // index ne sont pas reconstruits, on repart sur les défauts pour eux).
+        const sessions: SessionForm[] = (event.sessions || []).map((s: any) => ({
+          id: s.id ? String(s.id) : undefined,
+          title: s.title || '',
+          description: s.description || '',
+          session_type: s.session_type || 'talk',
+          start_time: s.start_time ? new Date(s.start_time) : null,
+          end_time: s.end_time ? new Date(s.end_time) : null,
+          location: s.location || '',
+          room: s.room || '',
+          max_capacity: s.max_capacity != null ? String(s.max_capacity) : '',
+          is_virtual: !!s.is_virtual,
+          virtual_link: s.virtual_link || '',
+          requires_registration: s.requires_registration ?? true,
+          is_featured: !!s.is_featured,
+          slides_url: s.slides_url || '',
+          recording_url: s.recording_url || '',
+          resources: Array.isArray(s.resources) ? s.resources : [],
+          tags: Array.isArray(s.tags) ? s.tags : [],
+          level: s.level || 'all',
+          language: s.language || 'fr',
+          track_index: null,
+          speaker_indices: [],
+          moderator_index: null,
+        }));
+
+        // Mémorise les IDs d'origine pour la synchro au submit (détection des
+        // suppressions). Reset à chaque (re)chargement d'un event à éditer.
+        originalTicketIdsRef.current = ticketTypes.map(t => t.id).filter((id): id is string => !!id);
+        originalSessionIdsRef.current = sessions.map(s => s.id).filter((id): id is string => !!id);
+
+        // Un billet à 0 (ou l'absence de billet payant) → événement gratuit.
+        const isFree = ticketTypes.length > 0 && ticketTypes.every(t => parseFloat(t.price) === 0);
+
         hydrateForm({
           title: event.title || '',
           description: event.description || '',
           shortDescription: event.short_description || '',
           eventType: event.event_type || 'billetterie',
           language: event.language || 'fr',
+          ticketTypes,
+          formFields,
+          sessions,
+          isFree,
+          showFormFieldsForBilletterie: (event.event_type === 'billetterie') && formFields.length > 0,
           categoryId: event.category
             ? (typeof event.category === 'object' ? event.category.id : event.category)
             : null,

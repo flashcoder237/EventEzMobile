@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import type { MutableRefObject } from 'react';
 import {
   eventsAPI,
   ticketTypesAPI,
@@ -9,12 +10,18 @@ import {
 import { Tag } from '../types';
 import type { EventFormState, AlertActions, TrackForm, SpeakerForm } from './useEventForm';
 
+interface SyncRefs {
+  originalTicketIds: MutableRefObject<string[]>;
+  originalSessionIds: MutableRefObject<string[]>;
+}
+
 export function useEventFormSubmit(
   form: EventFormState,
   validateStep: (step: number) => boolean,
   showError: AlertActions['showError'],
   editEventId?: string,
   hostEventId?: string,
+  syncRefs?: SyncRefs,
 ) {
   const handleSubmit = useCallback(async (): Promise<string | null> => {
     if (!validateStep(form.currentStep)) return null;
@@ -41,9 +48,9 @@ export function useEventFormSubmit(
 
       await Promise.all([
         uploadGalleryImages(eventId, form.galleryImages),
-        createTicketTypes(eventId, form),
-        createFormFields(eventId, form),
-        createSessions(eventId, form.sessions, trackIdMap, speakerIdMap),
+        syncTicketTypes(eventId, form, editEventId ? syncRefs?.originalTicketIds.current : undefined),
+        syncFormFields(eventId, form, !!editEventId),
+        syncSessions(eventId, form.sessions, trackIdMap, speakerIdMap, editEventId ? syncRefs?.originalSessionIds.current : undefined),
       ]);
 
       // Soumettre pour validation uniquement à la création (pas à l'édition).
@@ -63,7 +70,7 @@ export function useEventFormSubmit(
       );
       return null;
     }
-  }, [form, validateStep, showError, editEventId, hostEventId]);
+  }, [form, validateStep, showError, editEventId, hostEventId, syncRefs]);
 
   return handleSubmit;
 }
@@ -162,42 +169,83 @@ async function uploadGalleryImages(eventId: string, galleryImages: string[]): Pr
   await eventsAPI.uploadImages(eventId, galleryFormData);
 }
 
-async function createTicketTypes(eventId: string, form: EventFormState): Promise<void> {
-  if (form.eventType !== 'billetterie' || form.ticketTypes.length === 0) return;
-  await Promise.all(form.ticketTypes.map(ticket =>
-    ticketTypesAPI.createTicketType({
-      event: eventId,
-      name: ticket.name,
-      description: ticket.description,
-      price: parseFloat(ticket.price) || 0,
-      quantity_total: parseInt(ticket.quantity_total) || 100,
-      sales_start: ticket.sales_start.toISOString(),
-      sales_end: ticket.sales_end.toISOString(),
-      is_visible: ticket.is_visible,
-      max_per_order: parseInt(ticket.max_per_order) || 10,
-      min_per_order: parseInt(ticket.min_per_order) || 1,
-    })
-  ));
+function ticketPayload(eventId: string, ticket: EventFormState['ticketTypes'][number]) {
+  return {
+    event: eventId,
+    name: ticket.name,
+    description: ticket.description,
+    price: parseFloat(ticket.price) || 0,
+    quantity_total: parseInt(ticket.quantity_total) || 100,
+    sales_start: ticket.sales_start.toISOString(),
+    sales_end: ticket.sales_end.toISOString(),
+    is_visible: ticket.is_visible,
+    max_per_order: parseInt(ticket.max_per_order) || 10,
+    min_per_order: parseInt(ticket.min_per_order) || 1,
+  };
 }
 
-async function createFormFields(eventId: string, form: EventFormState): Promise<void> {
-  const shouldCreate =
-    (form.eventType === 'inscription' && form.formFields.length > 0) ||
-    (form.eventType === 'billetterie' && form.showFormFieldsForBilletterie && form.formFields.length > 0);
-  if (!shouldCreate) return;
+/**
+ * Synchronise les billets. En CRÉATION : POST tous. En ÉDITION : PUT ceux qui
+ * ont un id, POST les nouveaux, DELETE ceux présents à l'origine mais retirés
+ * du form. Évite les doublons (ancien bug : re-POST systématique en édition).
+ */
+async function syncTicketTypes(
+  eventId: string,
+  form: EventFormState,
+  originalIds?: string[],
+): Promise<void> {
+  if (form.eventType !== 'billetterie') return;
 
-  await Promise.all(form.formFields.map((field, index) =>
-    eventsAPI.createFormField({
-      event: eventId,
-      label: field.label,
-      field_type: field.field_type,
-      required: field.required,
-      placeholder: field.placeholder,
-      help_text: field.help_text,
-      options: field.options,
-      order: index,
-    })
-  ));
+  const isEdit = originalIds !== undefined;
+  const ops: Promise<any>[] = [];
+
+  for (const ticket of form.ticketTypes) {
+    if (isEdit && ticket.id) {
+      ops.push(ticketTypesAPI.updateTicketType(ticket.id, ticketPayload(eventId, ticket)));
+    } else {
+      ops.push(ticketTypesAPI.createTicketType(ticketPayload(eventId, ticket)));
+    }
+  }
+
+  // Suppressions : id d'origine absent du form courant.
+  if (isEdit) {
+    const currentIds = new Set(form.ticketTypes.map(t => t.id).filter(Boolean));
+    for (const id of originalIds!) {
+      if (!currentIds.has(id)) ops.push(ticketTypesAPI.deleteTicketType(id));
+    }
+  }
+
+  await Promise.all(ops);
+}
+
+/**
+ * Synchronise les champs de formulaire. En ÉDITION on utilise
+ * update_form_fields avec clear_existing=true (le backend supprime les anciens
+ * puis recrée) → simple et sans doublon. En CRÉATION on POST chaque champ.
+ */
+async function syncFormFields(eventId: string, form: EventFormState, isEdit: boolean): Promise<void> {
+  const wantsFields =
+    (form.eventType === 'inscription') ||
+    (form.eventType === 'billetterie' && form.showFormFieldsForBilletterie);
+
+  const fields = form.formFields.map((field, index) => ({
+    label: field.label,
+    field_type: field.field_type,
+    required: field.required,
+    placeholder: field.placeholder,
+    help_text: field.help_text,
+    options: field.options,
+    order: index,
+  }));
+
+  if (isEdit) {
+    // Remplace l'ensemble (y compris le cas "l'organisateur a tout retiré").
+    await eventsAPI.updateFormFields(eventId, { clear_existing: true, fields });
+    return;
+  }
+
+  if (!wantsFields || fields.length === 0) return;
+  await Promise.all(fields.map(f => eventsAPI.createFormField({ event: eventId, ...f })));
 }
 
 /**
@@ -269,53 +317,76 @@ async function createSpeakers(eventId: string, speakers: SpeakerForm[]): Promise
   return map;
 }
 
-async function createSessions(
+function sessionPayload(
+  eventId: string,
+  session: EventFormState['sessions'][number],
+  trackIdMap: Record<number, string>,
+  speakerIdMap: Record<number, string>,
+) {
+  // Resoudre les refs locales → UUIDs serveur. `!= null` couvre null ET undefined.
+  const trackId = session.track_index != null ? (trackIdMap[session.track_index] || null) : null;
+  const speakerIds = (session.speaker_indices || [])
+    .map(i => speakerIdMap[i])
+    .filter((id): id is string => !!id);
+  const moderatorId = session.moderator_index != null ? (speakerIdMap[session.moderator_index] || null) : null;
+
+  return {
+    event: eventId,
+    title: session.title,
+    description: session.description,
+    session_type: session.session_type,
+    start_time: session.start_time ? session.start_time.toISOString() : null,
+    end_time: session.end_time ? session.end_time.toISOString() : null,
+    location: session.location,
+    room: session.room || '',
+    max_capacity: session.max_capacity ? parseInt(session.max_capacity) : null,
+    is_virtual: session.is_virtual || false,
+    virtual_link: session.virtual_link || '',
+    requires_registration: session.requires_registration ?? true,
+    is_featured: session.is_featured || false,
+    slides_url: session.slides_url || '',
+    recording_url: session.recording_url || '',
+    resources: session.resources || [],
+    tags: session.tags || [],
+    level: session.level || 'all',
+    language: session.language || 'fr',
+    // Liens agenda : seulement si non-null pour ne pas ecraser cote serveur.
+    ...(trackId ? { track: trackId } : {}),
+    ...(speakerIds.length > 0 ? { speakers: speakerIds } : {}),
+    ...(moderatorId ? { moderator: moderatorId } : {}),
+  };
+}
+
+/**
+ * Synchronise les sessions. CRÉATION : POST toutes. ÉDITION : PUT celles avec
+ * un id, POST les nouvelles, DELETE celles retirées. Même logique que les
+ * billets pour éviter les doublons en édition.
+ */
+async function syncSessions(
   eventId: string,
   sessions: EventFormState['sessions'],
   trackIdMap: Record<number, string>,
   speakerIdMap: Record<number, string>,
+  originalIds?: string[],
 ): Promise<void> {
-  if (sessions.length === 0) return;
-  await Promise.all(sessions.map(session => {
-    // Resoudre les refs locales → UUIDs serveur. Si un index est null/undefined
-    // ou hors-bornes (= entite supprimee entretemps mais ref non nettoyee, ou
-    // session chargee en mode edition sans ces champs), on tombe sur null/[]
-    // proprement. `!= null` (et non `!== null`) couvre aussi le cas undefined.
-    const trackId = session.track_index != null
-      ? (trackIdMap[session.track_index] || null)
-      : null;
-    const speakerIds = (session.speaker_indices || [])
-      .map(i => speakerIdMap[i])
-      .filter((id): id is string => !!id);
-    const moderatorId = session.moderator_index != null
-      ? (speakerIdMap[session.moderator_index] || null)
-      : null;
+  const isEdit = originalIds !== undefined;
+  const ops: Promise<any>[] = [];
 
-    return sessionsAPI.createSession({
-      event: eventId,
-      title: session.title,
-      description: session.description,
-      session_type: session.session_type,
-      start_time: session.start_time ? session.start_time.toISOString() : null,
-      end_time: session.end_time ? session.end_time.toISOString() : null,
-      location: session.location,
-      room: session.room || '',
-      max_capacity: session.max_capacity ? parseInt(session.max_capacity) : null,
-      is_virtual: session.is_virtual || false,
-      virtual_link: session.virtual_link || '',
-      requires_registration: session.requires_registration ?? true,
-      is_featured: session.is_featured || false,
-      slides_url: session.slides_url || '',
-      recording_url: session.recording_url || '',
-      resources: session.resources || [],
-      tags: session.tags || [],
-      level: session.level || 'all',
-      language: session.language || 'fr',
-      // Nouveaux liens agenda : seulement si non-null pour eviter d'ecraser
-      // avec null cote serveur quand l'organisateur ne les utilise pas.
-      ...(trackId ? { track: trackId } : {}),
-      ...(speakerIds.length > 0 ? { speakers: speakerIds } : {}),
-      ...(moderatorId ? { moderator: moderatorId } : {}),
-    });
-  }));
+  for (const session of sessions) {
+    const payload = sessionPayload(eventId, session, trackIdMap, speakerIdMap);
+    if (isEdit && session.id) {
+      ops.push(sessionsAPI.updateSession(session.id, payload));
+    } else {
+      ops.push(sessionsAPI.createSession(payload));
+    }
+  }
+
+  if (isEdit) {
+    const currentIds = new Set(sessions.map(s => s.id).filter(Boolean));
+    for (const id of originalIds!) {
+      if (!currentIds.has(id)) ops.push(sessionsAPI.deleteSession(id));
+    }
+  }
+
+  await Promise.all(ops);
 }
