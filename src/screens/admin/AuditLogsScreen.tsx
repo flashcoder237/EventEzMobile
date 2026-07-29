@@ -38,6 +38,22 @@ type DateFilter = 'all' | '7d' | '30d' | '90d';
  * `start_date` et `end_date` sont au format ISO date (YYYY-MM-DD), backend
  * les compare via `timestamp__gte` / `timestamp__lte`.
  */
+/**
+ * Extrait un libellé texte de `target_display`. Le backend renvoie un OBJET
+ * `{ type, id, display }` (get_target_display), PAS une string — le rendre
+ * directement dans <Text> crashe RN ("Objects are not valid as a React child").
+ * On accepte aussi une string (rétro-compat / autres providers) et null.
+ */
+function targetLabel(target: unknown): string {
+  if (!target) return '';
+  if (typeof target === 'string') return target;
+  if (typeof target === 'object') {
+    const o = target as Record<string, any>;
+    return o.display || o.name || o.title || (o.type && o.id ? `${o.type} #${o.id}` : '');
+  }
+  return String(target);
+}
+
 function buildDateRangeParams(range: DateFilter): Record<string, string> {
   if (range === 'all') return {};
   const days = range === '7d' ? 7 : range === '30d' ? 30 : 90;
@@ -110,14 +126,48 @@ function AuditLogsContent() {
     ? logs
     : logs.filter(l => l.severity === severityFilter);
 
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  // Le backend renvoie `severity_breakdown` = LISTE [{severity, count}] et
+  // `total_logs_30_days` (PAS `by_severity`/`total_logs` que le mobile lisait à
+  // tort → stats toujours vides). On lit les vrais champs, avec fallback legacy
+  // `by_severity` (objet) pour rétro-compat, le tout de façon défensive.
+  const bySeverityEntries: [string, unknown][] = (() => {
+    if (!stats || typeof stats !== 'object' || Array.isArray(stats)) return [];
+    if (Array.isArray(stats.severity_breakdown)) {
+      return stats.severity_breakdown
+        .filter((s: any) => s && s.severity != null)
+        .map((s: any) => [String(s.severity), s.count] as [string, unknown]);
+    }
+    if (stats.by_severity && typeof stats.by_severity === 'object' && !Array.isArray(stats.by_severity)) {
+      return Object.entries(stats.by_severity);
+    }
+    return [];
+  })();
+  const statsTotal =
+    stats && typeof stats === 'object'
+      ? (typeof stats.total_logs_30_days === 'number'
+          ? stats.total_logs_30_days
+          : typeof stats.total_logs === 'number'
+            ? stats.total_logs
+            : logs.length)
+      : logs.length;
+  const showStats = !!stats && typeof stats === 'object' && !Array.isArray(stats);
+
+  const formatTime = (timestamp?: string) => {
+    // Garde défensive : un log sans timestamp (ou malformé) ne doit pas faire
+    // planter le rendu. new Date(undefined) → Invalid Date, et selon le moteur
+    // (Hermes + newArch) toLocaleDateString sur une date invalide peut lever.
+    const date = timestamp ? new Date(timestamp) : null;
+    if (!date || isNaN(date.getTime())) return '—';
+    try {
+      return date.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return date.toISOString().slice(0, 16).replace('T', ' ');
+    }
   };
 
   const renderLog = ({ item }: { item: AuditLog }) => {
@@ -138,9 +188,9 @@ function AuditLogsContent() {
           </Text>
           <Badge label={sev.label} variant={sev.variant} size="sm" />
         </View>
-        {item.target_display && (
+        {targetLabel(item.target_display) && (
           <Text style={[styles.logTarget, { color: colors.gray500 }]} numberOfLines={1}>
-            {t('admin.audit.target')}: {item.target_display}
+            {t('admin.audit.target')}: {targetLabel(item.target_display)}
           </Text>
         )}
         <View style={[styles.logFooter, { borderTopColor: hairline }]}>
@@ -198,7 +248,7 @@ function AuditLogsContent() {
       </View>
 
       {/* Stats summary */}
-      {stats && (
+      {showStats && (
         <View
           style={[
             styles.statsCard,
@@ -207,10 +257,10 @@ function AuditLogsContent() {
           ]}
         >
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.text }]}>{stats.total_logs || logs.length}</Text>
+            <Text style={[styles.statValue, { color: colors.text }]}>{statsTotal}</Text>
             <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('admin.audit.stats.total')}</Text>
           </View>
-          {Object.entries(stats.by_severity || {}).slice(0, 3).map(([sev, count]) => (
+          {bySeverityEntries.slice(0, 3).map(([sev, count]) => (
             <React.Fragment key={sev}>
               <View style={[styles.statDivider, { backgroundColor: hairline }]} />
               <View style={styles.statItem}>
