@@ -475,35 +475,49 @@ déclenches la mise en ligne quand tu es prêt, après approbation) :
 > Guideline 4 — Design. Testée sur **iPad Air 11" (M3)**, l'UI était « crowded /
 > difficile à utiliser ».
 
-**Cause** : le build (8) a été construit alors que `ios.supportsTablet` valait
-encore `true` → l'app se déclarait compatible iPad et Apple l'a **testée sur iPad**,
-où l'UI (conçue pour iPhone) apparaît étirée/mal disposée.
+**Cause RÉELLE** (confirmée par les captures d'Apple + recherche forums Apple
+2024-2026) : ce n'est PAS qu'un étirement iPad. Les captures montrent l'écran
+**Onboarding** avec des **titres tronqués/superposés** (carrousel désaligné).
+Cause technique : `const SCREEN_WIDTH = Dimensions.get('window').width` **figé au
+chargement du module**, utilisé pour `snapToInterval`/`getItemLayout` du carrousel.
+Sur iPad en mode compatibilité (largeur de fenêtre ≠ celle capturée au boot), le
+carrousel se désaligne → cartes voisines qui débordent, titres coupés.
 
-**Résolution retenue : app iPhone-only.**
-- `app.json` → `ios.supportsTablet: false` ✅ (vérifié dans la config Expo résolue).
-  Une app iPhone-only reste **installable et exécutable sur iPad** en **mode
-  compatibilité iPhone** (fenêtre centrée) — Apple l'accepte tant que c'est déclaré.
-- **Refaire un build** (buildNumber auto-incrémenté par EAS → build 9) et le
+> ⚠️ **Point clé appris des forums Apple** : `supportsTablet:false` **n'empêche
+> PAS** Apple de tester sur iPad. L'app tourne en **mode compatibilité iPhone**
+> sur iPad, et **Apple teste ce mode**. Répondre « c'est iPhone-only » ne suffit
+> donc PAS — il faut que l'UI **fonctionne correctement même en compat iPad**.
+> (Sources : developer.apple.com/forums threads 781735, 802147, 717695.)
+
+**Résolution : corriger l'UI (largeurs réactives) + rester iPhone-only.**
+- ✅ **OnboardingScreen corrigé** : `Dimensions.get()` figé → `useWindowDimensions()`
+  réactif ; contenu plafonné (`maxWidth`) et centré pour ne pas s'étirer/casser sur
+  grand écran.
+- 🔄 **Audit des autres écrans** utilisant le même pattern `Dimensions.get('window')`
+  au niveau module (carrousels/paging = priorité), à corriger avant resubmit.
+- `app.json` → `ios.supportsTablet: false` conservé.
+- **Refaire un build** (buildNumber auto-incrémenté par EAS → build 9) et
   **soumettre à nouveau**.
 
 ### Message à coller dans « Répondre à l'équipe de vérification »
 ```
 Hello,
 
-Thank you for the review.
+Thank you for the detailed review and the screenshots.
 
-EventEz is designed as an iPhone application. In the new build we submit, the app
-declares iPhone as its only supported device family (UIDeviceFamily = iPhone,
-supportsTablet = false). On iPad, it runs in iPhone compatibility mode, which is the
-intended and supported experience for this version.
+We identified the layout issue you saw on iPad Air: a horizontal carousel on the
+onboarding screen used a window width captured once at load time, which caused the
+slides to misalign (overlapping / truncated titles) when the runtime window width
+differed. We have fixed this by making all sizing reactive to the current window
+size and by capping/centering content width, so the layout now renders correctly
+on iPad (in iPhone compatibility mode) as well as on iPhone.
 
-The previous build was mistakenly flagged as iPad-compatible; this is corrected in
-the new build. Please review the app on an iPhone device, where the layout and
-controls are designed to be used.
+EventEz is an iPhone application (supported device family = iPhone). On iPad it runs
+in iPhone compatibility mode, which now displays correctly. A dedicated
+iPad-optimized layout is planned for a future update.
 
-We plan to add a dedicated iPad-optimized layout in a future update.
+The fix is included in the new build we are submitting. Thank you.
 
-Thank you,
 The EventEz team
 ```
 

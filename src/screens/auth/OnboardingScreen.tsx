@@ -11,7 +11,7 @@ import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
+  useWindowDimensions,
   FlatList,
   Pressable,
   ViewToken,
@@ -45,9 +45,6 @@ import {
   type EntryPreset,
   type IdlePreset,
 } from '../../components/illustrations';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH;
 
 export const ONBOARDING_COMPLETE_KEY = 'eventez_onboarding_complete';
 
@@ -107,6 +104,16 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const { t, i18n } = useTranslation();
   const [index, setIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+
+  // Largeur de carte RÉACTIVE : chaque carte du carrousel occupe exactement la
+  // largeur de la fenêtre. On lit useWindowDimensions() (et NON le
+  // Dimensions.get() figé au chargement du module) — sinon, quand la largeur
+  // réelle diffère de celle capturée au boot (iPad en mode compatibilité iPhone,
+  // rotation, Split View), `snapToInterval`/`getItemLayout` se désalignent et
+  // les cartes voisines se chevauchent (titres tronqués). Cf. rejet App Store
+  // Guideline 4.0 sur iPad.
+  const { width: windowWidth } = useWindowDimensions();
+  const CARD_WIDTH = windowWidth;
 
   // Hints regionaux — la region device ne change pas en cours de session, mais
   // les variantes FR/EN (Hambourg/Hamburg, Lisbonne/Lisbon, etc.) doivent suivre
@@ -189,64 +196,66 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const renderCard = ({ item }: { item: FeatureSlide }) => {
     const Illustration = item.Illustration;
     return (
-      <View style={styles.card}>
-        {/* Per-slide faded numeral watermark */}
-        <Text
-          pointerEvents="none"
-          style={[
-            styles.slideNumeral,
-            { color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(17,17,16,0.06)' },
-          ]}
-        >
-          {item.numeral}
-        </Text>
-
-        {/* Decorative dots/lines around the illustration */}
-        <View style={[styles.decorDot, { backgroundColor: colors.accent + '66' }]} />
-        <View style={[styles.decorLine, { backgroundColor: colors.primary + '33' }]} />
-
-        {/* Hero illustration — animated, sized for the card */}
-        <View style={styles.illustrationWrap}>
-          <AnimatedIllustration
-            entry={item.illustrationEntry}
-            idle={item.illustrationIdle}
-          >
-            <Illustration color={colors.primary} size={220} />
-          </AnimatedIllustration>
-        </View>
-
-        {/* Body block */}
-        <View style={styles.cardBody}>
-          {/* Eyebrow pill */}
-          <View
+      <View style={[styles.card, { width: CARD_WIDTH }]}>
+        <View style={styles.cardInner}>
+          {/* Per-slide faded numeral watermark */}
+          <Text
+            pointerEvents="none"
             style={[
-              styles.eyebrowPill,
-              {
-                backgroundColor: isDark ? colors.card : '#F4F0E8',
-                borderColor: colors.primary + '26',
-              },
+              styles.slideNumeral,
+              { color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(17,17,16,0.06)' },
             ]}
           >
-            <Text style={[styles.eyebrowText, { color: colors.primaryDark || colors.primary }]}>
-              {t(`auth.${item.i18nKey}Eyebrow`)}
-            </Text>
+            {item.numeral}
+          </Text>
+
+          {/* Decorative dots/lines around the illustration */}
+          <View style={[styles.decorDot, { backgroundColor: colors.accent + '66' }]} />
+          <View style={[styles.decorLine, { backgroundColor: colors.primary + '33' }]} />
+
+          {/* Hero illustration — animated, sized for the card */}
+          <View style={styles.illustrationWrap}>
+            <AnimatedIllustration
+              entry={item.illustrationEntry}
+              idle={item.illustrationIdle}
+            >
+              <Illustration color={colors.primary} size={220} />
+            </AnimatedIllustration>
           </View>
 
-          {/* Title with coral accent word */}
-          <Text style={[styles.title, { color: colors.text }]}>
-            {t(`auth.${item.i18nKey}TitleStart`)}
-            <Text style={{ color: colors.accent }}>{t(`auth.${item.i18nKey}TitleAccent`)}</Text>
-            {t(`auth.${item.i18nKey}TitleEnd`)}
-          </Text>
+          {/* Body block */}
+          <View style={styles.cardBody}>
+            {/* Eyebrow pill */}
+            <View
+              style={[
+                styles.eyebrowPill,
+                {
+                  backgroundColor: isDark ? colors.card : '#F4F0E8',
+                  borderColor: colors.primary + '26',
+                },
+              ]}
+            >
+              <Text style={[styles.eyebrowText, { color: colors.primaryDark || colors.primary }]}>
+                {t(`auth.${item.i18nKey}Eyebrow`)}
+              </Text>
+            </View>
 
-          {/* Caption — slide 1 utilise la variante "BodyCities" avec
-              interpolation {{cityA}}/{{cityB}} si la region est mappee. Sinon
-              fallback sur le body neutre. */}
-          <Text style={[styles.caption, { color: colors.gray500 }]}>
-            {item.id === '1' && regionalHints
-              ? t(`auth.${item.i18nKey}BodyCities`, { cityA: regionalHints.cityA, cityB: regionalHints.cityB })
-              : t(`auth.${item.i18nKey}Body`)}
-          </Text>
+            {/* Title with coral accent word */}
+            <Text style={[styles.title, { color: colors.text }]}>
+              {t(`auth.${item.i18nKey}TitleStart`)}
+              <Text style={{ color: colors.accent }}>{t(`auth.${item.i18nKey}TitleAccent`)}</Text>
+              {t(`auth.${item.i18nKey}TitleEnd`)}
+            </Text>
+
+            {/* Caption — slide 1 utilise la variante "BodyCities" avec
+                interpolation {{cityA}}/{{cityB}} si la region est mappee. Sinon
+                fallback sur le body neutre. */}
+            <Text style={[styles.caption, { color: colors.gray500 }]}>
+              {item.id === '1' && regionalHints
+                ? t(`auth.${item.i18nKey}BodyCities`, { cityA: regionalHints.cityA, cityB: regionalHints.cityB })
+                : t(`auth.${item.i18nKey}Body`)}
+            </Text>
+          </View>
         </View>
       </View>
     );
@@ -488,13 +497,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Card (full-screen-width slide)
+  // Card (full-screen-width slide). La largeur est appliquée INLINE (réactive)
+  // dans renderCard — pas ici — car elle dépend de useWindowDimensions.
   card: {
-    width: CARD_WIDTH,
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 16,
     position: 'relative',
+    alignItems: 'center',
+  },
+  // Conteneur intérieur : plafonne le contenu à une largeur type iPhone pour
+  // qu'il ne s'étire pas / ne se disperse pas sur grand écran (iPad).
+  cardInner: {
+    width: '100%',
+    maxWidth: 460,
   },
   // Big numeral watermark per slide (behind illustration)
   slideNumeral: {
