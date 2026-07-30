@@ -2290,7 +2290,9 @@ const visibilityStyles = StyleSheet.create({
     color: Colors.white,
   },
   gateBanner: {
-    width: width - Spacing.xl * 2,
+    // Plafonnée + centrée pour ne pas s'étirer sur grand écran (iPad compat).
+    width: Math.min(width, 520) - Spacing.xl * 2,
+    alignSelf: 'center',
     height: 160,
     borderRadius: BorderRadius.xl,
     marginBottom: Spacing.lg,

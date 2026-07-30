@@ -6,7 +6,7 @@ import {
   ScrollView,
   FlatList,
   RefreshControl,
-  Dimensions,
+  useWindowDimensions,
   TouchableOpacity,
   InteractionManager,
   Share,
@@ -67,7 +67,6 @@ import { getApiResults } from '../../lib/utils/apiHelpers';
 import { getEventPriceRange } from '../../lib/utils/priceFormatters';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const DISCOVER_CACHE_TTL = 5 * 60 * 1000;
 const HEADER_SCROLL_THRESHOLD = 80;
@@ -195,6 +194,12 @@ export default function DiscoverScreen() {
   const route = useRoute<RouteProp<MainTabParamList, 'Discover'>>();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
+
+  // Largeur de carte catégorie RÉACTIVE (grille 2 col), plafonnée à une largeur
+  // type iPhone pour ne pas s'étirer sur grand écran (iPad en mode compat). Basée
+  // sur la fenêtre réelle, pas un SCREEN_WIDTH figé au chargement du module.
+  const { width: discoverWidth } = useWindowDimensions();
+  const categoryCardWidth = Math.floor((Math.min(discoverWidth, 520) - Spacing.lg * 2 - Spacing.sm) / 2);
   const { t } = useTranslation();
   const { currency: platformCurrency } = useCommissionConfig();
   const { unreadNotificationCount } = useUnreadCounts();
@@ -1033,6 +1038,7 @@ export default function DiscoverScreen() {
                 style={[
                   styles.categoryCard,
                   {
+                    width: categoryCardWidth,
                     backgroundColor: colors.card,
                     borderColor: isDark ? colors.gray200 : 'rgba(255,255,255,0.6)',
                   },
@@ -2595,10 +2601,9 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   categoryCard: {
-    // Math.floor évite que la somme (2 cards + gap) dépasse de 1px sur certains
-    // devices Android (Pixel 6 Pro 412dp) à cause du sub-pixel rounding,
-    // ce qui faisait basculer le grid en 1 colonne.
-    width: Math.floor((SCREEN_WIDTH - Spacing.lg * 2 - Spacing.sm) / 2),
+    // width appliquée INLINE (réactive via useWindowDimensions) dans le rendu —
+    // pas ici — pour rester correcte sur iPad/rotation. Math.floor côté inline
+    // évite le sub-pixel rounding qui basculait le grid en 1 colonne.
     height: 130,
     borderRadius: 20,
     borderWidth: 1,

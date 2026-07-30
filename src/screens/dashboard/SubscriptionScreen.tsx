@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
-  Dimensions,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -43,10 +42,6 @@ import {
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const TOGGLE_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
-const TOGGLE_ITEM_WIDTH = (TOGGLE_WIDTH - 8) / 2;
 
 // Design colors
 const VIOLET = '#4F46E5';
@@ -176,6 +171,12 @@ export default function SubscriptionScreen() {
 
   // Animated underline for toggle
   const toggleAnim = useRef(new Animated.Value(0)).current;
+  // Largeur RÉELLE du conteneur toggle (mesurée via onLayout), pour que le
+  // curseur animé se cale exactement sous l'onglet quelle que soit la largeur
+  // d'écran (iPad en mode compat iPhone, rotation…). On NE se base PAS sur un
+  // SCREEN_WIDTH figé au chargement du module (→ décalage sur iPad).
+  const [toggleTrackWidth, setToggleTrackWidth] = useState(0);
+  const toggleItemWidth = toggleTrackWidth > 0 ? (toggleTrackWidth - 8) / 2 : 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -407,7 +408,7 @@ export default function SubscriptionScreen() {
 
   const translateX = toggleAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [4, TOGGLE_ITEM_WIDTH + 4],
+    outputRange: [4, toggleItemWidth + 4],
   });
 
   // Dynamic design colors based on theme
@@ -580,11 +581,14 @@ export default function SubscriptionScreen() {
         {/* Billing Cycle Toggle */}
         <View style={styles.toggleSection}>
           <Text style={[styles.sectionTitle, { color: ink }]}>{t('subscriptionForm.choosePlan')}</Text>
-          <View style={[styles.toggleContainer, { backgroundColor: surface }]}>
+          <View
+            style={[styles.toggleContainer, { backgroundColor: surface }]}
+            onLayout={(e) => setToggleTrackWidth(e.nativeEvent.layout.width)}
+          >
             <Animated.View
               style={[
                 styles.toggleSlider,
-                { backgroundColor: cardBg, transform: [{ translateX }] },
+                { width: toggleItemWidth, backgroundColor: cardBg, transform: [{ translateX }] },
               ]}
             />
             <TouchableOpacity
@@ -1032,7 +1036,7 @@ const styles = StyleSheet.create({
   toggleSlider: {
     position: 'absolute',
     top: 4,
-    width: TOGGLE_ITEM_WIDTH,
+    // width appliqué inline (réactif via onLayout) — pas ici.
     height: 40,
     backgroundColor: '#FFFFFF',
     borderRadius: BorderRadius.lg,

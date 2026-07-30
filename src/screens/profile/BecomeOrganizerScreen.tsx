@@ -7,7 +7,6 @@ import {
   StyleSheet,
   ScrollView,
   Animated,
-  Dimensions,
   KeyboardAvoidingView,
   Platform,
   ViewStyle,
@@ -35,7 +34,6 @@ import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
-const { width } = Dimensions.get('window');
 
 type OrganizerType = 'individual' | 'organization';
 type Step = 1 | 2 | 3 | 4;

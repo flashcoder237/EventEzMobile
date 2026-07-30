@@ -7,7 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Dimensions,
+  useWindowDimensions,
   Modal,
   ScrollView,
   Platform,
@@ -59,7 +59,6 @@ type LocationType = 'any' | 'in_person' | 'online' | 'hybrid';
 type PriceFilter = 'any' | 'free' | 'paid';
 
 const PAGE_SIZE = 20;
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Hauteur estimée d'une ligne de résultat (EventCard liste)
 const SEARCH_RESULT_HEIGHT = 220;
@@ -278,6 +277,14 @@ function computeDateRange(preset: DatePreset): { start?: string; end?: string } 
 export default function EventSearchScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
+
+  // Largeurs RÉACTIVES (grille de suggestions 2 col + hauteur max de la modal
+  // filtres), basées sur la fenêtre réelle et non un SCREEN_WIDTH figé au
+  // chargement du module → correct sur iPad (mode compat) / rotation.
+  const { width: winW, height: winH } = useWindowDimensions();
+  const suggestionCardWidth = (Math.min(winW, 520) - Spacing.lg * 2 - 8) / 2;
+  const filterModalMaxHeight = winH * 0.92;
+
   const initialCategory = route.params?.category ?? null;
   const initialQuery = route.params?.query ?? '';
   const initialCity = route.params?.city ?? null;
@@ -501,7 +508,7 @@ export default function EventSearchScreen() {
           ordering: getOrderingParam(state.sortBy),
         };
         if (state.debouncedQuery.trim()) params.search = state.debouncedQuery.trim();
-        if (state.categoryId) params.category = state.categoryId;
+        if (state.categoryId !== null) params.category = state.categoryId;
         // Filtre ville depuis l'etat (initialise via route.params.city au
         // mount, mais dismissable par le user via la chip).
         // ATTENTION : le backend EventViewSet lit `city` (cf. views.py:239
@@ -924,7 +931,7 @@ export default function EventSearchScreen() {
                       {state.categories.slice(0, 6).map((cat) => (
                         <TouchableOpacity
                           key={cat.id}
-                          style={[styles.suggestionCard, { backgroundColor: colors.card, borderColor: hairline }]}
+                          style={[styles.suggestionCard, { width: suggestionCardWidth, backgroundColor: colors.card, borderColor: hairline }]}
                           onPress={() => dispatch({ type: 'SET_CATEGORY', id: cat.id as any })}
                           activeOpacity={0.85}
                         >
@@ -952,7 +959,7 @@ export default function EventSearchScreen() {
                   {state.categories.slice(0, 8).map((cat) => (
                     <TouchableOpacity
                       key={cat.id}
-                      style={[styles.suggestionCard, { backgroundColor: colors.card, borderColor: hairline }]}
+                      style={[styles.suggestionCard, { width: suggestionCardWidth, backgroundColor: colors.card, borderColor: hairline }]}
                       onPress={() => dispatch({ type: 'SET_CATEGORY', id: cat.id as any })}
                       activeOpacity={0.85}
                     >
@@ -1034,7 +1041,7 @@ export default function EventSearchScreen() {
             <View
               style={[
                 styles.filterSheet,
-                { backgroundColor: colors.background },
+                { maxHeight: filterModalMaxHeight, backgroundColor: colors.background },
                 { paddingBottom: Math.max(insets.bottom, Spacing.lg) },
               ]}
             >
@@ -1635,7 +1642,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   suggestionCard: {
-    width: (SCREEN_WIDTH - Spacing.lg * 2 - 8) / 2,
+    // width appliquée inline (réactive) dans le rendu.
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -1668,7 +1675,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 32,
     paddingHorizontal: Spacing.lg,
     paddingTop: 10,
-    maxHeight: SCREEN_HEIGHT * 0.92,
+    // maxHeight appliquée inline (réactive) dans le rendu.
   },
   sheetHandle: {
     width: 40,

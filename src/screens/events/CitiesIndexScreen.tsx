@@ -19,7 +19,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Dimensions,
+  useWindowDimensions,
   SectionList,
   StyleSheet,
   Text,
@@ -51,11 +51,11 @@ const TOUCH_OPACITY = 0.7;
 const SEARCH_DEBOUNCE_MS = 300;
 const CARD_HEIGHT = 120;
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GRID_HORIZONTAL_PADDING = Spacing.lg;
 const GRID_GAP = Spacing.md;
-// 2 col grid : (screen - 2*padding - 1*gap) / 2
-const CARD_WIDTH = (SCREEN_WIDTH - GRID_HORIZONTAL_PADDING * 2 - GRID_GAP) / 2;
+// Largeur de contenu plafonnée (type iPhone) pour ne pas étirer la grille sur
+// grand écran (iPad en mode compat iPhone).
+const MAX_CONTENT_WIDTH = 520;
 
 interface CityWithCount {
   id?: number;
@@ -132,6 +132,13 @@ export default function CitiesIndexScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const userTokens = useUserCountryTokens();
+
+  // Largeur de carte RÉACTIVE (grille 2 col), plafonnée à MAX_CONTENT_WIDTH pour
+  // rester lisible sur grand écran. Basée sur la largeur réelle de la fenêtre
+  // (useWindowDimensions) et non un SCREEN_WIDTH figé au chargement du module.
+  const { width: windowWidth } = useWindowDimensions();
+  const gridWidth = Math.min(windowWidth, MAX_CONTENT_WIDTH);
+  const CARD_WIDTH = (gridWidth - GRID_HORIZONTAL_PADDING * 2 - GRID_GAP) / 2;
 
   const [cities, setCities] = useState<CityWithCount[]>([]);
   const [loading, setLoading] = useState(true);

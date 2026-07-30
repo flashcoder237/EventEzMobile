@@ -37,8 +37,9 @@ import { advertisementsAPI, AdvertisementPublic } from '../../api';
 import { RootStackParamList } from '../../types';
 import { FontFamily, BorderRadius, Spacing, Shadows } from '../../constants/theme';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
+// Largeur de la carte pub, plafonnée à une largeur type iPhone puis centrée →
+// ne s'étire pas sur grand écran (iPad en mode compat iPhone).
+const CARD_WIDTH = Math.min(Dimensions.get('window').width, 520) - Spacing.lg * 2;
 
 interface Props {
   ad: AdvertisementPublic;
@@ -150,6 +151,7 @@ export default memo(AdvertisementCard);
 const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
+    alignSelf: 'center',
     borderRadius: BorderRadius['2xl'],
     borderWidth: 1,
     overflow: 'hidden',

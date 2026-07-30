@@ -10,8 +10,8 @@
 // caller de gérer l'empty state pour donner du contexte (les analytics
 // mensuelles sur un event sans historique = on attend les données).
 
-import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 
 import { useTheme } from '../../contexts/ThemeContext';
@@ -38,7 +38,6 @@ interface Props {
   withDataPointLabels?: boolean;
 }
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
 
 export default function TrendLineChart({
   eyebrow,
@@ -52,6 +51,11 @@ export default function TrendLineChart({
   withDataPointLabels = false,
 }: Props) {
   const { colors, isDark } = useTheme();
+
+  // Largeur du graphe = largeur RÉELLE mesurée du conteneur (onLayout), et non
+  // un SCREEN_WIDTH figé au chargement du module. Sinon, sur iPad (mode compat)
+  // ou dans un conteneur plus étroit/large, le chart est mal dimensionné.
+  const [chartWidth, setChartWidth] = useState(0);
 
   // Garde-fous : si aucune valeur ou tous zéros → on n'affiche rien plutôt
   // qu'un graphe plat trompeur. Le caller peut décider de remplacer par un
@@ -88,8 +92,12 @@ export default function TrendLineChart({
     },
   };
 
+  // Largeur interne du graphe (conteneur mesuré moins le padding de la carte).
+  const innerChartWidth = chartWidth > 0 ? chartWidth - Spacing.lg * 2 : 0;
+
   return (
     <View
+      onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}
       style={[
         styles.card,
         { backgroundColor: colors.card, borderColor: isDark ? colors.gray200 : 'rgba(0,0,0,0.06)' },
@@ -104,12 +112,13 @@ export default function TrendLineChart({
         <Text style={[styles.subtitle, { color: colors.gray500 }]}>{subtitle}</Text>
       ) : null}
 
+      {innerChartWidth > 0 && (
       <LineChart
         data={{
           labels: safeLabels,
           datasets: [{ data: safeValues }],
         }}
-        width={SCREEN_WIDTH - Spacing.lg * 2 - Spacing.md * 2}
+        width={innerChartWidth - Spacing.md * 2}
         height={height}
         yAxisSuffix={unitSuffix ? ` ${unitSuffix}` : ''}
         withInnerLines
@@ -128,6 +137,7 @@ export default function TrendLineChart({
           </Text>
         ) : undefined}
       />
+      )}
     </View>
   );
 }

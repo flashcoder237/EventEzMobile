@@ -6,7 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -31,9 +31,9 @@ import { displayCurrency } from '../../lib/utils/priceFormatters';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'EventAnalytics'>;
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-const STAT_CARD_WIDTH = (SCREEN_WIDTH - Spacing.lg * 2 - Spacing.md) / 2;
+// Plafond de largeur (type iPhone) pour ne pas étirer la grille de stats sur
+// grand écran (iPad en mode compat iPhone).
+const MAX_CONTENT_WIDTH = 520;
 
 export default function EventAnalyticsScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -41,6 +41,11 @@ export default function EventAnalyticsScreen() {
   const { eventId } = route.params;
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
+
+  // Largeur de carte stat RÉACTIVE (grille 2 col) basée sur la largeur réelle de
+  // la fenêtre (et non un SCREEN_WIDTH figé au chargement), plafonnée.
+  const { width: windowWidth } = useWindowDimensions();
+  const STAT_CARD_WIDTH = (Math.min(windowWidth, MAX_CONTENT_WIDTH) - Spacing.lg * 2 - Spacing.md) / 2;
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [event, setEvent] = useState<Event | null>(null);

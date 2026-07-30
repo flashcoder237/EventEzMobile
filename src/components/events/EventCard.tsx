@@ -30,7 +30,12 @@ import {
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatCount } from '../../lib/utils/numberFormatters';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+// Largeur de référence plafonnée : sur grand écran (iPad en mode compat iPhone),
+// on borne à une largeur type iPhone pour que les cartes (peek 0.82/0.88 et
+// grille 2 col) ne s'étirent pas de façon disgracieuse. Suffisant ici car ces
+// cartes sont surtout rendues avec des overrides `fullWidth`/`grid` par l'écran
+// de recherche ; ce plafond couvre les cas résiduels sans restructurer les styles.
+const CARD_REF_WIDTH = Math.min(Dimensions.get('window').width, 520);
 
 const DEFAULT_EVENT_IMAGE = require('../../../assets/defaults/default-event.png');
 
@@ -842,7 +847,7 @@ const styles = StyleSheet.create({
   // DEFAULT CARD (large, image hero with overlays + footer)
   // ============================================================
   defaultCard: {
-    width: SCREEN_WIDTH * 0.82,
+    width: CARD_REF_WIDTH * 0.82,
     borderRadius: 24,
     borderWidth: 1,
     overflow: 'hidden',
@@ -937,7 +942,7 @@ const styles = StyleSheet.create({
   // COMPACT CARD (small 2-col tile)
   // ============================================================
   compactCard: {
-    width: (SCREEN_WIDTH - Spacing.lg * 2 - Spacing.sm) / 2,
+    width: (CARD_REF_WIDTH - Spacing.lg * 2 - Spacing.sm) / 2,
     borderRadius: 18,
     borderWidth: 1,
     overflow: 'hidden',
@@ -983,7 +988,7 @@ const styles = StyleSheet.create({
   // FEATURED CARD (large hero with overlays + rich footer)
   // ============================================================
   featuredCard: {
-    width: SCREEN_WIDTH * 0.88,
+    width: CARD_REF_WIDTH * 0.88,
     borderRadius: 28,
     borderWidth: 1,
     overflow: 'hidden',

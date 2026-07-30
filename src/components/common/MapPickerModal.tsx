@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   FlatList,
   Platform,
-  Dimensions,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,7 +27,6 @@ import {
   TOUCH_OPACITY,
 } from '../../constants/theme';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface LocationData {
   lat: number;

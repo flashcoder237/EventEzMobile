@@ -706,7 +706,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
-    width: SCREEN_WIDTH - Spacing.xl * 2,
+    // Plafonnée : la modale (centrée par l'overlay) ne s'étire pas sur iPad.
+    width: Math.min(SCREEN_WIDTH, 480) - Spacing.xl * 2,
   },
   radiusSelectorTitle: {
     fontSize: FontSizes.lg,

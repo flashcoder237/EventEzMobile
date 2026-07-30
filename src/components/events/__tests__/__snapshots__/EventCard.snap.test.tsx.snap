@@ -48,7 +48,7 @@ exports[`EventCard snapshots renders compact variant 1`] = `
       },
       "shadowOpacity": 0.03,
       "shadowRadius": 5,
-      "width": 349.75,
+      "width": 234.75,
     }
   }
 >
@@ -274,7 +274,7 @@ exports[`EventCard snapshots renders default variant 1`] = `
         "borderRadius": 24,
         "borderWidth": 1,
         "overflow": "hidden",
-        "width": 615,
+        "width": 426.4,
       },
       false,
       {
@@ -671,7 +671,7 @@ exports[`EventCard snapshots renders default variant with free event + soon (J-2
         "borderRadius": 24,
         "borderWidth": 1,
         "overflow": "hidden",
-        "width": 615,
+        "width": 426.4,
       },
       false,
       {
@@ -1111,7 +1111,7 @@ exports[`EventCard snapshots renders default variant with isFeatured + isLiked 1
         "borderRadius": 24,
         "borderWidth": 1,
         "overflow": "hidden",
-        "width": 615,
+        "width": 426.4,
       },
       false,
       {
@@ -1513,7 +1513,7 @@ exports[`EventCard snapshots renders featured variant 1`] = `
         "borderRadius": 28,
         "borderWidth": 1,
         "overflow": "hidden",
-        "width": 660,
+        "width": 457.6,
       },
       {
         "backgroundColor": "#FFFFFF",

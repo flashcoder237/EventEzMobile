@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   RefreshControl,
-  Dimensions,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Animated, {
@@ -45,7 +44,6 @@ import { FollowingEventCardSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem, ContentTransition } from '../../components/ui/Animations';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Warm editorial canvas (light) / dark background
 const CANVAS_LIGHT = '#FDFBF7';
