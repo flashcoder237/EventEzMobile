@@ -469,6 +469,61 @@ déclenches la mise en ligne quand tu es prêt, après approbation) :
 
 ---
 
+## 14. Rejet Guideline 4.0 (Design — iPad) & résolution
+
+**Rejet du 30 juil. 2026 (build 1.0.0 (8))** — Submission ID `50e0f2d0-...` :
+> Guideline 4 — Design. Testée sur **iPad Air 11" (M3)**, l'UI était « crowded /
+> difficile à utiliser ».
+
+**Cause** : le build (8) a été construit alors que `ios.supportsTablet` valait
+encore `true` → l'app se déclarait compatible iPad et Apple l'a **testée sur iPad**,
+où l'UI (conçue pour iPhone) apparaît étirée/mal disposée.
+
+**Résolution retenue : app iPhone-only.**
+- `app.json` → `ios.supportsTablet: false` ✅ (vérifié dans la config Expo résolue).
+  Une app iPhone-only reste **installable et exécutable sur iPad** en **mode
+  compatibilité iPhone** (fenêtre centrée) — Apple l'accepte tant que c'est déclaré.
+- **Refaire un build** (buildNumber auto-incrémenté par EAS → build 9) et le
+  **soumettre à nouveau**.
+
+### Message à coller dans « Répondre à l'équipe de vérification »
+```
+Hello,
+
+Thank you for the review.
+
+EventEz is designed as an iPhone application. In the new build we submit, the app
+declares iPhone as its only supported device family (UIDeviceFamily = iPhone,
+supportsTablet = false). On iPad, it runs in iPhone compatibility mode, which is the
+intended and supported experience for this version.
+
+The previous build was mistakenly flagged as iPad-compatible; this is corrected in
+the new build. Please review the app on an iPhone device, where the layout and
+controls are designed to be used.
+
+We plan to add a dedicated iPad-optimized layout in a future update.
+
+Thank you,
+The EventEz team
+```
+
+### Commandes (rebuild + resubmit)
+```bash
+# 1. Nouveau build iOS (EAS incrémente le buildNumber → 9)
+cd EventEzMobile
+eas build --platform ios --profile production
+
+# 2. Soumettre le build à App Store Connect
+eas submit --platform ios --profile production --latest
+```
+Puis dans App Store Connect : sélectionner le **nouveau build**, **répondre** au
+message d'Apple avec le texte ci-dessus, et **Soumettre à nouveau**.
+
+> ⚠️ Ne PAS remettre `supportsTablet: true` sans avoir rendu toute l'UI responsive
+> iPad — ce serait re-déclencher exactement le même rejet 4.0.
+
+---
+
 ## Documents liés
 - `docs/APP_STORE_CHECKLIST.md` — checklist de préparation store iOS.
 - `docs/PLAY_DATA_SAFETY.md` — base détaillée des données collectées (réutilisée en §7).
