@@ -27,6 +27,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -381,6 +382,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
     paddingVertical: Spacing.md,
+    ...centeredContent(CARD_MAX),
   },
   statItem: { flex: 1, alignItems: 'center' },
   statValue: {
@@ -400,7 +402,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   filterText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
-  listContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl, flexGrow: 1 },
+  listContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl, flexGrow: 1, ...centeredContent(CARD_MAX) },
   logCard: {
     borderRadius: BorderRadius.xl,
     borderWidth: 1,

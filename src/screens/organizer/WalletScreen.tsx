@@ -25,6 +25,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { getServiceFeeLabel } from '../../constants/payment';
+import { centeredContent, WIDE_MAX, FORM_MAX } from '../../constants/layout';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { WalletScreenSkeleton } from '../../components/ui/Skeleton';
 import {
@@ -1769,6 +1770,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: Spacing['3xl'],
+    ...centeredContent(WIDE_MAX),
   },
   section: {
     padding: Spacing.lg,
@@ -1942,6 +1944,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: BorderRadius['2xl'],
     borderTopRightRadius: BorderRadius['2xl'],
     padding: Spacing.xl,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: FORM_MAX,
   },
   bankModalScroll: {
     flex: 1,

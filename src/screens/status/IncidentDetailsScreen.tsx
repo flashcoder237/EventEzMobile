@@ -26,6 +26,7 @@ import {
   TextStyles,
 } from '../../constants/theme';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import type { Incident, IncidentSeverity, IncidentStatus, RootStackParamList } from '../../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -383,7 +384,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   headerTitle: { ...TextStyles.h3, letterSpacing: -0.3 },
-  content: { padding: Spacing.lg, paddingBottom: Spacing['3xl'] },
+  content: { padding: Spacing.lg, paddingBottom: Spacing['3xl'], ...centeredContent(WIDE_MAX) },
   centered: {
     alignItems: 'center',
     justifyContent: 'center',

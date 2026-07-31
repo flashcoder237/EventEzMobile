@@ -28,6 +28,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 
 interface SiteSettings {
   ai_moderation_enabled?: boolean;
@@ -362,7 +363,7 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xl,
     letterSpacing: -0.4,
   },
-  scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+  scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, ...centeredContent(CARD_MAX) },
   sectionEyebrow: {
     fontFamily: FontFamily.bold,
     fontSize: 10,

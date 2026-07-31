@@ -28,6 +28,7 @@ import {
 import { SkeletonList, DiscountCardSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem } from '../../components/ui/Animations';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RoutePropType = RouteProp<RootStackParamList, 'DiscountManagement'>;
@@ -491,6 +492,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: 140,
+    ...centeredContent(CARD_MAX),
   },
 
   // === DISCOUNT CARD ===

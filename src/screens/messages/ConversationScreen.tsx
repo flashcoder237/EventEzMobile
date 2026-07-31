@@ -1664,83 +1664,84 @@ export default function ConversationScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // #6 Undo send — arme la snackbar pour 5s. On stocke le tempId, et au
-  // moment du tap "Annuler" on retrouve le vrai message (replace par WS/REST)
-  // pour le supprimer cote serveur. On supprime aussi le temp en local au cas
-  // ou le WS n'a pas encore repondu.
-  const armUndoSend = useCallback((tempId: string) => {
+  // #6 Undo send — VRAIE fenetre d'annulation.
+  //
+  // L'implementation precedente envoyait le message immediatement puis, au tap
+  // "Annuler", tentait un delete a posteriori : le destinataire avait deja recu
+  // le message (et sa notification push), et si le delete echouait — hors ligne,
+  // WS ferme, 403 — il restait affiche. Le bouton mentait.
+  //
+  // Desormais on DIFFERE l'envoi reseau : `armUndoSend` retourne une promesse
+  // resolue a `true` si le delai s'ecoule (=> on envoie), `false` si l'user
+  // annule (=> on n'envoie jamais rien). Le message n'existe que localement
+  // pendant la fenetre, donc annuler est exact et ne depend d'aucun reseau.
+  const undoResolverRef = useRef<((commit: boolean) => void) | null>(null);
+
+  const hideUndoSnackbar = useCallback(() => {
+    Animated.timing(undoSnackbarAnim, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(() => setPendingUndoMessage(null));
+  }, [undoSnackbarAnim]);
+
+  /** Attend la fin de la fenetre d'undo. `true` => envoyer, `false` => annule. */
+  const armUndoSend = useCallback((tempId: string): Promise<boolean> => {
+    // Un envoi deja en attente est commite immediatement : on ne veut pas deux
+    // barrieres concurrentes, et le 2e message ne doit pas annuler le 1er.
+    if (undoResolverRef.current) {
+      undoResolverRef.current(true);
+      undoResolverRef.current = null;
+    }
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+
     setPendingUndoMessage({ tempId, expiresAt: Date.now() + UNDO_SEND_DELAY_MS });
-    // Slide-in
     Animated.timing(undoSnackbarAnim, {
       toValue: 1,
       duration: 220,
       useNativeDriver: true,
     }).start();
-    undoTimerRef.current = setTimeout(() => {
-      Animated.timing(undoSnackbarAnim, {
-        toValue: 0,
-        duration: 220,
-        useNativeDriver: true,
-      }).start(() => setPendingUndoMessage(null));
-    }, UNDO_SEND_DELAY_MS);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
-  const performUndoSend = useCallback(async () => {
+    return new Promise<boolean>((resolve) => {
+      undoResolverRef.current = resolve;
+      undoTimerRef.current = setTimeout(() => {
+        undoTimerRef.current = null;
+        if (undoResolverRef.current === resolve) {
+          undoResolverRef.current = null;
+          resolve(true); // delai ecoule => envoi reel
+        }
+        hideUndoSnackbar();
+      }, UNDO_SEND_DELAY_MS);
+    });
+  }, [undoSnackbarAnim, hideUndoSnackbar]);
+
+  /** Tap sur "Annuler" : le message n'a jamais quitte l'appareil. */
+  const performUndoSend = useCallback(() => {
     const pending = pendingUndoMessage;
     if (!pending) return;
     if (undoTimerRef.current) {
       clearTimeout(undoTimerRef.current);
       undoTimerRef.current = null;
     }
-    Animated.timing(undoSnackbarAnim, {
-      toValue: 0,
-      duration: 180,
-      useNativeDriver: true,
-    }).start(() => setPendingUndoMessage(null));
+    hideUndoSnackbar();
 
-    // Cherche le message a supprimer : d'abord par tempId, sinon le plus
-    // recent envoye par l'user (REST l'a deja remplace avec le real id).
-    const messages = state.messages;
-    const userIdStr = String(user?.id ?? '');
-    let target = messages.find((m) => String(m.id) === pending.tempId);
-    if (!target) {
-      // Plus recent sortant (index 0 dans une liste triee desc; ici la liste
-      // peut etre triee asc — on cherche par created_at desc)
-      const mine = messages.filter((m) => String(m.sender ?? (m as any).sender_id ?? '') === userIdStr);
-      if (mine.length > 0) {
-        target = mine.reduce((a, b) =>
-          new Date(a.created_at).getTime() > new Date(b.created_at).getTime() ? a : b,
-        );
-      }
-    }
-    if (!target) return;
+    // Retire le message optimiste local. Aucun appel reseau : rien n'est parti.
+    actions.removeMessage(pending.tempId);
 
-    // Retire optimistiquement du local
-    actions.removeMessage(String(target.id));
+    const resolve = undoResolverRef.current;
+    undoResolverRef.current = null;
+    resolve?.(false);
+  }, [pendingUndoMessage, actions, hideUndoSnackbar]);
 
-    // Tente le delete cote serveur — for_everyone si possible
-    try {
-      const realId = String(target.id);
-      if (!realId.startsWith('temp-')) {
-        if (isConnected && isAuthenticated && typeof wsDeleteMessage === 'function') {
-          wsDeleteMessage(realId);
-        } else {
-          await messagesAPI.deleteMessage(realId);
-        }
-      }
-      // Si c'etait encore un tempId, le message n'est probablement pas encore
-      // arrive au serveur (WS pending). Le removeMessage local suffit.
-    } catch (err) {
-      if (__DEV__) console.warn('[undoSend] delete failed', err);
-    }
-  }, [pendingUndoMessage, state.messages, user?.id, isConnected, isAuthenticated, wsDeleteMessage, actions, undoSnackbarAnim]);
-
-  // Cleanup undo timer au unmount
+  // Cleanup au unmount : on commite l'envoi en attente plutot que de le perdre
+  // silencieusement (l'user a tape "envoyer" et n'a pas annule).
   useEffect(() => {
     return () => {
       if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+      if (undoResolverRef.current) {
+        undoResolverRef.current(true);
+        undoResolverRef.current = null;
+      }
     };
   }, []);
 
@@ -2462,12 +2463,16 @@ export default function ConversationScreen() {
       actions.clearAttachedFiles();
       actions.cancelReply();
 
-      // #6 Arme la fenetre d'undo. On expose une snackbar "Annuler" 5s. Si
-      // l'user tap, on supprime le message via wsDeleteMessage / API. On
-      // identifie le message au moment de l'Annuler en cherchant le dernier
-      // message de l'user (le temp aura ete remplace par le real sur REST,
-      // ou WS aura confirme).
-      armUndoSend(tempMessageId);
+      // #6 Arme la fenetre d'undo (snackbar "Annuler" pendant 5s). On ne
+      // l'attend pas ici : les uploads d'attachments peuvent se faire pendant
+      // la fenetre pour ne pas ajouter 5s de latence percue. Seul l'ENVOI du
+      // message est bloque, plus bas, sur `undoGate`.
+      const undoGate = armUndoSend(tempMessageId);
+
+      // Le message optimiste est affiche : on libere l'input tout de suite.
+      // Sans ca, `sending` resterait vrai pendant les 5s de la fenetre d'undo
+      // et bloquerait le bouton d'envoi (InputToolbar `disabled={sending}`).
+      actions.setSending(false);
 
       // Marquer tous les attachments en upload pour l'overlay loader.
       // C. On enregistre aussi le timestamp de debut pour pouvoir basculer
@@ -2629,6 +2634,18 @@ export default function ConversationScreen() {
           failedUploads.length > 1 ? t('conversation.someFilesRejectedPlural') : t('conversation.someFilesRejectedSingular'),
           summary,
         );
+      }
+
+      // Barriere d'undo : rien ne part tant que la fenetre de 5s n'est pas
+      // ecoulee. Si l'user a tape "Annuler", on s'arrete ici — le message
+      // n'aura jamais atteint le serveur ni le destinataire.
+      const shouldSend = await undoGate;
+      if (!shouldSend) {
+        // Les attachments deja uploades deviennent orphelins cote serveur (ils
+        // ne sont rattaches a aucun message) ; le nettoyage periodique backend
+        // s'en charge. Le message local a ete retire par performUndoSend.
+        actions.setSending(false);
+        return;
       }
 
       // Envoi via WebSocket ou REST
@@ -3640,7 +3657,8 @@ export default function ConversationScreen() {
                 ))}
               </ScrollView>
             )}
-            {/* #6 Snackbar Undo Send — visible 5s apres chaque envoi */}
+            {/* #6 Snackbar Undo Send — l'envoi reel est differe tant qu'elle
+                est visible, d'ou "Envoi en cours" et non "Message envoye". */}
             {pendingUndoMessage && (
               <Animated.View
                 style={[
@@ -3658,7 +3676,7 @@ export default function ConversationScreen() {
                 ]}
               >
                 <Text style={[styles.undoSnackbarText, { color: '#FFFFFF' }]}>
-                  {t('conversation.messageSent')}
+                  {t('conversation.messageSending')}
                 </Text>
                 <TouchableOpacity
                   onPress={performUndoSend}

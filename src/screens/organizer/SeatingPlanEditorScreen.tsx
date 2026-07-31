@@ -46,6 +46,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, WIDE_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'SeatingPlanEditor'>;
@@ -592,7 +593,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
   },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scrollContent: { padding: Spacing.lg, gap: Spacing.lg },
+  scrollContent: { padding: Spacing.lg, gap: Spacing.lg, ...centeredContent(WIDE_MAX) },
 
   statsCard: {
     flexDirection: 'row',

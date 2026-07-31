@@ -31,6 +31,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -399,6 +400,7 @@ function UserManagementContent() {
       {/* Bulk action bar — apparaît dès qu'au moins un user est sélectionné */}
       {isSelecting && (
         <View style={[styles.bulkBar, { backgroundColor: colors.text, borderTopColor: hairline }]}>
+          <View style={styles.bulkBarInner}>
           <TouchableOpacity
             onPress={cancelSelection}
             disabled={bulkLoading}
@@ -442,6 +444,7 @@ function UserManagementContent() {
               <Ionicons name="ban" size={14} color="#FFFFFF" />
               <Text style={styles.bulkBtnText}>{t('admin.users.bulk.deactivate')}</Text>
             </TouchableOpacity>
+          </View>
           </View>
         </View>
       )}
@@ -501,7 +504,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   filterText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
-  listContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl, flexGrow: 1 },
+  listContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl, flexGrow: 1, ...centeredContent(CARD_MAX) },
   listFooter: { paddingVertical: Spacing.lg, alignItems: 'center' },
   userCard: {
     borderRadius: BorderRadius.xl,
@@ -550,13 +553,16 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
+    borderTopWidth: 1,
+  },
+  bulkBarInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.lg,
-    borderTopWidth: 1,
+    ...centeredContent(CARD_MAX),
   },
   bulkClose: {
     width: 32,

@@ -26,6 +26,7 @@ import {
   TextStyles,
 } from '../../constants/theme';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import { IncidentSeverity, IncidentStatus, RootStackParamList } from '../../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -250,6 +251,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing['3xl'],
+    ...centeredContent(WIDE_MAX),
   },
   hero: {
     borderRadius: BorderRadius['4xl'],

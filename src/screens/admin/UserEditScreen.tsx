@@ -25,6 +25,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, FORM_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'UserEdit'>;
@@ -313,7 +314,7 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xl,
     letterSpacing: -0.4,
   },
-  scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+  scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, ...centeredContent(FORM_MAX) },
   userCard: {
     alignItems: 'center',
     padding: Spacing.xl,

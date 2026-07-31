@@ -43,6 +43,7 @@ import {
   EditorialHeader,
   editorial,
 } from '../../components/ui/editorial';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RoutePropType = RouteProp<RootStackParamList, 'EventRegistrations'>;
@@ -873,6 +874,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     marginBottom: Spacing.md,
     paddingVertical: Spacing.md,
+    ...centeredContent(CARD_MAX),
   },
   statBlock: {
     flex: 1,
@@ -910,15 +912,15 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: FontSizes.xs, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   // Divider vertical entre les blocs de stats (canvas éditorial : couleur claire)
   statDivider: { width: 1, height: 36, marginHorizontal: 4 },
-  searchContainer: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.xs },
-  filtersContainer: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm, gap: Spacing.xs },
+  searchContainer: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.xs, ...centeredContent(CARD_MAX) },
+  filtersContainer: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm, gap: Spacing.xs, ...centeredContent(CARD_MAX) },
   filterButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: BorderRadius.full },
   filterButtonActive: { backgroundColor: Colors.primary },
   filterText: { fontFamily: FontFamily.medium, fontSize: FontSizes.sm },
   filterTextActive: { color: Colors.white },
   filterBadge: { marginLeft: Spacing.xs, backgroundColor: Colors.error, borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   filterBadgeText: { fontFamily: FontFamily.bold, fontSize: 10, color: Colors.white },
-  listContent: { padding: Spacing.lg, flexGrow: 1 },
+  listContent: { padding: Spacing.lg, flexGrow: 1, ...centeredContent(CARD_MAX) },
   registrationCard: { borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.sm, borderWidth: 1 },
   pendingCard: { borderLeftWidth: 3, borderLeftColor: '#F59E0B' },
   registrationHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },

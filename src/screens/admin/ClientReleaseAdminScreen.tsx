@@ -36,6 +36,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, FORM_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -280,7 +281,7 @@ const styles = StyleSheet.create({
   headerEyebrow: { fontFamily: FontFamily.bold, fontSize: 10, letterSpacing: 1.4, marginBottom: 2 },
   headerTitle: { fontFamily: FontFamily.bold, fontSize: 20 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scrollContent: { padding: Spacing.lg, paddingBottom: Spacing['2xl'] },
+  scrollContent: { padding: Spacing.lg, paddingBottom: Spacing['2xl'], ...centeredContent(FORM_MAX) },
   alertBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',

@@ -38,6 +38,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -248,7 +249,7 @@ const styles = StyleSheet.create({
   countText: {
     fontFamily: FontFamily.bold, fontSize: 13,
   },
-  list: { padding: Spacing.lg, gap: Spacing.sm, paddingBottom: 100 },
+  list: { padding: Spacing.lg, gap: Spacing.sm, paddingBottom: 100, ...centeredContent(CARD_MAX) },
   card: {
     flexDirection: 'row', gap: Spacing.md,
     padding: Spacing.sm, borderRadius: BorderRadius.xl, borderWidth: 1,

@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
+import { centeredContent, FORM_MAX } from '../../constants/layout';
 import { ticketTypesAPI, priceTiersAPI } from '../../api';
 import DateTimePickerField from '../../components/ui/DateTimePickerField';
 import { RootStackParamList, TicketType } from '../../types';
@@ -277,7 +278,7 @@ const styles = StyleSheet.create({
   backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontFamily: FontFamily.bold, fontSize: 17, letterSpacing: -0.3 },
 
-  content: { padding: Spacing.lg, paddingBottom: Spacing.xl * 2, gap: Spacing.md },
+  content: { padding: Spacing.lg, paddingBottom: Spacing.xl * 2, gap: Spacing.md, ...centeredContent(FORM_MAX) },
   intro: { fontFamily: FontFamily.regular, fontSize: 13, lineHeight: 18 },
 
   emptyBox: { alignItems: 'center', gap: 10, paddingVertical: Spacing.xl * 1.5 },

@@ -36,6 +36,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, WIDE_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -1293,7 +1294,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   countText: { fontFamily: FontFamily.bold, fontSize: FontSizes.sm },
-  scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+  scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, ...centeredContent(WIDE_MAX) },
 
   // Stats — aligne sur NotificationsScreen.statStrip (canonical editorial)
   statsCard: {

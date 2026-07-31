@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
+import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import { registrationsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 
@@ -304,7 +305,7 @@ const styles = StyleSheet.create({
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#EF4444' },
   liveTagText: { fontFamily: FontFamily.bold, fontSize: 11, letterSpacing: 1.5, color: '#EF4444' },
 
-  content: { padding: Spacing.lg, paddingBottom: Spacing.xl * 2, gap: Spacing.md },
+  content: { padding: Spacing.lg, paddingBottom: Spacing.xl * 2, gap: Spacing.md, ...centeredContent(WIDE_MAX) },
   eyebrow: { fontFamily: FontFamily.bold, fontSize: 11, letterSpacing: 1.6 },
   title: { fontFamily: FontFamily.displayExtraBold, fontSize: 26, letterSpacing: -0.8, marginTop: 2 },
 

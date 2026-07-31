@@ -1,8 +1,6 @@
 import React, { memo, useRef, useEffect } from 'react';
-import { Dimensions, Platform } from 'react-native';
+import { useWindowDimensions, Platform } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const BRAND_COLORS = ['#4F46E5', '#A855F7', '#818CF8', '#C084FC', '#BEFF5A', '#FF6B6B'];
 
@@ -28,11 +26,15 @@ interface ConfettiEffectProps {
 function ConfettiEffectComponent({
   autoStart = true,
   count = DEFAULT_COUNT,
-  origin = { x: SCREEN_WIDTH / 2, y: -20 },
+  origin,
   fadeOut = true,
   colors = BRAND_COLORS,
 }: ConfettiEffectProps) {
   const confettiRef = useRef<ConfettiCannon>(null);
+  const { width: screenWidth } = useWindowDimensions();
+  // Origine par défaut : centre horizontal de la fenêtre courante (réactif à la
+  // rotation / au split-view iPad, contrairement à un Dimensions.get au module).
+  const resolvedOrigin = origin ?? { x: screenWidth / 2, y: -20 };
 
   useEffect(() => {
     if (autoStart && confettiRef.current) {
@@ -44,7 +46,7 @@ function ConfettiEffectComponent({
     <ConfettiCannon
       ref={confettiRef}
       count={count}
-      origin={origin}
+      origin={resolvedOrigin}
       autoStart={autoStart}
       fadeOut={fadeOut}
       colors={colors}

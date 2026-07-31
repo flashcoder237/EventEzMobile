@@ -26,6 +26,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -218,7 +219,7 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xl,
     letterSpacing: -0.4,
   },
-  listContent: { padding: Spacing.lg, flexGrow: 1 },
+  listContent: { padding: Spacing.lg, flexGrow: 1, ...centeredContent(CARD_MAX) },
   planCard: {
     borderRadius: BorderRadius.xl,
     borderWidth: 1,

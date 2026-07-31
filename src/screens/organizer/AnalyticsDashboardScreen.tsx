@@ -31,6 +31,7 @@ import { AnalyticsDashboardScreenSkeleton } from '../../components/ui/Skeleton';
 import ExportButton from '../../components/common/ExportButton';
 import { KPICard, BarChart } from '../../components/charts';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
+import { centeredContent, WIDE_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TimeRange = '7d' | '30d' | '90d' | '1y';
@@ -575,6 +576,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
+    ...centeredContent(WIDE_MAX),
   },
 
   // === HERO CARD ===

@@ -43,6 +43,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import WidgetRenderer from '../../components/charts/WidgetRenderer';
 import WidgetFormModal from '../../components/charts/WidgetFormModal';
 
@@ -277,6 +278,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.lg,
     gap: Spacing.md,
+    ...centeredContent(WIDE_MAX),
   },
   description: {
     fontFamily: FontFamily.regular,

@@ -55,6 +55,30 @@ interface TicketSelection {
   quantity: number;
 }
 
+export type SaleState = 'open' | 'not_started' | 'ended';
+
+/**
+ * Etat de la fenetre de vente d'un type de billet a l'instant `nowTs`.
+ *
+ * Le backend refuse tout achat hors de [sales_start, sales_end] (cf.
+ * registrations/views.py et serializers.py). L'UI doit donc griser ces billets
+ * AVANT le paiement, sinon l'utilisateur selectionne, paie, et ne recoit
+ * l'erreur qu'au submit.
+ *
+ * Une date absente ou non parsable => borne non contraignante : on n'invente
+ * pas une fermeture que le backend n'appliquerait pas.
+ */
+export function getSaleState(
+  ticketType: Pick<TicketType, 'sales_start' | 'sales_end'>,
+  nowTs: number,
+): SaleState {
+  const start = Date.parse(ticketType.sales_start ?? '');
+  if (!Number.isNaN(start) && nowTs < start) return 'not_started';
+  const end = Date.parse(ticketType.sales_end ?? '');
+  if (!Number.isNaN(end) && nowTs > end) return 'ended';
+  return 'open';
+}
+
 // Auto-prefill custom form fields with user profile data when label/type matches
 function autoPrefillFormData(fields: FormField[], user: any): Record<string, any> {
   const prefilled: Record<string, any> = {};
@@ -129,6 +153,35 @@ export default function TicketPurchaseScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [existingRegistration, setExistingRegistration] = useState<any>(null);
+
+  // Horloge de la fenetre de vente. Un Date.now() calcule au render figerait
+  // l'etat : un billet qui expire pendant que l'ecran est ouvert resterait
+  // selectionnable jusqu'a un re-render fortuit. On reevalue chaque minute
+  // (granularite suffisante pour une date de fin de vente).
+  const [nowTs, setNowTs] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowTs(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Si un billet se ferme pendant que l'ecran est ouvert, on retire sa
+  // selection : sinon il resterait compte dans le total et le submit partirait
+  // avec un billet que le backend rejette.
+  useEffect(() => {
+    setSelections((prev) => {
+      if (prev.size === 0) return prev;
+      let changed = false;
+      const next = new Map(prev);
+      for (const tt of ticketTypes) {
+        const id = String(tt.id);
+        if (next.has(id) && getSaleState(tt, nowTs) !== 'open') {
+          next.delete(id);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [nowTs, ticketTypes]);
 
   // Purchase tour fires once tickets are loaded — targets the first ticket
   // card and the discount input. Skipped in edit/additional modes where
@@ -299,7 +352,16 @@ export default function TicketPurchaseScreen() {
     });
   };
 
+  const isTicketSaleOpen = (ticketTypeId: string) => {
+    const tt = ticketTypes.find((x) => String(x.id) === ticketTypeId);
+    return tt ? getSaleState(tt, nowTs) === 'open' : true;
+  };
+
   const updateQuantity = (ticketTypeId: string, delta: number) => {
+    // Garde defensive : les boutons +/- sont deja masques hors fenetre de
+    // vente, mais la modale de saisie directe peut rester ouverte au moment ou
+    // le billet se ferme. On n'autorise alors que la diminution.
+    if (delta > 0 && !isTicketSaleOpen(ticketTypeId)) return;
     const current = selections.get(ticketTypeId) || 0;
     const intended = current + delta;
     // Surface a clear message if the user tries to exceed the per-order cap
@@ -331,6 +393,9 @@ export default function TicketPurchaseScreen() {
   const setQuantityDirect = (ticketTypeId: string, raw: string) => {
     const parsed = parseInt(raw, 10);
     if (Number.isNaN(parsed) || parsed < 0) return;
+    // Meme garde que updateQuantity : hors fenetre de vente, seule la remise a
+    // zero reste permise.
+    if (parsed > 0 && !isTicketSaleOpen(ticketTypeId)) return;
     if (parsed > MAX_TICKETS_PER_TYPE) {
       showAlert(
         t('ticketPurchase.limitReachedTitle'),
@@ -859,7 +924,13 @@ export default function TicketPurchaseScreen() {
                 : typeof (ticketType as any).available_quantity === 'number'
                 ? (ticketType as any).available_quantity
                 : (ticketType.quantity_total || 0) - (ticketType.quantity_sold || 0);
-              const isAvailable = availableQty > 0 || (ticketType.quantity_total === undefined && ticketType.quantity_sold === undefined);
+              const hasStock = availableQty > 0 || (ticketType.quantity_total === undefined && ticketType.quantity_sold === undefined);
+              // Fenêtre de vente : le backend refuse l'achat hors de [sales_start,
+              // sales_end] (registrations/views.py + serializers.py). Sans cette
+              // garde l'UI laissait sélectionner puis payer un billet fermé, et
+              // l'erreur ne tombait qu'au submit. On aligne le mobile sur le web.
+              const saleState = getSaleState(ticketType, nowTs);
+              const isAvailable = hasStock && saleState === 'open';
               const isSelected = quantity > 0;
               const effPrice = effectivePrice(ticketType);
               const isFree = effPrice === 0;
@@ -985,7 +1056,13 @@ export default function TicketPurchaseScreen() {
                       </>
                     ) : (
                       <View style={[styles.bpSoldOut, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
-                        <Text style={styles.bpSoldOutText}>{t('ticketPurchase.soldOut')}</Text>
+                        <Text style={styles.bpSoldOutText}>
+                          {saleState === 'ended'
+                            ? t('ticketPurchase.salesEnded')
+                            : saleState === 'not_started'
+                            ? t('ticketPurchase.salesNotStarted')
+                            : t('ticketPurchase.soldOut')}
+                        </Text>
                       </View>
                     )}
                   </View>

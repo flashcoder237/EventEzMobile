@@ -42,6 +42,7 @@ import {
   TOUCH_OPACITY,
 } from '../../constants/theme';
 import { getTeamInvitationUrl } from '../../constants/urls';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { RootStackParamList } from '../../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -382,7 +383,7 @@ export default function TeamManagementScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ padding: Spacing.lg, paddingBottom: Spacing['3xl'] }}
+        contentContainerStyle={{ padding: Spacing.lg, paddingBottom: Spacing['3xl'], ...centeredContent(CARD_MAX) }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {members.length === 0 ? (
@@ -731,6 +732,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: BorderRadius['2xl'],
     borderTopRightRadius: BorderRadius['2xl'],
     overflow: 'hidden',
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 520,
   },
   modalHeader: {
     flexDirection: 'row',

@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { FontFamily, Spacing, BorderRadius, SpringPresets } from '../../constants/theme';
+import { CARD_MAX } from '../../constants/layout';
 
 export type EventActionStyle = 'default' | 'destructive';
 
@@ -306,8 +307,12 @@ const styles = StyleSheet.create({
   modalRoot: {
     flex: 1,
     justifyContent: 'flex-end',
+    // iPad : centrer le sheet ; le backdrop (absoluteFill) reste bord-à-bord.
+    alignItems: 'center',
   },
   sheet: {
+    width: '100%',
+    maxWidth: CARD_MAX,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     overflow: 'hidden',

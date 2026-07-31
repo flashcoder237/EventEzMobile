@@ -44,6 +44,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'BoothManagement'>;
@@ -395,7 +396,7 @@ export default function BoothManagementScreen() {
           data={data as any[]}
           keyExtractor={(item: any) => item.id}
           renderItem={renderItem as any}
-          contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}
+          contentContainerStyle={styles.listContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
           ListHeaderComponent={
             // Accès à l'éditeur de plan visuel (drag) — onglet Stands, si un plan
@@ -502,6 +503,7 @@ const styles = StyleSheet.create({
   headerEyebrow: { fontFamily: FontFamily.bold, fontSize: FontSizes.xs, letterSpacing: 1 },
   headerTitle: { fontFamily: FontFamily.bold, fontSize: FontSizes.xl },
   iconDisc: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  listContent: { padding: Spacing.lg, gap: Spacing.sm, ...centeredContent(CARD_MAX) },
   tabsRow: { flexDirection: 'row', paddingHorizontal: Spacing.lg, gap: Spacing.sm, marginBottom: Spacing.sm },
   tab: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full },
   tabText: { fontFamily: FontFamily.medium, fontSize: FontSizes.sm },

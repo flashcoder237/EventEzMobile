@@ -23,6 +23,7 @@ import { getVolunteerSignupUrl } from '../../constants/urls';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { Colors, FontSizes, FontFamily, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useTheme } from '../../contexts/ThemeContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -1003,7 +1004,7 @@ const styles = StyleSheet.create({
   activeTab: { backgroundColor: Colors.white, ...Shadows.md },
   tabText: { fontSize: FontSizes.sm, color: Colors.textLight, fontWeight: '600' },
   activeTabText: { color: Colors.primary },
-  listContent: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.xl },
+  listContent: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.xl, ...centeredContent(CARD_MAX) },
   // Role Card
   roleCard: { backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.sm, ...Shadows.card },
   roleHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm },

@@ -44,6 +44,7 @@ import {
   FontSizes,
   Spacing,
 } from '../../constants/theme';
+import { centeredContent, FORM_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type EditRouteType = RouteProp<RootStackParamList, 'EventEdit'>;
@@ -800,7 +801,9 @@ export default function EventCreateScreen() {
           </KeyboardAwareScrollView>
         </View>
 
-        {/* Sticky Bottom Nav — ghost Retour + pill CTA with dual label + arrow disc */}
+        {/* Sticky Bottom Nav — ghost Retour + pill CTA with dual label + arrow disc.
+            Le fond de la barre reste bord-à-bord ; seul le contenu est plafonné
+            (centré) pour ne pas s'étirer sur iPad. */}
         <View
           style={[
             styles.navigationButtons,
@@ -810,6 +813,7 @@ export default function EventCreateScreen() {
             },
           ]}
         >
+          <View style={styles.navigationButtonsInner}>
           {form.currentStep > 1 ? (
             <TouchableOpacity
               style={styles.prevButtonGhost}
@@ -874,6 +878,7 @@ export default function EventCreateScreen() {
               </View>
             </TouchableOpacity>
           )}
+          </View>
         </View>
       </View>
 
@@ -1006,16 +1011,20 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: Spacing.xl * 2,
+    ...centeredContent(FORM_MAX),
   },
-  // Bottom nav
+  // Bottom nav — fond bord-à-bord ; le contenu est plafonné via *Inner.
   navigationButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
-    gap: Spacing.md,
     borderTopWidth: 1,
+  },
+  navigationButtonsInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    ...centeredContent(FORM_MAX),
   },
   prevButtonGhost: {
     flexDirection: 'row',

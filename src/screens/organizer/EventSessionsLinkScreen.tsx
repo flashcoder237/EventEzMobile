@@ -26,6 +26,7 @@ import {
 } from '../../constants/theme';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { StaggeredItem } from '../../components/ui/Animations';
+import { centeredContent, WIDE_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RoutePropType = RouteProp<RootStackParamList, 'EventSessionsLink'>;
@@ -379,6 +380,7 @@ export default function EventSessionsLinkScreen() {
             },
           ]}
         >
+          <View style={styles.saveBarInner}>
           <Text style={[styles.saveBarHint, { color: colors.gray500 }]}>
             {isModified ? t('organizer.sessionsLink.modifications') : t('organizer.sessionsLink.noModifications')}
           </Text>
@@ -405,6 +407,7 @@ export default function EventSessionsLinkScreen() {
               </>
             )}
           </TouchableOpacity>
+          </View>
         </View>
       )}
     </EditorialCanvas>
@@ -451,6 +454,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
+    ...centeredContent(WIDE_MAX),
   },
   loadingWrap: {
     flex: 1,
@@ -618,19 +622,23 @@ const styles = StyleSheet.create({
   },
 
   // === SAVE BAR ===
+  // Fond bord-à-bord (absolute plein largeur) ; contenu plafonné via saveBarInner.
   saveBar: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.lg,
     borderTopWidth: 1,
+  },
+  saveBarInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: Spacing.sm,
+    ...centeredContent(WIDE_MAX),
   },
   saveBarHint: {
     flex: 1,

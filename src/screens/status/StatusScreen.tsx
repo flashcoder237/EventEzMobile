@@ -27,6 +27,7 @@ import {
   TextStyles,
 } from '../../constants/theme';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import type {
   Incident,
   RootStackParamList,
@@ -431,6 +432,7 @@ const styles = StyleSheet.create({
   content: {
     padding: Spacing.lg,
     paddingBottom: Spacing['3xl'],
+    ...centeredContent(WIDE_MAX),
   },
 
   // Hero

@@ -49,6 +49,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, FORM_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'AdminAdForm'>;
@@ -468,18 +469,20 @@ function AdminAdFormContent() {
 
       {/* === Bouton submit === */}
       <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: hairline }]}>
-        <TouchableOpacity
-          onPress={handleSubmit}
-          disabled={submitting}
-          activeOpacity={0.85}
-          style={[styles.submitBtn, { backgroundColor: colors.primary }, submitting && { opacity: 0.6 }]}
-        >
-          {submitting ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text style={styles.submitBtnText}>{isEdit ? t('admin.ads.form.save') : t('admin.ads.form.create')}</Text>
-          )}
-        </TouchableOpacity>
+        <View style={styles.bottomBarInner}>
+          <TouchableOpacity
+            onPress={handleSubmit}
+            disabled={submitting}
+            activeOpacity={0.85}
+            style={[styles.submitBtn, { backgroundColor: colors.primary }, submitting && { opacity: 0.6 }]}
+          >
+            {submitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.submitBtnText}>{isEdit ? t('admin.ads.form.save') : t('admin.ads.form.create')}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -504,7 +507,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: FontFamily.displayBold, fontSize: FontSizes.xl, letterSpacing: -0.4,
   },
-  scroll: { padding: Spacing.lg, paddingBottom: 100 },
+  scroll: { padding: Spacing.lg, paddingBottom: 100, ...centeredContent(FORM_MAX) },
   sectionTitle: {
     fontFamily: FontFamily.displayBold, fontSize: 16, letterSpacing: -0.3,
     marginTop: Spacing.lg, marginBottom: Spacing.sm,
@@ -557,8 +560,13 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular, fontSize: 11, marginTop: 2,
   },
   bottomBar: {
-    padding: Spacing.lg, paddingTop: Spacing.md,
+    paddingVertical: Spacing.md,
+    paddingBottom: Spacing.lg,
     borderTopWidth: 1,
+  },
+  bottomBarInner: {
+    paddingHorizontal: Spacing.lg,
+    ...centeredContent(FORM_MAX),
   },
   submitBtn: {
     paddingVertical: 16, borderRadius: BorderRadius.full,

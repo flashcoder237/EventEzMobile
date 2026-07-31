@@ -43,11 +43,13 @@ import {
   Shadows,
   TextStyles,
 } from '../../constants/theme';
+import { CARD_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SCAN_AREA_SIZE = SCREEN_WIDTH * 0.7;
+// iPad : borner la zone de scan pour éviter un viseur géant/étiré sur grand écran.
+const SCAN_AREA_SIZE = Math.min(SCREEN_WIDTH * 0.7, 320);
 
 // ── QR code parsing ──
 
@@ -1303,6 +1305,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
+    // iPad : centrer la carte résultat ; l'overlay reste plein écran.
+    alignItems: 'center',
   },
   modalContent: {
     backgroundColor: Colors.white,
@@ -1310,6 +1314,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: BorderRadius['2xl'],
     padding: Spacing.xl,
     maxHeight: '85%',
+    width: '100%',
+    maxWidth: CARD_MAX,
   },
 
   // Result header

@@ -30,6 +30,7 @@ import {
   PlanName,
 } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import {
   Colors,
   FontFamily,
@@ -423,15 +424,17 @@ export default function SubscriptionScreen() {
       <EditorialCanvas edges={['top']}>
         <WatermarkNumeral>PLAN</WatermarkNumeral>
         <View style={[styles.header, { borderBottomColor: borderColor }]}>
-          <TouchableOpacity
-            style={[styles.backButton, { backgroundColor: surface }]}
-            onPress={() => navigation.goBack()}
-            activeOpacity={TOUCH_OPACITY}
-          >
-            <Ionicons name="arrow-back" size={24} color={ink} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: ink }]}>{t('subscriptionForm.title')}</Text>
-          <View style={styles.headerRight} />
+          <View style={styles.headerInner}>
+            <TouchableOpacity
+              style={[styles.backButton, { backgroundColor: surface }]}
+              onPress={() => navigation.goBack()}
+              activeOpacity={TOUCH_OPACITY}
+            >
+              <Ionicons name="arrow-back" size={24} color={ink} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: ink }]}>{t('subscriptionForm.title')}</Text>
+            <View style={styles.headerRight} />
+          </View>
         </View>
         <View style={styles.loadingContainer}>
           <LoadingSpinner message={t('subscriptionForm.loading')} />
@@ -445,15 +448,17 @@ export default function SubscriptionScreen() {
       <WatermarkNumeral>PLAN</WatermarkNumeral>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: borderColor }]}>
-        <TouchableOpacity
-          style={[styles.backButton, { backgroundColor: surface }]}
-          onPress={() => navigation.goBack()}
-          activeOpacity={TOUCH_OPACITY}
-        >
-          <Ionicons name="arrow-back" size={24} color={ink} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: ink }]}>{t('subscriptionForm.title')}</Text>
-        <View style={styles.headerRight} />
+        <View style={styles.headerInner}>
+          <TouchableOpacity
+            style={[styles.backButton, { backgroundColor: surface }]}
+            onPress={() => navigation.goBack()}
+            activeOpacity={TOUCH_OPACITY}
+          >
+            <Ionicons name="arrow-back" size={24} color={ink} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: ink }]}>{t('subscriptionForm.title')}</Text>
+          <View style={styles.headerRight} />
+        </View>
       </View>
 
       <ScrollView
@@ -842,13 +847,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   header: {
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER_COLOR,
+  },
+  headerInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER_COLOR,
+    ...centeredContent(CARD_MAX),
   },
   backButton: {
     width: 40,
@@ -883,6 +891,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
+    ...centeredContent(CARD_MAX),
   },
 
   // ===== Current Plan Card =====

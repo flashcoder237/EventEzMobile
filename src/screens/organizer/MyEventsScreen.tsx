@@ -48,6 +48,7 @@ import EventActionsSheet, {
   EventAction,
 } from '../../components/organizer/EventActionsSheet';
 import { useTabletLayout } from '../../hooks/useTabletLayout';
+import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -1203,6 +1204,7 @@ export default function MyEventsScreen() {
       <WatermarkNumeral>LIVE</WatermarkNumeral>
       {renderHeader()}
 
+      <View style={styles.headerBlockInner}>
       {/* === EDITORIAL STAT STRIP === */}
       <View
         style={[
@@ -1277,6 +1279,7 @@ export default function MyEventsScreen() {
           contentContainerStyle={styles.filterList}
           renderItem={renderFilterItem}
         />
+      </View>
       </View>
 
       {/* Events List */}
@@ -1693,6 +1696,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     paddingVertical: Spacing.sm,
+  },
+  headerBlockInner: {
+    ...centeredContent(WIDE_MAX),
   },
   statItem: {
     flex: 1,

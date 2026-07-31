@@ -18,6 +18,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { exhibitorsAPI } from '../../api/exhibitors';
 import { Spacing, Shadows } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import type { RootStackParamList } from '../../types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -119,7 +120,7 @@ export default function MyBoothScreen() {
         <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
       ) : (
         <ScrollView
-          contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.md }}
+          contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.md, ...centeredContent(CARD_MAX) }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         >
           {bookings.length === 0 ? (

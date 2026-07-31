@@ -30,6 +30,7 @@ import {
 import DateTimePickerField from '../../components/ui/DateTimePickerField';
 import { GradientButton } from '../../components/ui';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
+import { centeredContent, FORM_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RoutePropType = RouteProp<RootStackParamList, 'DiscountForm'>;
@@ -555,6 +556,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.lg,
     paddingBottom: 100,
+    ...centeredContent(FORM_MAX),
   },
   fieldContainer: {
     marginBottom: Spacing.lg,

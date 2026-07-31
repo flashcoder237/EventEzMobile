@@ -44,6 +44,7 @@ import {
   TOUCH_OPACITY,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { FORM_MAX } from '../../constants/layout';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -287,7 +288,8 @@ export default function CustomAlert({
         <Reanimated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropAnim]} />
       </TouchableWithoutFeedback>
 
-      {/* Sheet */}
+      {/* Sheet wrapper — plein écran, ancre le sheet en bas + centré (iPad) */}
+      <View style={styles.sheetWrap} pointerEvents="box-none">
       <Reanimated.View
         style={[
           styles.sheet,
@@ -336,6 +338,7 @@ export default function CustomAlert({
           {ordered.map(renderButton)}
         </View>
       </Reanimated.View>
+      </View>
     </Modal>
   );
 }
@@ -347,11 +350,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.62)',
   },
 
+  // Wrapper plein écran : ancre le sheet en bas et le centre horizontalement.
+  // Le fond (backdrop) reste bord-à-bord ; seul le sheet est plafonné (iPad).
+  sheetWrap: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+
   sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    width: '100%',
+    maxWidth: FORM_MAX,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: Spacing.xl,

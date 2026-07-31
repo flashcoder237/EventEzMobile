@@ -17,6 +17,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { exhibitorsAPI } from '../../api/exhibitors';
 import { eventsAPI } from '../../api/events';
 import { Spacing, Shadows } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 
 /**
  * Onglet « Vente déléguée » du BoothManagementScreen (côté HÔTE) :
@@ -139,7 +140,7 @@ export default function SalesDelegationTab({ eventId }: { eventId: string }) {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.md }}>
+    <ScrollView contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.md, ...centeredContent(CARD_MAX) }}>
       {/* File d'approbation */}
       {satellites.length > 0 && (
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>

@@ -20,6 +20,7 @@ import { analyticsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import Badge from '../../components/ui/Badge';
 import ExportButton from '../../components/common/ExportButton';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import {
   Colors,
   FontFamily,
@@ -209,7 +210,7 @@ const styles = StyleSheet.create({
   headerTitle: { ...TextStyles.h3, textAlign: 'center', letterSpacing: -0.3 },
   generateBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full, gap: 4 },
   generateBtnText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm, color: '#FFFFFF' },
-  listContent: { padding: Spacing.lg, flexGrow: 1 },
+  listContent: { padding: Spacing.lg, flexGrow: 1, ...centeredContent(CARD_MAX) },
   reportCard: { borderRadius: BorderRadius['2xl'], padding: Spacing.md, marginBottom: Spacing.sm, borderWidth: 1 },
   reportHeader: { flexDirection: 'row', alignItems: 'center' },
   reportIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
