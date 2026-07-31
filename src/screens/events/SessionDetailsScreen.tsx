@@ -30,6 +30,7 @@ import {
   TOUCH_OPACITY,
   AvatarSizes,
 } from '../../constants/theme';
+import { centeredContent } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'SessionDetails'>;
 type RouteProps = RouteProp<RootStackParamList, 'SessionDetails'>;
@@ -674,6 +675,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.lg,
     paddingBottom: Spacing['3xl'],
+    ...centeredContent(600),
   },
   loadingContainer: {
     flex: 1,
@@ -956,6 +958,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.md + 2,
     gap: Spacing.sm,
+    ...centeredContent(600),
   },
   unregisterButton: {
     backgroundColor: Colors.gray700,

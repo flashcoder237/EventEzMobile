@@ -44,6 +44,7 @@ import {
   Spacing,
   BorderRadius,
 } from '../../constants/theme';
+import { centeredContent } from '../../constants/layout';
 import type { RootStackParamList } from '../../types';
 import { ErrorState } from '../../components/ui/ErrorState';
 
@@ -422,7 +423,7 @@ export default function CitiesIndexScreen() {
           renderSectionHeader={renderSectionHeader}
           stickySectionHeadersEnabled
           ListHeaderComponent={
-            <>
+            <View style={styles.headerInner}>
               {/* Hero editorial : watermark "MAP" + eyebrow + title + stats */}
               <View style={styles.hero}>
                 <Text
@@ -486,7 +487,7 @@ export default function CitiesIndexScreen() {
                   )}
                 </View>
               </View>
-            </>
+            </View>
           }
           ListEmptyComponent={
             showEmpty ? (
@@ -662,6 +663,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: GRID_HORIZONTAL_PADDING,
     gap: GRID_GAP,
     marginBottom: GRID_GAP,
+    ...centeredContent(MAX_CONTENT_WIDTH),
+  },
+  // Centre le header (hero + search) sur la même colonne plafonnée que la grille.
+  headerInner: {
+    ...centeredContent(MAX_CONTENT_WIDTH),
   },
   gridCard: {
     height: CARD_HEIGHT,

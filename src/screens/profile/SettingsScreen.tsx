@@ -39,6 +39,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -1636,6 +1637,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing['3xl'],
+    ...centeredContent(620),
   },
 
   // Shortcuts

@@ -34,6 +34,7 @@ import {
   Spacing,
   TOUCH_OPACITY,
 } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { RootStackParamList } from '../../types';
 
 type RouteProps = RouteProp<RootStackParamList, 'WeddingGiftRegistry'>;
@@ -249,7 +250,7 @@ export default function WeddingGiftRegistryScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: { padding: Spacing.lg, paddingBottom: Spacing['2xl'] },
+  scroll: { padding: Spacing.lg, paddingBottom: Spacing['2xl'], ...centeredContent(CARD_MAX) },
   emptyWrap: { padding: Spacing.xl, alignItems: 'center' },
   title: { fontFamily: FontFamily.bold, fontSize: FontSizes.xl, marginBottom: Spacing.xs },
   muted: { fontFamily: FontFamily.regular, fontSize: FontSizes.sm, marginBottom: Spacing.md },

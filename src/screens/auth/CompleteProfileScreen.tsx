@@ -21,6 +21,7 @@ import { dispatchAfterAuth } from '../../lib/utils/authNavigation';
 import { RootStackParamList } from '../../types';
 import { FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 import PhoneNumberInput from '../../components/common/PhoneNumberInput';
+import { centeredContent, FORM_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'CompleteProfile'>;
 type ScreenRoute = RouteProp<RootStackParamList, 'CompleteProfile'>;
@@ -183,7 +184,7 @@ export default function CompleteProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scroll: { padding: Spacing.xl, paddingTop: Spacing['2xl'], flexGrow: 1 },
+  scroll: { padding: Spacing.xl, paddingTop: Spacing['2xl'], flexGrow: 1, ...centeredContent(FORM_MAX) },
   iconWrap: {
     width: 64, height: 64, borderRadius: 20, alignItems: 'center',
     justifyContent: 'center', alignSelf: 'center', marginBottom: Spacing.lg,

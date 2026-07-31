@@ -17,6 +17,7 @@ import {
   AppState,
   AppStateStatus,
   ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -45,6 +46,7 @@ import {
   TOUCH_OPACITY,
   Colors,
 } from '../../constants/theme';
+import { centeredContent, FORM_MAX } from '../../constants/layout';
 import {
   MESSAGE_AVATAR_SIZE,
   getDisplayName,
@@ -562,6 +564,9 @@ export default function MessagesScreen() {
   const { isMuted, toggle: toggleMute } = useMutedConversations();
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
+  const { width: winW } = useWindowDimensions();
+  // Sur iPad, plafonner la colonne d'inbox (pas de 2 colonnes : rows pleine largeur).
+  const listMaxWidth = winW >= 700 ? 620 : undefined;
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1807,7 +1812,10 @@ export default function MessagesScreen() {
         data={filteredConversations}
         renderItem={renderConversation}
         keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          listMaxWidth ? centeredContent(listMaxWidth) : null,
+        ]}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmpty}
         ItemSeparatorComponent={() => (
@@ -2223,6 +2231,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(17,17,16,0.5)',
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   modalContent: {
     borderTopLeftRadius: 28,
@@ -2231,6 +2240,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
     height: '85%',
     paddingBottom: Spacing.lg,
+    ...centeredContent(FORM_MAX),
   },
   modalHandle: {
     alignSelf: 'center',

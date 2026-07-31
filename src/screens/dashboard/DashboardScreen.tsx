@@ -34,6 +34,7 @@ import {
   Shadows,
   TextStyles,
 } from '../../constants/theme';
+import { centeredContent } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -193,6 +194,7 @@ export default function DashboardScreen() {
         }
         contentContainerStyle={styles.scrollContent}
       >
+        <View style={styles.centeredInner}>
         <VerificationBanner />
 
         {/* Header */}
@@ -431,6 +433,7 @@ export default function DashboardScreen() {
         </TouchableOpacity>
 
         <View style={{ height: Spacing['3xl'] }} />
+        </View>
       </ScrollView>
     </EditorialCanvas>
   );
@@ -440,6 +443,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 130,
   },
+  centeredInner: { ...centeredContent(600) },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

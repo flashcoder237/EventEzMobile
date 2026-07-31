@@ -31,6 +31,7 @@ import {
   Shadows,
   TOUCH_OPACITY,
 } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import {
   getDisplayName,
   getUserInitials,
@@ -287,6 +288,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     flexGrow: 1,
     gap: 10,
+    ...centeredContent(CARD_MAX),
   },
   row: {
     flexDirection: 'row',

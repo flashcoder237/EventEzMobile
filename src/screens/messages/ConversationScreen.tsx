@@ -24,6 +24,7 @@ import {
   Modal,
   ScrollView,
   Animated,
+  useWindowDimensions,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
@@ -71,6 +72,7 @@ import {
   TOUCH_OPACITY,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent } from '../../constants/layout';
 import { ConversationSkeleton } from '../../components/ui/Skeleton';
 import {
   MESSAGE_AVATAR_SIZE,
@@ -132,6 +134,10 @@ export default function ConversationScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ConversationRouteProp>();
   const insets = useSafeAreaInsets();
+  const { width: winW } = useWindowDimensions();
+  // Sur iPad, plafonner la colonne de chat (messages + composer) pour éviter des
+  // bulles étirées bord-à-bord.
+  const chatMaxWidth = winW >= 700 ? 640 : undefined;
   const { conversationId: initialConversationId, userId, userName } = route.params;
   const { user } = useAuth();
   const { showError, showSuccess, showConfirm, showAlert } = useAlert();
@@ -3378,7 +3384,10 @@ export default function ConversationScreen() {
             data={state.messages}
             renderItem={renderMessage}
             keyExtractor={(item) => String(item.id)}
-            contentContainerStyle={styles.messagesList}
+            contentContainerStyle={[
+              styles.messagesList,
+              chatMaxWidth ? centeredContent(chatMaxWidth) : null,
+            ]}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={renderEmpty}
             ListFooterComponent={renderLoadingMore}
@@ -3516,6 +3525,9 @@ export default function ConversationScreen() {
           </View>
         ) : (
           <View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+            {/* Fond composer bord-à-bord ; seul le contenu (composer + bannières)
+                est plafonné + centré sur iPad. */}
+            <View style={chatMaxWidth ? centeredContent(chatMaxWidth) : undefined}>
             {/* Voice preview bar — shown after stopping a recording, before send */}
             {pendingVoiceUri && (
               <View style={[styles.voicePreviewBar, { backgroundColor: colors.card, borderTopColor: colors.gray200 }]}>
@@ -3696,6 +3708,7 @@ export default function ConversationScreen() {
               onCancelReply={actions.cancelReply}
               onCancelEdit={actions.cancelEdit}
             />
+            </View>
           </View>
         )}
       </KeyboardAvoidingView>

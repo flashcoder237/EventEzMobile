@@ -34,6 +34,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -250,6 +251,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    ...centeredContent(600),
   },
   iconDisc: {
     width: 36,
@@ -273,6 +275,7 @@ const styles = StyleSheet.create({
   listContent: {
     padding: Spacing.lg,
     gap: Spacing.md,
+    ...centeredContent(600),
   },
   card: {
     padding: Spacing.md,

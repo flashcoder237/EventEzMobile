@@ -29,6 +29,7 @@ import {
   TOUCH_OPACITY,
   AvatarSizes,
 } from '../../constants/theme';
+import { centeredContent } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'SpeakerDetails'>;
 type RouteProps = RouteProp<RootStackParamList, 'SpeakerDetails'>;
@@ -368,6 +369,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.lg,
     paddingBottom: Spacing['3xl'],
+    ...centeredContent(600),
   },
   loadingContainer: {
     flex: 1,

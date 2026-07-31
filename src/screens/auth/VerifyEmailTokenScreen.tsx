@@ -29,6 +29,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { EditorialCanvas, WatermarkNumeral, EditorialPillCTA } from '../../components/ui/editorial';
+import { centeredContent } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'VerifyEmailToken'>;
 type RoutePropType = RouteProp<RootStackParamList, 'VerifyEmailToken'>;
@@ -242,6 +243,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: Spacing.xl,
     justifyContent: 'center',
+    ...centeredContent(480),
   },
   card: {
     borderRadius: BorderRadius['2xl'],

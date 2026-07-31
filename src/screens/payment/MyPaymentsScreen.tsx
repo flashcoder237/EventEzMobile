@@ -29,6 +29,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import { StaggeredItem } from '../../components/ui/Animations';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
@@ -397,6 +398,7 @@ export default function MyPaymentsScreen() {
             },
           ]}
         >
+          <View style={styles.headerInner}>
           <View style={styles.headerTopRow}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
@@ -457,6 +459,7 @@ export default function MyPaymentsScreen() {
               )}
             </View>
           )}
+          </View>
         </View>
 
         <ScrollView
@@ -623,6 +626,9 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
   },
+  headerInner: {
+    ...centeredContent(WIDE_MAX),
+  },
   headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -670,6 +676,7 @@ const styles = StyleSheet.create({
   heroWrap: {
     paddingHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
+    ...centeredContent(WIDE_MAX),
   },
   heroCard: {
     borderRadius: 28,
@@ -790,6 +797,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.xs,
+    alignSelf: 'center',
+    maxWidth: WIDE_MAX,
   },
   chip: {
     flexDirection: 'row',
@@ -826,6 +835,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
+    ...centeredContent(WIDE_MAX),
   },
   sectionHeader: {
     flexDirection: 'row',

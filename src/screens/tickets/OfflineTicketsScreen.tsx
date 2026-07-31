@@ -33,6 +33,7 @@ import {
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { RootStackParamList } from '../../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -506,6 +507,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.sm,
+    ...centeredContent(CARD_MAX),
   },
   statusChip: {
     flexDirection: 'row',
@@ -531,6 +533,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.xl,
+    ...centeredContent(CARD_MAX),
   },
 
   // Editorial card (ticket stub)

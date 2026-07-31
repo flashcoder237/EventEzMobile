@@ -38,6 +38,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent } from '../../constants/layout';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -392,6 +393,7 @@ export default function PaymentSuccessScreen() {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
+          <View style={styles.successColumn}>
           {/* === ANIMATED ICON HERO === */}
           <View style={styles.iconWrap}>
             <Animated.View
@@ -535,6 +537,7 @@ export default function PaymentSuccessScreen() {
               </View>
             ))}
           </Animated.View>
+          </View>
         </ScrollView>
 
         {/* === BOTTOM BUTTONS === */}
@@ -729,6 +732,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.xl,
   },
+  successColumn: {
+    ...centeredContent(480),
+    alignItems: 'center',
+  },
   iconWrap: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -871,6 +878,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.xl,
     gap: Spacing.sm,
+    ...centeredContent(480 + Spacing.xl * 2),
   },
   primaryPill: {
     flexDirection: 'row',

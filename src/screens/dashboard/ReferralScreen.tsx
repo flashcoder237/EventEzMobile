@@ -22,6 +22,7 @@ import { ReferralScreenSkeleton } from '../../components/ui/Skeleton';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { Colors, FontFamily, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { StaggeredItem } from '../../components/ui/Animations';
 
@@ -299,7 +300,7 @@ export default function ReferralScreen() {
           },
         ]}
       >
-        <View style={styles.headerTopRow}>
+        <View style={[styles.headerTopRow, styles.headerInner]}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
@@ -455,7 +456,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     paddingBottom: 140,
+    ...centeredContent(CARD_MAX),
   },
+  headerInner: { ...centeredContent(CARD_MAX) },
 
   // === HERO CARD ===
   heroCard: {

@@ -76,6 +76,7 @@ import {
 } from '../../components/tour';
 import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
+import { centeredContent, WIDE_MAX } from '../../constants/layout';
 
 type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
 
@@ -1476,6 +1477,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderTopLeftRadius: BorderRadius['4xl'],
     borderTopRightRadius: BorderRadius['4xl'],
+    ...centeredContent(WIDE_MAX),
   },
   titleEyebrow: {
     fontFamily: FontFamily.bold,
@@ -1782,6 +1784,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.md, // overridden inline with insets.bottom
     borderTopWidth: 1,
+    ...centeredContent(WIDE_MAX),
   },
   priceContainer: {},
   priceLabel: {

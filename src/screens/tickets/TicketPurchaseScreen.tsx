@@ -43,6 +43,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { calculateServiceFee, getServiceFeeLabel } from '../../constants/payment';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
@@ -1200,6 +1201,7 @@ export default function TicketPurchaseScreen() {
           Shadows.dramatic,
         ]}
       >
+        <View style={styles.bottomBarInner}>
         <View style={styles.bottomTotalCol}>
           {event?.event_type === 'billetterie' ? (
             <>
@@ -1275,6 +1277,7 @@ export default function TicketPurchaseScreen() {
             )}
           </View>
         </TouchableOpacity>
+        </View>
       </View>
 
       {/* === DIRECT QUANTITY MODAL (triggered by long-press on the qty number) === */}
@@ -1371,6 +1374,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 130,
+    ...centeredContent(CARD_MAX),
   },
   // ===== EVENT SUMMARY =====
   eventSummary: {
@@ -2277,12 +2281,15 @@ const styles = StyleSheet.create({
 
   // === BOTTOM BAR ===
   bottomBarE: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     paddingTop: 12,
     borderTopWidth: 1,
+  },
+  bottomBarInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    ...centeredContent(CARD_MAX),
   },
   bottomTotalCol: {
     flex: 1,

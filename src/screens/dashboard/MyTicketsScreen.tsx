@@ -39,6 +39,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { MyTicketsScreenSkeleton } from '../../components/ui/Skeleton';
@@ -1208,6 +1209,7 @@ export default function MyTicketsScreen() {
             },
           ]}
         >
+          <View style={styles.headerInner}>
           <View style={styles.headerTopRow}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('tickets.myTicketsEyebrow')}</Text>
@@ -1398,6 +1400,7 @@ export default function MyTicketsScreen() {
               )}
             </Animated.View>
           )}
+          </View>
         </View>
 
         {/* Advanced filters panel */}
@@ -1773,7 +1776,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.xl,
     paddingBottom: 140,
+    ...centeredContent(CARD_MAX),
   },
+  headerInner: { ...centeredContent(CARD_MAX) },
 
   // --- Ticket stub card ---
   ticketWrap: {

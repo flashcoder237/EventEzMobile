@@ -36,6 +36,7 @@ import {
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
+import { centeredContent, FORM_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'VerifyEmail'>;
 type RoutePropType = RouteProp<RootStackParamList, 'VerifyEmail'>;
@@ -669,6 +670,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.md,
     paddingBottom: Spacing['2xl'],
+    ...centeredContent(FORM_MAX),
   },
   backButton: {
     width: 44,

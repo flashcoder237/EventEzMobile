@@ -19,6 +19,7 @@ import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { GamificationScreenSkeleton } from '../../components/ui/Skeleton';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontFamily, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { StaggeredItem } from '../../components/ui/Animations';
 
@@ -476,6 +477,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     paddingBottom: 140,
+    ...centeredContent(CARD_MAX),
   },
 
   // === HERO CARD ===

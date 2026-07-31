@@ -37,6 +37,7 @@ import {
   Spacing,
   TOUCH_OPACITY,
 } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { RootStackParamList } from '../../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -243,7 +244,7 @@ export default function MyTeamEventsScreen() {
       <FlatList
         data={events}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: Spacing.lg, paddingBottom: Spacing['3xl'] }}
+        contentContainerStyle={{ padding: Spacing.lg, paddingBottom: Spacing['3xl'], ...centeredContent(CARD_MAX) }}
         renderItem={renderItem}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={

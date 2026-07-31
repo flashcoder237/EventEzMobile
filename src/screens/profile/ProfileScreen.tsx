@@ -42,6 +42,7 @@ import {
   Shadows,
   TextStyles,
 } from '../../constants/theme';
+import { centeredContent } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -174,6 +175,7 @@ export default function ProfileScreen() {
           />
         }
       >
+        <View style={styles.centeredInner}>
         <VerificationBanner />
 
         {/* Editorial top row — utilities */}
@@ -605,6 +607,7 @@ export default function ProfileScreen() {
         <Text style={[styles.version, { color: colors.gray400 }]}>{t('profile.appVersion')}</Text>
 
         <View style={{ height: 130 }} />
+        </View>
       </ScrollView>
 
       {/* My QR Code Modal */}
@@ -626,6 +629,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  centeredInner: { ...centeredContent(600) },
   // Editorial top row
   editorialTopRow: {
     flexDirection: 'row',

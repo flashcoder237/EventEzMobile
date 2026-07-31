@@ -43,6 +43,7 @@ import {
   Spacing,
   TOUCH_OPACITY,
 } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { RootStackParamList } from '../../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -225,7 +226,7 @@ export default function TeamInvitationAcceptScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: Spacing.lg, paddingBottom: Spacing['3xl'] }}>
+      <ScrollView contentContainerStyle={{ padding: Spacing.lg, paddingBottom: Spacing['3xl'], ...centeredContent(CARD_MAX) }}>
         {/* Event banner */}
         {event.banner_url ? (
           <Image

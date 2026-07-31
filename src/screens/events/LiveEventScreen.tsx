@@ -22,6 +22,7 @@ import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { centeredContent, WIDE_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type LiveEventRouteProp = RouteProp<RootStackParamList, 'LiveEvent'>;
@@ -423,7 +424,7 @@ const styles = StyleSheet.create({
   activeTab: { backgroundColor: Colors.white, ...Shadows.md },
   tabText: { fontSize: FontSizes.sm, color: Colors.textLight, fontWeight: '600' },
   activeTabText: { color: Colors.primary },
-  listContent: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.md },
+  listContent: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.md, ...centeredContent(WIDE_MAX) },
   // Questions
   questionCard: { flexDirection: 'row', backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.sm, ...Shadows.card },
   answeredCard: { borderLeftWidth: 3, borderLeftColor: Colors.success },
@@ -454,7 +455,7 @@ const styles = StyleSheet.create({
   pollPercentageSelected: { color: Colors.primary },
   pollClosed: { textAlign: 'center', fontSize: FontSizes.xs, color: Colors.textLight, fontStyle: 'italic', marginTop: Spacing.sm },
   // Input
-  inputContainer: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.white },
+  inputContainer: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.white, ...centeredContent(WIDE_MAX) },
   anonymousToggle: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, backgroundColor: Colors.gray100, marginRight: Spacing.xs, marginBottom: 2 },
   anonymousActive: { backgroundColor: Colors.primaryBg },
   textInput: { flex: 1, fontSize: FontSizes.md, color: Colors.text, backgroundColor: Colors.gray50, borderRadius: BorderRadius.xl, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, maxHeight: 80, marginRight: Spacing.xs },

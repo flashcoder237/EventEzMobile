@@ -37,6 +37,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -249,6 +250,7 @@ const styles = StyleSheet.create({
   listContent: {
     padding: Spacing.lg,
     gap: Spacing.sm,
+    ...centeredContent(CARD_MAX),
   },
   card: {
     flexDirection: 'row',

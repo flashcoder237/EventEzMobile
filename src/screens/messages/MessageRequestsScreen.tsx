@@ -22,6 +22,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -40,6 +41,7 @@ import {
   getDisplayName, getUserInitials, formatRelativeTime,
 } from '../../lib/utils/messagingHelpers';
 import { RootStackParamList, Conversation, User } from '../../types';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -48,6 +50,8 @@ export default function MessageRequestsScreen() {
   const { user } = useAuth();
   const { showError } = useAlert();
   const { colors, isDark } = useTheme();
+  const { width: winW } = useWindowDimensions();
+  const listMaxWidth = winW >= 700 ? CARD_MAX : undefined;
   const { t } = useTranslation();
 
   const [requests, setRequests] = useState<Conversation[]>([]);
@@ -236,7 +240,11 @@ export default function MessageRequestsScreen() {
           data={requests}
           keyExtractor={item => String(item.id)}
           renderItem={renderItem}
-          contentContainerStyle={requests.length === 0 ? { flex: 1 } : styles.list}
+          contentContainerStyle={
+            requests.length === 0
+              ? { flex: 1 }
+              : [styles.list, listMaxWidth ? centeredContent(listMaxWidth) : null]
+          }
           ListEmptyComponent={renderEmpty}
           refreshControl={
             <RefreshControl

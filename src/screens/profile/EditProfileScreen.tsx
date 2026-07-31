@@ -34,6 +34,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -341,6 +342,7 @@ export default function EditProfileScreen() {
         keyboardShouldPersistTaps="handled"
         bottomOffset={80}
       >
+        <View style={styles.formInner}>
         {/* Profile Image */}
         <View style={styles.imageSection}>
           <TouchableOpacity style={styles.imageContainer} onPress={handlePickImage} activeOpacity={0.85}>
@@ -629,6 +631,7 @@ export default function EditProfileScreen() {
             </View>
           </TouchableOpacity>
         </View>
+        </View>
       </KeyboardAwareScrollView>
 
       {saving && <LoadingSpinner />}
@@ -708,7 +711,8 @@ const styles = StyleSheet.create({
   },
 
   scrollView: { flex: 1 },
-  scrollContent: { paddingBottom: Spacing['3xl'] },
+  scrollContent: { paddingBottom: Spacing['3xl'], alignItems: 'center' },
+  formInner: { ...centeredContent(CARD_MAX) },
   imageSection: {
     alignItems: 'center',
     paddingTop: Spacing.xl,

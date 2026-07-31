@@ -34,6 +34,7 @@ import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
 import { calculateServiceFee, getServiceFeeLabel } from '../../constants/payment';
 import { DEEP_LINK_SCHEME } from '../../constants/urls';
+import { centeredContent, CARD_MAX, WIDE_MAX } from '../../constants/layout';
 import ConvertedPrice from '../../components/common/ConvertedPrice';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAuth } from '../../contexts/AuthContext';
@@ -1373,6 +1374,7 @@ export default function PaymentScreen() {
             keyboardShouldPersistTaps="handled"
             bottomOffset={120}
           >
+            <View style={styles.formColumn}>
             {/* === SLOW/OFFLINE BANNER (above order summary on Payment) === */}
             {(isOffline || isSlowCellular) && (
               <View
@@ -1819,6 +1821,7 @@ export default function PaymentScreen() {
                 {t('payment.termsAcceptSuffix', { defaultValue: ' et la politique de remboursement.' })}
               </Text>
             </TouchableOpacity>
+            </View>
           </KeyboardAwareScrollView>
 
           {/* === BOTTOM CTA === */}
@@ -1833,6 +1836,7 @@ export default function PaymentScreen() {
               Shadows.dramatic,
             ]}
           >
+            <View style={styles.bottomBarInner}>
             <View style={styles.bottomTotalColE} accessibilityRole="text" accessibilityLabel={`Total a payer: ${finalTotal.toLocaleString()} ${eventCurrencyLabel}`}>
               <Text style={[styles.bottomTotalEyebrowE, { color: colors.gray500 }]}>{t('payment.paymentTotalToPay')}</Text>
               <View style={styles.bottomTotalRowE}>
@@ -1872,6 +1876,7 @@ export default function PaymentScreen() {
               </View>
             </TouchableOpacity>
             </TourTarget>
+            </View>
           </View>
         </>
       )}
@@ -1972,6 +1977,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.lg,
     paddingBottom: 150,
+  },
+  formColumn: {
+    ...centeredContent(WIDE_MAX),
   },
 
   // Section
@@ -2274,6 +2282,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     paddingBottom: Spacing['2xl'],
     alignItems: 'center',
+    ...centeredContent(CARD_MAX),
   },
   processingAmount: {
     fontSize: FontSizes.md,
@@ -2691,12 +2700,15 @@ const styles = StyleSheet.create({
 
   // === BOTTOM BAR ===
   bottomBarE: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     paddingTop: 12,
     borderTopWidth: 1,
+  },
+  bottomBarInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    ...centeredContent(WIDE_MAX),
   },
   bottomTotalColE: {
     flex: 1,

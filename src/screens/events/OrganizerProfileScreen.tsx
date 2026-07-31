@@ -41,6 +41,7 @@ import {
   TOUCH_OPACITY,
   AvatarSizes,
 } from '../../constants/theme';
+import { centeredContent, WIDE_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'OrganizerProfile'>;
 type RouteProps = RouteProp<RootStackParamList, 'OrganizerProfile'>;
@@ -527,6 +528,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: Spacing.md,
     paddingBottom: Spacing['3xl'],
+    ...centeredContent(WIDE_MAX),
   },
 
   // ─── Hero card éditoriale ───────────────────────────────────────────

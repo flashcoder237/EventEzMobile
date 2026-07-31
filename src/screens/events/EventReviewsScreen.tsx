@@ -31,6 +31,7 @@ import {
   Spacing,
   TextStyles,
 } from '../../constants/theme';
+import { centeredContent } from '../../constants/layout';
 import { extractPaginatedData, extractPaginationMeta } from '../../lib/utils/apiHelpers';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'EventReviews'>;
@@ -591,6 +592,7 @@ const styles = StyleSheet.create({
   listContent: {
     padding: Spacing.lg,
     // paddingBottom defini dynamiquement (insets.bottom + 120) pour FAB + nav bar
+    ...centeredContent(620),
   },
   listContentEmpty: {
     flex: 1,
@@ -759,7 +761,10 @@ const styles = StyleSheet.create({
   // FAB (bottom positionne dynamiquement avec insets.bottom)
   fab: {
     position: 'absolute',
-    right: Spacing.lg,
+    // Recentré sur la colonne de contenu plafonnée (620) sur grand écran :
+    // le bord droit de la colonne est à 50% + 310px, on décale le FAB dedans.
+    right: '50%',
+    marginRight: -310 + Spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,

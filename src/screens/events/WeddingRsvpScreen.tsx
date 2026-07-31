@@ -33,6 +33,7 @@ import {
   Spacing,
   TOUCH_OPACITY,
 } from '../../constants/theme';
+import { centeredContent, FORM_MAX } from '../../constants/layout';
 import { RootStackParamList } from '../../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -275,7 +276,7 @@ export default function WeddingRsvpScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: { padding: Spacing.lg, paddingBottom: Spacing['2xl'] },
+  scroll: { padding: Spacing.lg, paddingBottom: Spacing['2xl'], ...centeredContent(FORM_MAX) },
   header: { alignItems: 'center', marginBottom: Spacing.xl },
   heartBadge: {
     width: 56,

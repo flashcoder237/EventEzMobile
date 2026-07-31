@@ -35,6 +35,7 @@ import { FontFamily } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { changeLanguage, LANGUAGE_STORAGE_KEY } from '../../i18n';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import { centeredContent } from '../../constants/layout';
 import { getRegionalSlideHints } from '../../lib/utils/regionalSlideHints';
 import {
   AnimatedIllustration,
@@ -583,6 +584,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 8,
     paddingBottom: 28,
+    ...centeredContent(460 + 48),
   },
 
   dotsRow: {

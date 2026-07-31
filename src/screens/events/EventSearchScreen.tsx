@@ -44,6 +44,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { getApiResults, extractPaginationMeta } from '../../lib/utils/apiHelpers';
 import { getEventPriceRange } from '../../lib/utils/priceFormatters';
 import EventCard from '../../components/events/EventCard';
@@ -1676,6 +1677,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: 10,
     // maxHeight appliquée inline (réactive) dans le rendu.
+    ...centeredContent(CARD_MAX),
   },
   sheetHandle: {
     width: 40,

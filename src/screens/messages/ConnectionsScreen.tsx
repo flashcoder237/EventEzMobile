@@ -25,6 +25,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Modal,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -40,6 +41,7 @@ import {
   Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows, TOUCH_OPACITY,
 } from '../../constants/theme';
 import { RootStackParamList } from '../../types';
+import { centeredContent } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -60,6 +62,8 @@ export default function ConnectionsScreen() {
   const { colors, isDark } = useTheme();
   const { showConfirm, showError, showSuccess } = useAlert();
   const { t } = useTranslation();
+  const { width: winW } = useWindowDimensions();
+  const listMaxWidth = winW >= 700 ? 620 : undefined;
 
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -240,7 +244,11 @@ export default function ConnectionsScreen() {
           renderItem={renderItem}
           ListHeaderComponent={renderHeroActions}
           ListEmptyComponent={renderEmpty}
-          contentContainerStyle={connections.length === 0 ? styles.listEmpty : styles.list}
+          contentContainerStyle={
+            connections.length === 0
+              ? styles.listEmpty
+              : [styles.list, listMaxWidth ? centeredContent(listMaxWidth) : null]
+          }
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

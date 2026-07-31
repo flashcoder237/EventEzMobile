@@ -29,6 +29,7 @@ import {
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'RegisterOrganizer'>;
 
@@ -604,6 +605,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.md,
     paddingBottom: Spacing['3xl'],
+    ...centeredContent(CARD_MAX),
   },
   backButton: {
     width: 44,

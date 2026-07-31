@@ -63,6 +63,7 @@ import {
   Shadows,
   TOUCH_OPACITY,
 } from '../../constants/theme';
+import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import { getApiResults } from '../../lib/utils/apiHelpers';
 import { getEventPriceRange } from '../../lib/utils/priceFormatters';
 
@@ -1339,7 +1340,7 @@ export default function DiscoverScreen() {
                   colors={[colors.primary]}
                 />
               }
-              contentContainerStyle={styles.scrollContent}
+              contentContainerStyle={[styles.scrollContent, styles.pageInner]}
             >
               {/* === EDITORIAL HEADER — rounded bottom, matches tickets === */}
               <View
@@ -2060,6 +2061,8 @@ const styles = StyleSheet.create({
   rootContainer: { flex: 1 },
   safeArea: { flex: 1 },
   scrollContent: { paddingBottom: Spacing.xl },
+  // Plafonne la colonne de contenu sur grand écran (iPad) sans étirer le layout.
+  pageInner: { ...centeredContent(WIDE_MAX) },
 
   // === EDITORIAL HEADER (rounded bottom 32) ===
   header: {

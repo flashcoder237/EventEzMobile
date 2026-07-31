@@ -24,6 +24,7 @@ import {
 } from '../../constants/theme';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
+import { centeredContent } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ResetPassword'>;
 type RouteProps = RouteProp<RootStackParamList, 'ResetPassword'>;
@@ -391,12 +392,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.md,
     paddingBottom: Spacing['2xl'],
+    ...centeredContent(480),
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Spacing.xl,
+    ...centeredContent(480),
   },
   loadingText: {
     fontSize: FontSizes.base,

@@ -29,6 +29,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RefundRequestRouteProp = RouteProp<RootStackParamList, 'RefundRequest'>;
@@ -505,6 +506,7 @@ export default function RefundRequestScreen() {
           Shadows.dramatic,
         ]}
       >
+        <View style={styles.footerInner}>
         {/* Option de désescalade : contacter l'organizer avant de soumettre.
             Souvent un échange règle le souci sans refund (report sur autre event,
             geste commercial, etc.) — bénéfique pour les deux parties. */}
@@ -582,6 +584,7 @@ export default function RefundRequestScreen() {
             </>
           )}
         </TouchableOpacity>
+        </View>
       </View>
     </EditorialCanvas>
   );
@@ -648,6 +651,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     paddingBottom: 140,
+    ...centeredContent(600),
+  },
+  footerInner: {
+    ...centeredContent(600),
   },
 
   // === REF CARD ===

@@ -23,6 +23,7 @@ import {
 } from '../../constants/theme';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
+import { centeredContent } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ForgotPassword'>;
 
@@ -205,6 +206,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.md,
     paddingBottom: Spacing['2xl'],
+    ...centeredContent(480),
   },
   backButton: {
     width: 44,
@@ -328,6 +330,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Spacing.xl,
+    ...centeredContent(480),
   },
   successIcon: {
     width: 100,

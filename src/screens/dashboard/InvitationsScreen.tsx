@@ -20,6 +20,7 @@ import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { InvitationsScreenSkeleton } from '../../components/ui/Skeleton';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontFamily, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { Emails, AnimatedIllustration } from '../../components/illustrations';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { StaggeredItem } from '../../components/ui/Animations';
@@ -574,6 +575,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
     paddingBottom: 140,
     gap: Spacing.sm,
+    ...centeredContent(CARD_MAX),
   },
 
   // === CARD ===

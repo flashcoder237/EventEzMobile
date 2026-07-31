@@ -28,6 +28,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent } from '../../constants/layout';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -643,6 +644,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     paddingBottom: 100,
+    ...centeredContent(620),
   },
 
   // === HERO ===

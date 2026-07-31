@@ -24,6 +24,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import QRCodeDisplay from '../../components/common/QRCodeDisplay';
 import { Colors, FontSizes, FontFamily, BorderRadius, Spacing } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { RootStackParamList } from '../../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -483,6 +484,7 @@ const s = StyleSheet.create({
     paddingBottom: Spacing.md,
     gap: Spacing.sm,
     zIndex: 1,
+    ...centeredContent(CARD_MAX),
   },
   tab: {
     flexDirection: 'row',
@@ -514,6 +516,7 @@ const s = StyleSheet.create({
     paddingBottom: Spacing.xl,
     gap: Spacing.md,
     zIndex: 1,
+    ...centeredContent(CARD_MAX),
   },
   card: {
     borderRadius: BorderRadius['2xl'],

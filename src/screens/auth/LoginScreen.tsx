@@ -39,6 +39,7 @@ import { eventBus } from '../../lib/eventBus';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral, editorial } from '../../components/ui/editorial';
+import { centeredContent, FORM_MAX } from '../../constants/layout';
 
 const REMEMBER_ME_KEY = 'eventez_remember_me';
 
@@ -857,6 +858,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing['2xl'],
     paddingBottom: Spacing['2xl'],
     justifyContent: 'center',
+    ...centeredContent(FORM_MAX),
   },
   closeButton: {
     width: 44,

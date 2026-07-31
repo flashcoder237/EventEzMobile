@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
+import { centeredContent } from '../../constants/layout';
 import { registrationsAPI, messagesAPI } from '../../api';
 import { findExistingDirectConversation, getDisplayName } from '../../lib/utils/messagingHelpers';
 import { RootStackParamList, User } from '../../types';
@@ -204,7 +205,7 @@ const styles = StyleSheet.create({
   backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontFamily: FontFamily.bold, fontSize: 17, letterSpacing: -0.3 },
 
-  content: { padding: Spacing.lg, paddingBottom: Spacing.xl * 2, gap: Spacing.md },
+  content: { padding: Spacing.lg, paddingBottom: Spacing.xl * 2, gap: Spacing.md, ...centeredContent(620) },
 
   optInCard: { borderWidth: 1, borderRadius: BorderRadius.xl, padding: Spacing.md, gap: Spacing.sm },
   optInRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },

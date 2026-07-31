@@ -34,6 +34,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { NotificationsScreenSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem, SectionEntrance } from '../../components/ui/Animations';
 
@@ -541,6 +542,7 @@ export default function NotificationsScreen() {
             },
           ]}
         >
+          <View style={styles.headerInner}>
           <View style={styles.headerTopRow}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
@@ -657,6 +659,7 @@ export default function NotificationsScreen() {
                 </TouchableOpacity>
               );
             })}
+          </View>
           </View>
         </View>
 
@@ -957,7 +960,9 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
+    ...centeredContent(CARD_MAX),
   },
+  headerInner: { ...centeredContent(CARD_MAX) },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',

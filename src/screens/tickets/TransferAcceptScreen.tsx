@@ -32,6 +32,7 @@ import {
   pickStickyBarBg,
   pickStickyBarBorder,
 } from '../../components/ui/editorial';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'TransferAccept'>;
 type RoutePropType = RouteProp<RootStackParamList, 'TransferAccept'>;
@@ -447,14 +448,17 @@ export default function TransferAcceptScreen() {
         )}
       </ScrollView>
 
-      {/* Sticky bottom bar */}
+      {/* Sticky bottom bar — fond bord-à-bord, contenu plafonné (iPad G4.0) */}
       <View style={[
         editorial.stickyBar,
         {
+          flexDirection: 'column',
+          gap: 0,
           backgroundColor: pickStickyBarBg(isDark),
           borderTopColor: pickStickyBarBorder(isDark),
         },
       ]}>
+        <View style={s.stickyBarInner}>
         {isAuthenticated ? (
           // Authentifié — ghost "Refuser" + pill "Accepter"
           <>
@@ -494,6 +498,7 @@ export default function TransferAcceptScreen() {
             />
           </>
         )}
+        </View>
       </View>
     </EditorialCanvas>
   );
@@ -545,6 +550,13 @@ const s = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.xl,
     gap: Spacing.md,
+    ...centeredContent(CARD_MAX),
+  },
+  stickyBarInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    ...centeredContent(CARD_MAX),
   },
   expiryChip: {
     alignSelf: 'flex-start',

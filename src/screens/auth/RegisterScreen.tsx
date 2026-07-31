@@ -34,6 +34,7 @@ import { validators } from '../../lib/validation';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
+import { centeredContent, FORM_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
 type RouteProps = RouteProp<RootStackParamList, 'Register'>;
@@ -540,6 +541,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.md,
     paddingBottom: Spacing['3xl'],
+    ...centeredContent(FORM_MAX),
   },
   backButton: {
     width: 44,

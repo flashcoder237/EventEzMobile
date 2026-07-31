@@ -25,6 +25,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { Colors, FontFamily, BorderRadius, Spacing, Shadows } from '../../constants/theme';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { StaggeredItem } from '../../components/ui/Animations';
 
@@ -583,6 +584,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     paddingBottom: 140,
+    ...centeredContent(CARD_MAX),
   },
   lead: {
     fontFamily: FontFamily.regular,
