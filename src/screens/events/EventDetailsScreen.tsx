@@ -18,6 +18,7 @@ import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import ImageView from 'react-native-image-viewing';
 import { DEFAULT_BLUR_DATA_URL } from '../../utils/imageUtils';
+import { getSaleState } from '../../utils/ticketSaleWindow';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RouteProp, useRoute, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -357,8 +358,21 @@ export default function EventDetailsScreen() {
   // null = pas encore de donnée fiable (chargement en cours ou ticket_types absents)
   // 0 = vraiment gratuit (event.is_free explicite)
   // > 0 = prix mini calculé depuis les ticket_types
-  const minPrice = event?.ticket_types && event.ticket_types.length > 0
-    ? Math.min(...event.ticket_types.map(t => t.price))
+  // On ignore les billets hors fenetre de vente : annoncer "A partir de X"
+  // avec le prix d'un tarif dont la vente est close (ou pas encore ouverte)
+  // affiche un prix que l'utilisateur ne peut pas obtenir. Si plus aucun billet
+  // n'est ouvert, on retombe sur l'ensemble des tarifs plutot que de masquer le
+  // prix — l'evenement reste informatif.
+  // Ecran d'affichage : pas de timer dedie ici, la valeur est recalculee a
+  // chaque render (et l'achat lui-meme est garde par TicketPurchaseScreen).
+  const purchasableTickets = (event?.ticket_types ?? []).filter(
+    (tt) => getSaleState(tt, Date.now()) === 'open',
+  );
+  const pricedTickets = purchasableTickets.length > 0
+    ? purchasableTickets
+    : (event?.ticket_types ?? []);
+  const minPrice = pricedTickets.length > 0
+    ? Math.min(...pricedTickets.map(t => t.price))
     : event?.is_free
     ? 0
     : null;
