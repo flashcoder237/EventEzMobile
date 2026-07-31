@@ -6119,7 +6119,30 @@
       "submitA11yEdit": "Mettre à jour l'événement",
       "submitA11yCreate": "Créer l'événement",
       "removeBannerTitle": "Supprimer la bannière ?",
-      "removeBannerMessage": "Cette image sera retirée. Tu peux toujours en uploader une nouvelle ensuite."
+      "removeBannerMessage": "Cette image sera retirée. Tu peux toujours en uploader une nouvelle ensuite.",
+      "validation": {
+        "titleRequired": "Le titre est requis",
+        "descriptionRequired": "La description est requise",
+        "categoryRequired": "Sélectionne une catégorie",
+        "videoUrlUnsupported": "Seules les URLs YouTube et Vimeo sont supportées",
+        "startInPast": "La date de début ne peut pas être dans le passé",
+        "endBeforeStart": "La date de fin doit être après la date de début",
+        "cityRequired": "La ville est requise pour un événement présentiel",
+        "onlineUrlRequired": "Le lien de connexion est requis pour un événement en ligne",
+        "ticketRequired": "Ajoute au moins un type de billet",
+        "ticketCheck": "Vérifie les noms, prix et dates de vente",
+        "formFieldsCheck": "Vérifie les champs du formulaire",
+        "formFieldRequired": "Ajoute au moins un champ de formulaire",
+        "errorTitle": "Erreur",
+        "ticketNameRequired": "Le nom du billet #{{n}} est requis",
+        "ticketPriceInvalid": "Le prix du billet « {{label}} » doit être positif ou nul",
+        "ticketQtyInvalid": "La quantité du billet « {{label}} » doit être supérieure à 0",
+        "ticketDatesInvalid": "Les dates de vente du billet « {{label}} » sont incohérentes (fin avant début)",
+        "ticketSalesAfterEnd": "La vente du billet « {{label}} » ne peut pas se terminer après la fin de l'événement",
+        "ticketMaxMin": "Le max par commande du billet « {{label}} » doit être ≥ au min",
+        "fieldLabelRequired": "L'intitulé du champ #{{n}} est requis",
+        "fieldOptionsRequired": "Les options sont requises pour le champ « {{label}} »"
+      }
     },
     "eventRegistrations": {
       "title": "Inscriptions",
@@ -6683,7 +6706,10 @@
       "commission": "Commission: {{rate}}%",
       "registrationsUnlimited": "Inscriptions illimitées",
       "registrationsMax": "{{count}} inscriptions/event",
-      "empty": "Aucun plan d'abonnement"
+      "empty": "Aucun plan d'abonnement",
+      "yearlyPrice": "{{price}} {{currency}} / an",
+      "loadError": "Impossible de charger les plans",
+      "retry": "Réessayer"
     },
     "clientRelease": {
       "watermark": "VER",

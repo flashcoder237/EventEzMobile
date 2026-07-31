@@ -6119,7 +6119,30 @@
       "submitA11yEdit": "Update event",
       "submitA11yCreate": "Create event",
       "removeBannerTitle": "Remove banner?",
-      "removeBannerMessage": "This image will be removed. You can always upload a new one afterwards."
+      "removeBannerMessage": "This image will be removed. You can always upload a new one afterwards.",
+      "validation": {
+        "titleRequired": "Title is required",
+        "descriptionRequired": "Description is required",
+        "categoryRequired": "Select a category",
+        "videoUrlUnsupported": "Only YouTube and Vimeo URLs are supported",
+        "startInPast": "The start date cannot be in the past",
+        "endBeforeStart": "The end date must be after the start date",
+        "cityRequired": "A city is required for an in-person event",
+        "onlineUrlRequired": "A meeting link is required for an online event",
+        "ticketRequired": "Add at least one ticket type",
+        "ticketCheck": "Check the names, prices and sale dates",
+        "formFieldsCheck": "Check the form fields",
+        "formFieldRequired": "Add at least one form field",
+        "errorTitle": "Error",
+        "ticketNameRequired": "Ticket #{{n}} name is required",
+        "ticketPriceInvalid": "Ticket “{{label}}” price must be zero or positive",
+        "ticketQtyInvalid": "Ticket “{{label}}” quantity must be greater than 0",
+        "ticketDatesInvalid": "Ticket “{{label}}” sale dates are inconsistent (end before start)",
+        "ticketSalesAfterEnd": "Ticket “{{label}}” sales cannot end after the event ends",
+        "ticketMaxMin": "Ticket “{{label}}” max per order must be ≥ the min",
+        "fieldLabelRequired": "Field #{{n}} label is required",
+        "fieldOptionsRequired": "Options are required for field “{{label}}”"
+      }
     },
     "eventRegistrations": {
       "title": "Registrations",
@@ -6683,7 +6706,10 @@
       "commission": "Commission: {{rate}}%",
       "registrationsUnlimited": "Unlimited registrations",
       "registrationsMax": "{{count}} registrations/event",
-      "empty": "No subscription plan"
+      "empty": "No subscription plan",
+      "yearlyPrice": "{{price}} {{currency}} / year",
+      "loadError": "Could not load plans",
+      "retry": "Retry"
     },
     "clientRelease": {
       "watermark": "VER",
