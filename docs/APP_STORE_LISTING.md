@@ -363,15 +363,14 @@ EN:
   soumettre ; tu peux compléter jusqu'à 10.)
 - **Format** : PNG ou JPEG, sans transparence, sans coins arrondis ni encoche ajoutée.
 
-### iPad — **REQUIS** (depuis le passage en iPad natif)
-⚠️ **`ios.supportsTablet: true`** → l'app est désormais une **app iPad native**. App Store
-Connect exige donc des **captures iPad obligatoires** :
-- **iPad Pro 13" (M4) / 12,9"** : 2064 × 2752 px (portrait). **3 captures minimum**.
-- L'app est **verrouillée en portrait** sur iPad (`UISupportedInterfaceOrientations~ipad`
-  = portrait seul) et en **plein écran** (`UIRequiresFullScreen: true`, pas de Split View).
-- Générer via le **simulateur iPad Pro 13"** (`Cmd+S`). Réutiliser les mêmes écrans
-  que l'iPhone (carte, détail événement, billet QR) — le layout est plafonné/centré
-  via `centeredContent`, donc rendu propre en plein écran iPad.
+### iPad — **NON requis** (app iPhone-only pour cette soumission)
+`ios.supportsTablet: false` dans `app.json` → app iPhone-only. **Aucune capture iPad**
+à fournir. ✅ (Le formulaire affiche un onglet iPad, mais il n'est pas obligatoire ici.)
+
+> 🔜 **Prévu à la prochaine mise à jour** : passage en iPad natif (`supportsTablet: true`
+> + `UIRequiresFullScreen` + portrait verrouillé `~ipad`). Le layout est déjà prêt
+> (helper `centeredContent`, dimensions réactives) — il ne restera qu'à basculer le flag
+> et fournir les captures iPad Pro 13". Voir §14.
 
 ### Apple Watch / App iMessage — **NON concernés**
 L'app n'utilise ni WatchKit ni le framework Messages → rien à fournir dans ces onglets.
@@ -417,8 +416,8 @@ permission utilisée sans string. `NSContactsUsageDescription` **absent** — no
 1. **`ios.buildNumber`** : non figé en local (piloté par EAS `appVersionSource:remote`
    + `autoIncrement` en prod). Vérifier que le 1er build EAS pousse bien un buildNumber,
    sinon la soumission échoue.
-2. **`supportsTablet: true`** → **app iPad native** (verrouillée portrait + plein écran).
-   **Captures iPad OBLIGATOIRES** dans App Store Connect (cf. §11).
+2. **`supportsTablet: false`** → app iPhone-only, **aucune capture iPad requise** (cf. §11).
+   Passage iPad natif reporté à la prochaine mise à jour (§14).
 3. **Plugin `@react-native-google-signin`** : ~~déclaré deux fois~~ → **corrigé**
    (dédupliqué, source unique = `app.config.js` alimenté par
    `EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME`). ✅
@@ -496,25 +495,20 @@ carrousel se désaligne → cartes voisines qui débordent, titres coupés.
 > donc PAS — il faut que l'UI **fonctionne correctement même en compat iPad**.
 > (Sources : developer.apple.com/forums threads 781735, 802147, 717695.)
 
-**Résolution retenue : passer en iPad NATIF, verrouillé portrait + plein écran.**
-Plutôt que rester en mode compatibilité (fragile car Apple le teste quand même), on
-assume l'iPad comme cible native — les 2 audits iPad (v1 + v2) ont rendu **tous** les
-écrans propres en plein écran via le helper `centeredContent` (contenu plafonné/centré,
-jamais étiré) et des dimensions réactives (`useWindowDimensions`, plus aucun
-`Dimensions.get()` figé pour un layout).
-
-Config `app.json` (`ios`) :
-- ✅ `supportsTablet: true` → app iPad native.
-- ✅ `infoPlist.UIRequiresFullScreen: true` → **désactive Split View / Slide Over**
-  (l'app n'est jamais redimensionnée → aucune nouvelle surface multitâche à tester).
-- ✅ `infoPlist.UISupportedInterfaceOrientations~ipad` = portrait uniquement → **même
-  orientation que l'iPhone**, pas de rotation paysage à gérer.
-- ✅ `orientation: "portrait"` global déjà présent ; aucun code ne force l'orientation
-  (`expo-screen-orientation` non utilisé).
-
-**Conséquence App Store Connect** : captures **iPad Pro 13" obligatoires** (cf. §11).
-
+**Résolution pour CETTE soumission : rester iPhone-only + corriger l'UI compat iPad.**
+On garde `supportsTablet: false` pour ce build (pas de captures iPad à fournir, surface
+de revue réduite), mais on corrige réellement l'UI en mode compatibilité iPad — car
+Apple teste ce mode. Les 2 audits iPad (v1 + v2) ont rendu **tous** les écrans propres :
+- ✅ `Dimensions.get()` figé → `useWindowDimensions()` réactif (carrousels/QR/zoom).
+- ✅ Contenu plafonné/centré via le helper `centeredContent` (plus d'étirement « crowded »).
+- ✅ `app.json` → `ios.supportsTablet: false` **conservé** pour ce build.
 - **Refaire un build** (buildNumber auto-incrémenté par EAS) et **soumettre à nouveau**.
+
+> 🔜 **Prochaine mise à jour — iPad natif.** Le layout est déjà prêt ; il suffira de
+> basculer `supportsTablet: true` + `infoPlist.UIRequiresFullScreen: true` (désactive
+> Split View/Slide Over) + `UISupportedInterfaceOrientations~ipad` = portrait seul, puis
+> fournir les captures iPad Pro 13". `app.config.js` lit `supportsTablet` depuis
+> `app.json` (base = `require('./app.json')`), donc un seul flag à changer.
 
 ### Message à coller dans « Répondre à l'équipe de vérification »
 ```
@@ -522,20 +516,18 @@ Hello,
 
 Thank you for the detailed review and the screenshots.
 
-We identified the layout issue on iPad Air (crowded / overlapping content) and
-resolved it. Rather than shipping the app in iPhone compatibility mode, we now
-support iPad natively:
+We identified the layout issue you saw on iPad Air: a horizontal carousel on the
+onboarding screen used a window width captured once at load time, which caused the
+slides to misalign (overlapping / truncated titles) when the runtime window width
+differed. We have fixed this by making all sizing reactive to the current window
+size and by capping/centering content width, so the layout now renders correctly
+on iPad (in iPhone compatibility mode) as well as on iPhone.
 
-- The app runs full screen on iPad (UIRequiresFullScreen = true, no Split View).
-- It is locked to portrait on iPad, consistent with the iPhone experience.
-- Every screen now caps and centers its content width and uses reactive window
-  sizing, so nothing is stretched or truncated on the larger iPad display.
+EventEz is an iPhone application (supported device family = iPhone). On iPad it runs
+in iPhone compatibility mode, which now displays correctly. A dedicated
+iPad-optimized layout is planned for a future update.
 
-We audited the full screen set on iPad Pro and iPad Air; the onboarding carousel
-that misaligned in the previous build (it used a window width captured once at load
-time) is fixed. Updated iPad screenshots are included in this submission.
-
-Thank you.
+The fix is included in the new build we are submitting. Thank you.
 
 The EventEz team
 ```

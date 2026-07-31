@@ -15,7 +15,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "net.overbrand.eventez",
       "usesAppleSignIn": true,
       "associatedDomains": [
@@ -26,12 +26,7 @@
         "NSPhotoLibraryAddUsageDescription": "Permet à EventEz d'enregistrer vos billets et les images reçues dans votre galerie.",
         "NSMicrophoneUsageDescription": "Permet à EventEz d'enregistrer des messages vocaux dans vos conversations.",
         "NSFaceIDUsageDescription": "Permet à EventEz de déverrouiller l'application et de confirmer vos actions sensibles avec Face ID.",
-        "ITSAppUsesNonExemptEncryption": false,
-        "UIRequiresFullScreen": true,
-        "UISupportedInterfaceOrientations~ipad": [
-          "UIInterfaceOrientationPortrait",
-          "UIInterfaceOrientationPortraitUpsideDown"
-        ]
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
