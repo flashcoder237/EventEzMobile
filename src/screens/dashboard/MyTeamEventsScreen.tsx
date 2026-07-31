@@ -227,6 +227,8 @@ export default function MyTeamEventsScreen() {
           style={[styles.headerBack, { backgroundColor: colors.gray50 }]}
           onPress={() => navigation.goBack()}
           activeOpacity={TOUCH_OPACITY}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="arrow-back" size={22} color={colors.gray900} />
         </TouchableOpacity>

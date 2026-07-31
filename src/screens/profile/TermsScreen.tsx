@@ -197,6 +197,8 @@ export default function TermsScreen() {
             onPress={() => navigation.goBack()}
             style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
           >
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>

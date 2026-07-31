@@ -349,6 +349,8 @@ export default function DiscountManagementScreen() {
             onPress={() => navigation.goBack()}
             style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
           >
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
@@ -360,6 +362,8 @@ export default function DiscountManagementScreen() {
             onPress={() => navigation.navigate('DiscountForm', { eventId })}
             style={[styles.headerCreateBtn, Shadows.buttonPrimary]}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={t('organizer.discountManagement.emptyCtaLabel')}
           >
             <LinearGradient
               colors={[colors.primary, colors.primaryDark]}

@@ -325,6 +325,8 @@ export default function EditProfileScreen() {
             onPress={() => navigation.goBack()}
             style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
           >
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
@@ -525,6 +527,8 @@ export default function EditProfileScreen() {
               <TouchableOpacity
                 style={styles.passwordToggle}
                 onPress={() => setShowCurrentPassword(!showCurrentPassword)}
+                accessibilityRole="button"
+                accessibilityLabel={showCurrentPassword ? t('auth.hidePassword') : t('auth.showPassword')}
               >
                 <Ionicons
                   name={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'}
@@ -549,6 +553,8 @@ export default function EditProfileScreen() {
               <TouchableOpacity
                 style={styles.passwordToggle}
                 onPress={() => setShowNewPassword(!showNewPassword)}
+                accessibilityRole="button"
+                accessibilityLabel={showNewPassword ? t('auth.hidePassword') : t('auth.showPassword')}
               >
                 <Ionicons
                   name={showNewPassword ? 'eye-off-outline' : 'eye-outline'}
@@ -576,6 +582,8 @@ export default function EditProfileScreen() {
               <TouchableOpacity
                 style={styles.passwordToggle}
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                accessibilityRole="button"
+                accessibilityLabel={showConfirmPassword ? t('auth.hidePassword') : t('auth.showPassword')}
               >
                 <Ionicons
                   name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}

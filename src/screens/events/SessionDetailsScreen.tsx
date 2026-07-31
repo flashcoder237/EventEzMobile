@@ -216,7 +216,7 @@ export default function SessionDetailsScreen() {
         <WatermarkNumeral>SES</WatermarkNumeral>
         <View style={{ flex: 1, zIndex: 1 }}>
           <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
-            <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+            <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel={t('common.back')}>
               <Ionicons name="arrow-back" size={24} color={colors.gray700} />
             </TouchableOpacity>
             <Text style={[styles.headerTitle, { color: colors.gray900 }]}>{t('sessionDetails.title')}</Text>
@@ -234,7 +234,7 @@ export default function SessionDetailsScreen() {
         <WatermarkNumeral>NO</WatermarkNumeral>
         <View style={{ flex: 1, zIndex: 1 }}>
           <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
-            <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+            <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel={t('common.back')}>
               <Ionicons name="arrow-back" size={24} color={colors.gray700} />
             </TouchableOpacity>
             <Text style={[styles.headerTitle, { color: colors.gray900 }]}>{t('sessionDetails.title')}</Text>
@@ -261,7 +261,7 @@ export default function SessionDetailsScreen() {
 
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
-        <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel={t('common.back')}>
           <Ionicons name="arrow-back" size={24} color={colors.gray700} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.gray900 }]} numberOfLines={1}>{t('sessionDetails.title')}</Text>

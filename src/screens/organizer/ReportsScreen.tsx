@@ -162,6 +162,8 @@ export default function ReportsScreen() {
         <TouchableOpacity
           style={[styles.backButton, { backgroundColor: colors.gray50 }]}
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="arrow-back" size={22} color={colors.gray700} />
         </TouchableOpacity>

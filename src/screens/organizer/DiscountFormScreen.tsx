@@ -47,7 +47,7 @@ export default function DiscountFormScreen() {
   const { eventId, discountId } = route.params;
   const { t } = useTranslation();
   const { showSuccess, showError } = useAlert();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   const isEditing = !!discountId;
 
@@ -187,7 +187,7 @@ export default function DiscountFormScreen() {
     );
   };
 
-  const hairline = 'rgba(0,0,0,0.06)';
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   if (fetchingData) {
     return (
@@ -219,6 +219,8 @@ export default function DiscountFormScreen() {
             style={[styles.iconDiscE, { backgroundColor: colors.gray100 }]}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
           >
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>

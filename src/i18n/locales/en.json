@@ -2737,6 +2737,7 @@
   },
   "map": {
     "filtersTitle": "Filters",
+    "centerOnMe": "Center on me",
     "reset": "Reset",
     "radiusTitle": "Search radius",
     "radiusUnit": "{{value}} km",
@@ -5214,7 +5215,7 @@
       "newCategory": "New category",
       "newBooth": "New booth",
       "categoryNamePlaceholder": "e.g. Standard booth 3x2",
-      "categoryPricePlaceholder": "Price (XAF)",
+      "categoryPricePlaceholder": "Price ({{currency}})",
       "boothCodePlaceholder": "Code (e.g. A12)",
       "category": "Category",
       "noCategoryFirst": "Create a category first.",

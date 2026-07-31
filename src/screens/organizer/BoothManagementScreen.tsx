@@ -34,7 +34,8 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
-import { exhibitorsAPI, floorPlansAPI } from '../../api';
+import { exhibitorsAPI, floorPlansAPI, eventsAPI } from '../../api';
+import { CURRENCY_CODE as DEFAULT_CURRENCY } from '../../constants/payment';
 import type { RootStackParamList } from '../../types';
 import SalesDelegationTab from './SalesDelegationTab';
 import {
@@ -73,6 +74,9 @@ export default function BoothManagementScreen() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [areas, setAreas] = useState<FloorArea[]>([]);
   const [floorPlanId, setFloorPlanId] = useState<string | null>(null);
+  // Devise de l'event (regle mono-devise : Event.currency = devise du wallet
+  // organisateur, verrouillee). On l'affiche telle quelle, jamais 'XAF' en dur.
+  const [currency, setCurrency] = useState<string>(DEFAULT_CURRENCY);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -97,6 +101,13 @@ export default function BoothManagementScreen() {
       setCategories(catRes.data?.results || catRes.data || []);
       setBooths(boothRes.data?.results || boothRes.data || []);
       setApplications(appRes.data?.results || appRes.data || []);
+      // Devise de l'event (mono-devise). Best-effort : si l'appel echoue on
+      // conserve le fallback plateforme.
+      try {
+        const evRes = await eventsAPI.getEvent(eventId);
+        const ev = evRes.data;
+        if (ev?.currency) setCurrency(ev.currency);
+      } catch { /* garde le fallback */ }
       // Zones « booth » du plan (pour le placement simple). Best-effort.
       try {
         const fpRes = await floorPlansAPI.getByEvent(eventId);
@@ -304,7 +315,7 @@ export default function BoothManagementScreen() {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, { color: colors.text }]}>{item.name}</Text>
-          <Text style={[styles.description, { color: colors.gray500 }]}>{t2(item.base_price)} XAF</Text>
+          <Text style={[styles.description, { color: colors.gray500 }]}>{t2(item.base_price)} {currency}</Text>
         </View>
       </View>
     </View>
@@ -435,7 +446,7 @@ export default function BoothManagementScreen() {
             />
             <TextInput
               value={catPrice} onChangeText={setCatPrice} keyboardType="number-pad"
-              placeholder={t('organizer.booths.categoryPricePlaceholder', { defaultValue: 'Prix (XAF)' })}
+              placeholder={t('organizer.booths.categoryPricePlaceholder', { currency, defaultValue: `Prix (${currency})` })}
               placeholderTextColor={colors.gray400}
               style={[styles.input, { color: colors.text, borderColor: hairline, backgroundColor: colors.background }]}
             />
@@ -469,7 +480,7 @@ export default function BoothManagementScreen() {
                     style={[styles.catChoice, { borderColor: boothCat === c.id ? colors.primary : hairline, backgroundColor: boothCat === c.id ? `${colors.primary}10` : 'transparent' }]}
                   >
                     <Text style={{ color: colors.text, fontFamily: FontFamily.medium }}>{c.name}</Text>
-                    <Text style={{ color: colors.gray500, fontSize: FontSizes.sm }}>{t2(c.base_price)} XAF</Text>
+                    <Text style={{ color: colors.gray500, fontSize: FontSizes.sm }}>{t2(c.base_price)} {currency}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>

@@ -547,6 +547,8 @@ export default function RegisterOrganizerScreen() {
           style={[styles.backButton, { backgroundColor: colors.gray50 }]}
           animationType="scale"
           scaleValue={0.9}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="arrow-back" size={24} color={colors.gray800} />
         </AnimatedPressable>

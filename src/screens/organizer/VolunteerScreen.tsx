@@ -22,7 +22,7 @@ import { volunteersAPI } from '../../api';
 import { getVolunteerSignupUrl } from '../../constants/urls';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { Colors, FontSizes, FontFamily, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { FontSizes, FontFamily, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -406,11 +406,11 @@ export default function VolunteerScreen() {
             disabled={isFull || isProcessing || !item.is_active}
           >
             {isProcessing ? (
-              <ActivityIndicator size="small" color={colors.white} />
+              <ActivityIndicator size="small" color="#fff" />
             ) : (
               <>
-                <Ionicons name="add" size={18} color={colors.white} />
-                <Text style={[styles.applyButtonText, { color: colors.white }]}>
+                <Ionicons name="add" size={18} color="#fff" />
+                <Text style={[styles.applyButtonText, { color: '#fff' }]}>
                   {isFull ? t('organizer.volunteer.full') : t('organizer.volunteer.apply')}
                 </Text>
               </>
@@ -993,53 +993,53 @@ export default function VolunteerScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitleWrap: { alignItems: 'center' },
   headerEyebrow: { fontSize: 10, fontFamily: FontFamily.bold, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
-  headerTitle: { fontSize: FontSizes.lg, fontFamily: FontFamily.displayBold, color: Colors.text, letterSpacing: -0.3 },
-  tabs: { flexDirection: 'row', marginHorizontal: Spacing.md, backgroundColor: Colors.gray100, borderRadius: BorderRadius.lg, padding: 4, marginBottom: Spacing.md },
+  headerTitle: { fontSize: FontSizes.lg, fontFamily: FontFamily.displayBold, letterSpacing: -0.3 },
+  tabs: { flexDirection: 'row', marginHorizontal: Spacing.md, borderRadius: BorderRadius.lg, padding: 4, marginBottom: Spacing.md },
   tab: { flex: 1, flexDirection: 'row', paddingVertical: Spacing.sm, alignItems: 'center', justifyContent: 'center', borderRadius: BorderRadius.md },
-  activeTab: { backgroundColor: Colors.white, ...Shadows.md },
-  tabText: { fontSize: FontSizes.sm, color: Colors.textLight, fontWeight: '600' },
-  activeTabText: { color: Colors.primary },
+  activeTab: { ...Shadows.md },
+  tabText: { fontSize: FontSizes.sm, fontWeight: '600' },
+  activeTabText: {},
   listContent: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.xl, ...centeredContent(CARD_MAX) },
   // Role Card
-  roleCard: { backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.sm, ...Shadows.card },
+  roleCard: { borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.sm, ...Shadows.card },
   roleHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm },
-  roleIconContainer: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.primaryBg, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.sm },
+  roleIconContainer: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.sm },
   roleInfo: { flex: 1 },
-  roleTitle: { fontSize: FontSizes.md, fontWeight: '700', color: Colors.text },
-  roleEvent: { fontSize: FontSizes.xs, color: Colors.textSecondary, marginTop: 2 },
-  roleDescription: { fontSize: FontSizes.sm, color: Colors.textSecondary, lineHeight: 18, marginBottom: Spacing.sm },
-  requirementsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.xs, marginBottom: Spacing.sm, backgroundColor: Colors.gray50, padding: Spacing.sm, borderRadius: BorderRadius.md },
-  requirementsText: { flex: 1, fontSize: FontSizes.xs, color: Colors.textSecondary, lineHeight: 16 },
+  roleTitle: { fontSize: FontSizes.md, fontWeight: '700' },
+  roleEvent: { fontSize: FontSizes.xs, marginTop: 2 },
+  roleDescription: { fontSize: FontSizes.sm, lineHeight: 18, marginBottom: Spacing.sm },
+  requirementsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.xs, marginBottom: Spacing.sm, padding: Spacing.sm, borderRadius: BorderRadius.md },
+  requirementsText: { flex: 1, fontSize: FontSizes.xs, lineHeight: 16 },
   capacitySection: { marginBottom: Spacing.md },
   capacityLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.xs },
-  capacityLabel: { fontSize: FontSizes.xs, color: Colors.textLight },
-  capacityValue: { fontSize: FontSizes.xs, fontWeight: '700', color: Colors.text },
-  progressBarBg: { height: 6, backgroundColor: Colors.gray100, borderRadius: 3, overflow: 'hidden' },
-  progressBarFill: { height: '100%', backgroundColor: Colors.primary, borderRadius: 3 },
-  progressBarFull: { backgroundColor: Colors.error },
-  appliedBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, backgroundColor: Colors.successLight, borderRadius: BorderRadius.lg },
-  appliedText: { fontSize: FontSizes.sm, fontWeight: '600', color: Colors.success },
-  applyButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, backgroundColor: Colors.primary, paddingVertical: Spacing.sm + 2, borderRadius: BorderRadius.lg },
-  applyButtonDisabled: { backgroundColor: Colors.gray300 },
-  applyButtonText: { fontSize: FontSizes.sm, fontWeight: '700', color: Colors.white },
+  capacityLabel: { fontSize: FontSizes.xs },
+  capacityValue: { fontSize: FontSizes.xs, fontWeight: '700' },
+  progressBarBg: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  progressBarFill: { height: '100%', borderRadius: 3 },
+  progressBarFull: {},
+  appliedBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: BorderRadius.lg },
+  appliedText: { fontSize: FontSizes.sm, fontWeight: '600' },
+  applyButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm + 2, borderRadius: BorderRadius.lg },
+  applyButtonDisabled: {},
+  applyButtonText: { fontSize: FontSizes.sm, fontWeight: '700' },
   // Application Card
-  applicationCard: { backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.sm, ...Shadows.card },
+  applicationCard: { borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.sm, ...Shadows.card },
   applicationHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.sm },
   applicationInfo: { flex: 1, marginRight: Spacing.sm },
-  applicationRole: { fontSize: FontSizes.md, fontWeight: '700', color: Colors.text },
-  applicationApplicant: { fontSize: FontSizes.xs, color: Colors.textSecondary, marginTop: 2 },
+  applicationRole: { fontSize: FontSizes.md, fontWeight: '700' },
+  applicationApplicant: { fontSize: FontSizes.xs, marginTop: 2 },
   statusBadge: { paddingHorizontal: Spacing.sm, paddingVertical: 4, borderRadius: BorderRadius.full },
   statusText: { fontSize: FontSizes.xs, fontWeight: '600' },
-  motivationText: { fontSize: FontSizes.sm, color: Colors.textSecondary, fontStyle: 'italic', marginBottom: Spacing.sm, lineHeight: 18 },
+  motivationText: { fontSize: FontSizes.sm, fontStyle: 'italic', marginBottom: Spacing.sm, lineHeight: 18 },
   applicationFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  applicationDate: { fontSize: FontSizes.xs, color: Colors.textLight },
-  withdrawButton: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 2, backgroundColor: Colors.errorLight, borderRadius: BorderRadius.lg },
-  withdrawText: { fontSize: FontSizes.xs, fontWeight: '600', color: Colors.error },
+  applicationDate: { fontSize: FontSizes.xs },
+  withdrawButton: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 2, borderRadius: BorderRadius.lg },
+  withdrawText: { fontSize: FontSizes.xs, fontWeight: '600' },
   // Received application card (organizer)
   receivedAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.sm },
   receivedRoleLine: { fontSize: FontSizes.xs, marginBottom: Spacing.xs },
@@ -1051,8 +1051,8 @@ const styles = StyleSheet.create({
   receivedActionText: { fontSize: FontSizes.sm, fontWeight: '700' },
   // Empty
   emptyState: { alignItems: 'center', paddingVertical: Spacing.xl * 2 },
-  emptyText: { fontSize: FontSizes.md, color: Colors.textLight, fontWeight: '600', marginTop: Spacing.md },
-  emptySubtext: { fontSize: FontSizes.sm, color: Colors.textLight, marginTop: Spacing.xs, textAlign: 'center', paddingHorizontal: Spacing.xl },
+  emptyText: { fontSize: FontSizes.md, fontWeight: '600', marginTop: Spacing.md },
+  emptySubtext: { fontSize: FontSizes.sm, marginTop: Spacing.xs, textAlign: 'center', paddingHorizontal: Spacing.xl },
   // Create-role modal
   modalBackdrop: {
     flex: 1,

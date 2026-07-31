@@ -759,6 +759,8 @@ export default function EventSearchScreen() {
                 style={styles.searchBackBtn}
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel={t('common.back')}
               >
                 <Ionicons name="chevron-back" size={18} color={colors.gray600} />
               </TouchableOpacity>
@@ -776,7 +778,7 @@ export default function EventSearchScreen() {
                 autoCapitalize="none"
               />
               {state.query.length > 0 && (
-                <TouchableOpacity onPress={handleClearQuery} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <TouchableOpacity onPress={handleClearQuery} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={t('common.clear')}>
                   <Ionicons name="close-circle" size={16} color={colors.gray400} />
                 </TouchableOpacity>
               )}
@@ -784,6 +786,8 @@ export default function EventSearchScreen() {
                 style={[styles.filterTrigger, { backgroundColor: activeFiltersCount > 0 ? colors.primary : colors.gray100 }]}
                 onPress={() => setShowFilters(true)}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Filtres"
               >
                 <Ionicons
                   name="options"
@@ -906,6 +910,8 @@ export default function EventSearchScreen() {
                       onPress={() => removeSearchHistoryEntry(item)}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       style={[styles.historyRemove, { backgroundColor: colors.gray100 }]}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('common.remove')}
                     >
                       <Ionicons name="close" size={12} color={colors.gray500} />
                     </TouchableOpacity>
@@ -1059,6 +1065,8 @@ export default function EventSearchScreen() {
                   style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
                   onPress={() => setShowFilters(false)}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('common.close')}
                 >
                   <Ionicons name="close" size={18} color={colors.gray600} />
                 </TouchableOpacity>

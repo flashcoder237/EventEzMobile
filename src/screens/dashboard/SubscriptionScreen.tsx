@@ -429,6 +429,8 @@ export default function SubscriptionScreen() {
               style={[styles.backButton, { backgroundColor: surface }]}
               onPress={() => navigation.goBack()}
               activeOpacity={TOUCH_OPACITY}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.back')}
             >
               <Ionicons name="arrow-back" size={24} color={ink} />
             </TouchableOpacity>
@@ -453,6 +455,8 @@ export default function SubscriptionScreen() {
             style={[styles.backButton, { backgroundColor: surface }]}
             onPress={() => navigation.goBack()}
             activeOpacity={TOUCH_OPACITY}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
           >
             <Ionicons name="arrow-back" size={24} color={ink} />
           </TouchableOpacity>

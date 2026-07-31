@@ -292,7 +292,7 @@ export default function LiveEventScreen() {
     <KeyboardAvoidingView style={{ flex: 1, zIndex: 1 }} behavior="padding">
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('common.back')}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t('liveEvent.title')}</Text>
@@ -359,6 +359,8 @@ export default function LiveEventScreen() {
             <TouchableOpacity
               style={[styles.anonymousToggle, { backgroundColor: colors.gray100 }, isAnonymous && { backgroundColor: colors.primaryBg }]}
               onPress={() => setIsAnonymous(!isAnonymous)}
+              accessibilityRole="button"
+              accessibilityLabel={t('liveEvent.anonymous')}
             >
               <Ionicons
                 name={isAnonymous ? 'eye-off' : 'eye-off-outline'}
@@ -379,6 +381,8 @@ export default function LiveEventScreen() {
               style={[styles.sendButton, { backgroundColor: colors.primary }, !newQuestion.trim() && { backgroundColor: colors.gray300 }]}
               onPress={handleSubmitQuestion}
               disabled={!newQuestion.trim() || submitting}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.send', 'Envoyer')}
             >
               {submitting ? (
                 <ActivityIndicator size="small" color={Colors.white} />

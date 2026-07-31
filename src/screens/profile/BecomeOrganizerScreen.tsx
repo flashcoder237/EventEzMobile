@@ -607,6 +607,7 @@ export default function BecomeOrganizerScreen() {
           style={styles.headerBackButton}
           animationType="scale"
           scaleValue={0.9}
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="arrow-back" size={24} color={colors.gray800} />
         </AnimatedPressable>

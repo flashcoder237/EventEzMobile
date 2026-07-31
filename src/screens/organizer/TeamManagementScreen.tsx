@@ -362,6 +362,8 @@ export default function TeamManagementScreen() {
           style={[styles.headerBack, { backgroundColor: colors.gray50 }]}
           onPress={() => navigation.goBack()}
           activeOpacity={TOUCH_OPACITY}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="arrow-back" size={22} color={colors.gray900} />
         </TouchableOpacity>
@@ -377,6 +379,8 @@ export default function TeamManagementScreen() {
           style={[styles.inviteCta, { backgroundColor: colors.primary }]}
           onPress={() => setInviteOpen(true)}
           activeOpacity={TOUCH_OPACITY}
+          accessibilityRole="button"
+          accessibilityLabel={t('teamManagement.inviteCta', { defaultValue: 'Inviter un membre' })}
         >
           <Ionicons name="person-add" size={18} color="#FFFFFF" />
         </TouchableOpacity>
@@ -434,7 +438,12 @@ export default function TeamManagementScreen() {
               <Text style={[styles.modalTitle, { color: colors.gray900 }]}>
                 {t('teamManagement.inviteTitle', { defaultValue: 'Inviter un membre' })}
               </Text>
-              <TouchableOpacity onPress={() => setInviteOpen(false)} activeOpacity={TOUCH_OPACITY}>
+              <TouchableOpacity
+                onPress={() => setInviteOpen(false)}
+                activeOpacity={TOUCH_OPACITY}
+                accessibilityRole="button"
+                accessibilityLabel={t('common.close')}
+              >
                 <Ionicons name="close" size={24} color={colors.gray700} />
               </TouchableOpacity>
             </View>

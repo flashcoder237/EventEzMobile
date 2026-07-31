@@ -221,6 +221,8 @@ function AnnouncementFormContent() {
           style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>

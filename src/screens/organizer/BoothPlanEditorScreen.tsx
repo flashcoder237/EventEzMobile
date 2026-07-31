@@ -285,14 +285,14 @@ export default function BoothPlanEditorScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }]} accessibilityRole="button" accessibilityLabel={t('common.back')}>
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('organizer.boothPlan.eyebrow', { defaultValue: 'PLAN' })}</Text>
           <Text style={[styles.title, { color: colors.text }]}>{t('organizer.boothPlan.title', { defaultValue: 'Plan visuel' })}</Text>
         </View>
-        <TouchableOpacity onPress={addBooth} style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }]}>
+        <TouchableOpacity onPress={addBooth} style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }]} accessibilityRole="button" accessibilityLabel="Ajouter un stand">
           <Ionicons name="add" size={22} color={colors.primary} />
         </TouchableOpacity>
       </View>

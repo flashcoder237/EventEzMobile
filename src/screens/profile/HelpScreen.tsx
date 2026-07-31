@@ -309,6 +309,8 @@ export default function HelpScreen() {
             onPress={() => navigation.goBack()}
             style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
           >
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
@@ -353,7 +355,11 @@ export default function HelpScreen() {
                 returnKeyType="search"
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <TouchableOpacity
+                  onPress={() => setSearchQuery('')}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('common.clear')}
+                >
                   <Ionicons name="close-circle" size={16} color={colors.gray400} />
                 </TouchableOpacity>
               )}

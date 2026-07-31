@@ -2737,6 +2737,7 @@
   },
   "map": {
     "filtersTitle": "Filtres",
+    "centerOnMe": "Me localiser",
     "reset": "Réinitialiser",
     "radiusTitle": "Rayon de recherche",
     "radiusUnit": "{{value}} km",
@@ -5214,7 +5215,7 @@
       "newCategory": "Nouvelle catégorie",
       "newBooth": "Nouveau stand",
       "categoryNamePlaceholder": "Ex : Stand standard 3x2",
-      "categoryPricePlaceholder": "Prix (XAF)",
+      "categoryPricePlaceholder": "Prix ({{currency}})",
       "boothCodePlaceholder": "Code (ex : A12)",
       "category": "Catégorie",
       "noCategoryFirst": "Créez d'abord une catégorie.",

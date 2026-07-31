@@ -290,6 +290,8 @@ export default function MapScreen() {
         <TouchableOpacity
           style={[styles.backButton, { backgroundColor: colors.card }]}
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
@@ -312,6 +314,8 @@ export default function MapScreen() {
               setTempFilters(filters);
               setShowFilters(true);
             }}
+            accessibilityRole="button"
+            accessibilityLabel={t('map.filtersTitle')}
           >
             <Ionicons name="options-outline" size={22} color={colors.gray700} />
             {activeFiltersCount > 0 && (
@@ -325,10 +329,10 @@ export default function MapScreen() {
 
       {/* Map Controls */}
       <View style={styles.mapControls}>
-        <TouchableOpacity style={[styles.mapButton, { backgroundColor: colors.card }]} onPress={centerOnUser}>
+        <TouchableOpacity style={[styles.mapButton, { backgroundColor: colors.card }]} onPress={centerOnUser} accessibilityRole="button" accessibilityLabel={t('map.centerOnMe', 'Me localiser')}>
           <Ionicons name="locate" size={24} color={colors.gray700} />
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.mapButton, { backgroundColor: colors.card }]} onPress={fetchMapEvents}>
+        <TouchableOpacity style={[styles.mapButton, { backgroundColor: colors.card }]} onPress={fetchMapEvents} accessibilityRole="button" accessibilityLabel={t('common.refresh', 'Actualiser')}>
           <Ionicons name="refresh" size={24} color={colors.gray700} />
         </TouchableOpacity>
       </View>
@@ -431,7 +435,7 @@ export default function MapScreen() {
         <SafeAreaView style={[styles.filtersModal, { backgroundColor: colors.background }]}>
           {/* Header */}
           <View style={[styles.filtersHeader, { borderBottomColor: colors.gray100 }]}>
-            <TouchableOpacity onPress={() => setShowFilters(false)}>
+            <TouchableOpacity onPress={() => setShowFilters(false)} accessibilityRole="button" accessibilityLabel={t('common.close')}>
               <Ionicons name="close" size={24} color={colors.gray700} />
             </TouchableOpacity>
             <Text style={[styles.filtersTitle, { color: colors.gray900 }]}>{t('map.filtersTitle')}</Text>
