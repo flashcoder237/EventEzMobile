@@ -192,6 +192,16 @@ export const usersAPI = {
   updateUser: (id: string, data: any) =>
     api.patch(`/users/${id}/`, data),
 
+  /**
+   * Suspend ou reactive un compte (admin uniquement).
+   *
+   * NE PAS passer par `updateUser({ is_active })` : `is_active` n'est pas un
+   * champ inscriptible de UserSerializer, DRF l'ignore et repond 200 — la
+   * suspension paraissait reussir sans aucun effet.
+   */
+  setUserActive: (id: string, isActive: boolean, reason?: string) =>
+    api.post(`/users/${id}/set_active/`, { is_active: isActive, reason: reason || '' }),
+
   deleteUser: (id: string) =>
     api.delete(`/users/${id}/`),
 
