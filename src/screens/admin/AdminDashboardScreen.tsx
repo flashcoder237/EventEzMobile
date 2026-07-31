@@ -172,7 +172,14 @@ function AdminDashboardContent() {
                   {log.action_display || log.action}
                 </Text>
                 <Text style={[styles.logTime, { color: colors.gray400 }]}>
-                  {new Date(log.timestamp).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  {(() => {
+                    const d = new Date(log.timestamp);
+                    // Garde : un timestamp absent/invalide → pas de crash de render
+                    // (Invalid Date peut casser le rendu sous Hermes + newArch).
+                    return isNaN(d.getTime())
+                      ? '—'
+                      : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                  })()}
                 </Text>
               </View>
             </View>

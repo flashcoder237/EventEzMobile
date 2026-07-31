@@ -203,7 +203,7 @@ export default function NewslettersScreen() {
               {item.subject}
             </Text>
             <Text style={[styles.preview, { color: colors.gray500 }]} numberOfLines={2}>
-              {item.content.replace(/<[^>]*>/g, '').slice(0, 120)}
+              {(item.content || '').replace(/<[^>]*>/g, '').slice(0, 120)}
             </Text>
           </View>
           <View style={[styles.statusPill, { backgroundColor: colorConfig.bg }]}>

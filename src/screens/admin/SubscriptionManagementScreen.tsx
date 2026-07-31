@@ -99,7 +99,7 @@ function SubscriptionManagementContent() {
           <Text style={[styles.planEyebrow, { color: colors.gray500 }]}>{t('admin.subscriptions.planEyebrow')}</Text>
           <Text style={[styles.planName, { color: colors.text }]}>{item.name}</Text>
           <Text style={[styles.planPrice, { color: colors.primary }]}>
-            {item.price_monthly.toLocaleString()} {platformCurrency}
+            {(item.price_monthly ?? 0).toLocaleString()} {platformCurrency}
             <Text style={[styles.planPriceUnit, { color: colors.gray500 }]}> {t('admin.subscriptions.perMonth')}</Text>
           </Text>
         </View>

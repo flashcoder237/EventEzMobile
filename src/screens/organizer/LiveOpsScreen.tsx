@@ -123,7 +123,10 @@ export default function LiveOpsScreen() {
   }, [load]);
 
   const pct = data?.check_in_percentage ?? 0;
-  const maxBucket = Math.max(1, ...(data?.timeline.buckets ?? [1]));
+  // Garde défensive : le backend peut renvoyer un objet LiveOps sans `timeline`
+  // (ou timeline=null) → `data.timeline.buckets` planterait. On sécurise l'accès.
+  const buckets = data?.timeline?.buckets ?? [];
+  const maxBucket = Math.max(1, ...buckets);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -214,7 +217,7 @@ export default function LiveOpsScreen() {
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.cardTitle, { color: colors.text }]}>{t('organizer.liveOps.cadenceTitle')}</Text>
             <View style={styles.chart}>
-              {(data?.timeline.buckets ?? []).map((b, i) => (
+              {buckets.map((b, i) => (
                 <View key={i} style={styles.barCol}>
                   <View
                     style={[
@@ -229,7 +232,7 @@ export default function LiveOpsScreen() {
               ))}
             </View>
             <Text style={[styles.chartHint, { color: colors.gray400 }]}>
-              {t('organizer.liveOps.chartHint', { minutes: (data?.timeline.buckets.length ?? 8) * (data?.timeline.bucket_minutes ?? 15) })}
+              {t('organizer.liveOps.chartHint', { minutes: (buckets.length || 8) * (data?.timeline?.bucket_minutes ?? 15) })}
             </Text>
           </View>
 
