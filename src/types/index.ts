@@ -1906,6 +1906,7 @@ export type WebSocketIncomingMessage =
   | { type: 'auth.success' }
   | { type: 'auth.error'; error?: string }
   | { type: 'message.new'; message: Message; conversation_id?: string | number }
+  | { type: 'message.sent'; message: Message; client_temp_id?: string | number | null }
   | { type: 'message.edited'; message_id: string | number; content: string; edited_at: string; user_id: number }
   | { type: 'message.deleted'; message_id: string | number; user_id: number }
   | { type: 'typing.indicator'; conversation_id: string | number; user_id: number; user_name: string; is_typing: boolean }

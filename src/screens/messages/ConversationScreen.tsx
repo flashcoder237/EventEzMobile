@@ -51,6 +51,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { messagesAPI, eventsAPI, connectionsAPI, getMediaUrl } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { UndoGate } from '../../utils/undoGate';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useMessagingWebSocket } from '../../hooks/useMessagingWebSocket';
 import { useMutedConversations } from '../../hooks/useMutedConversations';
@@ -234,7 +235,6 @@ export default function ConversationScreen() {
     tempId: string;
     expiresAt: number;
   } | null>(null);
-  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const undoSnackbarAnim = useRef(new Animated.Value(0)).current;
   // Set des attachment ids en cours d'upload : permet à MessageBubble
   // d'afficher un overlay de chargement sur le tempMessage avant que l'upload
@@ -268,6 +268,18 @@ export default function ConversationScreen() {
       if (incomingConvId === String(state.conversationId)) {
         actions.addMessage(newMessage);
         // FlatList inversé affiche automatiquement les nouveaux messages en bas (index 0)
+      }
+    },
+    onMessageSent: ({ clientTempId, message }) => {
+      // Réconciliation optimiste : on remplace la bulle temp (client_temp_id)
+      // par le message serveur, au lieu d'en afficher un doublon avec l'echo.
+      if (clientTempId != null) {
+        actions.updateMessage(String(clientTempId), message);
+      } else {
+        const incomingConvId = String((message as any).conversation_id ?? message.conversation);
+        if (incomingConvId === String(state.conversationId)) {
+          actions.addMessage(message);
+        }
       }
     },
     onTypingIndicator: (data) => {
@@ -1675,7 +1687,12 @@ export default function ConversationScreen() {
   // resolue a `true` si le delai s'ecoule (=> on envoie), `false` si l'user
   // annule (=> on n'envoie jamais rien). Le message n'existe que localement
   // pendant la fenetre, donc annuler est exact et ne depend d'aucun reseau.
-  const undoResolverRef = useRef<((commit: boolean) => void) | null>(null);
+  // La mecanique de la barriere vit dans src/utils/undoGate.ts (testee
+  // isolement) ; ici on ne gere que l'UI de la snackbar.
+  const undoGateRef = useRef<UndoGate | null>(null);
+  if (undoGateRef.current === null) {
+    undoGateRef.current = new UndoGate(UNDO_SEND_DELAY_MS);
+  }
 
   const hideUndoSnackbar = useCallback(() => {
     Animated.timing(undoSnackbarAnim, {
@@ -1687,14 +1704,6 @@ export default function ConversationScreen() {
 
   /** Attend la fin de la fenetre d'undo. `true` => envoyer, `false` => annule. */
   const armUndoSend = useCallback((tempId: string): Promise<boolean> => {
-    // Un envoi deja en attente est commite immediatement : on ne veut pas deux
-    // barrieres concurrentes, et le 2e message ne doit pas annuler le 1er.
-    if (undoResolverRef.current) {
-      undoResolverRef.current(true);
-      undoResolverRef.current = null;
-    }
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-
     setPendingUndoMessage({ tempId, expiresAt: Date.now() + UNDO_SEND_DELAY_MS });
     Animated.timing(undoSnackbarAnim, {
       toValue: 1,
@@ -1702,16 +1711,9 @@ export default function ConversationScreen() {
       useNativeDriver: true,
     }).start();
 
-    return new Promise<boolean>((resolve) => {
-      undoResolverRef.current = resolve;
-      undoTimerRef.current = setTimeout(() => {
-        undoTimerRef.current = null;
-        if (undoResolverRef.current === resolve) {
-          undoResolverRef.current = null;
-          resolve(true); // delai ecoule => envoi reel
-        }
-        hideUndoSnackbar();
-      }, UNDO_SEND_DELAY_MS);
+    return undoGateRef.current!.arm().then((commit) => {
+      hideUndoSnackbar();
+      return commit;
     });
   }, [undoSnackbarAnim, hideUndoSnackbar]);
 
@@ -1719,30 +1721,16 @@ export default function ConversationScreen() {
   const performUndoSend = useCallback(() => {
     const pending = pendingUndoMessage;
     if (!pending) return;
-    if (undoTimerRef.current) {
-      clearTimeout(undoTimerRef.current);
-      undoTimerRef.current = null;
-    }
-    hideUndoSnackbar();
-
     // Retire le message optimiste local. Aucun appel reseau : rien n'est parti.
     actions.removeMessage(pending.tempId);
+    undoGateRef.current!.cancel();
+  }, [pendingUndoMessage, actions]);
 
-    const resolve = undoResolverRef.current;
-    undoResolverRef.current = null;
-    resolve?.(false);
-  }, [pendingUndoMessage, actions, hideUndoSnackbar]);
-
-  // Cleanup au unmount : on commite l'envoi en attente plutot que de le perdre
+  // Au unmount, on commite l'envoi en attente plutot que de le perdre
   // silencieusement (l'user a tape "envoyer" et n'a pas annule).
   useEffect(() => {
-    return () => {
-      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-      if (undoResolverRef.current) {
-        undoResolverRef.current(true);
-        undoResolverRef.current = null;
-      }
-    };
+    const gate = undoGateRef.current!;
+    return () => gate.commit();
   }, []);
 
   // #10 Skip avant de 15s sur le voice en cours.
@@ -2648,12 +2636,16 @@ export default function ConversationScreen() {
         return;
       }
 
-      // Envoi via WebSocket ou REST
+      // Envoi via WebSocket ou REST. On passe l'id du tempMessage comme
+      // client_temp_id : le serveur le renvoie dans `message.sent`, ce qui
+      // permet de remplacer la bulle optimiste (au lieu d'un doublon avec
+      // l'echo `message.new`).
       const wsSent = isConnected && isAuthenticated && wsSendMessage(
         conversationIdToUse,
         messageContent,
         state.replyToMessage?.id,
-        attachmentIds.length > 0 ? attachmentIds : undefined
+        attachmentIds.length > 0 ? attachmentIds : undefined,
+        String(tempMessage.id),
       );
 
       if (!wsSent) {

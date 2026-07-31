@@ -80,6 +80,8 @@ interface TypingUser {
 
 export interface UseMessagingWebSocketOptions {
   onNewMessage?: (message: Message) => void;
+  // Accusé de réception de NOTRE message → réconcilier le tempMessage optimiste.
+  onMessageSent?: (data: { clientTempId?: string | number | null; message: Message }) => void;
   onTypingIndicator?: (data: { conversationId: string | number; userName: string; isTyping: boolean }) => void;
   onMessageRead?: (data: { messageId: string | number; userId: number; readAt: string }) => void;
   onReactionAdded?: (data: { messageId: string | number; userId: number; emoji: string }) => void;
@@ -267,6 +269,19 @@ function handleMessage(event: MessageEvent) {
         if (data.message) {
           state.subscribers.forEach(s => {
             try { s.current.onNewMessage?.(data.message as Message); } catch { /* ignore */ }
+          });
+        }
+        break;
+
+      case 'message.sent':
+        if (data.message) {
+          state.subscribers.forEach(s => {
+            try {
+              s.current.onMessageSent?.({
+                clientTempId: (data as any).client_temp_id ?? null,
+                message: data.message as Message,
+              });
+            } catch { /* ignore */ }
           });
         }
         break;
@@ -671,6 +686,7 @@ function sendMessage(
   content: string,
   replyTo?: string | number,
   attachmentIds?: string[],
+  clientTempId?: string | number,
 ) {
   return sendWs({
     type: 'message.send',
@@ -678,6 +694,8 @@ function sendMessage(
     content,
     reply_to: replyTo,
     attachments: attachmentIds,
+    // Renvoyé par le serveur dans `message.sent` → réconciliation optimiste.
+    client_temp_id: clientTempId,
   });
 }
 

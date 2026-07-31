@@ -12,6 +12,7 @@ import {
   Pressable,
   ActivityIndicator,
   Platform,
+  Linking,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -372,6 +373,38 @@ const VoiceAttachment = memo(function VoiceAttachment({
     </View>
   );
 });
+
+// Rend un texte en segments, les URLs devenant cliquables (ouverture navigateur).
+// N'utilise pas de HTML → pas de risque d'injection ; les segments texte
+// restent auto-échappés par RN.
+const _URL_REGEX = /(https?:\/\/[^\s]+)/gi;
+function renderLinkified(text: string, linkColor: string): React.ReactNode {
+  if (!text) return text;
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  _URL_REGEX.lastIndex = 0;
+  while ((m = _URL_REGEX.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    let url = m[0];
+    let trailing = '';
+    const tm = url.match(/[.,;:!?)\]]+$/);
+    if (tm) { trailing = tm[0]; url = url.slice(0, url.length - trailing.length); }
+    parts.push(
+      <Text
+        key={m.index}
+        style={{ textDecorationLine: 'underline', color: linkColor }}
+        onPress={() => Linking.openURL(url).catch(() => {})}
+      >
+        {url}
+      </Text>,
+    );
+    if (trailing) parts.push(trailing);
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts.length ? parts : text;
+}
 
 function MessageBubble({
   message,
@@ -1086,14 +1119,14 @@ function MessageBubble({
                 </View>
               )}
 
-              {/* Text content */}
+              {/* Text content (URLs cliquables) */}
               {message.content && (
                 <Text
                   accessibilityRole="text"
                   accessibilityLabel={`${message.sender_name || t('componentsMessages.userFallback')}: ${message.content}`}
                   style={[styles.messageText, { color: isMine ? Colors.white : peerTextColor }]}
                 >
-                  {message.content}
+                  {renderLinkified(message.content, isMine ? Colors.white : peerTextColor)}
                 </Text>
               )}
 
