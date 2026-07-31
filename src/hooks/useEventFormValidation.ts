@@ -1,6 +1,12 @@
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { EventFormState, AlertActions, TicketTypeForm, FormFieldForm } from './useEventForm';
 import { isExternalVideoUrl } from '../lib/utils/videoUrl';
+
+/** Traducteur scopé au namespace validation (react-i18next). */
+type TFunc = (key: string, opts?: Record<string, unknown>) => string;
+const NS = 'organizer.eventCreate.validation';
+const vk = (t: TFunc, key: string, opts?: Record<string, unknown>) => t(`${NS}.${key}`, opts);
 
 /**
  * Liste des clés de champ que le validateStep peut signaler en erreur.
@@ -28,19 +34,20 @@ export function useEventFormValidation(
   form: EventFormState,
   showError: AlertActions['showError'],
 ) {
+  const { t } = useTranslation();
   const validateStepWithDetails = useCallback((step: number): StepValidationResult => {
     const errors: Partial<Record<StepFieldError, string>> = {};
 
     switch (step) {
       case 1:
-        if (!form.title.trim()) errors.title = 'Le titre est requis';
-        if (!form.description.trim()) errors.description = 'La description est requise';
-        if (!form.categoryId) errors.categoryId = 'Sélectionne une catégorie';
+        if (!form.title.trim()) errors.title = vk(t, 'titleRequired');
+        if (!form.description.trim()) errors.description = vk(t, 'descriptionRequired');
+        if (!form.categoryId) errors.categoryId = vk(t, 'categoryRequired');
         // Champ optionnel — on ne le bloque que si rempli ET non-reconnu
         // (pas YouTube/Vimeo). Le backend rejette les autres providers, autant
         // bloquer ici pour eviter un aller-retour API qui echoue au step 4.
         if (form.coverVideoUrl && form.coverVideoUrl.trim() && !isExternalVideoUrl(form.coverVideoUrl.trim())) {
-          errors.coverVideoUrl = 'Seules les URLs YouTube et Vimeo sont supportees';
+          errors.coverVideoUrl = vk(t, 'videoUrlUnsupported');
         }
         break;
 
@@ -51,20 +58,20 @@ export function useEventFormValidation(
         if (!form.isEditMode) {
           const minStart = new Date(Date.now() - 5 * 60 * 1000);
           if (form.startDate < minStart) {
-            errors.startDate = 'La date de debut ne peut pas etre dans le passe';
+            errors.startDate = vk(t, 'startInPast');
           }
         }
         if (form.endDate <= form.startDate) {
-          errors.endDate = 'La date de fin doit être après la date de début';
+          errors.endDate = vk(t, 'endBeforeStart');
         }
         if (form.locationType === 'in_person' || form.locationType === 'hybrid') {
           if (!form.locationCity.trim()) {
-            errors.locationCity = 'La ville est requise pour un événement présentiel';
+            errors.locationCity = vk(t, 'cityRequired');
           }
         }
         if (form.locationType === 'online' || form.locationType === 'hybrid') {
           if (!form.onlineUrl.trim()) {
-            errors.onlineUrl = 'Le lien de connexion est requis pour un événement en ligne';
+            errors.onlineUrl = vk(t, 'onlineUrlRequired');
           }
         }
         break;
@@ -72,22 +79,26 @@ export function useEventFormValidation(
 
       case 3:
         if (form.eventType === 'billetterie') {
-          if (!form.isFree && form.ticketTypes.length === 0) {
-            errors.ticketTypes = 'Ajoute au moins un type de billet';
+          // Parité backend : un event billetterie exige TOUJOURS >= 1 type de
+          // billet à la publication (même gratuit → billet à prix 0). Sans ça,
+          // le mobile disait "valide" puis le submit échouait en 400 silencieux
+          // et l'event restait bloqué en draft.
+          if (form.ticketTypes.length === 0) {
+            errors.ticketTypes = vk(t, 'ticketRequired');
           }
-          if (!validateTicketTypes(form.ticketTypes, showError, form.startDate, form.endDate)) {
-            errors.ticketTypes = errors.ticketTypes || 'Vérifie les noms, prix et dates de vente';
+          if (!validateTicketTypes(form.ticketTypes, showError, t, form.startDate, form.endDate)) {
+            errors.ticketTypes = errors.ticketTypes || vk(t, 'ticketCheck');
           }
           if (form.showFormFieldsForBilletterie && form.formFields.length > 0) {
-            if (!validateFormFields(form.formFields, showError)) {
-              errors.formFields = 'Vérifie les champs du formulaire';
+            if (!validateFormFields(form.formFields, showError, t)) {
+              errors.formFields = vk(t, 'formFieldsCheck');
             }
           }
         } else {
           if (form.formFields.length === 0) {
-            errors.formFields = 'Ajoute au moins un champ de formulaire';
-          } else if (!validateFormFields(form.formFields, showError)) {
-            errors.formFields = 'Vérifie les champs du formulaire';
+            errors.formFields = vk(t, 'formFieldRequired');
+          } else if (!validateFormFields(form.formFields, showError, t)) {
+            errors.formFields = vk(t, 'formFieldsCheck');
           }
         }
         break;
@@ -99,7 +110,7 @@ export function useEventFormValidation(
     form.startDate, form.endDate,
     form.locationType, form.locationCity, form.onlineUrl, form.onlinePlatform,
     form.eventType, form.isFree, form.ticketTypes, form.formFields,
-    form.showFormFieldsForBilletterie, showError,
+    form.showFormFieldsForBilletterie, showError, t,
   ]);
 
   // Backward-compat: validateStep retourne toujours un bool, et déclenche un
@@ -109,10 +120,10 @@ export function useEventFormValidation(
     const result = validateStepWithDetails(step);
     if (!result.valid) {
       const firstError = Object.values(result.errors)[0];
-      if (firstError) showError('Erreur', firstError);
+      if (firstError) showError(vk(t, 'errorTitle'), firstError);
     }
     return result.valid;
-  }, [validateStepWithDetails, showError]);
+  }, [validateStepWithDetails, showError, t]);
 
   return Object.assign(validateStep, { withDetails: validateStepWithDetails }) as typeof validateStep & {
     withDetails: typeof validateStepWithDetails;
@@ -122,56 +133,63 @@ export function useEventFormValidation(
 function validateTicketTypes(
   tickets: TicketTypeForm[],
   showError: AlertActions['showError'],
+  t: TFunc,
   eventStart?: Date,
   eventEnd?: Date,
 ): boolean {
+  const title = vk(t, 'errorTitle');
   for (let i = 0; i < tickets.length; i++) {
     const ticket = tickets[i];
-    const ticketLabel = ticket.name.trim() || `#${i + 1}`;
+    const label = ticket.name.trim() || `#${i + 1}`;
     if (!ticket.name.trim()) {
-      showError('Erreur', `Le nom du billet #${i + 1} est requis`);
+      showError(title, vk(t, 'ticketNameRequired', { n: i + 1 }));
       return false;
     }
     // Prix >= 0 (parser tolerant : accepte "10,5" et "10.5", mais pas "abc")
     const price = parseFloat(String(ticket.price).replace(',', '.'));
     if (Number.isNaN(price) || price < 0) {
-      showError('Erreur', `Le prix du billet "${ticketLabel}" doit etre positif ou nul`);
+      showError(title, vk(t, 'ticketPriceInvalid', { label }));
       return false;
     }
     if (parseInt(ticket.quantity_total) <= 0) {
-      showError('Erreur', `La quantité du billet "${ticketLabel}" doit être supérieure à 0`);
+      showError(title, vk(t, 'ticketQtyInvalid', { label }));
       return false;
     }
     // Sales window : start < end
     if (ticket.sales_start && ticket.sales_end && ticket.sales_start >= ticket.sales_end) {
-      showError('Erreur', `Les dates de vente du billet "${ticketLabel}" sont incoherentes (fin avant debut)`);
+      showError(title, vk(t, 'ticketDatesInvalid', { label }));
       return false;
     }
     // Sales doit finir AVANT (ou au plus tard a) la fin de l'event
     if (eventEnd && ticket.sales_end && ticket.sales_end > eventEnd) {
-      showError('Erreur', `La vente du billet "${ticketLabel}" ne peut pas se terminer apres la fin de l'event`);
+      showError(title, vk(t, 'ticketSalesAfterEnd', { label }));
       return false;
     }
     // max_per_order >= min_per_order si les deux sont definis
     const minPer = parseInt(ticket.min_per_order);
     const maxPer = parseInt(ticket.max_per_order);
     if (!Number.isNaN(minPer) && !Number.isNaN(maxPer) && maxPer > 0 && maxPer < minPer) {
-      showError('Erreur', `Le max par commande du billet "${ticketLabel}" doit etre >= au min`);
+      showError(title, vk(t, 'ticketMaxMin', { label }));
       return false;
     }
   }
   return true;
 }
 
-function validateFormFields(fields: FormFieldForm[], showError: AlertActions['showError']): boolean {
+function validateFormFields(
+  fields: FormFieldForm[],
+  showError: AlertActions['showError'],
+  t: TFunc,
+): boolean {
+  const title = vk(t, 'errorTitle');
   for (let i = 0; i < fields.length; i++) {
     const field = fields[i];
     if (!field.label.trim()) {
-      showError('Erreur', `L'intitulé du champ #${i + 1} est requis`);
+      showError(title, vk(t, 'fieldLabelRequired', { n: i + 1 }));
       return false;
     }
     if (['select', 'checkbox', 'radio'].includes(field.field_type) && !field.options.trim()) {
-      showError('Erreur', `Les options sont requises pour le champ "${field.label}"`);
+      showError(title, vk(t, 'fieldOptionsRequired', { label: field.label }));
       return false;
     }
   }

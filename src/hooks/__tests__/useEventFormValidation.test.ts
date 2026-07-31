@@ -143,8 +143,18 @@ describe('useEventFormValidation — étape 3 billetterie', () => {
     const r = validate(baseForm({ eventType: 'billetterie', isFree: false, ticketTypes: [] }), 3);
     expect(r.errors.ticketTypes).toBeDefined();
   });
-  it('gratuit sans billet → OK', () => {
+  it('gratuit sans billet → INVALIDE (parité backend : ≥1 billet requis)', () => {
+    // Le backend exige toujours >= 1 type de billet pour un event billetterie
+    // (même gratuit → billet à prix 0). Un event gratuit SANS billet échouait
+    // en 400 silencieux au submit ; on le bloque désormais côté client.
     const r = validate(baseForm({ eventType: 'billetterie', isFree: true, ticketTypes: [] }), 3);
+    expect(r.valid).toBe(false);
+    expect(r.errors.ticketTypes).toBeDefined();
+  });
+  it('gratuit avec billet à prix 0 → OK', () => {
+    const r = validate(baseForm({
+      eventType: 'billetterie', isFree: true, ticketTypes: [ticket({ price: '0' })],
+    }), 3);
     expect(r.valid).toBe(true);
   });
   it('billet valide → OK', () => {
