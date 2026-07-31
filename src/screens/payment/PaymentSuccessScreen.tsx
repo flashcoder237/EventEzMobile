@@ -372,7 +372,7 @@ export default function PaymentSuccessScreen() {
         {/* Mini sound toggle — discreet, top-right */}
         <TouchableOpacity
           onPress={() => setSoundEnabled(!soundEnabled)}
-          style={[styles.muteToggle, { backgroundColor: colors.gray100 }]}
+          style={[styles.muteToggle, { top: insets.top + 8, backgroundColor: colors.gray100 }]}
           accessibilityRole="switch"
           accessibilityState={{ checked: soundEnabled }}
           accessibilityLabel={soundEnabled ? t('payment.successSoundOnAccessibility') : t('payment.successSoundOffAccessibility')}
@@ -822,7 +822,7 @@ const styles = StyleSheet.create({
   // Mini sound toggle (top-right corner)
   muteToggle: {
     position: 'absolute',
-    top: 12,
+    // top appliqué inline (insets.top + 8) — safe area iPad/notch.
     right: 16,
     flexDirection: 'row',
     alignItems: 'center',

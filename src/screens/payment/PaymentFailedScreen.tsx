@@ -22,7 +22,9 @@ import {
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Alert as AlertIllustration, AnimatedIllustration } from '../../components/illustrations';
+import { centeredContent, FORM_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PaymentFailedRouteProp = RouteProp<RootStackParamList, 'PaymentFailed'>;
@@ -32,6 +34,7 @@ export default function PaymentFailedScreen() {
   const route = useRoute<PaymentFailedRouteProp>();
   const { error } = route.params || {};
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 
   const reasons = [
@@ -110,7 +113,7 @@ export default function PaymentFailedScreen() {
         </ScrollView>
 
         {/* === BOTTOM BUTTONS === */}
-        <View style={[styles.bottomButtons, { backgroundColor: colors.background }]}>
+        <View style={[styles.bottomButtons, { backgroundColor: colors.background, paddingBottom: insets.bottom + Spacing.md }]}>
           <TouchableOpacity
             style={[styles.primaryPill, Shadows.buttonPrimary]}
             onPress={() => navigation.goBack()}
@@ -155,6 +158,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.xl,
     paddingBottom: Spacing.xl,
+    ...centeredContent(FORM_MAX + Spacing.xl * 2),
   },
   illoWrap: {
     alignItems: 'center',
@@ -282,8 +286,9 @@ const styles = StyleSheet.create({
   bottomButtons: {
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.md,
-    paddingBottom: Spacing.xl,
+    // paddingBottom appliqué inline (insets.bottom + Spacing.md).
     gap: Spacing.sm,
+    ...centeredContent(FORM_MAX + Spacing.xl * 2),
   },
   primaryPill: {
     flexDirection: 'row',

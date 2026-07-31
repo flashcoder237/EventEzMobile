@@ -9,7 +9,7 @@ import {
   Modal,
   Linking,
   Pressable,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -56,6 +56,9 @@ export default function VerificationScreen() {
   const { showAlert, showError } = useAlert();
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
+  // Preview plein écran RÉACTIVE (suit rotation/resize iPad) plutôt qu'une taille
+  // figée au chargement du module.
+  const { width: winW, height: winH } = useWindowDimensions();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const [status, setStatus] = useState<VerificationStatus>('none');
   const [rejectionReason, setRejectionReason] = useState('');
@@ -508,7 +511,7 @@ export default function VerificationScreen() {
           {zoomedImageUri && (
             <Image
               source={zoomedImageUri}
-              style={styles.zoomImage}
+              style={{ width: winW, height: winH * 0.85 }}
               contentFit="contain"
               transition={150}
             />
@@ -787,10 +790,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  zoomImage: {
-    width: Dimensions.get('window').width,
-    height: Dimensions.get('window').height * 0.85,
   },
   zoomCloseBtn: {
     position: 'absolute',

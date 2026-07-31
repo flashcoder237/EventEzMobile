@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Share,
-  Dimensions,
+  useWindowDimensions,
   Linking,
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -20,6 +20,7 @@ import QRCode from 'react-native-qrcode-svg';
 
 import { registrationsAPI, ticketTransfersAPI, paymentsAPI } from '../../api';
 import { getVerificationUrl, getEventInviteUrl, WEB_BASE_URL } from '../../constants/urls';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useTicketDisplayGuard } from '../../hooks/useTicketDisplayGuard';
 import { Registration, RootStackParamList } from '../../types';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
@@ -47,19 +48,16 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RegistrationDetailsRouteProp = RouteProp<RootStackParamList, 'RegistrationDetails'>;
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-// QR size : prend en compte card margin (lg×2) + section padding (lg×2) +
-// qrFrame padding (14×2) + qrContainer padding (md×2) + border + ~12px de
-// respiration sur chaque côté pour que les coins du scanner ne touchent pas
-// le bord de la carte.
-const QR_SIZE = Math.min(SCREEN_WIDTH - Spacing['2xl'] * 5, 260);
-
 export default function RegistrationDetailsScreen() {
   const { t } = useTranslation();
   // Écran billet (QR) : luminosité max + écran éveillé + anti-capture
   useTicketDisplayGuard();
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  // Taille du QR RÉACTIVE (suit rotation/split-view/letterbox iPad) — le QR est
+  // le sésame d'entrée, scanné le jour J et testé par Apple.
+  const { width: winWidth } = useWindowDimensions();
+  const QR_SIZE = Math.min(winWidth - Spacing['2xl'] * 5, 260);
   const route = useRoute<RegistrationDetailsRouteProp>();
   const { registrationId } = route.params;
   const { showError, showSuccess, showConfirm } = useAlert();
@@ -400,7 +398,7 @@ export default function RegistrationDetailsScreen() {
         }
       />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollInner} showsVerticalScrollIndicator={false}>
         {/* Registration Card — editorial ticket (AIDesigner) */}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray200, shadowColor: colors.primary }]}>
           {/* Event Info — header éditorial avec date tile orange + type pill */}
@@ -638,7 +636,7 @@ export default function RegistrationDetailsScreen() {
                       : t('registrationDetails.qrHintScanner')}
                   </Text>
                 </View>
-                <View style={[styles.qrExplain, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
+                <View style={[styles.qrExplain, { backgroundColor: colors.gray50, borderColor: colors.border, maxWidth: QR_SIZE + 40 }]}>
                   <Ionicons name="link-outline" size={12} color={colors.primary} />
                   <Text style={[styles.qrExplainText, { color: colors.gray600 }]}>
                     {t('registrationDetails.qrExplain')}
@@ -1394,6 +1392,9 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollInner: {
+    ...centeredContent(CARD_MAX),
+  },
 
   // Card éditoriale principale : warm white + radius généreux + shadow indigo soft
   card: {
@@ -1550,18 +1551,18 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 6,
   },
   qrImage: {
-    width: QR_SIZE,
-    height: QR_SIZE,
+    width: 260,
+    height: 260,
   },
   qrPlaceholder: {
-    width: QR_SIZE,
-    height: QR_SIZE,
+    width: 260,
+    height: 260,
     alignItems: 'center',
     justifyContent: 'center',
   },
   qrPlaceholderInner: {
-    width: QR_SIZE - 40,
-    height: QR_SIZE - 40,
+    width: 220,
+    height: 220,
     borderRadius: BorderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1587,7 +1588,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     marginTop: Spacing.sm,
-    maxWidth: QR_SIZE + 40,
+    // maxWidth appliqué inline (QR_SIZE réactif) dans le rendu.
   },
   qrExplainText: {
     flex: 1,

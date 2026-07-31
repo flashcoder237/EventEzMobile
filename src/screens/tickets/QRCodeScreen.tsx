@@ -6,7 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Share,
-  Dimensions,
+  useWindowDimensions,
   Linking,
 } from 'react-native';
 import {
@@ -33,6 +33,7 @@ import { useTicketLockPref } from '../../hooks/useTicketLockPref';
 import { ticketPurchasesAPI } from '../../api';
 import { TicketPurchase, RootStackParamList } from '../../types';
 import { getTicketVerificationUrl, getEventInviteUrl, WEB_BASE_URL } from '../../constants/urls';
+import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useTicketDisplayGuard } from '../../hooks/useTicketDisplayGuard';
 import AddToWalletButton from '../../components/tickets/AddToWalletButton';
 import EventCountdown from '../../components/events/EventCountdown';
@@ -47,16 +48,17 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type QRCodeRouteProp = RouteProp<RootStackParamList, 'QRCode'>;
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-// Cf. RegistrationDetailsScreen — laisse ~12px de respiration de chaque côté
-const QR_SIZE = Math.min(SCREEN_WIDTH - Spacing['2xl'] * 5, 260);
-
 export default function QRCodeScreen() {
   const { t } = useTranslation();
   // Écran QR : luminosité max + écran éveillé + anti-capture pendant l'affichage
   useTicketDisplayGuard();
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  // Taille du QR RÉACTIVE (et non figée au chargement du module) → suit
+  // rotation / split-view / letterbox iPad. Le QR est scanné à l'entrée et
+  // testé par Apple : il doit rester net et bien calibré partout.
+  const { width: winWidth } = useWindowDimensions();
+  const QR_SIZE = Math.min(winWidth - Spacing['2xl'] * 5, 260);
   const route = useRoute<QRCodeRouteProp>();
   const { ticketId } = route.params;
   const { showError } = useAlert();
@@ -413,7 +415,7 @@ export default function QRCodeScreen() {
           }
         />
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollInner} showsVerticalScrollIndicator={false}>
           {/* Card principale : event info + QR + détails */}
           <View
             style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray200, shadowColor: colors.primary }]}
@@ -588,7 +590,7 @@ export default function QRCodeScreen() {
                   </Text>
                 </View>
                 {/* Explication contenu QR */}
-                <View style={[styles.qrExplain, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
+                <View style={[styles.qrExplain, { backgroundColor: colors.gray50, borderColor: colors.border, maxWidth: QR_SIZE + 40 }]}>
                   <Ionicons name="link-outline" size={12} color={colors.primary} />
                   <Text style={[styles.qrExplainText, { color: colors.gray600 }]}>
                     {t('qrCode.qrExplain')}
@@ -843,6 +845,9 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollInner: {
+    ...centeredContent(CARD_MAX),
+  },
 
   // Card éditoriale principale
   card: {
@@ -1082,7 +1087,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     marginTop: Spacing.sm,
-    maxWidth: QR_SIZE + 40,
+    // maxWidth appliqué inline (QR_SIZE réactif) dans le rendu.
   },
   qrExplainText: {
     flex: 1,
