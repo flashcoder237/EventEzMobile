@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { exhibitorsAPI } from '../../api/exhibitors';
-import { Spacing, Shadows } from '../../constants/theme';
+import { Spacing, Shadows, BorderRadius, FontFamily, FontSizes } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import type { RootStackParamList } from '../../types';
 
@@ -59,22 +59,25 @@ export default function MyBoothScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [accepting, setAccepting] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const bkRes = await exhibitorsAPI.getMyBookings().catch(() => null);
+      // getMyBookings est la requête critique : son échec = état d'erreur (et non "vide").
+      const bkRes = await exhibitorsAPI.getMyBookings();
       const bks: Booking[] = bkRes?.data?.results || bkRes?.data || [];
       const paid = bks.filter((b) => b.status === 'paid');
       setBookings(paid);
 
-      // Un contrat par salon (host_event = event de la booking).
+      // Un contrat par salon (host_event = event de la booking) — non bloquant.
       const ctRes = await exhibitorsAPI.getSalesContracts().catch(() => null);
       const cts: Contract[] = ctRes?.data?.results || ctRes?.data || [];
       const byEvent: Record<string, Contract> = {};
       cts.forEach((c) => { byEvent[c.host_event] = c; });
       setContracts(byEvent);
+      setLoadError(false);
     } catch {
-      /* silencieux */
+      setLoadError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -123,7 +126,24 @@ export default function MyBoothScreen() {
           contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.md, ...centeredContent(CARD_MAX) }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         >
-          {bookings.length === 0 ? (
+          {loadError ? (
+            <View style={styles.center}>
+              <Ionicons name="cloud-offline-outline" size={40} color={colors.gray400} />
+              <Text style={[styles.empty, { color: colors.gray500, marginTop: Spacing.sm }]}>
+                {t('common.errorLoading', { defaultValue: 'Erreur de chargement' })}
+              </Text>
+              <TouchableOpacity
+                onPress={() => { setLoading(true); load(); }}
+                style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={t('common.retry', { defaultValue: 'Réessayer' })}
+              >
+                <Ionicons name="refresh" size={16} color="#fff" />
+                <Text style={styles.retryText}>{t('common.retry', { defaultValue: 'Réessayer' })}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : bookings.length === 0 ? (
             <View style={styles.center}>
               <Text style={[styles.empty, { color: colors.gray500 }]}>
                 {t('myBoothMobile.empty', { defaultValue: 'Aucune réservation de stand payée.' })}
@@ -209,7 +229,17 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 10, fontWeight: '800', letterSpacing: 1.4 },
   title: { fontSize: 22, fontWeight: '700', marginTop: 2 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  empty: { fontSize: 14 },
+  empty: { fontSize: 14, textAlign: 'center' },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    marginTop: Spacing.md,
+  },
+  retryText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm, color: '#fff' },
   card: { borderRadius: 18, borderWidth: 1, padding: Spacing.lg, gap: 8 },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   iconWell: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },

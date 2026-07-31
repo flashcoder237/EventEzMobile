@@ -73,9 +73,6 @@ type SortKey = 'oldest' | 'newest' | 'startDate' | 'title';
 const BILLET_COLOR = '#4F46E5';
 const INSCRIPTION_COLOR = '#A855F7';
 
-// Hauteur estimée d'une moderation card (image 160 + contenu + actions + margin)
-const MODERATION_CARD_HEIGHT = 340;
-
 export default function ModerationScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
@@ -893,7 +890,6 @@ export default function ModerationScreen() {
               maxToRenderPerBatch={6}
               windowSize={5}
               removeClippedSubviews
-              getItemLayout={(_, i) => ({ length: MODERATION_CARD_HEIGHT, offset: MODERATION_CARD_HEIGHT * i, index: i })}
             />
           ) : (
             renderEmpty()

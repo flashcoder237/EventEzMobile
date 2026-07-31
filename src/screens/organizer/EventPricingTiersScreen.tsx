@@ -50,6 +50,7 @@ export default function EventPricingTiersScreen() {
   const [openForm, setOpenForm] = useState<string | null>(null); // ticketType id
   const [draft, setDraft] = useState<DraftTier>(emptyDraft());
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -58,8 +59,10 @@ export default function EventPricingTiersScreen() {
       const list = (data?.results ?? data ?? []) as TicketType[];
       // Exclut les billets gratuits (paliers non pertinents).
       setTicketTypes(list.filter((tt) => (tt.price ?? 0) > 0));
+      setLoadError(false);
     } catch {
       setTicketTypes([]);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -148,7 +151,22 @@ export default function EventPricingTiersScreen() {
         >
           <Text style={[styles.intro, { color: colors.gray500 }]}>{t('pricingTiers.intro')}</Text>
 
-          {ticketTypes.length === 0 ? (
+          {loadError ? (
+            <View style={styles.emptyBox}>
+              <Ionicons name="cloud-offline-outline" size={40} color={colors.gray400} />
+              <Text style={[styles.emptyText, { color: colors.gray500 }]}>{t('common.errorLoading')}</Text>
+              <TouchableOpacity
+                onPress={() => { setLoading(true); load(); }}
+                style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={t('common.retry')}
+              >
+                <Ionicons name="refresh" size={16} color="#fff" />
+                <Text style={styles.retryText}>{t('common.retry')}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : ticketTypes.length === 0 ? (
             <View style={styles.emptyBox}>
               <Ionicons name="pricetags-outline" size={40} color={colors.gray400} />
               <Text style={[styles.emptyText, { color: colors.gray500 }]}>{t('pricingTiers.noTickets')}</Text>
@@ -283,6 +301,16 @@ const styles = StyleSheet.create({
 
   emptyBox: { alignItems: 'center', gap: 10, paddingVertical: Spacing.xl * 1.5 },
   emptyText: { fontFamily: FontFamily.regular, fontSize: 14, textAlign: 'center' },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    marginTop: Spacing.sm,
+  },
+  retryText: { fontFamily: FontFamily.semiBold, fontSize: 14, color: '#fff' },
 
   card: { borderWidth: 1, borderRadius: BorderRadius.xl, padding: Spacing.md },
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4 },

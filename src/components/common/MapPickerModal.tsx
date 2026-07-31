@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAlert } from '../../contexts/AlertContext';
 import {
   Colors,
   FontFamily,
@@ -70,6 +71,7 @@ export default function MapPickerModal({
 }: MapPickerModalProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
+  const { showError, showWarning } = useAlert();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -225,7 +227,8 @@ export default function MapPickerModal({
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        alert(t('componentsCommon.mapPermissionRequired'));
+        // alert() global n'est pas fiable en RN → feedback via le système d'alerte.
+        showWarning(t('componentsCommon.mapPermissionRequired'));
         return;
       }
 
@@ -249,7 +252,7 @@ export default function MapPickerModal({
       await reverseGeocode(latitude, longitude);
     } catch (error) {
       if (__DEV__) console.error('Geolocation error:', error);
-      alert(t('componentsCommon.mapLocationError'));
+      showError(t('componentsCommon.mapLocationError'));
     } finally {
       setLoadingLocation(false);
     }
