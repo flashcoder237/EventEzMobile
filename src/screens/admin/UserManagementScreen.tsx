@@ -211,7 +211,7 @@ function UserManagementContent() {
 
   const handleBulkDeactivate = () =>
     runBulk(
-      (id) => usersAPI.updateUser(id, { is_active: false }),
+      (id) => usersAPI.setUserActive(id, false),
       t('admin.users.bulk.deactivateTitle'),
       t('admin.users.bulk.deactivateConfirm', { count: selectedIds.size }),
       (n) => t('admin.users.bulk.deactivateSuccess', { count: n }),
@@ -219,7 +219,7 @@ function UserManagementContent() {
 
   const handleBulkActivate = () =>
     runBulk(
-      (id) => usersAPI.updateUser(id, { is_active: true }),
+      (id) => usersAPI.setUserActive(id, true),
       t('admin.users.bulk.activateTitle'),
       t('admin.users.bulk.activateConfirm', { count: selectedIds.size }),
       (n) => t('admin.users.bulk.activateSuccess', { count: n }),

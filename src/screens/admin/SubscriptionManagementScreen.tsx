@@ -6,6 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -30,15 +31,32 @@ import { centeredContent, CARD_MAX } from '../../constants/layout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
+/**
+ * Aligne sur SubscriptionPlanSerializer (apps/payments/serializers.py).
+ *
+ * L'ancienne interface inventait des champs (`price_monthly`, `max_events`,
+ * `commission_rate`) que l'API ne renvoie pas : toutes les cartes s'affichaient
+ * a 0 XAF sans aucune limite, et le titre montrait la valeur brute `name`
+ * ("premium") au lieu du `display_name` ("Premium"). Le web utilisait deja les
+ * bons noms — c'etait un ecart mobile.
+ */
 interface SubscriptionPlan {
   id: string;
+  /** Slug technique : 'free' | 'essential' | 'premium'. Pas pour l'affichage. */
   name: string;
-  slug?: string;
-  price_monthly: number;
-  price_yearly?: number;
-  max_events?: number;
-  max_registrations_per_event?: number;
-  commission_rate?: number;
+  /** Libelle destine a l'UI. */
+  display_name: string;
+  description?: string;
+  monthly_price: number;
+  yearly_price?: number;
+  currency?: string;
+  /** 0 = illimite. */
+  max_active_events?: number;
+  /** 0 = illimite. */
+  max_participants_per_event?: number;
+  visibility_boost?: number;
+  ai_daily_limit?: number;
+  ai_messages_per_session?: number;
   features?: string[];
   is_active?: boolean;
 }
@@ -61,6 +79,7 @@ function SubscriptionManagementContent() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPlans();
@@ -68,11 +87,16 @@ function SubscriptionManagementContent() {
 
   const fetchPlans = async () => {
     try {
+      setError(null);
       const res = await subscriptionsAPI.getPlans();
       const data = res.data?.results || res.data || [];
       setPlans(data);
-    } catch (error) {
-      if (__DEV__) console.error('Erreur chargement plans:', error);
+    } catch (err) {
+      // Sans cet etat, un echec de chargement laissait un ecran vide muet :
+      // impossible pour l'admin de distinguer "aucun plan" d'une erreur reseau.
+      if (__DEV__) console.error('Erreur chargement plans:', err);
+      setError(t('admin.subscriptions.loadError'));
+      setPlans([]);
     } finally {
       setLoading(false);
     }
@@ -98,9 +122,9 @@ function SubscriptionManagementContent() {
         </View>
         <View style={styles.planInfo}>
           <Text style={[styles.planEyebrow, { color: colors.gray500 }]}>{t('admin.subscriptions.planEyebrow')}</Text>
-          <Text style={[styles.planName, { color: colors.text }]}>{item.name}</Text>
+          <Text style={[styles.planName, { color: colors.text }]}>{item.display_name || item.name}</Text>
           <Text style={[styles.planPrice, { color: colors.primary }]}>
-            {(item.price_monthly ?? 0).toLocaleString()} {platformCurrency}
+            {Number(item.monthly_price ?? 0).toLocaleString()} {item.currency || platformCurrency}
             <Text style={[styles.planPriceUnit, { color: colors.gray500 }]}> {t('admin.subscriptions.perMonth')}</Text>
           </Text>
         </View>
@@ -112,27 +136,30 @@ function SubscriptionManagementContent() {
       </View>
 
       <View style={[styles.planDetails, { borderTopColor: hairline }]}>
-        {item.max_events !== undefined && (
+        {item.max_active_events !== undefined && (
           <View style={styles.detailRow}>
             <Ionicons name="calendar-outline" size={14} color={colors.gray500} />
             <Text style={[styles.detailText, { color: colors.gray600 }]}>
-              {item.max_events === 0 ? t('admin.subscriptions.eventsUnlimited') : t('admin.subscriptions.eventsMax', { count: item.max_events })}
+              {item.max_active_events === 0 ? t('admin.subscriptions.eventsUnlimited') : t('admin.subscriptions.eventsMax', { count: item.max_active_events })}
             </Text>
           </View>
         )}
-        {item.commission_rate !== undefined && (
-          <View style={styles.detailRow}>
-            <Ionicons name="cash-outline" size={14} color={colors.gray500} />
-            <Text style={[styles.detailText, { color: colors.gray600 }]}>
-              {t('admin.subscriptions.commission', { rate: item.commission_rate })}
-            </Text>
-          </View>
-        )}
-        {item.max_registrations_per_event !== undefined && (
+        {item.max_participants_per_event !== undefined && (
           <View style={styles.detailRow}>
             <Ionicons name="people-outline" size={14} color={colors.gray500} />
             <Text style={[styles.detailText, { color: colors.gray600 }]}>
-              {item.max_registrations_per_event === 0 ? t('admin.subscriptions.registrationsUnlimited') : t('admin.subscriptions.registrationsMax', { count: item.max_registrations_per_event })}
+              {item.max_participants_per_event === 0 ? t('admin.subscriptions.registrationsUnlimited') : t('admin.subscriptions.registrationsMax', { count: item.max_participants_per_event })}
+            </Text>
+          </View>
+        )}
+        {item.yearly_price !== undefined && Number(item.yearly_price) > 0 && (
+          <View style={styles.detailRow}>
+            <Ionicons name="calendar-number-outline" size={14} color={colors.gray500} />
+            <Text style={[styles.detailText, { color: colors.gray600 }]}>
+              {t('admin.subscriptions.yearlyPrice', {
+                price: Number(item.yearly_price).toLocaleString(),
+                currency: item.currency || platformCurrency,
+              })}
             </Text>
           </View>
         )}
@@ -179,10 +206,30 @@ function SubscriptionManagementContent() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Ionicons name="diamond-outline" size={48} color={colors.gray300} />
-            <Text style={[styles.emptyText, { color: colors.gray500 }]}>{t('admin.subscriptions.empty')}</Text>
-          </View>
+          loading ? (
+            <View style={styles.empty}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : error ? (
+            <View style={styles.empty}>
+              <Ionicons name="cloud-offline-outline" size={48} color={colors.gray300} />
+              <Text style={[styles.emptyText, { color: colors.gray500 }]}>{error}</Text>
+              <TouchableOpacity
+                onPress={fetchPlans}
+                style={[styles.retryBtn, { borderColor: colors.primary }]}
+                accessibilityRole="button"
+              >
+                <Text style={[styles.retryText, { color: colors.primary }]}>
+                  {t('admin.subscriptions.retry')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.empty}>
+              <Ionicons name="diamond-outline" size={48} color={colors.gray300} />
+              <Text style={[styles.emptyText, { color: colors.gray500 }]}>{t('admin.subscriptions.empty')}</Text>
+            </View>
+          )
         }
       />
     </SafeAreaView>
@@ -284,4 +331,11 @@ const styles = StyleSheet.create({
   featureText: { flex: 1, fontFamily: FontFamily.medium, fontSize: FontSizes.sm },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['3xl'], gap: Spacing.md },
   emptyText: { fontFamily: FontFamily.medium, fontSize: FontSizes.base },
+  retryBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  retryText: { fontFamily: FontFamily.bold, fontSize: FontSizes.sm },
 });

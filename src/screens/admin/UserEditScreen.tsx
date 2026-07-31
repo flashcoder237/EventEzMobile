@@ -99,9 +99,14 @@ export default function UserEditScreen() {
     if (!user) return;
     setSaving(true);
     try {
-      await usersAPI.updateUser(userId, { is_active: !user.is_active });
-      setUser(prev => prev ? { ...prev, is_active: !prev.is_active } : prev);
-      showSuccess(t('common.success'), user.is_active ? t('admin.userEdit.accountDeactivated') : t('admin.userEdit.accountActivated'));
+      // `updateUser({ is_active })` etait ignore par le backend (champ absent de
+      // UserSerializer) : la reponse 200 + le setUser optimiste affichaient un
+      // succes alors que le compte restait actif. On lit desormais l'etat
+      // renvoye par l'action dediee plutot que de le deviner.
+      const res = await usersAPI.setUserActive(userId, !user.is_active);
+      const nowActive = res.data?.is_active ?? !user.is_active;
+      setUser(prev => prev ? { ...prev, is_active: nowActive } : prev);
+      showSuccess(t('common.success'), nowActive ? t('admin.userEdit.accountActivated') : t('admin.userEdit.accountDeactivated'));
     } catch (error) {
       showError(t('common.error'), t('admin.userEdit.statusToggleError'));
     } finally {

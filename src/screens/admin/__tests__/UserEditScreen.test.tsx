@@ -5,7 +5,7 @@
  *  - render avec donnees user (nom + email + roles)
  *  - changement de role + bouton "Enregistrer le rôle" -> usersAPI.updateUser({role})
  *  - "Vérifier le profil" -> usersAPI.verifyProfile
- *  - "Désactiver le compte" -> usersAPI.updateUser({is_active: false})
+ *  - "Désactiver le compte" -> usersAPI.setUserActive(id, false)
  *  - "Supprimer l'utilisateur" -> showConfirm puis usersAPI.deleteUser + goBack
  */
 import React from 'react';
@@ -50,6 +50,7 @@ jest.mock('../../../contexts/ThemeContext', () => ({
 
 const mockGetUser = jest.fn();
 const mockUpdateUser = jest.fn();
+const mockSetUserActive = jest.fn();
 const mockVerifyProfile = jest.fn();
 const mockDeleteUser = jest.fn();
 jest.mock('../../../api', () => ({
@@ -57,6 +58,7 @@ jest.mock('../../../api', () => ({
   usersAPI: {
     getUser: (...args: any[]) => mockGetUser(...args),
     updateUser: (...args: any[]) => mockUpdateUser(...args),
+    setUserActive: (...args: any[]) => mockSetUserActive(...args),
     verifyProfile: (...args: any[]) => mockVerifyProfile(...args),
     deleteUser: (...args: any[]) => mockDeleteUser(...args),
   },
@@ -121,15 +123,20 @@ describe('UserEditScreen', () => {
     await waitFor(() => expect(mockVerifyProfile).toHaveBeenCalledWith('42'));
   });
 
-  it('desactivates the account via usersAPI.updateUser({is_active:false})', async () => {
+  // `updateUser({is_active})` etait ignore par le backend (champ absent de
+  // UserSerializer) : la reponse 200 faisait croire au succes alors que le
+  // compte restait actif. La suspension passe par l'action dediee set_active.
+  it('desactivates the account via usersAPI.setUserActive', async () => {
     mockGetUser.mockResolvedValueOnce({ data: baseUser });
-    mockUpdateUser.mockResolvedValueOnce({ data: { ...baseUser, is_active: false } });
+    mockSetUserActive.mockResolvedValueOnce({ data: { is_active: false } });
 
     const { findByText } = render(<UserEditScreen />);
     const btn = await findByText('Désactiver le compte');
     fireEvent.press(btn);
 
-    await waitFor(() => expect(mockUpdateUser).toHaveBeenCalledWith('42', { is_active: false }));
+    await waitFor(() => expect(mockSetUserActive).toHaveBeenCalledWith('42', false));
+    // Le PATCH generique ne doit PAS etre utilise pour l'etat du compte.
+    expect(mockUpdateUser).not.toHaveBeenCalledWith('42', { is_active: false });
   });
 
   it('confirms then deletes the user', async () => {
