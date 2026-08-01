@@ -17,24 +17,34 @@ name: Générer les traductions (i18n)
 #   un fine-grained PAT avec "Contents: Read and write" sur le repo eventez-i18n.
 
 on:
+  # AUTO : un push qui change en.json → on ne (re)traduit QUE la vague 1
+  # (langues prioritaires) en --only-missing. Les vagues suivantes se lancent
+  # manuellement pour ne pas exploser le temps CI (Argos = ~100 Mo/langue).
   push:
     branches: [master]
     paths:
       - 'src/i18n/locales/en.json'
   workflow_dispatch:
     inputs:
+      wave:
+        description: 'Numéro de vague de priorité à traduire (1..6). Cf. scripts/i18n_priority.py'
+        required: false
+        default: '1'
       langs:
-        description: 'Langues (ex: es,pt,de,it) ou "all" pour toutes celles couvertes par Argos'
-        required: true
-        default: 'all'
+        description: 'OU langues précises (ex: es,pt,de). Prioritaire sur "wave" si renseigné.'
+        required: false
+        default: ''
       only_missing:
-        description: 'Ne traduire que les clés manquantes (préserve les traductions existantes)'
+        description: 'Ne traduire que les clés manquantes (préserve les corrections humaines)'
         type: boolean
         default: true
 
 jobs:
   generate:
     runs-on: ubuntu-latest
+    # Garde-fou : une vague de ~10 langues Argos tient largement en 2h. Au-delà,
+    # c'est qu'un modèle boucle → on coupe plutôt que de brûler des minutes CI.
+    timeout-minutes: 120
     steps:
       - name: Checkout (repo mobile — source en.json + script)
         uses: actions/checkout@v4
@@ -68,20 +78,27 @@ jobs:
       - name: Générer les traductions
         run: |
           set -e
-          # Push automatique → pas d'inputs : défauts "all" + only-missing.
-          # Déclenchement manuel → on respecte les inputs.
-          LANGS="${{ github.event.inputs.langs || 'all' }}"
-          ONLY="${{ github.event.inputs.only_missing || 'true' }}"
-          if [ "$LANGS" = "all" ]; then
-            ARGS="--all"
+          # Sélection des cibles :
+          #  - langs explicites (manuel) → --langs
+          #  - sinon wave (manuel ou défaut 1) → --wave N
+          #  - push auto (pas d'input) → vague 1
+          LANGS="${{ github.event.inputs.langs }}"
+          WAVE="${{ github.event.inputs.wave }}"
+          ONLY="${{ github.event.inputs.only_missing }}"
+
+          if [ -n "$LANGS" ]; then
+            SELECT="--langs $LANGS"
           else
-            ARGS="--langs $LANGS"
+            # Défaut robuste : vague 1 si non fournie (push auto).
+            SELECT="--wave ${WAVE:-1}"
           fi
-          if [ "$ONLY" = "true" ]; then
-            ARGS="$ARGS --only-missing"
+          # only_missing par défaut true (préserve les corrections humaines).
+          if [ "$ONLY" != "false" ]; then
+            SELECT="$SELECT --only-missing"
           fi
-          echo "python scripts/translate_locales.py $ARGS --out i18n-out"
-          python scripts/translate_locales.py $ARGS --out i18n-out
+
+          echo "python scripts/translate_locales.py $SELECT --out i18n-out"
+          python scripts/translate_locales.py $SELECT --out i18n-out
 
       - name: Commit + push vers eventez-i18n
         working-directory: i18n-out

@@ -175,9 +175,16 @@ def count_missing(source, existing):
 
 
 def main():
+    # Permet `from i18n_priority import ...` quel que soit le cwd d'appel.
+    if SCRIPT_DIR not in sys.path:
+        sys.path.insert(0, SCRIPT_DIR)
+
     parser = argparse.ArgumentParser(description='Génère les traductions UI via Argos (gratuit, offline).')
     parser.add_argument('--langs', help='Codes séparés par des virgules (ex: es,pt,de).')
     parser.add_argument('--all', action='store_true', help='Toutes les langues couvertes par Argos.')
+    parser.add_argument('--wave', type=int, help='Traduire UNE vague de priorité (1..N). Cf. scripts/i18n_priority.py.')
+    parser.add_argument('--priority', action='store_true',
+                        help='Toutes les langues cibles dans l\'ordre de priorité (déconseillé en CI — préfère --wave).')
     parser.add_argument('--source', default=DEFAULT_SOURCE, help='Fichier source en.json.')
     parser.add_argument('--out', default=DEFAULT_OUT, help='Dossier de sortie.')
     parser.add_argument('--only-missing', action='store_true', help='Ne traduire que les clés absentes du fichier cible existant.')
@@ -198,7 +205,18 @@ def main():
     total = count_strings(source)
     print(f'Source : {args.source} ({total} chaînes)')
 
-    if args.all:
+    if args.wave is not None:
+        from i18n_priority import wave, wave_count
+        targets = wave(args.wave)
+        if not targets:
+            print(f'Vague {args.wave} invalide (1..{wave_count()}). Rien à faire.')
+            sys.exit(0)
+        print(f'Vague {args.wave}/{wave_count()} : {", ".join(targets)}')
+    elif args.priority:
+        from i18n_priority import all_langs
+        targets = all_langs()
+        print(f'Ordre de priorité ({len(targets)} langues cibles) : {", ".join(targets)}')
+    elif args.all:
         targets = [t for t in all_available_targets() if t != 'en']
         print(f'Langues Argos disponibles : {", ".join(targets)}')
     elif args.langs:
