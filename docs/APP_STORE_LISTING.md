@@ -549,6 +549,60 @@ message d'Apple avec le texte ci-dessus, et **Soumettre à nouveau**.
 
 ---
 
+## 15. « Éléments à tester » / « What to Test » (TestFlight & notes de version)
+
+Champ **obligatoire** de la vérification (TestFlight → « Éléments à tester » ; et
+« Notes de version » de la soumission App Store). À coller tel quel, à adapter build
+par build. Réutilisable aux prochains envois.
+
+> ℹ️ La dernière ligne (compte de test) suppose que `review@eventez.online`
+> (organisateur, vérifié, + 1 event) est renseigné dans **App Information →
+> Sign-In Information**. Sinon, la retirer.
+
+### Français
+```
+Build 1.0.0 — corrections d'affichage iPad et robustesse.
+
+À tester en priorité :
+• Affichage sur iPad (mode compatibilité iPhone) : l'écran d'accueil / onboarding
+  ne doit plus avoir de titres tronqués ou superposés ; le contenu reste centré,
+  sans étirement. Vérifier aussi en rotation et sur différentes tailles d'écran.
+• Parcours principal : parcourir les événements (carte + liste), ouvrir un
+  événement, acheter un billet (Mobile Money / carte), afficher le billet avec
+  son QR code.
+• Connexion : e-mail, Google et « Se connecter avec Apple ».
+• Carte des événements : autorisation de localisation, bouton « Me localiser »,
+  filtres.
+• Scanner de QR (check-in organisateur), y compris hors ligne.
+• Messagerie et notifications.
+• Mode sombre : basculer le thème et vérifier la lisibilité (cartes, textes).
+• VoiceOver : navigation au lecteur d'écran, boutons retour et actions annoncés.
+
+Compte de test fourni dans « Informations de connexion » (rôle organisateur).
+```
+
+### English
+```
+Build 1.0.0 — iPad layout fixes and robustness.
+
+Please test first:
+• iPad display (iPhone compatibility mode): the home / onboarding screen should no
+  longer show truncated or overlapping titles; content stays centered and is not
+  stretched. Also check rotation and different screen sizes.
+• Main flow: browse events (map + list), open an event, buy a ticket (Mobile Money
+  / card), view the ticket with its QR code.
+• Sign-in: email, Google, and "Sign in with Apple".
+• Events map: location permission, "Center on me" button, filters.
+• QR scanner (organizer check-in), including offline.
+• Messaging and notifications.
+• Dark mode: toggle the theme and check readability (cards, text).
+• VoiceOver: screen-reader navigation; back buttons and actions are announced.
+
+Test account provided under "Sign-In Information" (organizer role).
+```
+
+---
+
 ## Documents liés
 - `docs/APP_STORE_CHECKLIST.md` — checklist de préparation store iOS.
 - `docs/PLAY_DATA_SAFETY.md` — base détaillée des données collectées (réutilisée en §7).

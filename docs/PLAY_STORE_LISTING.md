@@ -133,11 +133,41 @@ EventEz — Your events, your tickets, in one tap.
 
 ---
 
+## Notes de version / « Éléments à tester » (release notes par piste)
+
+Champ **Notes de version** (Play Console → Production/Test → Créer une version), et,
+côté test fermé/interne, ce qui est communiqué aux testeurs. Version courte (les
+release notes Play sont limitées à ~500 caractères et publiques). Réutilise le même
+contenu que le « What to Test » iOS (§15 de `APP_STORE_LISTING.md`) mais condensé.
+
+### Français
+```
+Version 1.0 — première version publique d'EventEz.
+• Découverte d'événements (carte + liste), billetterie et QR hors-ligne.
+• Paiement Mobile Money et carte.
+• Connexion e-mail, Google et Apple.
+• Messagerie, notifications, mode sombre.
+• Corrections d'affichage et de robustesse (états d'erreur réseau).
+```
+
+### English
+```
+Version 1.0 — first public release of EventEz.
+• Event discovery (map + list), ticketing and offline QR.
+• Mobile Money and card payments.
+• Email, Google and Apple sign-in.
+• Messaging, notifications, dark mode.
+• Display and robustness fixes (network error states).
+```
+
+---
+
 ## Checklist de remplissage Play Console
 - [ ] Catégorie : Événements (ou Style de vie)
 - [ ] Nom + description courte + complète (FR par défaut, EN en locale supplémentaire)
 - [ ] 2 à 8 captures téléphone (priorité : écrans 1→6 participants)
 - [ ] Icône 512×512 + Feature graphic 1024×500
+- [ ] Notes de version (FR + EN) — voir section ci-dessus
 - [ ] Politique de confidentialité : `https://eventez.online/privacy`
 - [ ] Formulaire Sécurité des données : voir `docs/PLAY_DATA_SAFETY.md`
 - [ ] Classification du contenu (questionnaire IARC)
