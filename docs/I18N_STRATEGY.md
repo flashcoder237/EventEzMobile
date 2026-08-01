@@ -49,6 +49,20 @@ python scripts/translate_locales.py --langs sw,ha --only-missing   # langues pr�
 en `--only-missing` (les textes prioritaires suivent les nouvelles clés). Les
 vagues 2-6 restent manuelles.
 
+## Mémoire & disque pendant la génération
+
+Chaque langue installe un modèle Argos (~100 Mo, chargé en RAM par CTranslate2).
+Sur une vague de 9 langues, sans libération, les modèles **s'empilent en RAM**.
+
+- **RAM libérée après CHAQUE langue** (par défaut, automatique) : le script vide
+  les caches Argos + `gc.collect()` avant de passer à la langue suivante. Évite
+  la saturation du runner (7 Go RAM).
+- **`--free-disk`** (opt-in) : désinstalle aussi le modèle du **disque** après
+  usage. À activer seulement si le disque du runner sature (14 Go, donc ~900 Mo
+  par vague passe large en temps normal). ⚠️ Contre-indiqué avec le cache CI des
+  modèles : `--free-disk` vide ce que le cache sauvegarderait → re-téléchargement
+  à chaque run. Ne l'active que si tu enlèves aussi l'étape `actions/cache`.
+
 ## Qualité — machine d'abord, humain là où ça compte
 
 - Argos = qualité **machine** (moyenne). Assumé pour la longue traîne.

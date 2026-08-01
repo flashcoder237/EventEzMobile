@@ -135,6 +135,51 @@ def all_available_targets():
     return sorted({p.to_code for p in pkg.get_available_packages() if p.from_code == 'en'})
 
 
+def release_language(target, uninstall_disk=False):
+    """
+    Libère le modèle en->target après usage.
+
+    - MÉMOIRE (toujours) : vide les caches internes d'Argos (traductions +
+      objets CTranslate2 chargés en RAM) puis force le GC. Sans ça, chaque
+      langue d'une vague empile son modèle en mémoire (~100+ Mo/langue) →
+      consommation qui grimpe sur un run de 9 langues.
+    - DISQUE (si uninstall_disk) : désinstalle le paquet de
+      ~/.local/share/argos-translate. À activer quand l'espace disque du runner
+      prime sur la vitesse (sinon on garde le modèle pour le cache CI / réutil).
+    """
+    import gc
+    # 1. Libère la mémoire : les traductions Argos gardent des références au
+    # modèle CTranslate2 chargé. On tente de vider les structures connues sans
+    # dépendre d'une version précise de l'API (best-effort, tolérant).
+    try:
+        import argostranslate.translate as tr
+        for lang in tr.get_installed_languages():
+            # Chaque objet Language garde des Translation en cache interne.
+            for attr in ('translations_from', 'translations_to'):
+                cache = getattr(lang, attr, None)
+                if isinstance(cache, list):
+                    cache.clear()
+                elif isinstance(cache, dict):
+                    cache.clear()
+        # CTranslate2 charge un Translator par modèle ; le déréférencer + GC
+        # permet à CTranslate2 de libérer la RAM native.
+    except Exception:
+        pass
+    gc.collect()
+
+    # 2. Désinstalle du disque si demandé.
+    if uninstall_disk:
+        try:
+            import argostranslate.package as pkg
+            for p in pkg.get_installed_packages():
+                if p.from_code == 'en' and p.to_code == target:
+                    pkg.uninstall(p)
+                    print(f'  ↳ modèle en->{target} désinstallé du disque.')
+                    break
+        except Exception as exc:
+            print(f'  ! désinstallation en->{target} impossible : {exc}')
+
+
 def translate_tree(node, fn, existing=None, only_missing=False):
     if isinstance(node, dict):
         out = {}
@@ -188,6 +233,8 @@ def main():
     parser.add_argument('--source', default=DEFAULT_SOURCE, help='Fichier source en.json.')
     parser.add_argument('--out', default=DEFAULT_OUT, help='Dossier de sortie.')
     parser.add_argument('--only-missing', action='store_true', help='Ne traduire que les clés absentes du fichier cible existant.')
+    parser.add_argument('--free-disk', action='store_true',
+                        help='Désinstalle chaque modèle du disque après usage (économie d\'espace, au prix de re-téléchargements). La RAM est TOUJOURS libérée après chaque langue.')
     args = parser.parse_args()
 
     try:
@@ -262,6 +309,13 @@ def main():
         dt = time.time() - start
         print(f'  ✓ {out_path} ({len(memo)} chaînes traduites, {dt:.0f}s)')
         generated.append(target)
+
+        # Libère le modèle après CETTE langue avant de passer à la suivante :
+        # sinon les modèles s'empilent en RAM (~100+ Mo/langue) sur une vague de
+        # 9. --free-disk désinstalle aussi du disque (opt-in). memo/fn/translated
+        # sont déréférencés pour que le GC de release_language les récupère.
+        del fn, translated, memo
+        release_language(target, uninstall_disk=args.free_disk)
 
     # Manifest : liste TOUTES les langues présentes (générées ce run + déjà là).
     # On conserve la version des langues inchangées, on bump celles (re)générées.
