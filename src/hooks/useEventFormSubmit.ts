@@ -122,6 +122,7 @@ function buildFormData(form: EventFormState): FormData {
 
   if (form.maxParticipants) formData.append('max_participants', form.maxParticipants);
   formData.append('auto_approve_registrations', String(form.autoApproveRegistrations));
+  formData.append('attendee_form_scope', form.attendeeFormScope || 'order');
   formData.append('fee_bearer', form.feeBearer);
   formData.append('visibility', form.visibility);
   if (form.accessCode) formData.append('access_code', form.accessCode);

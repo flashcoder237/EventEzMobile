@@ -155,6 +155,8 @@ export interface EventFormState {
   ticketTypes: TicketTypeForm[];
   formFields: FormFieldForm[];
   showFormFieldsForBilletterie: boolean;
+  // Portée du formulaire billetterie : 'order' (défaut) ou 'per_attendee'.
+  attendeeFormScope: 'order' | 'per_attendee';
 
   // Visibility
   visibility: 'public' | 'unlisted' | 'invite_only';
@@ -253,6 +255,7 @@ export interface UseEventFormReturn {
   updateFormField: (index: number, field: string, value: any) => void;
   removeFormField: (index: number) => void;
   setShowFormFieldsForBilletterie: (value: boolean) => void;
+  setAttendeeFormScope: (value: 'order' | 'per_attendee') => void;
   setFormFields: (value: FormFieldForm[]) => void;
   setTicketTypes: (value: TicketTypeForm[]) => void;
   addSession: () => void;
@@ -368,6 +371,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
   const [feeBearer, setFeeBearer] = useState<'participant' | 'organizer'>('participant');
   const [ticketTypes, setTicketTypes] = useState<TicketTypeForm[]>([]);
   const [formFields, setFormFields] = useState<FormFieldForm[]>([]);
+  const [attendeeFormScope, setAttendeeFormScope] = useState<'order' | 'per_attendee'>('order');
   const [showFormFieldsForBilletterie, setShowFormFieldsForBilletterie] = useState(false);
 
   // Visibility
@@ -412,7 +416,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
     onlineUrl, onlinePlatform, onlineInstructions, onlineMeetingId, onlinePasscode,
     locationLatitude, locationLongitude, showMapPicker,
     isFree, maxParticipants, autoApproveRegistrations, feeBearer,
-    ticketTypes, formFields, showFormFieldsForBilletterie,
+    ticketTypes, formFields, showFormFieldsForBilletterie, attendeeFormScope,
     visibility, accessCode, sessions, tracks, speakers, categories, availableTags,
     aiEnabled, aiLoading, aiResult, aiError, aiUsage,
     aiTitleLoading, aiDescLoading, aiPricingLoading,
@@ -884,6 +888,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
     if (data.ticketTypes !== undefined) setTicketTypes(data.ticketTypes);
     if (data.formFields !== undefined) setFormFields(data.formFields);
     if (data.showFormFieldsForBilletterie !== undefined) setShowFormFieldsForBilletterie(data.showFormFieldsForBilletterie);
+    if (data.attendeeFormScope !== undefined) setAttendeeFormScope(data.attendeeFormScope);
     if (data.visibility !== undefined) setVisibility(data.visibility);
     if (data.accessCode !== undefined) setAccessCode(data.accessCode);
     if (data.sessions !== undefined) {
@@ -984,6 +989,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
           sessions,
           isFree,
           showFormFieldsForBilletterie: (event.event_type === 'billetterie') && formFields.length > 0,
+          attendeeFormScope: event.attendee_form_scope || 'order',
           categoryId: event.category
             ? (typeof event.category === 'object' ? event.category.id : event.category)
             : null,
@@ -1047,6 +1053,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
     setTicketTypes([]); setFormFields([]); setSessions([]);
     setTracks([]); setSpeakers([]);
     setShowFormFieldsForBilletterie(false);
+    setAttendeeFormScope('order');
   }, []);
 
   // ============================================
@@ -1073,7 +1080,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
     setIsFree, setMaxParticipants, setAutoApproveRegistrations, setFeeBearer,
     addTicketType, updateTicketType, removeTicketType,
     addFormField, updateFormField, removeFormField,
-    setShowFormFieldsForBilletterie, setFormFields, setTicketTypes,
+    setShowFormFieldsForBilletterie, setAttendeeFormScope, setFormFields, setTicketTypes,
     addSession, updateSession, removeSession,
     addTrack, updateTrack, removeTrack,
     addSpeaker, updateSpeaker, removeSpeaker,

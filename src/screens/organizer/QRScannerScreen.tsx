@@ -233,6 +233,7 @@ export default function QRScannerScreen() {
   // ré-envoyé tel quel au backend qui parse aussi de son côté.
   type ScanInfo =
     | { kind: 'ticket_purchase'; ticketId: string; raw: string }
+    | { kind: 'attendee'; attendeeId: string; raw: string }
     | { kind: 'booth_badge'; badgeId: string; raw: string }
     | { kind: 'registration'; registrationId: string; raw: string }
     | null;
@@ -257,6 +258,12 @@ export default function QRScannerScreen() {
       if (isValidUUID(id) || /^\d+$/.test(id)) {
         return { kind: 'ticket_purchase', ticketId: id, raw: data };
       }
+    }
+
+    // Check-in nominatif : .../verify/a/{uuid} — 1 participant = 1 entrée.
+    const attendeeMatch = data.match(/\/verify\/a\/([0-9a-f-]{1,40})/i);
+    if (attendeeMatch && isValidUUID(attendeeMatch[1])) {
+      return { kind: 'attendee', attendeeId: attendeeMatch[1], raw: data };
     }
 
     // Badge exposant : .../verify/b/{uuid} — l'id est un UUID côté backend.
@@ -318,9 +325,11 @@ export default function QRScannerScreen() {
       const localId =
         info.kind === 'ticket_purchase'
           ? info.ticketId
-          : info.kind === 'booth_badge'
-            ? info.badgeId
-            : info.registrationId;
+          : info.kind === 'attendee'
+            ? info.attendeeId
+            : info.kind === 'booth_badge'
+              ? info.badgeId
+              : info.registrationId;
 
       // ─── Mode SESSION : marquer la présence à la session sélectionnée ────
       if (scanMode.kind === 'session') {
@@ -416,11 +425,15 @@ export default function QRScannerScreen() {
         const offlinePayload =
           info.kind === 'ticket_purchase'
             ? info.raw
-            : info.kind === 'booth_badge'
+            : info.kind === 'attendee'
               ? info.raw
-              : info.registrationId;
+              : info.kind === 'booth_badge'
+                ? info.raw
+                : info.registrationId;
         const offlineKind =
-          info.kind === 'ticket_purchase'
+          // Un scan nominatif se rejoue via l'endpoint ticket (raw code parsé
+          // serveur) → même kind offline que ticket_purchase.
+          info.kind === 'ticket_purchase' || info.kind === 'attendee'
             ? 'ticket_purchase'
             : info.kind === 'booth_badge'
               ? 'booth_badge'
@@ -448,7 +461,9 @@ export default function QRScannerScreen() {
       // registration-level (legacy) sinon. Le backend gère chaque flux.
       const response = info.kind === 'booth_badge'
         ? await exhibitorsAPI.verifyAndCheckInBadge(info.raw, autoCheckIn)
-        : info.kind === 'ticket_purchase'
+        : (info.kind === 'ticket_purchase' || info.kind === 'attendee')
+          // Le check-in nominatif (/verify/a/) passe par le même endpoint que le
+          // ticket-level : le backend parse le format dans le code brut.
           ? await registrationsAPI.verifyAndCheckInTicket(info.raw, autoCheckIn)
           : await registrationsAPI.verifyAndCheckIn(info.registrationId, autoCheckIn);
 

@@ -157,6 +157,11 @@ const linking: LinkingOptions<RootStackParamList> = {
       // être interceptées comme universal links (ça casserait le retour de paiement).
       PaymentSuccess: 'payment-success/:paymentId',
       PaymentFailed: 'payment-failed/:paymentId',
+      // Collecte per-participant après paiement. Parité web /register/{id}/attendees
+      // (email post-paiement / fallback Mobile Money : l'app peut ne pas s'être
+      // rouverte après le paiement USSD). La page invité /attendee/{token} reste
+      // web-only (invité anonyme sans compte, pas besoin de l'app).
+      AttendeeInfo: 'register/:registrationId/attendees',
       // Ouverture login depuis le web (ex : après vérification email via browser).
       Login: 'login',
       // Deep link consommé après clic sur le lien email de vérification.

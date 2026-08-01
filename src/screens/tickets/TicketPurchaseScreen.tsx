@@ -662,6 +662,7 @@ export default function TicketPurchaseScreen() {
         navigation.navigate('PaymentSuccess', {
           paymentId: finalRegistrationId,
           eventType: event?.event_type,
+          attendeeFormScope: event?.attendee_form_scope,
           registrationStatus: 'confirmed',
           approvalStatus: event?.auto_approve_registrations === false ? 'pending' : 'approved',
           eventTitle: event?.title,

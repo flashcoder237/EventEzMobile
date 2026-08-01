@@ -93,6 +93,11 @@
               "scheme": "https",
               "host": "eventez.online",
               "pathPrefix": "/invitations/"
+            },
+            {
+              "scheme": "https",
+              "host": "eventez.online",
+              "pathPrefix": "/register/"
             }
           ],
           "category": [

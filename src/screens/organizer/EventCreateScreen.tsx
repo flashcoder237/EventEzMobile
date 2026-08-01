@@ -133,6 +133,7 @@ export default function EventCreateScreen() {
     updateFormField,
     removeFormField,
     setShowFormFieldsForBilletterie,
+    setAttendeeFormScope,
     setFormFields,
     setTicketTypes,
     addSession,
@@ -759,6 +760,8 @@ export default function EventCreateScreen() {
                 startDate={form.startDate}
                 ticketTypes={form.ticketTypes}
                 showFormFieldsForBilletterie={form.showFormFieldsForBilletterie}
+                attendeeFormScope={form.attendeeFormScope}
+                onAttendeeFormScopeChange={setAttendeeFormScope}
                 formFields={form.formFields}
                 title={form.title}
                 locationType={form.locationType}

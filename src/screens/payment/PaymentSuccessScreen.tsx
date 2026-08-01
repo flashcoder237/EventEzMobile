@@ -77,7 +77,7 @@ interface SuccessContent {
 export default function PaymentSuccessScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<PaymentSuccessRouteProp>();
-  const { eventType, approvalStatus, eventTitle, registrationId, amount, currency, eventStartDate, eventId, eventSlug, referenceCode, paymentId } = route.params;
+  const { eventType, approvalStatus, eventTitle, registrationId, amount, currency, eventStartDate, eventId, eventSlug, referenceCode, paymentId, attendeeFormScope } = route.params;
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -562,6 +562,19 @@ export default function PaymentSuccessScreen() {
               <Ionicons name={content.primaryButtonIcon} size={18} color={Colors.white} />
             </View>
           </TouchableOpacity>
+
+          {attendeeFormScope === 'per_attendee' && registrationId && (
+            <TouchableOpacity
+              style={[styles.calendarPill, { borderColor: colors.primary }]}
+              onPress={() => navigation.navigate('AttendeeInfo', { registrationId })}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="people-outline" size={18} color={colors.primary} />
+              <Text style={[styles.calendarPillText, { color: colors.primary }]}>
+                {t('attendeeForm.completeCta')}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {eventStartDate && eventTitle && (
             <TouchableOpacity

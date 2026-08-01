@@ -152,6 +152,7 @@ export interface Event {
   description: string;
   short_description?: string;
   event_type: EventType;
+  attendee_form_scope?: 'order' | 'per_attendee';
   start_date: string;
   end_date: string;
   registration_deadline?: string;
@@ -1609,6 +1610,8 @@ export type RootStackParamList = {
     prefillEmail?: string;
   } | undefined;
   Register: { returnScreen?: string | null; returnParams?: any; prefillEmail?: string } | undefined;
+  // Collecte per-participant après paiement (deep link fallback Mobile Money).
+  AttendeeInfo: { registrationId: string };
   RegisterOrganizer: undefined;
   ForgotPassword: undefined;
   ResetPassword: { token: string };
@@ -1657,6 +1660,8 @@ export type RootStackParamList = {
     eventId?: string;
     eventSlug?: string;
     eventType?: 'billetterie' | 'inscription';
+    /** Portée du formulaire : si 'per_attendee', on propose la complétion post-paiement. */
+    attendeeFormScope?: 'order' | 'per_attendee';
     registrationStatus?: string;
     approvalStatus?: string;
     eventTitle?: string;

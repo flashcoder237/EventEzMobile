@@ -1030,6 +1030,25 @@ export default function MyTicketsScreen() {
                   <Text style={[styles.archivedPillText, { color: colors.gray500 }]}>{t('tickets.archivedLabel')}</Text>
                 </View>
               )}
+
+              {/* Badge « X participants à compléter » (collecte per-attendee). */}
+              {!isArchived && (item as any).attendee_completion
+                && (item as any).attendee_completion.remaining > 0 && (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('AttendeeInfo', { registrationId: item.id })}
+                  style={{
+                    marginTop: Spacing.sm, alignSelf: 'flex-start',
+                    flexDirection: 'row', alignItems: 'center', gap: 4,
+                    backgroundColor: '#FEF3C7', paddingHorizontal: Spacing.md,
+                    paddingVertical: 6, borderRadius: 999,
+                  }}
+                >
+                  <Ionicons name="people-outline" size={14} color="#B45309" />
+                  <Text style={{ color: '#B45309', fontSize: FontSizes.xs, fontFamily: FontFamily.semiBold }}>
+                    {t('attendeeForm.toCompleteBadge', { n: (item as any).attendee_completion.remaining })}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Top & bottom notches */}

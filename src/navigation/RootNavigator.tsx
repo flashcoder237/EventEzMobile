@@ -56,6 +56,7 @@ import PaymentFailedScreen from '../screens/payment/PaymentFailedScreen';
 
 // Ticket Screens
 import QRCodeScreen from '../screens/tickets/QRCodeScreen';
+import AttendeeInfoScreen from '../screens/tickets/AttendeeInfoScreen';
 import TicketPurchaseScreen from '../screens/tickets/TicketPurchaseScreen';
 import RegistrationDetailsScreen from '../screens/tickets/RegistrationDetailsScreen';
 import PendingTransfersScreen from '../screens/tickets/PendingTransfersScreen';
@@ -296,6 +297,13 @@ export default function RootNavigator() {
       <Stack.Screen
         name="CompleteProfile"
         component={CompleteProfileScreen}
+      />
+      {/* Collecte per-participant après paiement. Cible du deep link
+          eventez://registrations/{id}/attendees (fallback Mobile Money : l'app
+          peut ne jamais s'être rouverte après le paiement USSD). */}
+      <Stack.Screen
+        name="AttendeeInfo"
+        component={AttendeeInfoScreen}
       />
       {/* VerifyEmailToken : ouverte par le deep link
           https://eventez.online/verify-email/{token} (Universal Link).

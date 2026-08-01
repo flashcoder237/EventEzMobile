@@ -3299,7 +3299,10 @@
       "summaryTicketTypes_one": "{{count}} type",
       "summaryTicketTypes_other": "{{count}} types",
       "summaryFields_one": "{{count}} champ",
-      "summaryFields_other": "{{count}} champs"
+      "summaryFields_other": "{{count}} champs",
+      "scopePerAttendee": "Formulaire par participant",
+      "scopePerAttendeeOn": "Chaque participant remplira ses infos après le paiement (achats de groupe).",
+      "scopePerAttendeeOff": "Un seul formulaire par commande (rempli par l'acheteur)."
     },
     "step4": {
       "title": "Sessions (optionnel)",
@@ -6879,5 +6882,30 @@
         "ratioPayroll": "Paie / Revenus"
       }
     }
+  },
+  "attendeeForm": {
+    "title": "Complétez les infos des participants",
+    "subtitle": "Ces informations sont nécessaires pour l'entrée à l'événement.",
+    "progress": "{{done}}/{{total}} complétés",
+    "participantN": "Participant {{n}}",
+    "completed": "Complété",
+    "toFill": "À remplir",
+    "delegatedTo": "Délégué à {{email}}",
+    "fill": "Remplir",
+    "edit": "Modifier",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "cancel": "Annuler",
+    "fillRequired": "Veuillez remplir les champs requis.",
+    "errorTitle": "Erreur",
+    "loadError": "Impossible de charger les participants.",
+    "saveError": "Impossible d'enregistrer. Réessayez.",
+    "paymentPending": "Paiement en cours de confirmation… La page se mettra à jour automatiquement.",
+    "completeCta": "Compléter les infos",
+    "delegate": "Déléguer",
+    "delegateSend": "Envoyer",
+    "delegateEmailPlaceholder": "Email de l'invité",
+    "delegateError": "Impossible d'envoyer l'invitation.",
+    "toCompleteBadge": "{{n}} à compléter"
   }
 }

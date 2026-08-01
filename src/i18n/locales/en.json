@@ -3941,7 +3941,10 @@
       "summaryTicketTypes_one": "{{count}} type",
       "summaryTicketTypes_other": "{{count}} types",
       "summaryFields_one": "{{count}} field",
-      "summaryFields_other": "{{count}} fields"
+      "summaryFields_other": "{{count}} fields",
+      "scopePerAttendee": "Per-attendee form",
+      "scopePerAttendeeOn": "Each attendee fills in their own details after payment (group purchases).",
+      "scopePerAttendeeOff": "A single form per order (filled by the buyer)."
     },
     "step4": {
       "title": "Sessions (optional)",
@@ -6879,5 +6882,30 @@
         "ratioPayroll": "Payroll/Revenue"
       }
     }
+  },
+  "attendeeForm": {
+    "title": "Complete attendee details",
+    "subtitle": "This information is required to enter the event.",
+    "progress": "{{done}}/{{total}} completed",
+    "participantN": "Attendee {{n}}",
+    "completed": "Completed",
+    "toFill": "To fill in",
+    "delegatedTo": "Delegated to {{email}}",
+    "fill": "Fill in",
+    "edit": "Edit",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "fillRequired": "Please fill in the required fields.",
+    "errorTitle": "Error",
+    "loadError": "Could not load attendees.",
+    "saveError": "Could not save. Please try again.",
+    "paymentPending": "Payment is being confirmed… This page will update automatically.",
+    "completeCta": "Complete details",
+    "delegate": "Delegate",
+    "delegateSend": "Send",
+    "delegateEmailPlaceholder": "Guest's email",
+    "delegateError": "Could not send the invitation.",
+    "toCompleteBadge": "{{n}} to complete"
   }
 }

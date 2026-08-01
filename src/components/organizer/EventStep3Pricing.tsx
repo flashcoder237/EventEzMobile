@@ -38,6 +38,8 @@ interface EventStep3PricingProps {
   // Ticket types (billetterie)
   ticketTypes: TicketTypeForm[];
   showFormFieldsForBilletterie: boolean;
+  attendeeFormScope: 'order' | 'per_attendee';
+  onAttendeeFormScopeChange: (value: 'order' | 'per_attendee') => void;
 
   // Form fields (inscription or optional billetterie)
   formFields: FormFieldForm[];
@@ -234,6 +236,8 @@ export default function EventStep3Pricing({
   startDate,
   ticketTypes,
   showFormFieldsForBilletterie,
+  attendeeFormScope,
+  onAttendeeFormScopeChange,
   formFields,
   title,
   locationType,
@@ -554,6 +558,29 @@ export default function EventStep3Pricing({
                   onUpdateFormField={onUpdateFormField}
                   onRemoveFormField={onRemoveFormField}
                 />
+                {/* Portée : par commande (défaut) ou par participant (après paiement). */}
+                {formFields.length > 0 && (
+                  <View style={[styles.sectionHeader, { marginTop: Spacing.md }]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.sectionHeaderTitle, themed.sectionHeaderTitle]}>
+                        {t('componentsOrganizer.step3.scopePerAttendee')}
+                      </Text>
+                      <Text style={[styles.sectionHeaderDescription, themed.sectionHeaderDescription]}>
+                        {attendeeFormScope === 'per_attendee'
+                          ? t('componentsOrganizer.step3.scopePerAttendeeOn')
+                          : t('componentsOrganizer.step3.scopePerAttendeeOff')}
+                      </Text>
+                    </View>
+                    <Switch
+                      value={attendeeFormScope === 'per_attendee'}
+                      onValueChange={(value) =>
+                        onAttendeeFormScopeChange(value ? 'per_attendee' : 'order')
+                      }
+                      trackColor={{ false: colors.gray200, true: colors.primaryLight }}
+                      thumbColor={attendeeFormScope === 'per_attendee' ? colors.primary : colors.gray400}
+                    />
+                  </View>
+                )}
               </View>
             )}
           </View>
