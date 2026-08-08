@@ -144,7 +144,7 @@ describe('LoginScreen', () => {
     fireEvent.changeText(getByPlaceholderText('••••••••'), '12345');
     fireEvent.press(getByText('Se connecter'));
 
-    expect(await findByText(/au moins 6/i)).toBeTruthy();
+    expect(await findByText(/6 caractères minimum/i)).toBeTruthy();
     expect(mockLogin).not.toHaveBeenCalled();
   });
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { paymentsAPI } from '../api';
 import CacheService from '../services/CacheService';
+import { normalizeCountryKey, resolveEndonymCode } from '../lib/countryNames';
 
 export interface SupportedCountry {
   code: string;
@@ -68,8 +69,16 @@ export function useSupportedCountries() {
     // Pendant le premier load, on ne bloque pas (le backend validera).
     if (countries.length === 0) return true;
     const upper = v.toUpperCase();
+    const normalized = normalizeCountryKey(v);
+    // Le geocoding renvoie souvent le nom natif ("Deutschland") : on résout
+    // vers le code ISO avant de comparer, en plus du match direct code/nom
+    // (normalisé casse + accents). Miroir du backend country_config.py.
+    const endonymCode = resolveEndonymCode(v);
     return countries.some(
-      (c) => c.code.toUpperCase() === upper || c.name.toLowerCase() === v.toLowerCase(),
+      (c) =>
+        c.code.toUpperCase() === upper ||
+        normalizeCountryKey(c.name) === normalized ||
+        (endonymCode !== null && c.code.toUpperCase() === endonymCode),
     );
   };
 

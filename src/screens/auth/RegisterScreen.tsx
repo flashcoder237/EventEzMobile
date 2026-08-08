@@ -156,13 +156,15 @@ export default function RegisterScreen() {
 
   const validate = () => {
     const newErrors: FormErrors = {};
-    const firstNameError = validators.required(formData.first_name, t('auth.firstName'));
-    if (firstNameError) newErrors.first_name = firstNameError;
-    const lastNameError = validators.required(formData.last_name, t('auth.lastName'));
-    if (lastNameError) newErrors.last_name = lastNameError;
-    const emailError = validators.email(formData.email);
+    if (!formData.first_name || !formData.first_name.trim()) {
+      newErrors.first_name = t('validation.firstNameRequired');
+    }
+    if (!formData.last_name || !formData.last_name.trim()) {
+      newErrors.last_name = t('validation.lastNameRequired');
+    }
+    const emailError = validators.email(formData.email, t);
     if (emailError) newErrors.email = emailError;
-    const passwordError = validators.password(formData.password, 8);
+    const passwordError = validators.password(formData.password, 8, t);
     if (passwordError) newErrors.password = passwordError;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

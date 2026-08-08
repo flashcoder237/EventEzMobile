@@ -281,9 +281,9 @@ export default function LoginScreen() {
 
   const validate = () => {
     const newErrors: FormErrors<'email' | 'password'> = {};
-    const emailError = validators.email(email);
+    const emailError = validators.email(email, t);
     if (emailError) newErrors.email = emailError;
-    const passwordError = validators.password(password, 6);
+    const passwordError = validators.password(password, 6, t);
     if (passwordError) newErrors.password = passwordError;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

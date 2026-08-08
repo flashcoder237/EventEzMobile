@@ -7,6 +7,21 @@
 export type ValidationResult = string | null;
 export type FormErrors<T extends string> = Partial<Record<T, string>>;
 
+/**
+ * Fonction de traduction i18n (signature de i18next `t`). Optionnelle sur
+ * chaque validateur : si fournie, les messages sont traduits via le namespace
+ * `validation.*` (clés déjà présentes en FR/EN). Si absente, on retombe sur
+ * le message français littéral (rétro-compat + tests).
+ *
+ * ⚠️ Sans `t`, les messages restent en français quelle que soit la langue de
+ * l'app → mélange FR/EN à l'écran. Toujours passer `t` dans les écrans.
+ */
+export type TFunc = (key: string, options?: Record<string, unknown>) => string;
+
+/** Traduit `key` si `t` est fourni, sinon renvoie le fallback FR. */
+const msg = (t: TFunc | undefined, key: string, fallback: string, params?: Record<string, unknown>): string =>
+  t ? t(key, params) : fallback;
+
 // Expressions regulieres
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
@@ -20,9 +35,12 @@ export const validators = {
   /**
    * Valide un champ requis
    */
-  required: (value: string | undefined | null, fieldName: string = 'Ce champ'): ValidationResult => {
+  required: (value: string | undefined | null, fieldName: string = 'Ce champ', t?: TFunc): ValidationResult => {
     if (!value || !value.trim()) {
-      return `${fieldName} est requis`;
+      // Le namespace validation.* n'a pas de clé "champ nommé" générique → on
+      // garde l'interpolation FR par défaut, mais si `t` est fourni et que le
+      // champ n'est pas nommé explicitement, on utilise fieldRequired.
+      return msg(t, 'validation.fieldRequired', `${fieldName} est requis`);
     }
     return null;
   },
@@ -30,12 +48,12 @@ export const validators = {
   /**
    * Valide un email
    */
-  email: (value: string): ValidationResult => {
+  email: (value: string, t?: TFunc): ValidationResult => {
     if (!value || !value.trim()) {
-      return 'L\'email est requis';
+      return msg(t, 'validation.emailRequired', 'L\'email est requis');
     }
     if (!EMAIL_REGEX.test(value.trim())) {
-      return 'Format d\'email invalide';
+      return msg(t, 'validation.emailInvalid', 'Format d\'email invalide');
     }
     return null;
   },
@@ -43,12 +61,16 @@ export const validators = {
   /**
    * Valide un mot de passe
    */
-  password: (value: string, minLength: number = 6): ValidationResult => {
+  password: (value: string, minLength: number = 6, t?: TFunc): ValidationResult => {
     if (!value) {
-      return 'Le mot de passe est requis';
+      return msg(t, 'validation.passwordRequired', 'Le mot de passe est requis');
     }
     if (value.length < minLength) {
-      return `Le mot de passe doit contenir au moins ${minLength} caracteres`;
+      return msg(
+        t, 'validation.passwordTooShort',
+        `Le mot de passe doit contenir au moins ${minLength} caracteres`,
+        { min: minLength },
+      );
     }
     return null;
   },
@@ -56,12 +78,12 @@ export const validators = {
   /**
    * Valide la confirmation de mot de passe
    */
-  confirmPassword: (value: string, password: string): ValidationResult => {
+  confirmPassword: (value: string, password: string, t?: TFunc): ValidationResult => {
     if (!value) {
-      return 'La confirmation du mot de passe est requise';
+      return msg(t, 'validation.confirmPasswordRequired', 'La confirmation du mot de passe est requise');
     }
     if (value !== password) {
-      return 'Les mots de passe ne correspondent pas';
+      return msg(t, 'validation.passwordsDontMatch', 'Les mots de passe ne correspondent pas');
     }
     return null;
   },
@@ -69,16 +91,20 @@ export const validators = {
   /**
    * Valide un nom d'utilisateur
    */
-  username: (value: string, minLength: number = 3): ValidationResult => {
+  username: (value: string, minLength: number = 3, t?: TFunc): ValidationResult => {
     const trimmed = (value || '').trim();
     if (!trimmed) {
-      return 'Le nom d\'utilisateur est requis';
+      return msg(t, 'validation.usernameRequired', 'Le nom d\'utilisateur est requis');
     }
     if (trimmed.length < minLength) {
-      return `Le nom d\'utilisateur doit contenir au moins ${minLength} caracteres`;
+      return msg(
+        t, 'validation.usernameTooShort',
+        `Le nom d\'utilisateur doit contenir au moins ${minLength} caracteres`,
+        { min: minLength },
+      );
     }
     if (!USERNAME_REGEX.test(trimmed)) {
-      return 'Lettres, chiffres et underscore (_) uniquement';
+      return msg(t, 'validation.usernameInvalid', 'Lettres, chiffres et underscore (_) uniquement');
     }
     return null;
   },
@@ -86,13 +112,13 @@ export const validators = {
   /**
    * Valide un numero de telephone
    */
-  phone: (value: string, required: boolean = false): ValidationResult => {
+  phone: (value: string, required: boolean = false, t?: TFunc): ValidationResult => {
     if (!value || !value.trim()) {
-      return required ? 'Le numero de telephone est requis' : null;
+      return required ? msg(t, 'validation.phoneRequired', 'Le numero de telephone est requis') : null;
     }
     const cleanedValue = value.replace(/[\s-]/g, '');
     if (!PHONE_REGEX.test(cleanedValue)) {
-      return 'Format de telephone invalide';
+      return msg(t, 'validation.phoneInvalid', 'Format de telephone invalide');
     }
     return null;
   },

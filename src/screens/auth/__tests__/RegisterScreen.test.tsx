@@ -134,7 +134,7 @@ describe('RegisterScreen', () => {
 
     fireEvent.press(getByText('Créer mon compte'));
 
-    expect(await findByText(/au moins 8/i)).toBeTruthy();
+    expect(await findByText(/8 caractères minimum/i)).toBeTruthy();
     expect(mockRegister).not.toHaveBeenCalled();
   });
 
