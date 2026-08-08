@@ -372,6 +372,8 @@ export default function SettingsScreen() {
   const [notifyPayment, setNotifyPayment] = useState(true);
   const [notifyMessagesPref, setNotifyMessagesPref] = useState(true);
   const [notifyMarketing, setNotifyMarketing] = useState(false);
+  // Fréquence emails "nouvelle inscription" (organisateur) : realtime/hourly/daily/off
+  const [notifyNewRegistrations, setNotifyNewRegistrations] = useState<'realtime' | 'hourly' | 'daily' | 'off'>('hourly');
 
   // Confidentialité (P19)
   const [showInAttendees, setShowInAttendees] = useState(true);
@@ -518,6 +520,7 @@ export default function SettingsScreen() {
         setNotifyPayment(settings.notify_payment ?? true);
         setNotifyMessagesPref(settings.notify_messages ?? true);
         setNotifyMarketing(settings.notify_marketing ?? false);
+        setNotifyNewRegistrations(settings.notify_new_registrations ?? 'hourly');
         setLanguage(settings.language ?? 'fr');
         setTimezone(settings.timezone ?? 'Africa/Douala');
         setTwoFactorAuth(settings.two_factor_auth ?? false);
@@ -953,6 +956,49 @@ export default function SettingsScreen() {
               />
             }
           />
+          )}
+          {/* Fréquence emails "nouvelle inscription" — organisateurs uniquement */}
+          {(user?.role === 'organizer' || user?.role === 'admin') &&
+            matchesQuery(searchQuery, [t('settings.newRegistrationsTitle'), t('settings.newRegistrationsDescription')]) && (
+            <OptionCard
+              icon="people-outline"
+              eyebrow={t('settings.newRegistrationsEyebrow')}
+              title={t('settings.newRegistrationsTitle')}
+              subtitle={t('settings.newRegistrationsDescription')}
+            />
+          )}
+          {(user?.role === 'organizer' || user?.role === 'admin') &&
+            matchesQuery(searchQuery, [t('settings.newRegistrationsTitle'), t('settings.newRegistrationsDescription')]) && (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: -4, marginBottom: 8, paddingHorizontal: 4 }}>
+              {(['realtime', 'hourly', 'daily', 'off'] as const).map((opt) => {
+                const active = notifyNewRegistrations === opt;
+                return (
+                  <TouchableOpacity
+                    key={opt}
+                    onPress={() => {
+                      setNotifyNewRegistrations(opt);
+                      handleUpdateSetting('notify_new_registrations', opt);
+                    }}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={t(`settings.newRegistrationsFreq.${opt}`)}
+                    style={{
+                      paddingVertical: 8,
+                      paddingHorizontal: 14,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      backgroundColor: active ? colors.primary : colors.card,
+                      borderColor: active ? colors.primary : (isDark ? colors.gray200 : 'rgba(0,0,0,0.08)'),
+                    }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: active ? '#fff' : colors.text }}>
+                      {t(`settings.newRegistrationsFreq.${opt}`)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           )}
         </View>
         )}

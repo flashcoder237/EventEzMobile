@@ -1547,6 +1547,15 @@
     "rowPaymentConfirmations": "Confirmations & refunds",
     "rowNewConversations": "New conversations",
     "rowMarketing": "Recommendations & promotions",
+    "newRegistrationsEyebrow": "Organizer",
+    "newRegistrationsTitle": "New registrations",
+    "newRegistrationsDescription": "How often you're emailed when someone registers for your events",
+    "newRegistrationsFreq": {
+      "realtime": "Real time",
+      "hourly": "Hourly",
+      "daily": "Daily",
+      "off": "Off"
+    },
     "rowSounds": "Sounds at key moments",
     "rowSoundsSubtitle": "Plays a sound on payment confirmation or QR scan",
     "rowTwoFA": "Two-factor authentication",
