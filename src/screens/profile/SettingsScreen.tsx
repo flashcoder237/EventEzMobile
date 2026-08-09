@@ -372,6 +372,7 @@ export default function SettingsScreen() {
   const [notifyPayment, setNotifyPayment] = useState(true);
   const [notifyMessagesPref, setNotifyMessagesPref] = useState(true);
   const [notifyMarketing, setNotifyMarketing] = useState(false);
+  const [notifySocial, setNotifySocial] = useState(true);
   // Fréquence emails "nouvelle inscription" (organisateur) : realtime/hourly/daily/off
   const [notifyNewRegistrations, setNotifyNewRegistrations] = useState<'realtime' | 'hourly' | 'daily' | 'off'>('hourly');
 
@@ -520,6 +521,7 @@ export default function SettingsScreen() {
         setNotifyPayment(settings.notify_payment ?? true);
         setNotifyMessagesPref(settings.notify_messages ?? true);
         setNotifyMarketing(settings.notify_marketing ?? false);
+        setNotifySocial(settings.notify_social ?? true);
         setNotifyNewRegistrations(settings.notify_new_registrations ?? 'hourly');
         setLanguage(settings.language ?? 'fr');
         setTimezone(settings.timezone ?? 'Africa/Douala');
@@ -953,6 +955,20 @@ export default function SettingsScreen() {
               <SoftToggle
                 value={notifyMarketing}
                 onToggle={(v) => handleToggle('notify_marketing', v, setNotifyMarketing)}
+              />
+            }
+          />
+          )}
+          {matchesQuery(searchQuery, [t('settings.rowSocial'), t('settings.rowSocialDesc')]) && (
+          <OptionCard
+            icon="person-add-outline"
+            eyebrow={t('settings.rowSocialEyebrow')}
+            title={t('settings.rowSocial')}
+            subtitle={t('settings.rowSocialDesc')}
+            right={
+              <SoftToggle
+                value={notifySocial}
+                onToggle={(v) => handleToggle('notify_social', v, setNotifySocial)}
               />
             }
           />
