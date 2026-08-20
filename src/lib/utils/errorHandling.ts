@@ -1,9 +1,105 @@
 /**
  * Utilitaires de gestion des erreurs API
- * Centralise l'extraction et le formatage des messages d'erreur
+ * Centralise l'extraction et le formatage des messages d'erreur.
+ *
+ * Règle d'or : on ne montre JAMAIS à l'utilisateur `error.message` d'axios
+ * ("Network Error", "timeout of 30000ms exceeded"), ni l'URL/env du backend,
+ * ni du JSON brut. Utiliser `getApiErrorMessage(error, t, { fallbackKey })` qui
+ * résout toujours vers une clé i18n propre et actionnable.
  */
 
 import { AxiosError } from 'axios';
+
+type TFunc = (key: string, options?: Record<string, unknown>) => string;
+
+/**
+ * Codes backend (champ `code` renvoyé par le DRF exception handler) → clés i18n
+ * (errors.codes.*). Étendre au fil de l'eau. Un code absent retombe sur le
+ * mapping par status HTTP + fallback.
+ */
+export const ERROR_CODE_MAP: Record<string, string> = {
+  email_taken: 'errors.codes.emailTaken',
+  username_taken: 'errors.codes.usernameTaken',
+  weak_password: 'errors.codes.weakPassword',
+  invalid_credentials: 'errors.codes.invalidCredentials',
+  reset_link_expired: 'errors.codes.resetLinkExpired',
+  otp_invalid: 'errors.codes.otpInvalid',
+  otp_send_failed: 'errors.codes.otpSendFailed',
+  notchpay_unsupported: 'errors.codes.paymentMethodUnsupported',
+  payment_failed: 'errors.codes.paymentFailed',
+  insufficient_balance: 'errors.codes.insufficientBalance',
+  payout_already_processing: 'errors.codes.payoutLocked',
+  plan_limit_reached: 'errors.codes.planLimitReached',
+  country_not_supported: 'errors.codes.countryNotSupported',
+};
+
+function httpKey(status: number | undefined): string {
+  switch (status) {
+    case 400: return 'errors.http.badRequest';
+    case 401: return 'errors.http.unauthorized';
+    case 403: return 'errors.http.forbidden';
+    case 404: return 'errors.http.notFound';
+    case 409: return 'errors.http.conflict';
+    case 429: return 'errors.http.tooManyRequests';
+    case 500:
+    case 502:
+    case 503: return 'errors.http.server';
+    default: return 'errors.generic';
+  }
+}
+
+export interface ApiErrorResult {
+  message: string;
+  fieldErrors: Record<string, string> | null;
+  code: string | null;
+  isNetwork: boolean;
+}
+
+/**
+ * Résout une erreur API en message TRADUIT + erreurs de champ. À utiliser
+ * partout à la place de extractErrorMessage (qui ne prend pas `t`).
+ *
+ * Ordre : réseau/timeout → code métier mappé → validation de champ (400) →
+ * status HTTP → fallback fourni par l'appelant. Jamais error.message brut.
+ */
+export function getApiErrorMessage(
+  error: any,
+  t: TFunc,
+  opts: { fallbackKey: string; fallbackValues?: Record<string, unknown> },
+): ApiErrorResult {
+  const noResponse = !error?.response;
+  const isTimeout = error?.code === 'ECONNABORTED' || /timeout/i.test(error?.message || '');
+  const isNet = noResponse && (
+    error?.code === 'ERR_NETWORK' || /network error/i.test(error?.message || '') || !error?.code
+  );
+  if (isTimeout) return { message: t('errors.timeout'), fieldErrors: null, code: null, isNetwork: true };
+  if (noResponse && isNet) return { message: t('errors.network'), fieldErrors: null, code: null, isNetwork: true };
+
+  const status: number | undefined = error?.response?.status;
+  const data = error?.response?.data;
+  const code: string | null = (data && typeof data === 'object' ? data.code : null) || null;
+
+  if (code && ERROR_CODE_MAP[code]) {
+    return { message: t(ERROR_CODE_MAP[code]), fieldErrors: extractFieldErrors(error), code, isNetwork: false };
+  }
+
+  const fieldErrors = status === 400 ? nonEmpty(extractFieldErrors(error)) : null;
+  let message: string;
+  if (fieldErrors) {
+    message = t('errors.validation');
+  } else if (status && status >= 500) {
+    message = t('errors.http.server');
+  } else if (status === 429) {
+    message = t('errors.http.tooManyRequests');
+  } else {
+    message = t(opts.fallbackKey, opts.fallbackValues) || t(httpKey(status));
+  }
+  return { message, fieldErrors, code, isNetwork: false };
+}
+
+function nonEmpty(o: Record<string, string>): Record<string, string> | null {
+  return o && Object.keys(o).length ? o : null;
+}
 
 interface ApiErrorData {
   detail?: string;
@@ -77,11 +173,12 @@ export function extractErrorMessage(error: any): string {
     }
   }
 
-  // Erreur reseau
+  // Erreur reseau. On NE montre PAS l'URL ni le nom de la variable d'env
+  // (fuite de config) — on log en dev, on affiche un message neutre.
   if (error?.message?.includes('Network Error')) {
     if (__DEV__) {
       const url = error?.config?.baseURL || 'unknown';
-      return `Erreur de connexion vers ${url}. Verifiez EXPO_PUBLIC_API_URL et que le serveur est accessible.`;
+      console.warn(`[API] Network Error vers ${url} — vérifier EXPO_PUBLIC_API_URL et l'accessibilité du serveur.`);
     }
     return 'Impossible de joindre le serveur. Veuillez reessayer dans quelques instants.';
   }
@@ -91,11 +188,8 @@ export function extractErrorMessage(error: any): string {
     return 'La requete a pris trop de temps. Veuillez reessayer.';
   }
 
-  // Message d'erreur generique
-  if (error?.message) {
-    return error.message;
-  }
-
+  // Fallback générique. On NE renvoie JAMAIS error.message brut (jargon axios
+  // "Network Error"/"timeout of 30000ms"/"Request failed with status 500").
   return 'Une erreur inattendue est survenue. Veuillez reessayer.';
 }
 

@@ -1980,7 +1980,33 @@
     "uploadFailed": "Échec de l'upload",
     "downloadFailed": "Échec du téléchargement",
     "tryAgain": "Réessayer",
-    "contactSupport": "Contacter le support"
+    "contactSupport": "Contacter le support",
+    "timeout": "La requête a mis trop de temps. Vérifiez votre connexion et réessayez.",
+    "validation": "Certaines informations sont invalides. Corrigez les champs signalés et réessayez.",
+    "http": {
+      "badRequest": "Nous n'avons pas pu traiter votre demande. Vérifiez vos informations et réessayez.",
+      "unauthorized": "Votre session a expiré. Veuillez vous reconnecter.",
+      "forbidden": "Vous n'avez pas l'autorisation d'effectuer cette action.",
+      "notFound": "Nous n'avons pas trouvé ce que vous cherchiez.",
+      "conflict": "Cette action entre en conflit avec l'état actuel. Actualisez et réessayez.",
+      "tooManyRequests": "Trop de tentatives. Patientez un instant et réessayez.",
+      "server": "Nos serveurs rencontrent un problème pour le moment. Réessayez dans quelques minutes."
+    },
+    "codes": {
+      "emailTaken": "Cette adresse email est déjà associée à un compte. Connectez-vous ou utilisez une autre adresse.",
+      "usernameTaken": "Ce nom d'utilisateur est déjà pris, essayez-en un autre.",
+      "weakPassword": "Choisissez un mot de passe d'au moins 8 caractères mêlant lettres et chiffres.",
+      "invalidCredentials": "E-mail ou mot de passe incorrect. Réessayez ou réinitialisez votre mot de passe.",
+      "resetLinkExpired": "Ce lien de réinitialisation a expiré. Demandez-en un nouveau.",
+      "otpInvalid": "Ce code est incorrect ou a expiré. Vérifiez-le ou demandez-en un nouveau.",
+      "otpSendFailed": "Impossible d'envoyer le code par SMS. Vérifiez votre numéro et réessayez, ou connectez-vous avec votre email.",
+      "paymentMethodUnsupported": "Ce moyen de paiement n'est pas disponible pour cet événement. Veuillez en choisir un autre.",
+      "paymentFailed": "Le paiement n'a pas pu aboutir. Aucun montant n'a été débité. Réessayez ou choisissez un autre moyen.",
+      "insufficientBalance": "Solde insuffisant pour cette opération.",
+      "payoutLocked": "Ce retrait ne peut plus être modifié car son traitement a déjà commencé. Contactez le support si c'est une erreur.",
+      "planLimitReached": "Vous avez atteint la limite de votre plan. Améliorez votre offre pour continuer.",
+      "countryNotSupported": "Les paiements ne sont pas encore disponibles dans ce pays. Vous pouvez créer l'événement dans un pays pris en charge, ou nous contacter."
+    }
   },
   "errorBoundary": {
     "eyebrow": "Pépin",

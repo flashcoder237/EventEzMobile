@@ -1980,7 +1980,33 @@
     "uploadFailed": "Upload failed",
     "downloadFailed": "Download failed",
     "tryAgain": "Try again",
-    "contactSupport": "Contact support"
+    "contactSupport": "Contact support",
+    "timeout": "The request took too long. Check your connection and try again.",
+    "validation": "Some details are invalid. Fix the highlighted fields and try again.",
+    "http": {
+      "badRequest": "We couldn't process your request. Please check your details and try again.",
+      "unauthorized": "Your session has expired. Please sign in again.",
+      "forbidden": "You don't have permission to do this.",
+      "notFound": "We couldn't find what you were looking for.",
+      "conflict": "This action conflicts with the current state. Refresh and try again.",
+      "tooManyRequests": "Too many attempts. Please wait a moment and try again.",
+      "server": "Our servers are having trouble right now. Please try again in a few minutes."
+    },
+    "codes": {
+      "emailTaken": "This email is already linked to an account. Sign in or use another address.",
+      "usernameTaken": "That username is already taken, please pick another.",
+      "weakPassword": "Choose a password of at least 8 characters mixing letters and numbers.",
+      "invalidCredentials": "Incorrect email or password. Try again or reset your password.",
+      "resetLinkExpired": "This reset link has expired. Request a new one.",
+      "otpInvalid": "This code is incorrect or has expired. Check it or request a new one.",
+      "otpSendFailed": "We couldn't send the SMS code. Check your number and try again, or sign in with your email.",
+      "paymentMethodUnsupported": "This payment method isn't available for this event. Please choose another.",
+      "paymentFailed": "Your payment couldn't be completed. You haven't been charged. Try again or use another method.",
+      "insufficientBalance": "Insufficient balance for this operation.",
+      "payoutLocked": "This payout can no longer be changed because processing has already started. Contact support if this is a mistake.",
+      "planLimitReached": "You've reached your plan's limit. Upgrade your plan to continue.",
+      "countryNotSupported": "Payments aren't available in this country yet. You can create the event in a supported country, or contact us."
+    }
   },
   "errorBoundary": {
     "eyebrow": "Glitch",
