@@ -30,6 +30,7 @@ import {
 } from '../../constants/theme';
 import { EditorialCanvas, WatermarkNumeral, EditorialPillCTA } from '../../components/ui/editorial';
 import { centeredContent } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'VerifyEmailToken'>;
 type RoutePropType = RouteProp<RootStackParamList, 'VerifyEmailToken'>;
@@ -123,12 +124,12 @@ export default function VerifyEmailTokenScreen() {
       showSuccess(t('auth.verifyTokenExpiredResentTitle'), t('auth.verifyTokenExpiredResentDetail', { email }));
       navigation.navigate('VerifyEmail', { email });
     } catch (err: any) {
-      const msg = err?.response?.data?.detail || t('auth.verifyTokenExpiredResendError');
-      showError(t('common.error'), msg);
+      const { message } = getApiErrorMessage(err, t, { fallbackKey: 'auth.verifyTokenExpiredResendError' });
+      showError(t('common.error'), message);
     } finally {
       setResending(false);
     }
-  }, [navigation, user?.email, fallbackEmail, showError, showSuccess]);
+  }, [navigation, user?.email, fallbackEmail, showError, showSuccess, t]);
 
   return (
     <EditorialCanvas>

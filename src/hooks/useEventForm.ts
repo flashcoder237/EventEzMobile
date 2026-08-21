@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useAuth } from '../contexts/AuthContext';
+import { getApiErrorMessage } from '../lib/utils/errorHandling';
 
 import {
   eventsAPI,
@@ -304,6 +306,7 @@ async function persistImageToDisk(uri: string): Promise<string> {
 
 export function useEventForm(alertActions: AlertActions, editEventId?: string, hostEventId?: string): UseEventFormReturn {
   const { showAlert, showSuccess, showError } = alertActions;
+  const { t } = useTranslation();
   // Strategie "Event mono-devise" : la devise provient du wallet de l'organisateur
   // (l'event herite de wallet.currency a sa creation, docs/CURRENCY_STRATEGY.md).
   const { currency: walletCurrency } = useOrganizerWallet();
@@ -507,17 +510,17 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
       if (data.result) {
         setAiResult(typeof data.result === 'string' ? JSON.parse(data.result) : data.result);
       } else if (data.text) {
-        try { setAiResult(JSON.parse(data.text)); } catch { setAiError('Format de réponse inattendu'); }
+        try { setAiResult(JSON.parse(data.text)); } catch { setAiError(t('errors.generic')); }
       } else {
         setAiResult(data);
       }
       refreshAIUsage();
     } catch (err: any) {
-      setAiError(err.response?.data?.detail || err.response?.data?.message || 'Erreur lors de la génération');
+      setAiError(getApiErrorMessage(err, t, { fallbackKey: 'errors.generic' }).message);
     } finally {
       setAiLoading(false);
     }
-  }, [sessionId]);
+  }, [sessionId, t]);
 
   const handleAIApply = useCallback((data: AIGeneratedEvent) => {
     if (data.title) setTitle(data.title);
@@ -532,8 +535,8 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
     if (data.suggested_location_name) setLocationName(data.suggested_location_name);
     if (data.suggested_city) setLocationCity(data.suggested_city);
     setAiResult(null);
-    showSuccess('Succès', 'Les données IA ont été appliquées au formulaire');
-  }, [showSuccess]);
+    showSuccess(t('common.success'), t('organizer.eventCreate.aiAppliedMessage', { defaultValue: 'Les données IA ont été appliquées au formulaire' }));
+  }, [showSuccess, t]);
 
   const handleOptimizeTitle = useCallback(async () => {
     if (!title.trim() || title.length < 5) return;
@@ -544,10 +547,10 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
       const suggestions = res.data.suggestions || res.data;
       if (Array.isArray(suggestions) && suggestions.length > 0) {
         showAlert(
-          'Suggestions de titre',
+          t('organizer.eventCreate.aiTitleSuggestionsTitle', { defaultValue: 'Suggestions de titre' }),
           suggestions.map((s: any, i: number) => `${i + 1}. ${s.title}\n   → ${s.reason}`).join('\n\n'),
           [
-            { text: 'Annuler', style: 'cancel' },
+            { text: t('common.cancel'), style: 'cancel' },
             ...suggestions.slice(0, 3).map((s: any) => ({
               text: s.title.substring(0, 20) + '...',
               onPress: () => setTitle(s.title),
@@ -557,27 +560,35 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
       }
       refreshAIUsage();
     } catch (err: any) {
-      showError('Erreur', err.response?.data?.detail || 'Impossible d\'optimiser le titre');
+      showError(t('common.error'), getApiErrorMessage(err, t, { fallbackKey: 'errors.generic' }).message);
     } finally {
       setAiTitleLoading(false);
     }
-  }, [title, categories, categoryId, eventType, sessionId, showAlert, showError]);
+  }, [title, categories, categoryId, eventType, sessionId, showAlert, showError, t]);
 
   const handleGenerateDescription = useCallback(async () => {
-    if (!title.trim()) { showError('Erreur', 'Veuillez d\'abord entrer un titre'); return; }
+    if (!title.trim()) {
+      showAlert(
+        t('common.info'),
+        t('organizer.eventCreate.aiNeedTitleFirst', { defaultValue: "Ajoutez d'abord un titre pour que l'IA puisse générer une description." }),
+        undefined,
+        'info',
+      );
+      return;
+    }
     setAiDescLoading(true);
     try {
       const categoryName = categories.find(c => c.id === categoryId)?.name || '';
       const res = await aiAssistAPI.description(title, '', eventType, categoryName, sessionId);
       const text = res.data.text || res.data.description || '';
-      if (text) { setDescription(text); showSuccess('Succès', 'Description générée par l\'IA'); }
+      if (text) { setDescription(text); showSuccess(t('common.success'), t('organizer.eventCreate.aiDescGenerated', { defaultValue: "Description générée par l'IA" })); }
       refreshAIUsage();
     } catch (err: any) {
-      showError('Erreur', err.response?.data?.detail || 'Impossible de générer la description');
+      showError(t('common.error'), getApiErrorMessage(err, t, { fallbackKey: 'errors.generic' }).message);
     } finally {
       setAiDescLoading(false);
     }
-  }, [title, categories, categoryId, eventType, sessionId, showSuccess, showError]);
+  }, [title, categories, categoryId, eventType, sessionId, showAlert, showSuccess, showError, t]);
 
   const handleSuggestPricing = useCallback(async () => {
     setAiPricingLoading(true);
@@ -587,12 +598,12 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
       const suggestions = res.data.suggestions || res.data;
       if (Array.isArray(suggestions) && suggestions.length > 0) {
         showAlert(
-          'Suggestions de prix IA',
+          t('organizer.eventCreate.aiPricingSuggestionsTitle', { defaultValue: 'Suggestions de prix IA' }),
           suggestions.map((s: any) => `${s.name}: ${s.price} ${platformCurrency}\n→ ${s.reasoning}`).join('\n\n'),
           [
-            { text: 'Annuler', style: 'cancel' },
+            { text: t('common.cancel'), style: 'cancel' },
             {
-              text: 'Appliquer',
+              text: t('common.apply', { defaultValue: 'Appliquer' }),
               onPress: () => {
                 const newTickets = suggestions.map((s: any) => ({
                   name: s.name, description: s.reasoning || '', price: String(s.price),
@@ -601,7 +612,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
                   is_visible: true, max_per_order: '10', min_per_order: '1',
                 }));
                 setTicketTypes(newTickets);
-                showSuccess('Succès', 'Tickets créés à partir des suggestions IA');
+                showSuccess(t('common.success'), t('organizer.eventCreate.aiTicketsCreated', { defaultValue: 'Tickets créés à partir des suggestions IA' }));
               },
             },
           ]
@@ -609,11 +620,11 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
       }
       refreshAIUsage();
     } catch (err: any) {
-      showError('Erreur', err.response?.data?.detail || 'Impossible de suggérer les prix');
+      showError(t('common.error'), getApiErrorMessage(err, t, { fallbackKey: 'errors.generic' }).message);
     } finally {
       setAiPricingLoading(false);
     }
-  }, [categories, categoryId, eventType, locationCity, maxParticipants, description, sessionId, startDate, showAlert, showSuccess, showError]);
+  }, [categories, categoryId, eventType, locationCity, maxParticipants, description, sessionId, startDate, showAlert, showSuccess, showError, t]);
 
   // ============================================
   // Tags Handlers
@@ -647,7 +658,12 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
   const pickImage = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      showAlert('Permission requise', 'Veuillez autoriser l\'accès à la galerie', undefined, 'warning');
+      showAlert(
+        t('organizer.eventCreate.galleryPermissionTitle', { defaultValue: 'Permission requise' }),
+        t('organizer.eventCreate.galleryPermissionMessage', { defaultValue: "Veuillez autoriser l'accès à la galerie" }),
+        undefined,
+        'warning',
+      );
       return;
     }
     // On NE FORCE PLUS le recadrage (allowsEditing:false) : beaucoup
@@ -669,12 +685,17 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
         setBannerImage(await persistImageToDisk(result.assets[0].uri));
       }
     }
-  }, [showAlert]);
+  }, [showAlert, t]);
 
   const pickCoverVideo = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      showAlert('Permission requise', "Veuillez autoriser l'acces a la galerie", undefined, 'warning');
+      showAlert(
+        t('organizer.eventCreate.galleryPermissionTitle', { defaultValue: 'Permission requise' }),
+        t('organizer.eventCreate.galleryPermissionMessage', { defaultValue: "Veuillez autoriser l'accès à la galerie" }),
+        undefined,
+        'warning',
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -687,18 +708,28 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
       const asset = result.assets[0];
       // Verifier la taille (max 20 MB)
       if (asset.fileSize && asset.fileSize > 20 * 1024 * 1024) {
-        showAlert('Video trop lourde', 'La video doit faire moins de 20 Mo.', undefined, 'warning');
+        showAlert(
+          t('organizer.eventCreate.videoTooLargeTitle', { defaultValue: 'Vidéo trop lourde' }),
+          t('organizer.eventCreate.videoTooLargeMessage', { defaultValue: 'La vidéo doit faire moins de 20 Mo.' }),
+          undefined,
+          'warning',
+        );
         return;
       }
       setCoverVideo(asset.uri);
       setCoverVideoUrl(''); // mutuellement exclusif avec URL externe
     }
-  }, [showAlert]);
+  }, [showAlert, t]);
 
   const pickGalleryImages = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      showAlert('Permission requise', 'Veuillez autoriser l\'accès à la galerie', undefined, 'warning');
+      showAlert(
+        t('organizer.eventCreate.galleryPermissionTitle', { defaultValue: 'Permission requise' }),
+        t('organizer.eventCreate.galleryPermissionMessage', { defaultValue: "Veuillez autoriser l'accès à la galerie" }),
+        undefined,
+        'warning',
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -709,7 +740,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
       const persistedUris = await Promise.all(result.assets.map(a => persistImageToDisk(a.uri)));
       setGalleryImages(prev => [...prev, ...persistedUris].slice(0, 10));
     }
-  }, [showAlert]);
+  }, [showAlert, t]);
 
   const removeGalleryImage = useCallback((index: number) => {
     setGalleryImages(prev => prev.filter((_, i) => i !== index));
@@ -835,9 +866,9 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
       setStepErrors(result.errors as Record<string, string>);
       // Toast pour la première erreur (UX existante préservée)
       const firstError = Object.values(result.errors)[0];
-      if (firstError) showError('Erreur', firstError);
+      if (firstError) showError(t('common.error'), firstError);
     }
-  }, [currentStep, validateStep, showError]);
+  }, [currentStep, validateStep, showError, t]);
 
   const goToPrevStep = useCallback(() => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
@@ -1023,7 +1054,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
         });
       } catch (error) {
         if (__DEV__) console.error('[useEventForm] Error loading event for edit:', error);
-        showError('Erreur', "Impossible de charger les données de l'événement");
+        showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'errors.generic' }).message);
       } finally {
         setLoading(false);
       }

@@ -175,9 +175,11 @@ describe('LoginScreen', () => {
     });
   });
 
-  it('shows an error toast when login() throws', async () => {
+  it('shows a dedicated invalid-credentials toast on 401 (never the raw detail)', async () => {
+    // 401 → l'écran choisit le fallbackKey errors.codes.invalidCredentials ;
+    // le `detail` brut du backend n'est jamais affiché.
     mockLogin.mockRejectedValueOnce({
-      response: { data: { detail: 'Identifiants invalides' } },
+      response: { status: 401, data: { detail: 'Identifiants invalides' } },
     });
     const { getByPlaceholderText, getByText } = render(<LoginScreen />);
 
@@ -188,9 +190,10 @@ describe('LoginScreen', () => {
     await waitFor(() => {
       expect(mockShowError).toHaveBeenCalledWith(
         'Erreur de connexion',
-        'Identifiants invalides',
+        'E-mail ou mot de passe incorrect. Réessayez ou réinitialisez votre mot de passe.',
       );
     });
+    expect(mockShowError).not.toHaveBeenCalledWith('Erreur de connexion', 'Identifiants invalides');
   });
 
   it('does not call login() when password is empty (required)', async () => {

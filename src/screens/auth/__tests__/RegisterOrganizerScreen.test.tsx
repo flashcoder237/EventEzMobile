@@ -222,12 +222,14 @@ describe('RegisterOrganizerScreen', () => {
     });
   });
 
-  it('shows error when registerOrganizer fails (email already used)', async () => {
+  it('routes a field error (email already used) under the field, not into a global toast', async () => {
+    // 400 avec erreur de champ email : le helper renvoie fieldErrors, l'écran
+    // affiche le message SOUS le champ email et n'ouvre PAS de toast global.
     mockRegisterOrganizer.mockRejectedValueOnce({
-      response: { data: { email: ['Cet email est déjà utilisé'] } },
+      response: { status: 400, data: { email: ['Cet email est déjà utilisé'] } },
     });
 
-    const { getByPlaceholderText, getByText, findByText } = render(<RegisterOrganizerScreen />);
+    const { getByPlaceholderText, getByText, findByText, findAllByText } = render(<RegisterOrganizerScreen />);
 
     fillStep1Individual(getByPlaceholderText);
     fireEvent.press(getByText('Continuer'));
@@ -236,11 +238,9 @@ describe('RegisterOrganizerScreen', () => {
     fillStep2(getByPlaceholderText);
     fireEvent.press(getByText('Créer mon compte'));
 
-    await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith(
-        "Erreur d'inscription",
-        'Cet email est déjà utilisé',
-      );
-    });
+    // Le message d'erreur de champ apparaît sous le champ email.
+    await findAllByText('Cet email est déjà utilisé');
+    // Pas de toast global : l'erreur est routée sous le champ.
+    expect(mockShowError).not.toHaveBeenCalled();
   });
 });

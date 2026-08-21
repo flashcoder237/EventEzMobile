@@ -30,6 +30,7 @@ import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'RegisterOrganizer'>;
 
@@ -217,23 +218,25 @@ export default function RegisterOrganizerScreen() {
         'success',
       );
     } catch (error: any) {
-      const errorData = error.response?.data;
-      let message = t('auth.registerOrganizerErrorGeneric');
-
-      if (errorData) {
-        if (errorData.email) {
-          message = Array.isArray(errorData.email) ? errorData.email[0] : t('auth.registerOrganizerErrorEmailUsed');
-        } else if (errorData.username) {
-          message = Array.isArray(errorData.username) ? errorData.username[0] : t('auth.registerOrganizerErrorUsernameTaken');
-        } else if (errorData.password) {
-          message = Array.isArray(errorData.password) ? errorData.password.join('\n') : errorData.password;
-        } else if (errorData.detail) {
-          message = errorData.detail;
-        } else if (errorData.non_field_errors) {
-          message = Array.isArray(errorData.non_field_errors) ? errorData.non_field_errors[0] : errorData.non_field_errors;
+      // Erreurs de validation par champ (email/username/password) → routées
+      // sous les champs concernés ; sinon message global propre. On ne montre
+      // jamais error.message/detail ni du JSON brut à l'utilisateur.
+      const { message, fieldErrors } = getApiErrorMessage(error, t, {
+        fallbackKey: 'auth.registerOrganizerErrorGeneric',
+      });
+      if (fieldErrors) {
+        const mapped: FormErrors = {};
+        (['email', 'username', 'password'] as (keyof FormErrors)[]).forEach((f) => {
+          if (fieldErrors[f]) mapped[f] = fieldErrors[f];
+        });
+        if (Object.keys(mapped).length > 0) {
+          setErrors((prev) => ({ ...prev, ...mapped }));
+          // Revenir à l'étape 2 où vivent ces champs, si l'utilisateur avait avancé.
+          setStep(2);
+          setIsLoading(false);
+          return;
         }
       }
-
       showError(t('auth.registerError'), message);
     } finally {
       setIsLoading(false);

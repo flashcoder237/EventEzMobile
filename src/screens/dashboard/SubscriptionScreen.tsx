@@ -30,6 +30,8 @@ import {
   PlanName,
 } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAlert } from '../../contexts/AlertContext';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import {
   Colors,
@@ -148,6 +150,7 @@ const buildSubscriptionWebUrl = (planName?: string, billingCycle?: string): stri
 export default function SubscriptionScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { showError } = useAlert();
   const { t, i18n } = useTranslation();
   const numberLocale = i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR';
   // Commission affichee en bas (rappel) : on utilise le pays organisateur
@@ -315,10 +318,10 @@ export default function SubscriptionScreen() {
       // ferme le navigateur sans qu'on capte le redirect.
       await loadData();
     } catch (err: any) {
-      Alert.alert(
-        t('common.error'),
-        err?.message || t('subscriptionForm.genericChangeError')
-      );
+      const { message } = getApiErrorMessage(err, t, {
+        fallbackKey: 'subscriptionForm.genericChangeError',
+      });
+      showError(t('common.error'), message);
     } finally {
       setUpgrading(null);
     }
@@ -349,11 +352,10 @@ export default function SubscriptionScreen() {
               );
               await loadData();
             } catch (err: any) {
-              const errorMessage =
-                err?.response?.data?.detail ||
-                err?.response?.data?.message ||
-                t('subscriptionForm.genericChangeError');
-              Alert.alert(t('common.error'), errorMessage);
+              const { message } = getApiErrorMessage(err, t, {
+                fallbackKey: 'subscriptionForm.genericChangeError',
+              });
+              showError(t('common.error'), message);
             } finally {
               setUpgrading(null);
             }
@@ -390,11 +392,10 @@ export default function SubscriptionScreen() {
               );
               await loadData();
             } catch (err: any) {
-              const errorMessage =
-                err?.response?.data?.detail ||
-                err?.response?.data?.message ||
-                t('subscriptionForm.cancelGenericError');
-              Alert.alert(t('common.error'), errorMessage);
+              const { message } = getApiErrorMessage(err, t, {
+                fallbackKey: 'subscriptionForm.cancelGenericError',
+              });
+              showError(t('common.error'), message);
             }
           },
         },

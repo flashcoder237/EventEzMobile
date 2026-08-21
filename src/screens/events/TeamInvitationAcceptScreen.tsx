@@ -31,6 +31,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
 import { eventTeamAPI, EventStaffInvitationLookup, EventStaffRole } from '../../api';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { useAuth } from '../../contexts/AuthContext';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
@@ -124,13 +125,10 @@ export default function TeamInvitationAcceptScreen() {
         ],
       );
     } catch (err: any) {
-      Alert.alert(
-        t('common.error'),
-        err?.response?.data?.detail ||
-          t('teamInvitation.acceptError', {
-            defaultValue: 'Impossible d\'accepter l\'invitation.',
-          }),
-      );
+      const { message } = getApiErrorMessage(err, t, {
+        fallbackKey: 'teamInvitation.acceptError',
+      });
+      Alert.alert(t('common.error'), message);
     } finally {
       setActionLoading(null);
     }
@@ -155,7 +153,10 @@ export default function TeamInvitationAcceptScreen() {
               if (navigation.canGoBack()) navigation.goBack();
               else navigation.navigate('Main' as any);
             } catch (err: any) {
-              Alert.alert(t('common.error'), err?.response?.data?.detail || 'Erreur');
+              const { message } = getApiErrorMessage(err, t, {
+                fallbackKey: 'errors.generic',
+              });
+              Alert.alert(t('common.error'), message);
             } finally {
               setActionLoading(null);
             }

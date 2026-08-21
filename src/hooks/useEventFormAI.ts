@@ -5,9 +5,11 @@
  */
 
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { aiAssistAPI, siteSettingsAPI } from '../api';
 import type { Category, AIUsage, AIGeneratedEvent } from '../types';
 import type { AlertActions } from './useEventForm';
+import { getApiErrorMessage } from '../lib/utils/errorHandling';
 
 interface UseEventFormAIOptions {
   alertActions: AlertActions;
@@ -41,6 +43,7 @@ export function useEventFormAI(options: UseEventFormAIOptions) {
     setLocationCity, setTicketTypes,
   } = options;
   const { showAlert, showSuccess, showError } = alertActions;
+  const { t } = useTranslation();
 
   const [aiEnabled, setAiEnabled] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
@@ -85,18 +88,18 @@ export function useEventFormAI(options: UseEventFormAIOptions) {
         try {
           setAiResult(JSON.parse(data.text));
         } catch {
-          setAiError('Format de réponse inattendu');
+          setAiError(t('errors.generic'));
         }
       } else {
         setAiResult(data);
       }
       refreshAIUsage();
     } catch (err: any) {
-      setAiError(err.response?.data?.detail || err.response?.data?.message || 'Erreur lors de la génération');
+      setAiError(getApiErrorMessage(err, t, { fallbackKey: 'errors.generic' }).message);
     } finally {
       setAiLoading(false);
     }
-  }, [sessionId]);
+  }, [sessionId, t]);
 
   const handleAIApply = useCallback((data: AIGeneratedEvent) => {
     if (data.title) setTitle(data.title);
@@ -111,8 +114,8 @@ export function useEventFormAI(options: UseEventFormAIOptions) {
     if (data.suggested_location_name) setLocationName(data.suggested_location_name);
     if (data.suggested_city) setLocationCity(data.suggested_city);
     setAiResult(null);
-    showSuccess('Succès', 'Les données IA ont été appliquées au formulaire');
-  }, [showSuccess, setTitle, setShortDescription, setDescription, setEventType, setCategoryId, setSelectedTagIds, setLocationType, setLocationName, setLocationCity]);
+    showSuccess(t('common.success'), t('organizer.eventCreate.aiAppliedMessage', { defaultValue: 'Les données IA ont été appliquées au formulaire' }));
+  }, [showSuccess, t, setTitle, setShortDescription, setDescription, setEventType, setCategoryId, setSelectedTagIds, setLocationType, setLocationName, setLocationCity]);
 
   const handleOptimizeTitle = useCallback(async () => {
     if (!title.trim() || title.length < 5) return;
@@ -123,10 +126,10 @@ export function useEventFormAI(options: UseEventFormAIOptions) {
       const suggestions = res.data.suggestions || res.data;
       if (Array.isArray(suggestions) && suggestions.length > 0) {
         showAlert(
-          'Suggestions de titre',
+          t('organizer.eventCreate.aiTitleSuggestionsTitle', { defaultValue: 'Suggestions de titre' }),
           suggestions.map((s: any, i: number) => `${i + 1}. ${s.title}\n   → ${s.reason}`).join('\n\n'),
           [
-            { text: 'Annuler', style: 'cancel' },
+            { text: t('common.cancel'), style: 'cancel' },
             ...suggestions.slice(0, 3).map((s: any) => ({
               text: s.title.substring(0, 20) + '...',
               onPress: () => setTitle(s.title),
@@ -136,15 +139,20 @@ export function useEventFormAI(options: UseEventFormAIOptions) {
       }
       refreshAIUsage();
     } catch (err: any) {
-      showError('Erreur', err.response?.data?.detail || 'Impossible d\'optimiser le titre');
+      showError(t('common.error'), getApiErrorMessage(err, t, { fallbackKey: 'errors.generic' }).message);
     } finally {
       setAiTitleLoading(false);
     }
-  }, [title, categories, categoryId, eventType, sessionId, showAlert, showError, setTitle]);
+  }, [title, categories, categoryId, eventType, sessionId, showAlert, showError, setTitle, t]);
 
   const handleGenerateDescription = useCallback(async () => {
     if (!title.trim()) {
-      showError('Erreur', 'Veuillez d\'abord entrer un titre');
+      showAlert(
+        t('common.info'),
+        t('organizer.eventCreate.aiNeedTitleFirst', { defaultValue: "Ajoutez d'abord un titre pour que l'IA puisse générer une description." }),
+        undefined,
+        'info',
+      );
       return;
     }
     setAiDescLoading(true);
@@ -154,15 +162,15 @@ export function useEventFormAI(options: UseEventFormAIOptions) {
       const text = res.data.text || res.data.description || '';
       if (text) {
         setDescription(text);
-        showSuccess('Succès', 'Description générée par l\'IA');
+        showSuccess(t('common.success'), t('organizer.eventCreate.aiDescGenerated', { defaultValue: "Description générée par l'IA" }));
       }
       refreshAIUsage();
     } catch (err: any) {
-      showError('Erreur', err.response?.data?.detail || 'Impossible de générer la description');
+      showError(t('common.error'), getApiErrorMessage(err, t, { fallbackKey: 'errors.generic' }).message);
     } finally {
       setAiDescLoading(false);
     }
-  }, [title, categories, categoryId, eventType, sessionId, showSuccess, showError, setDescription]);
+  }, [title, categories, categoryId, eventType, sessionId, showAlert, showSuccess, showError, setDescription, t]);
 
   const handleSuggestPricing = useCallback(async () => {
     setAiPricingLoading(true);
@@ -172,12 +180,12 @@ export function useEventFormAI(options: UseEventFormAIOptions) {
       const suggestions = res.data.suggestions || res.data;
       if (Array.isArray(suggestions) && suggestions.length > 0) {
         showAlert(
-          'Suggestions de prix IA',
+          t('organizer.eventCreate.aiPricingSuggestionsTitle', { defaultValue: 'Suggestions de prix IA' }),
           suggestions.map((s: any) => `${s.name}: ${s.price} ${platformCurrency}\n→ ${s.reasoning}`).join('\n\n'),
           [
-            { text: 'Annuler', style: 'cancel' },
+            { text: t('common.cancel'), style: 'cancel' },
             {
-              text: 'Appliquer',
+              text: t('common.apply', { defaultValue: 'Appliquer' }),
               onPress: () => {
                 const newTickets = suggestions.map((s: any) => ({
                   name: s.name,
@@ -191,7 +199,7 @@ export function useEventFormAI(options: UseEventFormAIOptions) {
                   min_per_order: '1',
                 }));
                 setTicketTypes(newTickets);
-                showSuccess('Succès', 'Tickets créés à partir des suggestions IA');
+                showSuccess(t('common.success'), t('organizer.eventCreate.aiTicketsCreated', { defaultValue: 'Tickets créés à partir des suggestions IA' }));
               },
             },
           ]
@@ -199,11 +207,11 @@ export function useEventFormAI(options: UseEventFormAIOptions) {
       }
       refreshAIUsage();
     } catch (err: any) {
-      showError('Erreur', err.response?.data?.detail || 'Impossible de suggérer les prix');
+      showError(t('common.error'), getApiErrorMessage(err, t, { fallbackKey: 'errors.generic' }).message);
     } finally {
       setAiPricingLoading(false);
     }
-  }, [categories, categoryId, eventType, locationCity, maxParticipants, description, sessionId, startDate, platformCurrency, showAlert, showSuccess, showError, setTicketTypes]);
+  }, [categories, categoryId, eventType, locationCity, maxParticipants, description, sessionId, startDate, platformCurrency, showAlert, showSuccess, showError, setTicketTypes, t]);
 
   return {
     aiEnabled,

@@ -588,13 +588,10 @@ export default function EventCreateScreen() {
                 <Ionicons name="alert-circle" size={20} color="#DC2626" />
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: '#991B1B', fontWeight: '600', fontSize: 13 }}>
-                    {t('eventCreate.unsupportedCountryTitle', { defaultValue: 'Pays non disponible' })}
+                    {t('organizer.eventCreate.unsupportedCountryTitle', { defaultValue: 'Pays non disponible' })}
                   </Text>
                   <Text style={{ color: '#B91C1C', fontSize: 12, marginTop: 4, lineHeight: 17 }}>
-                    {t('eventCreate.unsupportedCountryMessage', {
-                      country: form.locationCountry,
-                      defaultValue: `EventEz ne traite pas encore les paiements dans ce pays (${form.locationCountry}). La creation sera refusee.`,
-                    })}
+                    {t('errors.codes.countryNotSupported')}
                   </Text>
                 </View>
               </View>

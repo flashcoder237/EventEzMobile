@@ -44,6 +44,7 @@ import {
 } from '../../constants/theme';
 import { calculateServiceFee, getServiceFeeLabel } from '../../constants/payment';
 import { getSaleState } from '../../utils/ticketSaleWindow';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
@@ -493,7 +494,9 @@ export default function TicketPurchaseScreen() {
         setDiscountError(data.message || t('ticketPurchase.discountInvalid'));
       }
     } catch (error: any) {
-      const message = error.response?.data?.detail || error.response?.data?.message || t('ticketPurchase.discountInvalidOrExpired');
+      const { message } = getApiErrorMessage(error, t, {
+        fallbackKey: 'ticketPurchase.discountInvalidOrExpired',
+      });
       setDiscountError(message);
       setAppliedDiscount(null);
     } finally {
@@ -678,7 +681,7 @@ export default function TicketPurchaseScreen() {
         // L'utilisateur a déjà une inscription confirmée
         showConfirm(
           t('ticketPurchase.alreadyRegisteredConfirmTitle'),
-          errorData.message || t('ticketPurchase.alreadyRegisteredConfirmMessage'),
+          t('ticketPurchase.alreadyRegisteredConfirmMessage'),
           () => {
             // Rediriger vers les détails de l'inscription ou acheter plus de billets
             navigation.navigate('TicketPurchase', {
@@ -688,10 +691,10 @@ export default function TicketPurchaseScreen() {
           }
         );
       } else {
-        showError(
-          t('common.error'),
-          errorData?.detail || errorData?.message || t('ticketPurchase.createRegistrationError')
-        );
+        const { message } = getApiErrorMessage(error, t, {
+          fallbackKey: 'ticketPurchase.createRegistrationError',
+        });
+        showError(t('common.error'), message);
       }
     } finally {
       setSubmitting(false);

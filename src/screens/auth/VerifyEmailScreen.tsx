@@ -37,6 +37,7 @@ import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
 import { centeredContent, FORM_MAX } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'VerifyEmail'>;
 type RoutePropType = RouteProp<RootStackParamList, 'VerifyEmail'>;
@@ -223,14 +224,12 @@ export default function VerifyEmailScreen() {
       showSuccess(t('auth.verifyEmailResentTitle'), t('auth.verifyEmailResentDetail', { email }));
       setEmailCooldown(RESEND_COOLDOWN);
     } catch (error: any) {
-      const message =
-        error.response?.data?.detail ||
-        t('auth.verifyEmailResentError');
+      const { message } = getApiErrorMessage(error, t, { fallbackKey: 'auth.verifyEmailResentError' });
       showError(t('common.error'), message);
     } finally {
       setResendLoading(false);
     }
-  }, [email, resendLoading, emailCooldown, showSuccess, showError]);
+  }, [email, resendLoading, emailCooldown, showSuccess, showError, t]);
 
   const handleSendOTP = async () => {
     if (!phoneNumber.trim()) {
@@ -245,11 +244,9 @@ export default function VerifyEmailScreen() {
       setPhoneStep('otp');
       setPhoneCooldown(RESEND_COOLDOWN);
     } catch (error: any) {
-      const msg =
-        error.response?.data?.detail ||
-        error.response?.data?.phone_number?.[0] ||
-        t('auth.verifyByPhoneSMSError');
-      setPhoneError(msg);
+      // Erreur de champ phone_number → message propre ; sinon fallback SMS.
+      const { message, fieldErrors } = getApiErrorMessage(error, t, { fallbackKey: 'auth.verifyByPhoneSMSError' });
+      setPhoneError(fieldErrors?.phone_number || message);
       setPhoneStep('idle');
     }
   };
@@ -265,10 +262,8 @@ export default function VerifyEmailScreen() {
       setPhoneStep('done');
       showSuccess(t('auth.verifyByPhoneSuccessShortTitle'), t('auth.verifyByPhoneSuccessShortDetail'));
     } catch (error: any) {
-      const msg =
-        error.response?.data?.detail ||
-        t('auth.verifyByPhoneCodeError');
-      setPhoneError(msg);
+      const { message } = getApiErrorMessage(error, t, { fallbackKey: 'auth.verifyByPhoneCodeError' });
+      setPhoneError(message);
       setPhoneStep('otp');
     }
   };
@@ -283,8 +278,8 @@ export default function VerifyEmailScreen() {
       setOtpCode('');
       setPhoneCooldown(RESEND_COOLDOWN);
     } catch (error: any) {
-      const msg = error.response?.data?.detail || t('auth.verifyByPhoneResendError');
-      setPhoneError(msg);
+      const { message } = getApiErrorMessage(error, t, { fallbackKey: 'auth.verifyByPhoneResendError' });
+      setPhoneError(message);
       setPhoneStep('otp');
     }
   };

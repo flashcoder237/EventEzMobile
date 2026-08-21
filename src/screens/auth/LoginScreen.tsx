@@ -33,7 +33,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
-import { extractErrorMessage } from '../../lib/utils/errorHandling';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { validators, FormErrors } from '../../lib/validation';
 import { eventBus } from '../../lib/eventBus';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
@@ -149,8 +149,8 @@ export default function LoginScreen() {
           t('auth.guestExistingAccountDetail'),
         );
       } else {
-        const msg = extractErrorMessage(error);
-        showError(t('common.error'), msg);
+        const { message } = getApiErrorMessage(error, t, { fallbackKey: 'errors.generic' });
+        showError(t('common.error'), message);
       }
     } finally {
       setGuestLoading(false);
@@ -220,8 +220,8 @@ export default function LoginScreen() {
       await SecureStore.setItemAsync(REMEMBER_ME_KEY, rememberMe.toString());
       await setUser(result.user);
       afterSocialLogin(result);
-    } else if (result.error && result.error !== 'Connexion annulée') {
-      showError(t('auth.googleError'), result.error);
+    } else if (!result.cancelled && result.errorKey) {
+      showError(t('auth.googleError'), t(result.errorKey));
     }
   };
 
@@ -231,8 +231,8 @@ export default function LoginScreen() {
       await SecureStore.setItemAsync(REMEMBER_ME_KEY, rememberMe.toString());
       await setUser(result.user);
       afterSocialLogin(result);
-    } else if (result.error && result.error !== 'Connexion annulée') {
-      showError(t('auth.appleError'), result.error);
+    } else if (!result.cancelled && result.errorKey) {
+      showError(t('auth.appleError'), t(result.errorKey));
     }
   };
 
@@ -248,7 +248,7 @@ export default function LoginScreen() {
       setResendCooldown(60);
       setTimeout(() => otpInputRef.current?.focus(), 300);
     } else {
-      showError(t('auth.smsError'), result.error || t('auth.smsErrorDetail'));
+      showError(t('auth.smsError'), result.errorKey ? t(result.errorKey) : t('auth.smsErrorDetail'));
     }
   };
 
@@ -263,7 +263,7 @@ export default function LoginScreen() {
       await setUser(result.user);
       dismissAfterLogin(result.user);
     } else {
-      showError(t('auth.invalidCode'), result.error || t('auth.invalidCodeDetail'));
+      showError(t('auth.invalidCode'), result.errorKey ? t(result.errorKey) : t('auth.invalidCodeDetail'));
     }
   };
 
@@ -275,7 +275,7 @@ export default function LoginScreen() {
       setResendCooldown(60);
       showSuccess(t('auth.codeResent'), t('auth.newCodeSent'));
     } else {
-      showError(t('common.error'), result.error || t('auth.smsErrorDetail'));
+      showError(t('common.error'), result.errorKey ? t(result.errorKey) : t('auth.smsErrorDetail'));
     }
   };
 
@@ -303,7 +303,11 @@ export default function LoginScreen() {
       dismissAfterLogin(loggedInUser);
     } catch (error: any) {
       setRetryInfo(null);
-      const message = extractErrorMessage(error);
+      // 401 = identifiants invalides : message dédié plutôt que "non autorisé".
+      const fallbackKey = error?.response?.status === 401
+        ? 'errors.codes.invalidCredentials'
+        : 'errors.generic';
+      const { message } = getApiErrorMessage(error, t, { fallbackKey });
       showError(t('auth.loginError'), message);
     } finally {
       setLoginInProgress(false);

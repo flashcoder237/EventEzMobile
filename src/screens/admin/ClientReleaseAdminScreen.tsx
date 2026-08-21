@@ -29,6 +29,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import RoleGuard from '../../components/auth/RoleGuard';
 import { clientReleaseAPI } from '../../api';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { RootStackParamList } from '../../types';
 import {
   FontFamily,
@@ -79,8 +80,7 @@ function ClientReleaseAdminContent() {
         setIosUrl(d.ios_store_url || '');
         setAndroidUrl(d.android_store_url || '');
       } catch (error: any) {
-        const detail = error?.response?.data?.detail;
-        showError(t('common.error'), detail || t('admin.clientRelease.loadError'));
+        showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'admin.clientRelease.loadError' }).message);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -103,13 +103,7 @@ function ClientReleaseAdminContent() {
       showSuccess(t('admin.clientRelease.saveSuccess'));
       navigation.goBack();
     } catch (error: any) {
-      const data = error?.response?.data;
-      const firstError =
-        (data && typeof data === 'object' && Object.values(data)[0]) ||
-        data?.detail ||
-        t('admin.clientRelease.saveError');
-      const msg = Array.isArray(firstError) ? String(firstError[0]) : String(firstError);
-      showError(t('common.error'), msg);
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'admin.clientRelease.saveError' }).message);
     } finally {
       setSaving(false);
     }

@@ -103,18 +103,23 @@ describe('handleAIGenerate', () => {
     expect(result.current.aiResult).toEqual({ title: 'Parsé' });
   });
 
-  it('text JSON invalide → aiError', async () => {
+  it('text JSON invalide → aiError générique (jamais de jargon brut)', async () => {
+    // Le parse échoue → on retombe sur le message i18n générique, pas sur une
+    // chaîne technique montrée à l'utilisateur.
     mockGenerate.mockResolvedValue({ data: { text: 'pas du json' } });
     const { result } = makeHook();
     await act(async () => { await result.current.handleAIGenerate('p'); });
-    expect(result.current.aiError).toBe('Format de réponse inattendu');
+    expect(result.current.aiError).toBe('Une erreur est survenue. Veuillez réessayer.');
   });
 
-  it('erreur API → message d\'erreur remonté', async () => {
+  it('erreur API → message générique remonté (le detail DRF brut ne fuit jamais)', async () => {
+    // Réponse sans status ni code métier → getApiErrorMessage retombe sur le
+    // fallback générique ; le `detail` brut du backend n'est jamais exposé.
     mockGenerate.mockRejectedValue({ response: { data: { detail: 'Quota dépassé' } } });
     const { result } = makeHook();
     await act(async () => { await result.current.handleAIGenerate('p'); });
-    expect(result.current.aiError).toBe('Quota dépassé');
+    expect(result.current.aiError).toBe('Une erreur est survenue. Veuillez réessayer.');
+    expect(result.current.aiError).not.toBe('Quota dépassé');
     expect(result.current.aiLoading).toBe(false);
   });
 });
@@ -146,10 +151,12 @@ describe('handleAIApply', () => {
 });
 
 describe('handleGenerateDescription', () => {
-  it('sans titre → erreur, pas d\'appel API', async () => {
+  it('sans titre → alerte informative, pas d\'appel API', async () => {
+    // Titre manquant = garde locale (pas une erreur backend) : on informe via
+    // showAlert('info'), on n'appelle pas l'API.
     const { result } = makeHook({ title: '  ' });
     await act(async () => { await result.current.handleGenerateDescription(); });
-    expect(showError).toHaveBeenCalled();
+    expect(showAlert).toHaveBeenCalled();
     expect(mockDescription).not.toHaveBeenCalled();
   });
 
@@ -189,10 +196,11 @@ describe('handleSuggestPricing', () => {
     expect(showAlert).toHaveBeenCalledWith('Suggestions de prix IA', expect.any(String), expect.any(Array));
   });
 
-  it('erreur API → showError', async () => {
+  it('erreur API → showError avec message générique (detail brut jamais exposé)', async () => {
     mockPricing.mockRejectedValue({ response: { data: { detail: 'IA indispo' } } });
     const { result } = makeHook();
     await act(async () => { await result.current.handleSuggestPricing(); });
-    expect(showError).toHaveBeenCalledWith('Erreur', 'IA indispo');
+    expect(showError).toHaveBeenCalledWith('Erreur', 'Une erreur est survenue. Veuillez réessayer.');
+    expect(showError).not.toHaveBeenCalledWith('Erreur', 'IA indispo');
   });
 });

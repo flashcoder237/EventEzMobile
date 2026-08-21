@@ -29,7 +29,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { authAPI, setTokens } from '../../api';
-import { extractErrorMessage } from '../../lib/utils/errorHandling';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { validators } from '../../lib/validation';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import PhoneNumberInput from '../../components/common/PhoneNumberInput';
@@ -139,8 +139,8 @@ export default function RegisterScreen() {
     if (result.success && result.user) {
       await setUser(result.user);
       afterSocialSignUp(result);
-    } else if (result.error && result.error !== 'Connexion annulée') {
-      showError(t('auth.googleError'), result.error);
+    } else if (!result.cancelled && result.errorKey) {
+      showError(t('auth.googleError'), t(result.errorKey));
     }
   };
 
@@ -149,8 +149,8 @@ export default function RegisterScreen() {
     if (result.success && result.user) {
       await setUser(result.user);
       afterSocialSignUp(result);
-    } else if (result.error && result.error !== 'Connexion annulée') {
-      showError(t('auth.appleError'), result.error);
+    } else if (!result.cancelled && result.errorKey) {
+      showError(t('auth.appleError'), t(result.errorKey));
     }
   };
 
@@ -240,7 +240,19 @@ export default function RegisterScreen() {
         );
         return;
       }
-      const message = extractErrorMessage(error);
+      // Erreurs de validation par champ → routées sous les champs concernés ;
+      // sinon message global propre (jamais error.message/detail brut).
+      const { message, fieldErrors } = getApiErrorMessage(error, t, { fallbackKey: 'auth.registerError' });
+      if (fieldErrors) {
+        const mapped: FormErrors = {};
+        (['first_name', 'last_name', 'email', 'phone_number', 'password'] as (keyof FormErrors)[]).forEach((f) => {
+          if (fieldErrors[f]) mapped[f] = fieldErrors[f];
+        });
+        if (Object.keys(mapped).length > 0) {
+          setErrors((prev) => ({ ...prev, ...mapped }));
+          return;
+        }
+      }
       showError(t('auth.registerError'), message);
     }
   };

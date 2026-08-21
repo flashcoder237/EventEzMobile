@@ -40,6 +40,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import { advertisementsAPI, AdvertisementAdmin } from '../../api';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { RootStackParamList } from '../../types';
 import RoleGuard from '../../components/auth/RoleGuard';
 import {
@@ -117,7 +118,7 @@ function AdminAdFormContent() {
       setExistingImageUrl(ad.image_url || null);
     } catch (error) {
       if (__DEV__) console.error('Erreur fetch ad:', error);
-      showError(t('common.error'), t('admin.ads.form.loadError'));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'admin.ads.form.loadError' }).message);
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -217,10 +218,7 @@ function AdminAdFormContent() {
       navigation.goBack();
     } catch (error: any) {
       if (__DEV__) console.error('Erreur submit:', error);
-      const detail = error?.response?.data?.detail
-        || JSON.stringify(error?.response?.data || {})
-        || t('admin.ads.form.submitError');
-      showError(t('common.error'), detail);
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'admin.ads.form.submitError' }).message);
     } finally {
       setSubmitting(false);
     }

@@ -60,6 +60,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { useMessageState, AttachedFile } from '../../hooks/useMessageState';
 import { useOfflineQueue } from '../../hooks/useOfflineQueue';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import type { QueuedMessage } from '../../lib/utils/messagingHelpers';
 import { Message, RootStackParamList, User } from '../../types';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
@@ -672,9 +673,10 @@ export default function ConversationScreen() {
       // un load more on évite de bloquer l'UI — l'utilisateur a déjà des msgs
       // affichés et peut retenter via le scroll-up à nouveau.
       if (!loadMore && state.messages.length === 0) {
-        setMessagesLoadError(
-          error?.response?.data?.detail || error?.message || t('conversation.messagesLoadError'),
-        );
+        const { message } = getApiErrorMessage(error, t, {
+          fallbackKey: 'conversation.messagesLoadError',
+        });
+        setMessagesLoadError(message);
       }
     } finally {
       actions.setLoading(false);
@@ -2004,11 +2006,10 @@ export default function ConversationScreen() {
         t('conversation.reportSentMessage'),
       );
     } catch (error: any) {
-      const msg =
-        error?.response?.data?.detail ||
-        error?.response?.data?.error ||
-        t('conversation.reportError');
-      showError(t('common.error'), msg);
+      const { message } = getApiErrorMessage(error, t, {
+        fallbackKey: 'conversation.reportError',
+      });
+      showError(t('common.error'), message);
     } finally {
       setSubmittingReport(false);
     }
@@ -2120,10 +2121,10 @@ export default function ConversationScreen() {
           );
           exitSelectionMode();
         } catch (err: any) {
-          showError(
-            t('common.error'),
-            err?.response?.data?.detail || t('conversation.bulkDeleteError'),
-          );
+          const { message } = getApiErrorMessage(err, t, {
+            fallbackKey: 'conversation.bulkDeleteError',
+          });
+          showError(t('common.error'), message);
         }
       },
     );
@@ -3472,7 +3473,10 @@ export default function ConversationScreen() {
                         await messagesAPI.declineMessageRequest(String(state.conversationId));
                         navigation.goBack();
                       } catch (e: any) {
-                        showError(t('common.error'), String(e?.response?.data?.error || t('messageRequests.declineFailed')));
+                        const { message } = getApiErrorMessage(e, t, {
+                          fallbackKey: 'messageRequests.declineFailed',
+                        });
+                        showError(t('common.error'), message);
                       }
                     }}
                     activeOpacity={TOUCH_OPACITY}
@@ -3488,7 +3492,10 @@ export default function ConversationScreen() {
                         const res = await messagesAPI.acceptMessageRequest(String(state.conversationId));
                         setConversationDetails((prev: any) => prev ? { ...prev, ...res.data } : res.data);
                       } catch (e: any) {
-                        showError(t('common.error'), String(e?.response?.data?.error || t('messageRequests.acceptFailed')));
+                        const { message } = getApiErrorMessage(e, t, {
+                          fallbackKey: 'messageRequests.acceptFailed',
+                        });
+                        showError(t('common.error'), message);
                       }
                     }}
                     activeOpacity={TOUCH_OPACITY}

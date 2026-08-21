@@ -149,9 +149,11 @@ describe('ResetPasswordScreen', () => {
     expect(await findByText('Mot de passe mis à jour')).toBeTruthy();
   });
 
-  it('shows error message when API rejects the password', async () => {
+  it('routes a password field error under the field on a 400', async () => {
+    // 400 avec erreur de champ password : le helper renvoie fieldErrors.password
+    // et l'écran affiche le message SOUS le champ (pas un toast global).
     mockResetPassword.mockRejectedValueOnce({
-      response: { data: { password: ['Trop commun'] } },
+      response: { status: 400, data: { password: ['Trop commun'] } },
     });
     const { getByPlaceholderText, getByText, findByText } = await renderValidatedForm();
 

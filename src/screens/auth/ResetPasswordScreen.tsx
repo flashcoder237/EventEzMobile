@@ -25,6 +25,7 @@ import {
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
 import { centeredContent } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ResetPassword'>;
 type RouteProps = RouteProp<RootStackParamList, 'ResetPassword'>;
@@ -98,15 +99,18 @@ export default function ResetPasswordScreen() {
       showSuccess(t('auth.resetPasswordSuccessShort'));
     } catch (err: any) {
       const errorData = err.response?.data;
-      if (errorData?.password) {
-        const msg = Array.isArray(errorData.password) ? errorData.password[0] : errorData.password;
-        setErrors({ password: msg });
-      } else if (errorData?.token) {
+      // Token invalide/expiré → message dédié. Erreur de champ password →
+      // routée sous le champ. Sinon message propre via le helper (jamais de
+      // detail/JSON brut).
+      if (errorData?.token) {
         showError(t('common.error'), t('auth.resetPasswordTokenExpiredError'));
-      } else if (errorData?.detail) {
-        showError(t('common.error'), errorData.detail);
       } else {
-        showError(t('common.error'), t('errors.generic'));
+        const { message, fieldErrors } = getApiErrorMessage(err, t, { fallbackKey: 'errors.generic' });
+        if (fieldErrors?.password) {
+          setErrors({ password: fieldErrors.password });
+        } else {
+          showError(t('common.error'), message);
+        }
       }
     } finally {
       setIsLoading(false);

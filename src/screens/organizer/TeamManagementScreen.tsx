@@ -29,6 +29,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
 import { eventTeamAPI, EventStaffMember, EventStaffRole } from '../../api';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -148,14 +149,10 @@ export default function TeamManagementScreen() {
       setInviteRole('scanner');
       fetchData();
     } catch (err: any) {
-      const detail =
-        err?.response?.data?.detail ||
-        err?.response?.data?.invited_email?.[0] ||
-        err?.response?.data?.invited_phone?.[0] ||
-        t('teamManagement.inviteSentError', {
-          defaultValue: "Impossible d'envoyer l'invitation.",
-        });
-      Alert.alert(t('common.error'), detail);
+      const { message } = getApiErrorMessage(err, t, {
+        fallbackKey: 'teamManagement.inviteSentError',
+      });
+      Alert.alert(t('common.error'), message);
     } finally {
       setInviteSubmitting(false);
     }
@@ -180,7 +177,10 @@ export default function TeamManagementScreen() {
               await eventTeamAPI.revoke(member.id);
               fetchData();
             } catch (err: any) {
-              Alert.alert(t('common.error'), err?.response?.data?.detail || 'Erreur');
+              const { message } = getApiErrorMessage(err, t, {
+                fallbackKey: 'errors.generic',
+              });
+              Alert.alert(t('common.error'), message);
             } finally {
               setActionLoading(null);
             }
@@ -200,7 +200,10 @@ export default function TeamManagementScreen() {
       );
       fetchData();
     } catch (err: any) {
-      Alert.alert(t('common.error'), err?.response?.data?.detail || 'Erreur');
+      const { message } = getApiErrorMessage(err, t, {
+        fallbackKey: 'errors.generic',
+      });
+      Alert.alert(t('common.error'), message);
     } finally {
       setActionLoading(null);
     }

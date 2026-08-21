@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import type { MutableRefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   eventsAPI,
   ticketTypesAPI,
@@ -8,6 +9,7 @@ import {
   speakersAPI,
 } from '../api';
 import { Tag } from '../types';
+import { getApiErrorMessage } from '../lib/utils/errorHandling';
 import type { EventFormState, AlertActions, TrackForm, SpeakerForm } from './useEventForm';
 
 interface SyncRefs {
@@ -23,6 +25,7 @@ export function useEventFormSubmit(
   hostEventId?: string,
   syncRefs?: SyncRefs,
 ) {
+  const { t } = useTranslation();
   const handleSubmit = useCallback(async (): Promise<string | null> => {
     if (!validateStep(form.currentStep)) return null;
 
@@ -63,14 +66,13 @@ export function useEventFormSubmit(
       return eventId;
     } catch (error: any) {
       if (__DEV__) console.error('Erreur création événement:', error);
-      showError(
-        'Erreur',
-        error.response?.data?.message || error.response?.data?.detail ||
-          (editEventId ? "Impossible de modifier l'événement" : "Impossible de créer l'événement")
-      );
+      const { message } = getApiErrorMessage(error, t, {
+        fallbackKey: 'errors.generic',
+      });
+      showError(t('common.error'), message);
       return null;
     }
-  }, [form, validateStep, showError, editEventId, hostEventId, syncRefs]);
+  }, [form, validateStep, showError, editEventId, hostEventId, syncRefs, t]);
 
   return handleSubmit;
 }

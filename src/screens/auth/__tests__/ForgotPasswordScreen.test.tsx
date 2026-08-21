@@ -116,9 +116,11 @@ describe('ForgotPasswordScreen', () => {
     expect(await findByText('Check ta boîte mail')).toBeTruthy();
   });
 
-  it('shows error toast when API returns a field-specific error', async () => {
+  it('shows a generic validation toast when API returns a field-specific error (raw field text never shown)', async () => {
+    // 400 avec erreur de champ email : le helper met l'erreur dans fieldErrors
+    // et n'affiche qu'un message GLOBAL générique — jamais le texte brut du champ.
     mockRequestPasswordReset.mockRejectedValueOnce({
-      response: { data: { email: 'Email mal formé' } },
+      response: { status: 400, data: { email: 'Email mal formé' } },
     });
     const { getByPlaceholderText, getByText } = render(<ForgotPasswordScreen />);
 
@@ -126,7 +128,11 @@ describe('ForgotPasswordScreen', () => {
     fireEvent.press(getByText('Envoyer le lien'));
 
     await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith('Erreur', 'Email mal formé');
+      expect(mockShowError).toHaveBeenCalledWith(
+        'Erreur',
+        'Certaines informations sont invalides. Corrigez les champs signalés et réessayez.',
+      );
     });
+    expect(mockShowError).not.toHaveBeenCalledWith('Erreur', 'Email mal formé');
   });
 });

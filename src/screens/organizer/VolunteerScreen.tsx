@@ -19,6 +19,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { volunteersAPI } from '../../api';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { getVolunteerSignupUrl } from '../../constants/urls';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
@@ -137,8 +138,10 @@ export default function VolunteerScreen() {
       setCreateOpen(false);
       resetCreateForm();
     } catch (error: any) {
-      const detail = error?.response?.data?.detail || t('organizer.volunteer.createRoleError');
-      Alert.alert(t('common.error'), detail);
+      const { message } = getApiErrorMessage(error, t, {
+        fallbackKey: 'organizer.volunteer.createRoleError',
+      });
+      Alert.alert(t('common.error'), message);
     } finally {
       setCreateLoading(false);
     }
@@ -198,7 +201,9 @@ export default function VolunteerScreen() {
               fetchData();
             } catch (error: any) {
               if (__DEV__) console.error('Erreur apply volunteer:', error);
-              const message = error?.response?.data?.detail || t('organizer.volunteer.applyError');
+              const { message } = getApiErrorMessage(error, t, {
+                fallbackKey: 'organizer.volunteer.applyError',
+              });
               Alert.alert(t('common.error'), message);
             } finally {
               setActionLoading(null);
@@ -225,7 +230,10 @@ export default function VolunteerScreen() {
               await volunteersAPI.completeTask(taskId);
             } catch (error: any) {
               setTasks(prev => prev.map(task => task.id === taskId ? { ...task, status: task.status === 'completed' ? 'in_progress' : task.status } : task));
-              Alert.alert(t('common.error'), error?.response?.data?.detail || t('organizer.volunteer.completeError'));
+              const { message } = getApiErrorMessage(error, t, {
+                fallbackKey: 'organizer.volunteer.completeError',
+              });
+              Alert.alert(t('common.error'), message);
             } finally {
               setActionLoading(null);
             }
@@ -256,7 +264,10 @@ export default function VolunteerScreen() {
                 ),
               );
             } catch (err: any) {
-              Alert.alert(t('common.error'), err?.response?.data?.detail || 'Erreur');
+              const { message } = getApiErrorMessage(err, t, {
+                fallbackKey: 'errors.generic',
+              });
+              Alert.alert(t('common.error'), message);
             } finally {
               setActionLoading(null);
             }
@@ -288,7 +299,10 @@ export default function VolunteerScreen() {
                 ),
               );
             } catch (err: any) {
-              Alert.alert(t('common.error'), err?.response?.data?.detail || 'Erreur');
+              const { message } = getApiErrorMessage(err, t, {
+                fallbackKey: 'errors.generic',
+              });
+              Alert.alert(t('common.error'), message);
             } finally {
               setActionLoading(null);
             }

@@ -24,6 +24,7 @@ import {
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
 import { centeredContent } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ForgotPassword'>;
 
@@ -59,12 +60,13 @@ export default function ForgotPasswordScreen() {
       setIsSuccess(true);
     } catch (err: any) {
       const errorData = err.response?.data;
-      if (errorData?.email) {
-        showError(t('common.error'), Array.isArray(errorData.email) ? errorData.email[0] : errorData.email);
-      } else if (errorData?.detail) {
-        showError(t('common.error'), errorData.detail);
+      // 400 avec erreur de champ email (format/validation) → message propre.
+      // Sinon : on affiche un succès même si l'email n'existe pas (sécurité :
+      // ne pas révéler l'existence d'un compte).
+      if (errorData?.email || (err?.response?.status === 400 && errorData?.detail)) {
+        const { message } = getApiErrorMessage(err, t, { fallbackKey: 'errors.generic' });
+        showError(t('common.error'), message);
       } else {
-        // On affiche un succès même si l'email n'existe pas (sécurité)
         setIsSuccess(true);
       }
     } finally {

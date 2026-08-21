@@ -748,8 +748,11 @@ describe('useEventForm', () => {
       expect(mockedEventsAPI.submitForValidation).not.toHaveBeenCalled();
     });
 
-    it('returns null and surfaces detail error on backend failure', async () => {
+    it('returns null and surfaces a generic error (never the raw DRF detail) on backend failure', async () => {
       const alerts = makeAlerts();
+      // Le backend renvoie un `detail` brut : getApiErrorMessage NE doit JAMAIS
+      // l'exposer à l'utilisateur. Sans status ni code métier, on retombe sur le
+      // fallback générique.
       mockedEventsAPI.createEvent.mockRejectedValueOnce({
         response: { data: { detail: 'Backend says no' } },
       });
@@ -763,7 +766,12 @@ describe('useEventForm', () => {
       });
 
       expect(id).toBeNull();
-      expect(alerts.showError).toHaveBeenCalledWith('Erreur', 'Backend says no');
+      expect(alerts.showError).toHaveBeenCalledWith(
+        'Erreur',
+        'Une erreur est survenue. Veuillez réessayer.',
+      );
+      // Garde-fou anti-régression : le detail brut ne fuit pas dans le toast.
+      expect(alerts.showError).not.toHaveBeenCalledWith('Erreur', 'Backend says no');
     });
   });
 

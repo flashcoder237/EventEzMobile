@@ -47,6 +47,7 @@ import {
   Colors,
 } from '../../constants/theme';
 import { centeredContent, FORM_MAX } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import {
   MESSAGE_AVATAR_SIZE,
   getDisplayName,
@@ -1022,10 +1023,10 @@ export default function MessagesScreen() {
       // affichées via cache, on garde l'UX silencieuse.
       setConversations(prev => {
         if (prev.length === 0) {
-          const msg = error?.response?.data?.detail
-            || error?.message
-            || t('messages.loadErrorFallback');
-          setLoadError(msg);
+          const { message } = getApiErrorMessage(error, t, {
+            fallbackKey: 'messages.loadErrorFallback',
+          });
+          setLoadError(message);
         }
         return prev;
       });
@@ -1114,8 +1115,10 @@ export default function MessagesScreen() {
           fetchConversations();
         } catch (error: any) {
           if (__DEV__) console.error('Erreur suppression:', error);
-          const detail = error?.response?.data?.detail || error?.response?.data?.error;
-          if (detail) showError(t('common.error'), String(detail));
+          const { message } = getApiErrorMessage(error, t, {
+            fallbackKey: 'errors.generic',
+          });
+          showError(t('common.error'), message);
         }
       }
     );
@@ -1135,8 +1138,10 @@ export default function MessagesScreen() {
           fetchConversations();
         } catch (error: any) {
           if (__DEV__) console.error('Erreur leave:', error);
-          const detail = error?.response?.data?.detail || error?.response?.data?.error;
-          if (detail) showError(t('common.error'), String(detail));
+          const { message } = getApiErrorMessage(error, t, {
+            fallbackKey: 'errors.generic',
+          });
+          showError(t('common.error'), message);
         }
       }
     );

@@ -17,6 +17,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { RootStackParamList } from '../../types';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import {
   FontFamily,
   FontSizes,
@@ -141,15 +142,14 @@ export default function TransferAcceptScreen() {
       }
       setState('accepted');
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.error ||
-        err?.response?.data?.detail ||
-        "Erreur lors de l'acceptation.";
-      showAlert('Erreur', msg, undefined, 'error');
+      const { message } = getApiErrorMessage(err, t, {
+        fallbackKey: 'pendingTransfers.acceptError',
+      });
+      showAlert(t('common.error'), message, undefined, 'error');
     } finally {
       setActing(false);
     }
-  }, [isAuthenticated, navigation, token, showAlert]);
+  }, [isAuthenticated, navigation, token, showAlert, t]);
 
   const handleRegister = useCallback(() => {
     navigation.navigate('Register', {
@@ -167,25 +167,24 @@ export default function TransferAcceptScreen() {
       return;
     }
     showConfirm(
-      'Refuser le transfert ?',
-      'Cette action est irréversible.',
+      t('pendingTransfers.declineTitle'),
+      t('pendingTransfers.declineConfirm', { sender: senderName }),
       async () => {
         setActing(true);
         try {
           await ticketTransfersAPI.declineByToken(token);
           setState('declined');
         } catch (err: any) {
-          const msg =
-            err?.response?.data?.error ||
-            err?.response?.data?.detail ||
-            'Erreur lors du refus.';
-          showAlert('Erreur', msg, undefined, 'error');
+          const { message } = getApiErrorMessage(err, t, {
+            fallbackKey: 'pendingTransfers.declineError',
+          });
+          showAlert(t('common.error'), message, undefined, 'error');
         } finally {
           setActing(false);
         }
       },
     );
-  }, [isAuthenticated, navigation, token, showAlert, showConfirm]);
+  }, [isAuthenticated, navigation, token, showAlert, showConfirm, t]);
 
   const senderName = transfer?.sender_detail
     ? (

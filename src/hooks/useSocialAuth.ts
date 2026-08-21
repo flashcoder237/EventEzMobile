@@ -12,7 +12,18 @@ import { User } from '../types';
 interface SocialAuthResult {
   success: boolean;
   user?: User;
-  error?: string;
+  /**
+   * Clé i18n (namespace `auth.*` / `errors.*`) du message d'erreur à afficher.
+   * Le hook n'a pas accès à `t` (pas un composant) : il renvoie une CLÉ que
+   * l'écran traduit. On ne renvoie JAMAIS `error.message`/`detail` brut.
+   */
+  errorKey?: string;
+  /**
+   * true quand l'utilisateur a lui-même annulé le flux social (fermeture de la
+   * feuille Google/Apple). Flag structuré — l'écran l'utilise pour rester
+   * silencieux au lieu de comparer une chaîne de message.
+   */
+  cancelled?: boolean;
   /** true uniquement à la 1re création de compte (social) → proposer la
    *  complétion de profil une seule fois. Fourni par le backend. */
   created?: boolean;
@@ -46,7 +57,7 @@ export function useGoogleAuth() {
     if (!googleModule) {
       return {
         success: false,
-        error: 'Google Sign-In nécessite un dev build (indisponible dans Expo Go).',
+        errorKey: 'auth.googleUnavailableExpoGo',
       };
     }
     const { GoogleSignin, statusCodes } = googleModule;
@@ -59,7 +70,7 @@ export function useGoogleAuth() {
       const idToken = userInfo?.idToken;
 
       if (!idToken) {
-        return { success: false, error: 'Aucun token reçu de Google' };
+        return { success: false, errorKey: 'auth.googleNoToken' };
       }
 
       const apiResponse = await authAPI.googleSignIn(idToken);
@@ -67,20 +78,19 @@ export function useGoogleAuth() {
       await setTokens(access, refresh, rememberMe);
       return { success: true, user, created: Boolean(created) };
     } catch (error: any) {
+      // Annulation utilisateur → flag structuré, pas de message.
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        return { success: false, error: 'Connexion annulée' };
+        return { success: false, cancelled: true };
       }
       if (error.code === statusCodes.IN_PROGRESS) {
-        return { success: false, error: 'Connexion déjà en cours' };
+        return { success: false, errorKey: 'auth.googleInProgress' };
       }
       if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        return { success: false, error: 'Google Play Services non disponible' };
+        return { success: false, errorKey: 'auth.googlePlayServicesUnavailable' };
       }
       if (__DEV__) console.error('Google Sign-In error:', error);
-      return {
-        success: false,
-        error: error.response?.data?.detail || error.message || 'Erreur lors de la connexion Google',
-      };
+      // Jamais error.message/detail brut : clé générique traduite par l'écran.
+      return { success: false, errorKey: 'errors.generic' };
     } finally {
       setIsLoading(false);
     }
@@ -119,14 +129,14 @@ export function useAppleAuth() {
     if (Platform.OS !== 'ios') {
       return {
         success: false,
-        error: 'Apple Sign-In est disponible uniquement sur iOS',
+        errorKey: 'auth.appleOnlyIOS',
       };
     }
 
     if (!isAvailable) {
       return {
         success: false,
-        error: 'Apple Sign-In n\'est pas disponible sur cet appareil',
+        errorKey: 'auth.appleUnavailableDevice',
       };
     }
 
@@ -152,7 +162,7 @@ export function useAppleAuth() {
       if (!identityToken) {
         return {
           success: false,
-          error: 'Aucun token d\'identité reçu d\'Apple',
+          errorKey: 'auth.appleNoToken',
         };
       }
 
@@ -189,17 +199,14 @@ export function useAppleAuth() {
 
       return { success: true, user, created: Boolean(created) };
     } catch (error: any) {
-      // Gérer l'annulation par l'utilisateur
+      // Annulation utilisateur → flag structuré, pas de message.
       if (error.code === 'ERR_REQUEST_CANCELED') {
-        return { success: false, error: 'Connexion annulée' };
+        return { success: false, cancelled: true };
       }
 
       if (__DEV__) console.error('Apple Sign-In error:', error);
-      const errorMessage =
-        error.response?.data?.detail ||
-        error.message ||
-        'Erreur lors de la connexion Apple';
-      return { success: false, error: errorMessage };
+      // Jamais error.message/detail brut : clé générique traduite par l'écran.
+      return { success: false, errorKey: 'errors.generic' };
     } finally {
       setIsLoading(false);
     }
@@ -228,11 +235,9 @@ export function usePhoneAuth() {
       setNormalizedPhone(normalized);
       return { success: true, normalizedPhone: normalized };
     } catch (error: any) {
-      const msg =
-        error.response?.data?.detail ||
-        error.message ||
-        'Impossible d\'envoyer le SMS';
-      return { success: false, error: msg };
+      if (__DEV__) console.warn('[usePhoneAuth] sendOTP failed', error);
+      // Jamais error.message/detail brut : clé traduite par l'écran.
+      return { success: false, errorKey: 'errors.codes.otpSendFailed' };
     } finally {
       setIsLoading(false);
     }
@@ -250,11 +255,9 @@ export function usePhoneAuth() {
       await setTokens(access, refresh, rememberMe);
       return { success: true, user };
     } catch (error: any) {
-      const msg =
-        error.response?.data?.detail ||
-        error.message ||
-        'Code incorrect ou expiré';
-      return { success: false, error: msg };
+      if (__DEV__) console.warn('[usePhoneAuth] verifyOTP failed', error);
+      // Jamais error.message/detail brut : clé traduite par l'écran.
+      return { success: false, errorKey: 'errors.codes.otpInvalid' };
     } finally {
       setIsLoading(false);
     }
