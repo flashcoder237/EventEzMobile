@@ -447,9 +447,13 @@ describe('PaymentScreen', () => {
     await waitFor(() => {
       expect(mockShowError).toHaveBeenCalled();
     });
-    // Le détail backend doit être propagé quelque part dans les args (titre ou message).
+    // Écran de PAIEMENT : le brut du PSP/DRF ("Provider down") ne doit JAMAIS être
+    // relayé au payeur. On affiche un message rassurant traduit via getApiErrorMessage.
     const errArgs = mockShowError.mock.calls[0];
     const concat = errArgs.join(' ');
-    expect(concat).toContain('Provider down');
+    expect(concat).not.toContain('Provider down');
+    // Titre rassurant + message "aucun montant débité" (fallback paymentFailed traduit).
+    expect(concat).toContain('Erreur de paiement');
+    expect(concat).toContain('Aucun montant');
   });
 });

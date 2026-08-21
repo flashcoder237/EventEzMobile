@@ -55,7 +55,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
-import { extractErrorMessage } from '../../constants/payment';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import GradientButton from '../../components/ui/GradientButton';
 import CountryBadgeSelector, {
@@ -374,19 +374,22 @@ export default function PaymentScreen() {
         registrationStatus: registration?.status,
         approvalStatus: registration?.approval_status,
         eventTitle: eventObj?.title,
+        eventImage: (eventObj as any)?.banner_image || (eventObj as any)?.display_image || null,
         eventStartDate: (eventObj as any)?.start_date,
         amount: finalTotal,
         currency: eventCurrencyLabel,
         referenceCode: (registration as any)?.reference_code,
       });
     },
-    onFailure: (errorMessage, data) => {
+    onFailure: (_errorMessage, data) => {
       setProcessing(false);
       // Statut terminal → on libère la clé d'idempotence.
       void clearIdempotencyKey(registrationId);
+      // Jamais le message brut du PSP au payeur : message rassurant traduit
+      // (si débité, les billets apparaîtront). Le brut reste dans les logs.
       navigation.replace('PaymentFailed', {
         paymentId: paymentId!,
-        error: errorMessage,
+        error: t('errors.codes.paymentVerifyFailed'),
       });
     },
     onTimeout: (lastStatus) => {
@@ -827,7 +830,9 @@ export default function PaymentScreen() {
         });
         const payload = initiateResponse.data;
         if (!payload?.success || !payload?.payment_url) {
-          throw new Error(payload?.message || t('payment.paymentURLNotReceived'));
+          // Ne jamais propager payload.message brut au payeur — le catch
+          // affichera un message rassurant (aucun montant débité).
+          throw new Error(t('payment.paymentURLNotReceived'));
         }
         const cinetpayPaymentId = payload.payment_id as string;
         // transaction_id EventEz envoye a CinetPay = str(payment.id). On le
@@ -1003,13 +1008,17 @@ export default function PaymentScreen() {
       setProcessing(false);
       if (__DEV__) console.error('[Payment] Error:', error.response?.data || error);
 
-      // Extraire le message d'erreur via utility partagée
-      const errorMessage = extractErrorMessage(
-        error.response?.data,
-        t('payment.paymentGenericError')
-      );
+      // Message rassurant : jamais de brut au payeur. Réseau/timeout pendant
+      // l'initiation → message double-débit dédié (aucun montant débité si
+      // l'initiation n'a pas abouti). Sinon fallback paymentFailed.
+      const { message, isNetwork } = getApiErrorMessage(error, t, {
+        fallbackKey: 'errors.codes.paymentFailed',
+      });
+      const safeMessage = isNetwork
+        ? t('errors.codes.paymentNetwork')
+        : message;
 
-      showError(t('payment.paymentErrorTitle'), errorMessage);
+      showError(t('payment.paymentErrorTitle'), safeMessage);
     }
   };
 
@@ -1047,8 +1056,10 @@ export default function PaymentScreen() {
       // Même si l'annulation échoue côté serveur, on arrête le processing
       setProcessing(false);
 
-      const errorMessage = extractErrorMessage(error.response?.data, t('payment.errorCancelFailed'));
-      showError(t('common.error'), errorMessage);
+      const { message } = getApiErrorMessage(error, t, {
+        fallbackKey: 'payment.errorCancelFailed',
+      });
+      showError(t('common.error'), message);
     }
   };
 
@@ -1083,6 +1094,7 @@ export default function PaymentScreen() {
         registrationStatus: registration?.status,
         approvalStatus: registration?.approval_status,
         eventTitle: eventObj?.title,
+        eventImage: (eventObj as any)?.banner_image || (eventObj as any)?.display_image || null,
       });
       return;
     }
@@ -1090,7 +1102,8 @@ export default function PaymentScreen() {
     if (['failed', 'cancelled', 'rejected', 'declined', 'expired', 'timeout'].includes(result.status || '')) {
       setVerifyingManually(false);
       setProcessing(false);
-      navigation.replace('PaymentFailed', { paymentId: paymentId, error: result.error || t('payment.paymentPaymentFailedDefault') });
+      // Message rassurant traduit — jamais le brut renvoyé par le PSP.
+      navigation.replace('PaymentFailed', { paymentId: paymentId, error: t('errors.codes.paymentVerifyFailed') });
       return;
     }
 

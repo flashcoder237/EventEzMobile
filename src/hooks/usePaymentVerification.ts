@@ -124,9 +124,12 @@ const defaultExtractStatus = (data: any): string => {
   return (data?.status || data?.payment_status || data?.payment?.status || '').toLowerCase();
 };
 
-// Default error message extractor
-const defaultExtractErrorMessage = (data: any): string => {
-  return data?.message || data?.error || data?.detail || 'Le paiement a echoue';
+// Default error CODE extractor.
+// ⚠️ Écran de PAIEMENT : on ne renvoie JAMAIS le message brut du PSP
+// (data.message/error/detail — jargon, anglais non traduit, fuite). On renvoie
+// un CODE i18n neutre que l'écran résout en message rassurant via getApiErrorMessage.
+const defaultExtractErrorMessage = (_data: any): string => {
+  return 'errors.codes.paymentVerifyFailed';
 };
 
 // Check if an error is temporary (network, timeout, SSL, etc.)
@@ -313,8 +316,8 @@ export function usePaymentVerification(
               : isPaymentFailed(errorPaymentStatus);
 
           if (isDefiniteFailure) {
-            const errorMsg =
-              errorData?.message || errorData?.detail || 'Le paiement a echoue';
+            // Code i18n neutre, jamais le brut du PSP (résolu côté écran).
+            const errorMsg = 'errors.codes.paymentVerifyFailed';
             setStatus('failed');
             setError(errorMsg);
             setPaymentStatus(errorPaymentStatus);
@@ -423,15 +426,12 @@ export function usePaymentVerification(
             err
           );
 
-          // On last attempt, return error
+          // On last attempt, return error — CODE i18n neutre, pas le brut PSP.
           if (attempt === attempts) {
             return {
               success: false,
               status: 'error',
-              error:
-                err?.response?.data?.message ||
-                err?.response?.data?.detail ||
-                'Impossible de verifier le statut du paiement',
+              error: 'errors.codes.paymentVerifyFailed',
             };
           }
 
@@ -440,8 +440,9 @@ export function usePaymentVerification(
         }
       }
 
-      // Should not reach here, but just in case
-      return { success: false, status: 'pending', error: 'Paiement toujours en attente' };
+      // Should not reach here, but just in case — statut pending, pas d'erreur
+      // brute affichée (l'écran gère le cas 'pending' avec son propre message).
+      return { success: false, status: 'pending', error: 'errors.codes.paymentVerifyFailed' };
     },
     [extractStatus, extractErrorMessage]
   );

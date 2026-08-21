@@ -86,9 +86,20 @@ export function getServiceFeeLabel(
 export const SERVICE_FEE_LABEL = `${COMMISSION_RATE * 100}% + ${FIXED_FEE} ${CURRENCY_CODE}`;
 
 /**
- * Extrait un message d'erreur lisible depuis une réponse API.
+ * Renvoie un CODE d'erreur neutre (jamais le message brut du backend) pour un
+ * écran de PAIEMENT anxiogène. Les écrans traduisent ce code via i18n
+ * (getApiErrorMessage) et affichent un message rassurant.
+ *
+ * ⚠️ Ne JAMAIS renvoyer `data.detail`/`data.message`/`data.error` bruts au
+ * payeur : jargon PSP, fuite de config, message anglais non traduit. Ce helper
+ * n'a pas accès à `t` — il retourne donc un code neutre, résolu côté écran.
+ *
+ * @param data     Réponse API (ignorée : on ne lit plus le brut).
+ * @param fallback Code neutre à retourner. Défaut : code d'échec paiement.
  */
-export function extractErrorMessage(data: any, fallback = 'Une erreur est survenue'): string {
-  if (!data) return fallback;
-  return data.detail || data.message || data.error || fallback;
+export function extractErrorMessage(
+  _data: any,
+  fallback = 'errors.codes.paymentFailed',
+): string {
+  return fallback;
 }

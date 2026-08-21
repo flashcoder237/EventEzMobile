@@ -39,6 +39,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -77,7 +78,7 @@ interface SuccessContent {
 export default function PaymentSuccessScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<PaymentSuccessRouteProp>();
-  const { eventType, approvalStatus, eventTitle, registrationId, amount, currency, eventStartDate, eventId, eventSlug, referenceCode, paymentId, attendeeFormScope } = route.params;
+  const { eventType, approvalStatus, eventTitle, eventImage, registrationId, amount, currency, eventStartDate, eventId, eventSlug, referenceCode, paymentId, attendeeFormScope } = route.params;
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -128,9 +129,9 @@ export default function PaymentSuccessScreen() {
         return;
       }
       await Linking.openURL(absoluteUrl);
-    } catch (error: any) {
-      const detail = error?.response?.data?.detail;
-      showError(t('payment.invoice'), String(detail || t('errors.downloadFailed')));
+    } catch (error) {
+      // Jamais le detail brut du backend : message de repli traduit.
+      showError(t('payment.invoice'), t('errors.downloadFailed'));
     } finally {
       setInvoiceLoading(false);
     }
@@ -241,9 +242,13 @@ export default function PaymentSuccessScreen() {
       });
       setUpgradeModalVisible(false);
       showSuccess(t('payment.successUpgradeAccountCreated'), t('payment.successUpgradeAccountCreatedDetail'));
-    } catch (error: any) {
-      const detail = error?.response?.data?.detail || error?.response?.data?.password?.[0] || t('payment.successUpgradeError');
-      showError(t('common.error'), String(detail));
+    } catch (error) {
+      // Jamais le brut (detail/password[0]) : getApiErrorMessage résout un
+      // message i18n propre (code weak_password / validation), fallback traduit.
+      const { message } = getApiErrorMessage(error, t, {
+        fallbackKey: 'payment.successUpgradeError',
+      });
+      showError(t('common.error'), message);
     } finally {
       setUpgradeLoading(false);
     }
@@ -629,7 +634,11 @@ export default function PaymentSuccessScreen() {
           {/* Carte « J'y vais » partageable en story (boucle virale) — sur un
               vrai succès avec un titre d'event. */}
           {content.isSuccess && !!eventTitle && (
-            <ShareTicketCardButton eventTitle={eventTitle} dateLabel={shareDateLabel} />
+            <ShareTicketCardButton
+              eventTitle={eventTitle}
+              dateLabel={shareDateLabel}
+              imageUrl={eventImage}
+            />
           )}
 
           <TouchableOpacity

@@ -30,6 +30,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RefundRequestRouteProp = RouteProp<RootStackParamList, 'RefundRequest'>;
@@ -153,14 +154,14 @@ export default function RefundRequestScreen() {
         ],
         'success',
       );
-    } catch (error: any) {
+    } catch (error) {
       if (__DEV__) console.error('Error creating refund:', error);
-      showError(
-        t('common.error'),
-        error.response?.data?.detail ||
-        error.response?.data?.error ||
-        t('refundRequest.submitError')
-      );
+      // Jamais le brut (detail/error) : message rassurant traduit (refundFailed),
+      // fallback écran si aucun code métier mappé.
+      const { message } = getApiErrorMessage(error, t, {
+        fallbackKey: 'errors.codes.refundFailed',
+      });
+      showError(t('common.error'), message);
     } finally {
       setSubmitting(false);
     }

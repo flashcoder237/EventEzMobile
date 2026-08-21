@@ -1460,7 +1460,8 @@
     "sectionAddress": "Address",
     "sectionOrganization": "Organization",
     "sectionSecurity": "Security",
-    "qrShareSubtitle": "Scan this code to share your profile"
+    "qrShareSubtitle": "Scan this code to share your profile",
+    "countryPlaceholder": "Select a country"
   },
   "settings": {
     "whoCanContactCurrent": "ANTI-SPAM",
@@ -1566,6 +1567,11 @@
       "daily": "Daily",
       "off": "Off"
     },
+    "quietHoursEyebrow": "Do not disturb",
+    "quietHoursTitle": "Quiet hours",
+    "quietHoursDescription": "Pause non-essential push/SMS notifications overnight. Important alerts always come through.",
+    "quietHoursFrom": "From",
+    "quietHoursTo": "Until",
     "rowSounds": "Sounds at key moments",
     "rowSoundsSubtitle": "Plays a sound on payment confirmation or QR scan",
     "rowTwoFA": "Two-factor authentication",
@@ -2009,6 +2015,10 @@
       "otpSendFailed": "We couldn't send the SMS code. Check your number and try again, or sign in with your email.",
       "paymentMethodUnsupported": "This payment method isn't available for this event. Please choose another.",
       "paymentFailed": "Your payment couldn't be completed. You haven't been charged. Try again or use another method.",
+      "paymentNetwork": "The connection dropped during payment. Check your internet and try again — you won't be charged twice.",
+      "paymentTimeout": "Your payment is taking longer than expected. Don't pay again — check your tickets in a few minutes, or contact support if nothing arrives.",
+      "paymentVerifyFailed": "We couldn't confirm your payment yet. If you were charged, your tickets will appear shortly — check again in a few minutes.",
+      "refundFailed": "Your refund request couldn't be sent. Please try again, or contact support.",
       "insufficientBalance": "Insufficient balance for this operation.",
       "payoutLocked": "This payout can no longer be changed because processing has already started. Contact support if this is a mistake.",
       "planLimitReached": "You've reached your plan's limit. Upgrade your plan to continue.",
@@ -4371,7 +4381,16 @@
     "statusInscriptionCancelled": "Cancelled",
     "statusInscriptionRejected": "Rejected",
     "statusInscriptionValidated": "Validated",
-    "statusInscriptionUnknown": "Unknown"
+    "statusInscriptionUnknown": "Unknown",
+    "pdfEyebrow": "REGISTRATION SUMMARY",
+    "pdfDate": "Date",
+    "pdfPlace": "Venue",
+    "pdfReference": "Reference",
+    "pdfStatus": "Status",
+    "pdfQrHint": "Show this QR code at the entrance",
+    "pdfShareDialog": "Share summary",
+    "pdfError": "Could not generate the PDF right now.",
+    "pdfA11y": "Export summary as PDF"
   },
   "qrCode": {
     "headerEyebrow": "TICKET · {{ref}}",
@@ -6966,5 +6985,13 @@
     "delegateEmailPlaceholder": "Guest's email",
     "delegateError": "Could not send the invitation.",
     "toCompleteBadge": "{{n}} to complete"
+  },
+  "shareCard": {
+    "eyebrow": "I'LL BE THERE",
+    "button": "Share to story",
+    "dialogTitle": "Share my spot",
+    "cta": "Book your spot →",
+    "errorTitle": "Share",
+    "errorMessage": "Could not generate the card right now."
   }
 }

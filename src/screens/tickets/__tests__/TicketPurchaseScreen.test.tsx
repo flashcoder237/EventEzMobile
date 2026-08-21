@@ -39,6 +39,17 @@ jest.mock('../../../contexts/AlertContext', () => ({
   }),
 }));
 
+const mockToastSuccess = jest.fn();
+const mockToastError = jest.fn();
+jest.mock('../../../contexts/FeedbackContext', () => ({
+  useFeedback: () => ({
+    toastSuccess: mockToastSuccess,
+    toastError: mockToastError,
+    toastWarning: jest.fn(),
+    toastInfo: jest.fn(),
+  }),
+}));
+
 const themeColors = {
   primary: '#4F46E5',
   primaryDark: '#4338CA',
@@ -170,12 +181,17 @@ jest.mock('expo-linear-gradient', () => {
 
 import TicketPurchaseScreen from '../TicketPurchaseScreen';
 
+// Dates calculées à l'exécution : l'événement doit rester DANS LE FUTUR pour
+// passer la garde "événement terminé" du submit (end_date < now → bloqué), sinon
+// createRegistration n'est jamais appelé. Dates figées = tests qui pourrissent
+// avec le temps (cf. l'ancien '2026-08-13' devenu passé).
+const inDays = (n: number) => new Date(Date.now() + n * 86400000).toISOString();
 const baseEvent = {
   id: 'evt-1',
   title: 'Festival Indie',
   event_type: 'billetterie',
-  start_date: '2026-08-12T18:00:00Z',
-  end_date: '2026-08-13T22:00:00Z',
+  start_date: inDays(30),
+  end_date: inDays(31),
   location_city: 'Yaoundé',
   location_country_code: 'CM',
   category: { name: 'Musique' },
@@ -284,8 +300,7 @@ describe('TicketPurchaseScreen', () => {
       );
     });
     await waitFor(() => {
-      expect(mockShowSuccess).toHaveBeenCalledWith(
-        'Succès',
+      expect(mockToastSuccess).toHaveBeenCalledWith(
         expect.stringContaining('WELCOME10'),
       );
     });
@@ -348,8 +363,16 @@ describe('TicketPurchaseScreen', () => {
     fireEvent.press(getAllByLabelText('Ajouter un billet')[0]);
     fireEvent.press(await findByText('Continuer'));
 
+    // Le brut du backend (detail "Stock épuisé", sans champ `code` ni status HTTP
+    // mappé) n'est JAMAIS relayé : getApiErrorMessage retombe sur la clé de fallback
+    // ticketPurchase.createRegistrationError, traduite. On assère le message rassurant
+    // et l'absence du brut.
     await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith('Erreur', 'Stock épuisé');
+      expect(mockShowError).toHaveBeenCalledWith(
+        'Erreur',
+        "Impossible de créer l'inscription",
+      );
     });
+    expect(mockShowError.mock.calls[0][1]).not.toContain('Stock épuisé');
   });
 });

@@ -83,8 +83,10 @@ describe('usePaymentVerification — polling', () => {
     await act(async () => { result.current.startVerification('pay-2'); });
 
     await waitFor(() => expect(result.current.status).toBe('failed'));
-    expect(result.current.error).toBe('Fonds insuffisants');
-    expect(onFailure).toHaveBeenCalledWith('Fonds insuffisants', expect.any(Object));
+    // L'écran de paiement ne relaie JAMAIS le brut du PSP ("Fonds insuffisants") :
+    // le hook renvoie un CODE i18n neutre, résolu en message rassurant par l'écran.
+    expect(result.current.error).toBe('errors.codes.paymentVerifyFailed');
+    expect(onFailure).toHaveBeenCalledWith('errors.codes.paymentVerifyFailed', expect.any(Object));
   });
 
   it('pending puis completed : re-poll après pollInterval', async () => {
@@ -190,7 +192,8 @@ describe('usePaymentVerification — manualVerify', () => {
     await act(async () => { res = await result.current.manualVerify('pay-9', 3, 0); });
     expect(res.success).toBe(false);
     expect(res.status).toBe('failed');
-    expect(res.error).toBe('Refusé');
+    // Code i18n neutre, pas le brut du PSP ("Refusé").
+    expect(res.error).toBe('errors.codes.paymentVerifyFailed');
   });
 
   it('pending jusqu\'au bout → success false status pending', async () => {
@@ -212,6 +215,7 @@ describe('usePaymentVerification — manualVerify', () => {
     await act(async () => { res = await result.current.manualVerify('pay-11', 2, 0); });
     expect(res.success).toBe(false);
     expect(res.status).toBe('error');
-    expect(res.error).toBe('Serveur KO');
+    // Sur exception au dernier essai : code i18n neutre, jamais le detail DRF ("Serveur KO").
+    expect(res.error).toBe('errors.codes.paymentVerifyFailed');
   });
 });

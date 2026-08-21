@@ -1460,7 +1460,8 @@
     "sectionAddress": "Adresse",
     "sectionOrganization": "Organisation",
     "sectionSecurity": "Sécurité",
-    "qrShareSubtitle": "Faites scanner ce code pour partager votre profil"
+    "qrShareSubtitle": "Faites scanner ce code pour partager votre profil",
+    "countryPlaceholder": "Sélectionner un pays"
   },
   "settings": {
     "whoCanContactCurrent": "ANTI-SPAM",
@@ -1566,6 +1567,11 @@
       "daily": "Quotidien",
       "off": "Désactivé"
     },
+    "quietHoursEyebrow": "Tranquillité",
+    "quietHoursTitle": "Heures de silence",
+    "quietHoursDescription": "Ne pas recevoir de notifications push/SMS non essentielles la nuit. Les alertes importantes passent toujours.",
+    "quietHoursFrom": "À partir de",
+    "quietHoursTo": "Jusqu'à",
     "rowSounds": "Sons aux moments clés",
     "rowSoundsSubtitle": "Joue un son à la confirmation d'un paiement ou d'un scan QR",
     "rowTwoFA": "Double authentification",
@@ -2009,6 +2015,10 @@
       "otpSendFailed": "Impossible d'envoyer le code par SMS. Vérifiez votre numéro et réessayez, ou connectez-vous avec votre email.",
       "paymentMethodUnsupported": "Ce moyen de paiement n'est pas disponible pour cet événement. Veuillez en choisir un autre.",
       "paymentFailed": "Le paiement n'a pas pu aboutir. Aucun montant n'a été débité. Réessayez ou choisissez un autre moyen.",
+      "paymentNetwork": "Connexion interrompue pendant le paiement. Vérifiez votre connexion et réessayez — vous ne serez pas débité deux fois.",
+      "paymentTimeout": "Votre paiement prend plus de temps que prévu. Ne payez pas à nouveau — vérifiez vos billets dans quelques minutes, ou contactez le support si rien n'arrive.",
+      "paymentVerifyFailed": "Nous n'avons pas encore pu confirmer votre paiement. Si vous avez été débité, vos billets apparaîtront sous peu — revérifiez dans quelques minutes.",
+      "refundFailed": "Votre demande de remboursement n'a pas pu être envoyée. Réessayez, ou contactez le support.",
       "insufficientBalance": "Solde insuffisant pour cette opération.",
       "payoutLocked": "Ce retrait ne peut plus être modifié car son traitement a déjà commencé. Contactez le support si c'est une erreur.",
       "planLimitReached": "Vous avez atteint la limite de votre plan. Améliorez votre offre pour continuer.",
@@ -2470,7 +2480,7 @@
   },
   "ticketsTour": {
     "transfersEyebrow": "01 · TRANSFERTS",
-    "transfersTitle": "Des billets t'arrivent ici.",
+    "transfersTitle": "Les billets reçus arrivent ici.",
     "transfersBody": "Quand un ami te transfère un billet, le compteur s'allume — touche pour accepter ou refuser."
   },
   "eventDetailsTour": {
@@ -4371,7 +4381,16 @@
     "statusInscriptionCancelled": "Annulée",
     "statusInscriptionRejected": "Refusée",
     "statusInscriptionValidated": "Validée",
-    "statusInscriptionUnknown": "Inconnu"
+    "statusInscriptionUnknown": "Inconnu",
+    "pdfEyebrow": "RÉCAPITULATIF D'INSCRIPTION",
+    "pdfDate": "Date",
+    "pdfPlace": "Lieu",
+    "pdfReference": "Référence",
+    "pdfStatus": "Statut",
+    "pdfQrHint": "Présentez ce QR code à l'entrée",
+    "pdfShareDialog": "Partager le récapitulatif",
+    "pdfError": "Impossible de générer le PDF pour le moment.",
+    "pdfA11y": "Exporter le récapitulatif en PDF"
   },
   "qrCode": {
     "headerEyebrow": "BILLET · {{ref}}",
@@ -6966,5 +6985,13 @@
     "delegateEmailPlaceholder": "Email de l'invité",
     "delegateError": "Impossible d'envoyer l'invitation.",
     "toCompleteBadge": "{{n}} à compléter"
+  },
+  "shareCard": {
+    "eyebrow": "JE SERAI PRÉSENT(E)",
+    "button": "Partager en story",
+    "dialogTitle": "Partager ma place",
+    "cta": "Réserve ta place →",
+    "errorTitle": "Partage",
+    "errorMessage": "Impossible de générer la carte pour le moment."
   }
 }

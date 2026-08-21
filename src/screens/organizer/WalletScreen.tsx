@@ -22,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { getServiceFeeLabel } from '../../constants/payment';
@@ -36,6 +37,7 @@ import {
   WALLET_TOUR_DELAY_MS,
 } from '../../components/tour';
 import { walletAPI, payoutsAPI } from '../../api';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { useSupportedCountries } from '../../hooks/useSupportedCountries';
 import StripeOnboardingBanner from '../../components/organizer/StripeOnboardingBanner';
 import {
@@ -78,6 +80,7 @@ export default function WalletScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { t } = useTranslation();
   const { showAlert, showSuccess, showError } = useAlert();
+  const { toastSuccess } = useFeedback();
   const { colors, isDark } = useTheme();
   const tabs: { key: TabType; label: string }[] = React.useMemo(() => ([
     { key: 'overview', label: t('organizer.wallet.tabOverview') },
@@ -240,8 +243,13 @@ export default function WalletScreen() {
                 }),
               );
               fetchData();
-            } catch (error: any) {
-              showError(t('common.error'), error?.response?.data?.detail || t('organizer.wallet.instantError'));
+            } catch (error) {
+              // Jamais le detail brut : code métier (payout verrouillé / solde)
+              // résolu en i18n, fallback rassurant côté écran.
+              const { message } = getApiErrorMessage(error, t, {
+                fallbackKey: 'organizer.wallet.instantError',
+              });
+              showError(t('common.error'), message);
             }
           },
         },
@@ -263,11 +271,13 @@ export default function WalletScreen() {
               await payoutsAPI.cancelPayout(payout.id);
               showSuccess(t('organizer.wallet.cancelSuccess'), t('organizer.wallet.cancelSuccessMessage'));
               fetchData();
-            } catch (error: any) {
-              showError(
-                t('organizer.wallet.cancelImpossibleTitle'),
-                error.response?.data?.detail || t('organizer.wallet.cancelImpossibleMessage')
-              );
+            } catch (error) {
+              // Jamais le detail brut : message rassurant traduit (code métier
+              // mappé si présent, sinon fallback écran).
+              const { message } = getApiErrorMessage(error, t, {
+                fallbackKey: 'organizer.wallet.cancelImpossibleMessage',
+              });
+              showError(t('organizer.wallet.cancelImpossibleTitle'), message);
             }
           },
         },
@@ -320,12 +330,17 @@ export default function WalletScreen() {
         amount,
         payout_method: payoutMethod,
       });
-      showSuccess(t('common.success'), t('organizer.wallet.payoutSuccess'));
+      toastSuccess(t('organizer.wallet.payoutSuccess'));
       setShowPayoutModal(false);
       setPayoutAmount('');
       fetchData();
-    } catch (error: any) {
-      showError(t('common.error'), error.response?.data?.detail || t('organizer.wallet.payoutError'));
+    } catch (error) {
+      // Jamais le detail brut : payoutLocked / insufficientBalance mappés
+      // automatiquement via le code backend, fallback rassurant sinon.
+      const { message } = getApiErrorMessage(error, t, {
+        fallbackKey: 'organizer.wallet.payoutError',
+      });
+      showError(t('common.error'), message);
     } finally {
       setProcessingPayout(false);
     }
@@ -351,11 +366,16 @@ export default function WalletScreen() {
         bank_account_name: bankDetails.bank_account_name,
         bank_account_number: bankDetails.bank_account_number,
       });
-      showSuccess(t('common.success'), t('organizer.wallet.bankSuccess'));
+      toastSuccess(t('organizer.wallet.bankSuccess'));
       setShowBankModal(false);
       fetchData();
-    } catch (error: any) {
-      showError(t('common.error'), error.response?.data?.detail || t('organizer.wallet.bankError'));
+    } catch (error) {
+      // Jamais le detail brut : message traduit (code de validation mappé si
+      // présent, fallback écran sinon).
+      const { message } = getApiErrorMessage(error, t, {
+        fallbackKey: 'organizer.wallet.bankError',
+      });
+      showError(t('common.error'), message);
     } finally {
       setSavingBank(false);
     }
