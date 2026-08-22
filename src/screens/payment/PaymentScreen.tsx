@@ -27,7 +27,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { registrationsAPI, paymentsAPI } from '../../api';
-import { Registration, RootStackParamList, CountryPaymentConfig, PaymentMethodOption as APIPaymentMethodOption } from '../../types';
+import { Registration, RootStackParamList, CountryPaymentConfig, PaymentMethodOption as APIPaymentMethodOption, PaymentGateway } from '../../types';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTranslation } from 'react-i18next';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
@@ -241,7 +241,7 @@ interface PaymentMethodOption {
   maxAmount?: number | null;
   /** Passerelle qui traitera ce paiement (parite admin → user pour
       transparence). Lue depuis `selected_provider` du backend. */
-  provider?: 'notchpay' | 'cinetpay' | 'stripe' | null;
+  provider?: PaymentGateway | null;
 }
 
 function formatMoney(amount: number, currency: string): string {
@@ -809,9 +809,14 @@ export default function PaymentScreen() {
       const NOTCHPAY_CURRENCIES = new Set(['XAF', 'XOF', 'KES', 'GHS', 'UGX', 'NGN']);
       const eventCurrencyNotInNotchpay = !NOTCHPAY_CURRENCIES.has(eventCurrencyCode);
 
+      // Tout provider NON-NotchPay doit passer par le flow unifié (/initiate/,
+      // qui route via PaymentProviderFactory côté backend). Le flow legacy est
+      // spécifique NotchPay → un paiement routé cinetpay/stripe/campay/pawapay/
+      // flutterwave y planterait. On liste donc l'ensemble des providers unifiés
+      // plutôt que seulement cinetpay/stripe (sinon campay/pawapay = 400).
+      const UNIFIED_PROVIDERS = new Set(['cinetpay', 'stripe', 'flutterwave', 'campay', 'pawapay']);
       const useUnifiedInitiate =
-        selectedProvider === 'cinetpay'
-        || selectedProvider === 'stripe'
+        (selectedProvider && UNIFIED_PROVIDERS.has(selectedProvider))
         || CINETPAY_ONLY_METHODS.has(selectedMethod)
         // Fallback safety : si la devise event n'est pas dans NotchPay, le
         // legacy flow est garanti de planter → on bascule sur /initiate/.

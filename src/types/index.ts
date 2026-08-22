@@ -551,8 +551,15 @@ export type PaymentMethodAlias = PaymentMethod | 'momo' | 'om' | 'card' | 'trans
 // Statuts de paiement (payments.Payment.PAYMENT_STATUS_CHOICES)
 export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'cancelled';
 
-// Passerelle de paiement (audit + routing)
-export type PaymentGateway = 'notchpay' | 'cinetpay';
+// Passerelle de paiement (audit + routing). Doit rester aligné avec le backend
+// (selected_provider) et les flags gateway_*_enabled.
+export type PaymentGateway =
+  | 'notchpay'
+  | 'cinetpay'
+  | 'stripe'
+  | 'flutterwave'
+  | 'campay'
+  | 'pawapay';
 
 // Configuration paiement par pays (retournee par GET /payments/methods/?country=XX)
 export interface PaymentMethodOption {
@@ -1804,6 +1811,8 @@ export type RootStackParamList = {
   UserEdit: { userId: string };
   SubscriptionManagement: undefined;
   AuditLogs: undefined;
+  AuditLogDetail: { logId: number | string };
+  VerificationRequestsAdmin: undefined;
   PlatformSettings: undefined;
   AnnouncementsAdmin: undefined;
   AnnouncementForm: { announcementId?: string } | undefined;
