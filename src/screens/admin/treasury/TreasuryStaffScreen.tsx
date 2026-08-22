@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { useAlert } from '../../../contexts/AlertContext';
+import { useFeedback } from '../../../contexts/FeedbackContext';
 import { treasuryAPI } from '../../../api';
 import { fetchAllPages } from '../../../lib/utils/fetchAllPages';
 import { RootStackParamList, StaffMember, StaffPayment } from '../../../types';
@@ -51,6 +52,7 @@ function TreasuryStaffContent() {
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const { currency: platformCurrency } = useCommissionConfig();
   const { showSuccess, showError } = useAlert();
+  const { toastSuccess } = useFeedback();
   const [activeTab, setActiveTab] = useState<TabType>('staff');
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [payments, setPayments] = useState<StaffPayment[]>([]);
@@ -89,7 +91,7 @@ function TreasuryStaffContent() {
     setGeneratingPayroll(true);
     try {
       await treasuryAPI.generatePayroll({ month: now.getMonth() + 1, year: now.getFullYear() });
-      showSuccess(t('common.success'), t('admin.treasury.staff.payrollSuccess'));
+      toastSuccess(t('admin.treasury.staff.payrollSuccess'));
       fetchData();
     } catch (error) {
       showError(t('common.error'), t('admin.treasury.staff.payrollError'));

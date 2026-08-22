@@ -6,14 +6,15 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   TextInput,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { volunteersAPI } from '../../api';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 interface VolunteerRole {
   id: string;
@@ -33,6 +34,7 @@ interface VolunteersTabProps {
 export default function VolunteersTab({ eventId }: VolunteersTabProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
+  const { toastSuccess, showError } = useFeedback();
   const [roles, setRoles] = useState<VolunteerRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedRole, setExpandedRole] = useState<string | null>(null);
@@ -75,15 +77,15 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
         availability: availability || undefined,
         experience: experience || undefined,
       });
-      Alert.alert(t('common.success'), t('componentsEvents.volunteersApplied'));
+      toastSuccess(t('componentsEvents.volunteersApplied'));
       setMyApplications((prev) => [...prev, roleId]);
       setApplyingRole(null);
       setMotivation('');
       setAvailability('');
       setExperience('');
     } catch (error: any) {
-      const msg = error?.response?.data?.detail || t('componentsEvents.volunteersApplyError');
-      Alert.alert(t('common.error'), msg);
+      const msg = getApiErrorMessage(error, t, { fallbackKey: 'componentsEvents.volunteersApplyError' }).message;
+      showError(t('common.error'), msg);
     } finally {
       setSubmitting(false);
     }

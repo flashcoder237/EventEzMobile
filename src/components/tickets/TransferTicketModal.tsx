@@ -27,6 +27,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { useBottomSheetAnim } from '../../hooks/useBottomSheetAnim';
 
 interface TicketInfo {
@@ -110,11 +111,9 @@ export default function TransferTicketModal({
           onTransferComplete();
           onClose();
         } catch (error: any) {
-          const errorMessage =
-            error.response?.data?.detail ||
-            error.response?.data?.message ||
-            Object.values(error.response?.data || {}).flat().join(', ') ||
-            t('componentsTickets.errorTransferGeneric');
+          const { message: errorMessage } = getApiErrorMessage(error, t, {
+            fallbackKey: 'componentsTickets.errorTransferGeneric',
+          });
           showError(t('componentsTickets.errorTitle'), errorMessage);
         } finally {
           setLoading(false);

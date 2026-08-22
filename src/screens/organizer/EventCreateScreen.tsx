@@ -756,6 +756,9 @@ export default function EventCreateScreen() {
                 feeBearer={form.feeBearer}
                 startDate={form.startDate}
                 ticketTypes={form.ticketTypes}
+                stepErrors={form.stepErrors}
+                ticketErrors={form.ticketErrors}
+                fieldErrors={form.fieldErrors}
                 showFormFieldsForBilletterie={form.showFormFieldsForBilletterie}
                 attendeeFormScope={form.attendeeFormScope}
                 onAttendeeFormScopeChange={setAttendeeFormScope}

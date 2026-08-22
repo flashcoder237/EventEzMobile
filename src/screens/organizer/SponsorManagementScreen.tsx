@@ -40,6 +40,8 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
+import ErrorState from '../../components/ui/ErrorState';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'SponsorManagement'>;
@@ -72,21 +74,24 @@ export default function SponsorManagementScreen() {
 
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const fetchSponsors = useCallback(async () => {
     try {
+      setLoadFailed(false);
       const res = await sponsorsAPI.getByEvent(eventId);
       const data: Sponsor[] = res.data?.results || res.data || [];
       setSponsors(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || t('organizer.sponsorManagement.loadError'));
+    } catch {
+      // Plus de modale : la liste affiche son propre état d'erreur avec Réessayer.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [eventId, showError, t]);
+  }, [eventId]);
 
   useEffect(() => {
     fetchSponsors();
@@ -108,7 +113,9 @@ export default function SponsorManagementScreen() {
       showSuccess(t('organizer.sponsorManagement.confirmedTitle'), t('organizer.sponsorManagement.confirmedMessage', { name: sponsor.sponsor_name }));
     } catch (error: any) {
       setSponsors(prev => prev.map(s => s.id === sponsor.id ? { ...s, is_confirmed: false } : s));
-      showError(t('common.error'), error?.response?.data?.detail || t('organizer.sponsorManagement.confirmError'));
+      // Jamais le `detail` brut du backend : message traduit via le helper.
+      const { message } = getApiErrorMessage(error, t, { fallbackKey: 'organizer.sponsorManagement.confirmError' });
+      showError(t('common.error'), message);
     } finally {
       setConfirmingId(null);
     }
@@ -231,13 +238,21 @@ export default function SponsorManagementScreen() {
           contentContainerStyle={[styles.listContent, sponsors.length === 0 && { flex: 1 }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Ionicons name="business-outline" size={48} color={colors.gray300} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.sponsorManagement.emptyTitle')}</Text>
-              <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-                {t('organizer.sponsorManagement.emptyText')}
-              </Text>
-            </View>
+            loading ? null : loadFailed ? (
+              <ErrorState
+                withCard
+                message={t('organizer.sponsorManagement.loadError')}
+                onRetry={fetchSponsors}
+              />
+            ) : (
+              <View style={styles.empty}>
+                <Ionicons name="business-outline" size={48} color={colors.gray300} />
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.sponsorManagement.emptyTitle')}</Text>
+                <Text style={[styles.emptyText, { color: colors.gray500 }]}>
+                  {t('organizer.sponsorManagement.emptyText')}
+                </Text>
+              </View>
+            )
           }
         />
       )}

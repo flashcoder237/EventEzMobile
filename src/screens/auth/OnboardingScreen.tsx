@@ -33,7 +33,7 @@ import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 import { FontFamily } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
-import { changeLanguage, LANGUAGE_STORAGE_KEY } from '../../i18n';
+import { changeLanguage, LANGUAGE_STORAGE_KEY, LANGUAGE_EXPLICIT_KEY } from '../../i18n';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { centeredContent } from '../../constants/layout';
 import { getRegionalSlideHints } from '../../lib/utils/regionalSlideHints';
@@ -136,6 +136,8 @@ export default function OnboardingScreen({ onComplete }: Props) {
     try {
       await changeLanguage(lang);
       await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+      // Choix explicite : protège contre la migration auto de langue.
+      await AsyncStorage.setItem(LANGUAGE_EXPLICIT_KEY, 'true');
     } catch (error) {
       if (__DEV__) console.error('[Onboarding] language switch error:', error);
     }

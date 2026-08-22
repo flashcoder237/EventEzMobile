@@ -27,6 +27,8 @@ import {
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { StaggeredItem } from '../../components/ui/Animations';
 import { centeredContent, WIDE_MAX } from '../../constants/layout';
+import ErrorState from '../../components/ui/ErrorState';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RoutePropType = RouteProp<RootStackParamList, 'EventSessionsLink'>;
@@ -69,11 +71,13 @@ export default function EventSessionsLinkScreen() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [links, setLinks] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchData = async () => {
     try {
+      setLoadFailed(false);
       const [ticketsRes, sessionsRes] = await Promise.all([
         ticketTypesAPI.getTicketTypes({ event: eventId }),
         sessionsAPI.getSessions({ event: eventId }),
@@ -91,7 +95,10 @@ export default function EventSessionsLinkScreen() {
       setLinks(initialLinks);
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement liaisons:', error);
-      showError(t('organizer.sessionsLink.loadError'));
+      // Plus de modale : l'écran affiche son propre état d'erreur avec Réessayer.
+      // Indispensable ici : sans ça, tickets/sessions restaient vides et l'écran
+      // affichait « aucun billet » — un état vide mensonger sur un simple échec réseau.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -157,7 +164,12 @@ export default function EventSessionsLinkScreen() {
       await fetchData();
     } catch (error: any) {
       if (__DEV__) console.error('Erreur sauvegarde liaisons:', error);
-      showError(error?.response?.data?.detail || t('organizer.sessionsLink.saveError'));
+      // `showError(msg)` à un seul argument passait le message en TITRE, sans
+      // corps — bug d'affichage préexistant. Et jamais le `detail` brut.
+      const { message } = getApiErrorMessage(error, t, {
+        fallbackKey: 'organizer.sessionsLink.saveError',
+      });
+      showError(t('common.error'), message);
     } finally {
       setSaving(false);
     }
@@ -326,6 +338,12 @@ export default function EventSessionsLinkScreen() {
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
+      ) : loadFailed ? (
+        <ErrorState
+          withCard
+          message={t('organizer.sessionsLink.loadError')}
+          onRetry={fetchData}
+        />
       ) : tickets.length === 0 || sessions.length === 0 ? (
         <View style={styles.emptyState}>
           <View style={[styles.emptyIcon, { backgroundColor: `${colors.primary}10` }]}>
@@ -369,8 +387,9 @@ export default function EventSessionsLinkScreen() {
         </ScrollView>
       )}
 
-      {/* Sticky save bar */}
-      {tickets.length > 0 && sessions.length > 0 && (
+      {/* Sticky save bar. Masquée si le chargement a échoué — enregistrer
+          écraserait les liaisons réelles par les listes vides restées en state. */}
+      {!loadFailed && tickets.length > 0 && sessions.length > 0 && (
         <View
           style={[
             styles.saveBar,

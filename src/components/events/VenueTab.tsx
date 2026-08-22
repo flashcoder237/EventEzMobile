@@ -6,16 +6,17 @@ import {
   ActivityIndicator,
   TextInput,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { seatingAPI, floorPlansAPI } from '../../api';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 import ExhibitorsSection from './ExhibitorsSection';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 interface SeatingZone {
   id: string;
@@ -61,6 +62,7 @@ interface VenueTabProps {
 export default function VenueTab({ eventId }: VenueTabProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
+  const { toastSuccess, showError } = useFeedback();
   const [seatingPlans, setSeatingPlans] = useState<SeatingPlan[]>([]);
   const [floorPlans, setFloorPlans] = useState<FloorPlan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,7 +93,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
 
   const handleReserve = async () => {
     if (!selectedPlan || !selectedZone || !seatLabel.trim()) {
-      Alert.alert(t('common.error'), t('componentsEvents.venueFillFields'));
+      showError(t('common.error'), t('componentsEvents.venueFillFields'));
       return;
     }
     setReserving(true);
@@ -101,13 +103,13 @@ export default function VenueTab({ eventId }: VenueTabProps) {
         zone: selectedZone,
         seat_label: seatLabel.trim(),
       });
-      Alert.alert(t('common.success'), t('componentsEvents.venueReserved'));
+      toastSuccess(t('componentsEvents.venueReserved'));
       setSeatLabel('');
       setSelectedZone('');
       fetchData();
     } catch (error: any) {
-      const msg = error?.response?.data?.detail || t('componentsEvents.venueReserveError');
-      Alert.alert(t('common.error'), msg);
+      const msg = getApiErrorMessage(error, t, { fallbackKey: 'componentsEvents.venueReserveError' }).message;
+      showError(t('common.error'), msg);
     } finally {
       setReserving(false);
     }

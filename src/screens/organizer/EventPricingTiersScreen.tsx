@@ -17,11 +17,14 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
 import { centeredContent, FORM_MAX } from '../../constants/layout';
 import { ticketTypesAPI, priceTiersAPI } from '../../api';
 import DateTimePickerField from '../../components/ui/DateTimePickerField';
 import { RootStackParamList, TicketType } from '../../types';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
+import { FormErrors } from '../../lib/validation';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'EventPricingTiers'>;
@@ -41,6 +44,7 @@ export default function EventPricingTiersScreen() {
   const { eventId, eventCurrency } = route.params;
   const { colors } = useTheme();
   const { showError, showSuccess } = useAlert();
+  const { toastSuccess } = useFeedback();
   const { t } = useTranslation();
   const currency = eventCurrency || '';
 
@@ -49,6 +53,8 @@ export default function EventPricingTiersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [openForm, setOpenForm] = useState<string | null>(null); // ticketType id
   const [draft, setDraft] = useState<DraftTier>(emptyDraft());
+  // Validation client → erreurs inline sous le champ fautif du formulaire.
+  const [draftErrors, setDraftErrors] = useState<FormErrors<'label' | 'price'>>({});
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
@@ -78,19 +84,17 @@ export default function EventPricingTiersScreen() {
 
   const startAdd = (ttId: string) => {
     setDraft(emptyDraft());
+    setDraftErrors({});
     setOpenForm(ttId);
   };
 
   const submitTier = async (tt: TicketType) => {
     const price = parseFloat(draft.price.replace(',', '.'));
-    if (!draft.label.trim()) {
-      showError(t('pricingTiers.error'), t('pricingTiers.labelRequired'));
-      return;
-    }
-    if (isNaN(price) || price < 0) {
-      showError(t('pricingTiers.error'), t('pricingTiers.priceInvalid'));
-      return;
-    }
+    const nextErrors: FormErrors<'label' | 'price'> = {};
+    if (!draft.label.trim()) nextErrors.label = t('pricingTiers.labelRequired');
+    if (isNaN(price) || price < 0) nextErrors.price = t('pricingTiers.priceInvalid');
+    setDraftErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
     const maxQty = draft.maxQuantity.trim() ? parseInt(draft.maxQuantity, 10) : null;
     setSaving(true);
     try {
@@ -102,12 +106,13 @@ export default function EventPricingTiersScreen() {
         ends_at: draft.endsAt ? draft.endsAt.toISOString() : null,
         order: (tt.price_tiers?.length ?? 0),
       });
-      showSuccess(t('pricingTiers.added'), '');
+      toastSuccess(t('pricingTiers.added'));
       setOpenForm(null);
       setDraft(emptyDraft());
+      setDraftErrors({});
       await load();
     } catch (e: any) {
-      showError(t('pricingTiers.error'), e?.response?.data?.detail || t('pricingTiers.saveFailed'));
+      showError(t('pricingTiers.error'), getApiErrorMessage(e, t, { fallbackKey: 'pricingTiers.saveFailed' }).message);
     } finally {
       setSaving(false);
     }
@@ -215,22 +220,46 @@ export default function EventPricingTiersScreen() {
                   {openForm === ttId ? (
                     <View style={[styles.form, { borderTopColor: colors.border }]}>
                       <TextInput
-                        style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+                        style={[
+                          styles.input,
+                          { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border },
+                          draftErrors.label && { borderColor: colors.error },
+                        ]}
                         placeholder={t('pricingTiers.labelPlaceholder')}
                         placeholderTextColor={colors.gray400}
                         value={draft.label}
-                        onChangeText={(v) => setDraft((d) => ({ ...d, label: v }))}
+                        onChangeText={(v) => {
+                          setDraft((d) => ({ ...d, label: v }));
+                          if (draftErrors.label) setDraftErrors((e) => ({ ...e, label: undefined }));
+                        }}
                         maxLength={60}
                       />
+                      {draftErrors.label && (
+                        <Text style={[styles.fieldError, { color: colors.error }]}>{draftErrors.label}</Text>
+                      )}
                       <View style={styles.inputRow}>
-                        <TextInput
-                          style={[styles.input, styles.inputHalf, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-                          placeholder={t('pricingTiers.pricePlaceholder')}
-                          placeholderTextColor={colors.gray400}
-                          value={draft.price}
-                          onChangeText={(v) => setDraft((d) => ({ ...d, price: v }))}
-                          keyboardType="numeric"
-                        />
+                        {/* Le prix est en demi-colonne : son erreur reste dans
+                            cette colonne pour désigner le bon champ. */}
+                        <View style={styles.inputHalf}>
+                          <TextInput
+                            style={[
+                              styles.input,
+                              { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border },
+                              draftErrors.price && { borderColor: colors.error },
+                            ]}
+                            placeholder={t('pricingTiers.pricePlaceholder')}
+                            placeholderTextColor={colors.gray400}
+                            value={draft.price}
+                            onChangeText={(v) => {
+                              setDraft((d) => ({ ...d, price: v }));
+                              if (draftErrors.price) setDraftErrors((e) => ({ ...e, price: undefined }));
+                            }}
+                            keyboardType="numeric"
+                          />
+                          {draftErrors.price && (
+                            <Text style={[styles.fieldError, { color: colors.error }]}>{draftErrors.price}</Text>
+                          )}
+                        </View>
                         <TextInput
                           style={[styles.input, styles.inputHalf, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
                           placeholder={t('pricingTiers.qtyPlaceholder')}
@@ -249,7 +278,7 @@ export default function EventPricingTiersScreen() {
                       <View style={styles.formActions}>
                         <TouchableOpacity
                           style={[styles.formBtn, { backgroundColor: colors.surface }]}
-                          onPress={() => { setOpenForm(null); setDraft(emptyDraft()); }}
+                          onPress={() => { setOpenForm(null); setDraft(emptyDraft()); setDraftErrors({}); }}
                         >
                           <Text style={[styles.formBtnText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
                         </TouchableOpacity>
@@ -330,6 +359,7 @@ const styles = StyleSheet.create({
   },
   inputHalf: { flex: 1 },
   hint: { fontFamily: FontFamily.regular, fontSize: 11 },
+  fieldError: { fontFamily: FontFamily.medium, fontSize: 11, lineHeight: 15, marginTop: 4 },
   formActions: { flexDirection: 'row', gap: Spacing.sm, marginTop: 4 },
   formBtn: {
     flex: 1, paddingVertical: 11, borderRadius: BorderRadius.full,

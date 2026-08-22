@@ -44,6 +44,7 @@ import {
   TextStyles,
 } from '../../constants/theme';
 import { CARD_MAX } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -340,12 +341,10 @@ export default function ScanScreen() {
         msg = connMessages[connCode];
       } else if (error.response?.status === 404) {
         msg = t('scanForm.notFound');
-      } else if (error.response?.data?.detail) {
-        msg = error.response.data.detail;
-      } else if (error.response?.data?.error) {
-        msg = error.response.data.error;
       } else {
-        msg = t('scanForm.scanFailed');
+        msg = getApiErrorMessage(error, t, {
+          fallbackKey: 'scanForm.scanFailed',
+        }).message;
       }
       setResult({ type: 'error', errorMessage: msg });
     }
@@ -362,7 +361,7 @@ export default function ScanScreen() {
       showSuccess(t('scanForm.transferAccepted'), t('scanForm.transferAcceptedMessage'));
       navigation.goBack();
     } catch (error: any) {
-      showError(t('common.error'), error.response?.data?.detail || t('scanForm.transferAcceptError'));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'scanForm.transferAcceptError' }).message);
     } finally {
       setActionLoading(false);
     }
@@ -375,7 +374,7 @@ export default function ScanScreen() {
       showSuccess(t('scanForm.transferDeclined'), t('scanForm.transferDeclinedMessage'));
       navigation.goBack();
     } catch (error: any) {
-      showError(t('common.error'), error.response?.data?.detail || t('scanForm.transferDeclineError'));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'scanForm.transferDeclineError' }).message);
     } finally {
       setActionLoading(false);
     }
@@ -393,7 +392,7 @@ export default function ScanScreen() {
         setResult(prev => prev ? { ...prev, isFollowing: true } : prev);
       }
     } catch (error: any) {
-      showError(t('common.error'), error.response?.data?.detail || t('scanForm.followError'));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'scanForm.followError' }).message);
     } finally {
       setActionLoading(false);
     }

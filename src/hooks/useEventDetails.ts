@@ -3,12 +3,14 @@ import { ScrollView, Share, Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
+import { useFeedback } from '../contexts/FeedbackContext';
 import { eventsAPI, feedbacksAPI, messagesAPI, waitlistAPI, registrationsAPI, sessionsAPI, recommendationsAPI } from '../api';
 import { Event, RootStackParamList, Feedback, WaitlistEntry, Registration, Session } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useAlert } from '../contexts/AlertContext';
 import { getEventUrl } from '../constants/urls';
 import { findExistingDirectConversation } from '../lib/utils/messagingHelpers';
+import { getApiErrorMessage } from '../lib/utils/errorHandling';
 
 // Dedup module-level — un même event ouvert plusieurs fois dans la session ne
 // remonte qu'une seule view au backend. Évite de polluer le signal recommandation
@@ -108,6 +110,7 @@ export function useEventDetails(
   const { user } = useAuth();
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const { t } = useTranslation();
+  const { toastSuccess, toastError } = useFeedback();
 
   const isPreview = !!previewEvent;
   const [event, setEvent] = useState<Event | null>(
@@ -248,7 +251,7 @@ export function useEventDetails(
 
   const handleJoinWaitlist = async () => {
     if (!user) {
-      showAlert('Connexion requise', 'Connectez-vous pour rejoindre la liste d\'attente');
+      showAlert(t('eventDetails.loginRequiredTitle'), t('eventDetails.loginRequiredWaitlist'));
       return;
     }
 
@@ -257,10 +260,12 @@ export function useEventDetails(
     try {
       const response = await waitlistAPI.joinWaitlist({ event: eventUuid });
       setWaitlistEntry(response.data);
-      showSuccess('Succès', 'Vous avez rejoint la liste d\'attente. Vous serez notifié dès qu\'une place se libère.');
+      toastSuccess(t('eventDetails.waitlistJoinedDetail'));
     } catch (error: any) {
-      const message = error.response?.data?.detail || 'Impossible de rejoindre la liste d\'attente';
-      showError('Erreur', message);
+      const { message } = getApiErrorMessage(error, t, {
+        fallbackKey: 'eventDetails.waitlistJoinError',
+      });
+      showError(t('common.error'), message);
     } finally {
       setJoiningWaitlist(false);
     }
@@ -270,15 +275,15 @@ export function useEventDetails(
     if (!waitlistEntry) return;
 
     showConfirm(
-      'Quitter la liste d\'attente',
-      'Êtes-vous sûr de vouloir quitter la liste d\'attente ?',
+      t('eventDetails.waitlistLeaveTitle'),
+      t('eventDetails.waitlistLeaveConfirm'),
       async () => {
         try {
           await waitlistAPI.cancelWaitlist(waitlistEntry.id);
           setWaitlistEntry(null);
-          showSuccess('Succès', 'Vous avez quitté la liste d\'attente');
+          toastSuccess(t('eventDetails.waitlistLeftMsg'));
         } catch (error) {
-          showError('Erreur', 'Impossible de quitter la liste d\'attente');
+          toastError(t('eventDetails.waitlistLeaveError'));
         }
       }
     );
@@ -317,7 +322,7 @@ export function useEventDetails(
         await Linking.openURL(url);
         trackEventInteraction(event.id, 'share');
       } else {
-        showError('Erreur', 'WhatsApp n\'est pas installe sur cet appareil');
+        toastError(t('eventDetails.whatsappNotInstalled'));
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur partage WhatsApp:', error);
@@ -369,12 +374,12 @@ export function useEventDetails(
 
   const handleSubmitReview = async () => {
     if (!user) {
-      showAlert('Connexion requise', 'Connectez-vous pour laisser un avis');
+      showAlert(t('eventDetails.loginRequiredTitle'), t('eventDetails.loginRequiredReview'));
       return;
     }
 
     if (reviewRating < 1 || reviewRating > 5) {
-      showError('Erreur', 'Veuillez selectionner une note entre 1 et 5');
+      showError(t('common.error'), t('eventDetails.reviewRatingRange'));
       return;
     }
 
@@ -387,14 +392,16 @@ export function useEventDetails(
         comment: reviewComment.trim() || undefined,
       });
 
-      showSuccess('Merci !', 'Votre avis a ete soumis avec succes');
+      toastSuccess(t('eventDetails.reviewSubmitted'));
       setShowReviewForm(false);
       setReviewComment('');
       // Refresh feedbacks
       fetchFeedbacks(eventUuid);
     } catch (error: any) {
-      const message = error.response?.data?.detail || 'Impossible de soumettre votre avis';
-      showError('Erreur', message);
+      const { message } = getApiErrorMessage(error, t, {
+        fallbackKey: 'eventDetails.reviewSubmitError',
+      });
+      showError(t('common.error'), message);
     } finally {
       setSubmittingReview(false);
     }

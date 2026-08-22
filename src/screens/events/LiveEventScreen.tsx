@@ -7,7 +7,6 @@ import {
   FlatList,
   TouchableOpacity,
   TextInput,
-  Alert,
   RefreshControl,
   Platform,
 } from 'react-native';
@@ -19,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { liveAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
@@ -61,6 +61,7 @@ export default function LiveEventScreen() {
   const route = useRoute<LiveEventRouteProp>();
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
+  const { toastError } = useFeedback();
   const { eventId } = route.params;
 
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -114,7 +115,7 @@ export default function LiveEventScreen() {
       fetchData();
     } catch (error) {
       if (__DEV__) console.error('Erreur envoi question:', error);
-      Alert.alert(t('common.error'), t('liveEvent.submitError'));
+      toastError(t('liveEvent.submitError'));
     } finally {
       setSubmitting(false);
     }
@@ -151,7 +152,7 @@ export default function LiveEventScreen() {
       );
     } catch (error) {
       if (__DEV__) console.error('Erreur vote:', error);
-      Alert.alert(t('common.error'), t('liveEvent.voteError'));
+      toastError(t('liveEvent.voteError'));
     } finally {
       setVotingId(null);
     }

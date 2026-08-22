@@ -54,11 +54,33 @@ interface Props {
 
 const DEFAULT_COUNTRY_CODE = 'CM';
 
-/** Code pays de l'appareil, validé contre la liste — repli sur CM. */
+/**
+ * Régions dont l'indicatif ne doit PAS être déduit de la locale du device.
+ *
+ * Sur le marché principal (Cameroun), les téléphones sont très majoritairement
+ * réglés sur une locale « français (France) » : `regionCode` renvoie alors `FR`
+ * et le champ s'ouvrait sur 🇫🇷 +33 pour des utilisateurs camerounais — remonté
+ * par les testeurs. La locale décrit la langue de l'interface, pas le pays du
+ * numéro : quand elle pointe vers une de ces régions, on préfère le défaut
+ * produit (CM). L'utilisateur garde le sélecteur pour choisir un autre pays.
+ */
+const LOCALE_REGION_BLOCKLIST = new Set(['FR', 'US', 'GB', 'CA', 'BE']);
+
+/**
+ * Code pays de l'appareil, validé contre la liste — repli sur CM.
+ *
+ * Priorité : région SIM/device fiable → défaut produit (CM).
+ */
 function deviceCountryCode(): string {
   try {
     const region = getLocales()?.[0]?.regionCode;
-    if (region && findCountryByCode(region)) return region.toUpperCase();
+    if (
+      region &&
+      !LOCALE_REGION_BLOCKLIST.has(region.toUpperCase()) &&
+      findCountryByCode(region)
+    ) {
+      return region.toUpperCase();
+    }
   } catch {
     /* expo-localization indisponible — repli */
   }

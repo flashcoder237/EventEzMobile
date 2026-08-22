@@ -26,6 +26,7 @@ import * as Sharing from 'expo-sharing';
 import QRCode from 'react-native-qrcode-svg';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
@@ -62,6 +63,7 @@ export default function QRCodeScreen() {
   const route = useRoute<QRCodeRouteProp>();
   const { ticketId } = route.params;
   const { showError } = useAlert();
+  const { toastError } = useFeedback();
   const { colors, isDark } = useTheme();
 
   const [ticket, setTicket] = useState<TicketPurchase | null>(null);
@@ -118,7 +120,9 @@ export default function QRCodeScreen() {
       setTicket(response.data);
     } catch (error) {
       if (__DEV__) console.error('Error fetching ticket:', error);
-      showError(t('common.error'), t('qrCode.loadError'));
+      // Pas de modale : l'ecran rend deja son propre etat « introuvable »
+      // (en-tete + retour). La modale n'ajoutait qu'une interruption a
+      // acquitter par-dessus un ecran qui disait deja la meme chose.
     } finally {
       setLoading(false);
     }
@@ -693,7 +697,7 @@ export default function QRCodeScreen() {
                     label={t('qrCode.joinNow')}
                     onPress={() => {
                       Linking.openURL(event.online_url!).catch(() => {
-                        showError(t('common.error'), t('qrCode.openLinkError'));
+                        toastError(t('qrCode.openLinkError'));
                       });
                     }}
                     tone="primary"

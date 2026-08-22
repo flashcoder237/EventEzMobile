@@ -20,7 +20,7 @@ exports[`InAppToast snapshots renders info icon 1`] = `
 >
   <View
     accessibilityLabel="Info. . Touchez pour ouvrir."
-    accessibilityRole="button"
+    accessibilityRole="text"
     accessibilityState={
       {
         "busy": undefined,
@@ -71,6 +71,7 @@ exports[`InAppToast snapshots renders info icon 1`] = `
             },
           ],
         },
+        false,
         {
           "shadowColor": "#000",
           "shadowOffset": {
@@ -182,7 +183,7 @@ exports[`InAppToast snapshots renders message icon (default chat type) 1`] = `
 >
   <View
     accessibilityLabel="Alice. Salut !. Touchez pour ouvrir."
-    accessibilityRole="button"
+    accessibilityRole="text"
     accessibilityState={
       {
         "busy": undefined,
@@ -233,6 +234,7 @@ exports[`InAppToast snapshots renders message icon (default chat type) 1`] = `
             },
           ],
         },
+        false,
         {
           "shadowColor": "#000",
           "shadowOffset": {
@@ -361,7 +363,7 @@ exports[`InAppToast snapshots renders notification icon 1`] = `
 >
   <View
     accessibilityLabel="Nouvelle notification. Vous avez recu un message. Touchez pour ouvrir."
-    accessibilityRole="button"
+    accessibilityRole="text"
     accessibilityState={
       {
         "busy": undefined,
@@ -412,6 +414,7 @@ exports[`InAppToast snapshots renders notification icon 1`] = `
             },
           ],
         },
+        false,
         {
           "shadowColor": "#000",
           "shadowOffset": {
@@ -540,7 +543,7 @@ exports[`InAppToast snapshots renders success icon 1`] = `
 >
   <View
     accessibilityLabel="Paiement reussi. . Touchez pour ouvrir."
-    accessibilityRole="button"
+    accessibilityRole="text"
     accessibilityState={
       {
         "busy": undefined,
@@ -590,6 +593,10 @@ exports[`InAppToast snapshots renders success icon 1`] = `
               "scale": 1,
             },
           ],
+        },
+        {
+          "borderLeftColor": "#10B981",
+          "borderLeftWidth": 3,
         },
         {
           "shadowColor": "#000",
@@ -702,7 +709,7 @@ exports[`InAppToast snapshots renders warning icon 1`] = `
 >
   <View
     accessibilityLabel="Attention. Connexion instable. Touchez pour ouvrir."
-    accessibilityRole="button"
+    accessibilityRole="text"
     accessibilityState={
       {
         "busy": undefined,
@@ -752,6 +759,10 @@ exports[`InAppToast snapshots renders warning icon 1`] = `
               "scale": 1,
             },
           ],
+        },
+        {
+          "borderLeftColor": "#F59E0B",
+          "borderLeftWidth": 3,
         },
         {
           "shadowColor": "#000",
@@ -881,7 +892,7 @@ exports[`InAppToast snapshots renders with avatar (overrides icon) 1`] = `
 >
   <View
     accessibilityLabel="Bob. Tu peux verifier ?. Touchez pour ouvrir."
-    accessibilityRole="button"
+    accessibilityRole="text"
     accessibilityState={
       {
         "busy": undefined,
@@ -932,6 +943,7 @@ exports[`InAppToast snapshots renders with avatar (overrides icon) 1`] = `
             },
           ],
         },
+        false,
         {
           "shadowColor": "#000",
           "shadowOffset": {
@@ -1048,7 +1060,7 @@ exports[`InAppToast snapshots renders without body (title only) 1`] = `
 >
   <View
     accessibilityLabel="Connecte. . Touchez pour ouvrir."
-    accessibilityRole="button"
+    accessibilityRole="text"
     accessibilityState={
       {
         "busy": undefined,
@@ -1098,6 +1110,10 @@ exports[`InAppToast snapshots renders without body (title only) 1`] = `
               "scale": 1,
             },
           ],
+        },
+        {
+          "borderLeftColor": "#10B981",
+          "borderLeftWidth": 3,
         },
         {
           "shadowColor": "#000",

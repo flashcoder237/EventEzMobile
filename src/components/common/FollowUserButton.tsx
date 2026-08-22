@@ -15,6 +15,7 @@ import { usersAPI } from '../../api';
 import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
@@ -57,6 +58,7 @@ function FollowUserButtonImpl({
   const { t } = useTranslation();
   const { user } = useAuth();
   const { showAlert, showError, showWarning } = useAlert();
+  const { toastError } = useFeedback();
   // Safe area inset bas — utilisé pour décaler le sticky bottom CTA du modal
   // au-dessus de la nav system Android (gesture bar / 3-button) ou home
   // indicator iOS, sinon le bouton chevauche.
@@ -142,7 +144,7 @@ function FollowUserButtonImpl({
       }
     } catch (error) {
       if (__DEV__) console.error('Error toggling user follow:', error);
-      showError(t('common.error'), t('componentsCommon.followGenericError'));
+      toastError(t('componentsCommon.followGenericError'));
     } finally {
       setIsLoading(false);
     }
@@ -155,7 +157,7 @@ function FollowUserButtonImpl({
       setShowPreferences(false);
     } catch (error) {
       if (__DEV__) console.error('Error updating user follow preferences:', error);
-      showError(t('common.error'), t('componentsCommon.followPrefsError'));
+      toastError(t('componentsCommon.followPrefsError'));
     } finally {
       setIsLoading(false);
     }

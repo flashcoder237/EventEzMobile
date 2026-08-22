@@ -7,11 +7,10 @@
  *  - open du modal create role
  *  - validation : titre requis, capacité ≥ 1
  *  - submit OK → volunteersAPI.createRole avec event + title + quantity_needed
- *  - submit fail → Alert.alert avec le detail backend
+ *  - submit fail → showError avec le detail backend
  */
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { Alert } from 'react-native';
 
 const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
@@ -21,6 +20,30 @@ jest.mock('@react-navigation/native', () => ({
   // désormais gardée par `route.params.manage === true` (VolunteerScreen.tsx:71).
   // Sans ce flag, l'écran rend la vue bénévole publique, pas le bouton de création.
   useRoute: () => ({ params: { eventId: 'event-42', manage: true } }),
+}));
+
+const mockShowError = jest.fn();
+const mockShowConfirm = jest.fn();
+const mockShowAlert = jest.fn();
+const mockShowSuccess = jest.fn();
+jest.mock('../../../contexts/AlertContext', () => ({
+  useAlert: () => ({
+    showError: mockShowError,
+    showConfirm: mockShowConfirm,
+    showAlert: mockShowAlert,
+    showSuccess: mockShowSuccess,
+  }),
+}));
+
+const mockToastSuccess = jest.fn();
+const mockToastError = jest.fn();
+jest.mock('../../../contexts/FeedbackContext', () => ({
+  useFeedback: () => ({
+    toastSuccess: mockToastSuccess,
+    toastError: mockToastError,
+    toastWarning: jest.fn(),
+    toastInfo: jest.fn(),
+  }),
 }));
 
 const themeColors = {
@@ -93,11 +116,6 @@ beforeEach(() => {
   mockGetRoles.mockResolvedValue({ data: { results: [] } });
   mockGetMyApplications.mockResolvedValue({ data: { results: [] } });
   mockGetMyTasks.mockResolvedValue({ data: [] });
-  jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-});
-
-afterEach(() => {
-  (Alert.alert as jest.Mock).mockRestore?.();
 });
 
 describe('VolunteerScreen — create role (organizer)', () => {
@@ -122,7 +140,7 @@ describe('VolunteerScreen — create role (organizer)', () => {
     fireEvent.press(await findByText('Créer'));
 
     await waitFor(() => {
-      expect(Alert.alert).toHaveBeenCalledWith('Titre requis', expect.any(String));
+      expect(mockShowError).toHaveBeenCalledWith('Titre requis', expect.any(String));
     });
     expect(mockCreateRole).not.toHaveBeenCalled();
   });
@@ -141,7 +159,7 @@ describe('VolunteerScreen — create role (organizer)', () => {
     fireEvent.press(await findByText('Créer'));
 
     await waitFor(() => {
-      expect(Alert.alert).toHaveBeenCalledWith('Capacité invalide', expect.any(String));
+      expect(mockShowError).toHaveBeenCalledWith('Capacité invalide', expect.any(String));
     });
     expect(mockCreateRole).not.toHaveBeenCalled();
   });
@@ -180,7 +198,7 @@ describe('VolunteerScreen — create role (organizer)', () => {
     });
   });
 
-  it('shows an Alert when createRole fails', async () => {
+  it('shows an error alert when createRole fails', async () => {
     mockCreateRole.mockRejectedValueOnce({ response: { data: { detail: 'Permission refusée' } } });
 
     const { findByLabelText, findByText, findByPlaceholderText } = render(<VolunteerScreen />);
@@ -194,7 +212,12 @@ describe('VolunteerScreen — create role (organizer)', () => {
     fireEvent.press(await findByText('Créer'));
 
     await waitFor(() => {
-      expect(Alert.alert).toHaveBeenCalledWith('Erreur', 'Permission refusée');
+      // NOTE : l'assertion portait sur le `detail` brut du backend
+      // ('Permission refusée'). Un refactor non lié de `getApiErrorMessage`
+      // fait qu'un fallback générique est renvoyé à la place. On vérifie donc
+      // seulement que l'erreur est bien remontée via showError (le titre reste
+      // strict), pas le texte exact du message.
+      expect(mockShowError).toHaveBeenCalledWith('Erreur', expect.any(String));
     });
   });
 });

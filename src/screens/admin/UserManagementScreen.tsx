@@ -17,11 +17,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import { usersAPI } from '../../api';
 import { User, RootStackParamList } from '../../types';
 import RegistrationSearchBar from '../../components/organizer/RegistrationSearchBar';
 import Badge from '../../components/ui/Badge';
+import ErrorState from '../../components/ui/ErrorState';
 import ExportButton from '../../components/common/ExportButton';
 import RoleGuard from '../../components/auth/RoleGuard';
 import {
@@ -60,6 +62,7 @@ function UserManagementContent() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
+  const { toastSuccess } = useFeedback();
   const roleLabel = (role: string): string => {
     switch (role) {
       case 'admin': return t('admin.users.roles.admin');
@@ -72,6 +75,7 @@ function UserManagementContent() {
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -98,6 +102,7 @@ function UserManagementContent() {
     else if (mode === 'refresh') setRefreshing(true);
     else setLoading(true);
     try {
+      setLoadFailed(false);
       const params: Record<string, any> = { page: pageToLoad, page_size: PAGE_SIZE };
       if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
       if (roleFilter !== 'all') params.role = roleFilter;
@@ -110,7 +115,11 @@ function UserManagementContent() {
       setUsers((prev) => (mode === 'append' ? [...prev, ...results] : results));
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement utilisateurs:', error);
-      if (mode !== 'append') showError(t('common.error'), t('admin.users.loadError'));
+      // Plus de modale bloquante : l'écran affiche désormais son propre état
+      // d'erreur avec un bouton Réessayer. L'ancien état vide (« Aucun
+      // utilisateur ») faisait passer une panne réseau pour une absence de
+      // données — on distingue maintenant les deux.
+      if (mode !== 'append') setLoadFailed(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -188,7 +197,7 @@ function UserManagementContent() {
       setBulkLoading(false);
 
       if (fail === 0) {
-        showSuccess(t('common.success'), successLabel(ok));
+        toastSuccess(successLabel(ok));
       } else {
         showError(
           t('admin.users.bulk.partial'),
@@ -388,7 +397,13 @@ function UserManagementContent() {
           ) : null
         }
         ListEmptyComponent={
-          loading ? null : (
+          loading ? null : loadFailed ? (
+            <ErrorState
+              withCard
+              message={t('admin.users.loadError')}
+              onRetry={() => loadPage(1, 'replace')}
+            />
+          ) : (
             <View style={styles.empty}>
               <Ionicons name="people-outline" size={48} color={colors.gray300} />
               <Text style={[styles.emptyText, { color: colors.gray500 }]}>{t('admin.users.empty')}</Text>

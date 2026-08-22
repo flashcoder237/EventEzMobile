@@ -32,6 +32,8 @@ import {
   Spacing,
   Shadows,
 } from '../../../constants/theme';
+import { getApiErrorMessage } from '../../../lib/utils/errorHandling';
+import { FormErrors } from '../../../lib/validation';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -70,23 +72,39 @@ function TreasuryShareholdersContent() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewData, setPreviewData] = useState<any | null>(null);
   const [creatingDist, setCreatingDist] = useState(false);
+  // Erreurs de validation client, affichées sous le champ fautif du modal.
+  const [previewErrors, setPreviewErrors] = useState<
+    FormErrors<'percentage' | 'start' | 'end'>
+  >({});
 
   const closePreview = () => {
     if (previewLoading || creatingDist) return;
     setPreviewOpen(false);
     setPreviewData(null);
+    setPreviewErrors({});
+  };
+
+  const openPreview = () => {
+    setPreviewErrors({});
+    setPreviewOpen(true);
   };
 
   const runPreview = async () => {
     const pct = parseFloat(previewPercentage.replace(',', '.'));
+    // Validation client → erreurs inline sous le champ fautif. La règle de
+    // date porte sur deux champs : on marque chacun s'il est mal formé.
+    const nextErrors: FormErrors<'percentage' | 'start' | 'end'> = {};
     if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
-      showError(t('admin.treasury.shareholders.modal.validationPercentage'), t('admin.treasury.shareholders.modal.validationPercentageMessage'));
-      return;
+      nextErrors.percentage = t('admin.treasury.shareholders.modal.validationPercentageMessage');
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(previewStart) || !/^\d{4}-\d{2}-\d{2}$/.test(previewEnd)) {
-      showError(t('admin.treasury.shareholders.modal.validationDate'), t('admin.treasury.shareholders.modal.validationDateMessage'));
-      return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(previewStart)) {
+      nextErrors.start = t('admin.treasury.shareholders.modal.validationDateMessage');
     }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(previewEnd)) {
+      nextErrors.end = t('admin.treasury.shareholders.modal.validationDateMessage');
+    }
+    setPreviewErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
     setPreviewLoading(true);
     setPreviewData(null);
     try {
@@ -97,7 +115,7 @@ function TreasuryShareholdersContent() {
       });
       setPreviewData(res.data);
     } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || t('admin.treasury.shareholders.modal.previewError'));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'admin.treasury.shareholders.modal.previewError' }).message);
     } finally {
       setPreviewLoading(false);
     }
@@ -119,11 +137,12 @@ function TreasuryShareholdersContent() {
       showSuccess(t('admin.treasury.shareholders.modal.createSuccess'), t('admin.treasury.shareholders.modal.createSuccessDetail'));
       setPreviewOpen(false);
       setPreviewData(null);
+      setPreviewErrors({});
       // Refresh la liste des dividendes
       fetchData();
       setActiveTab('dividends');
     } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || t('admin.treasury.shareholders.modal.createError'));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'admin.treasury.shareholders.modal.createError' }).message);
     } finally {
       setCreatingDist(false);
     }
@@ -231,7 +250,7 @@ function TreasuryShareholdersContent() {
           style={[styles.iconDisc, { backgroundColor: `${SHAREHOLDER_COLOR}15`, borderColor: `${SHAREHOLDER_COLOR}30` }, Shadows.sm]}
           onPress={() => {
             setPreviewData(null);
-            setPreviewOpen(true);
+            openPreview();
           }}
           activeOpacity={0.7}
           accessibilityRole="button"
@@ -317,26 +336,46 @@ function TreasuryShareholdersContent() {
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.divLabel, { color: colors.gray500 }]}>{t('admin.treasury.shareholders.modal.periodStart')}</Text>
                   <TextInput
-                    style={[styles.divInput, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
+                    style={[
+                      styles.divInput,
+                      { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text },
+                      previewErrors.start && { borderColor: colors.error },
+                    ]}
                     value={previewStart}
-                    onChangeText={setPreviewStart}
+                    onChangeText={(text) => {
+                      setPreviewStart(text);
+                      if (previewErrors.start) setPreviewErrors((e) => ({ ...e, start: undefined }));
+                    }}
                     placeholder="YYYY-MM-DD"
                     placeholderTextColor={colors.gray400}
                     autoCapitalize="none"
                     editable={!previewLoading && !creatingDist}
                   />
+                  {previewErrors.start && (
+                    <Text style={[styles.divFieldError, { color: colors.error }]}>{previewErrors.start}</Text>
+                  )}
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.divLabel, { color: colors.gray500 }]}>{t('admin.treasury.shareholders.modal.periodEnd')}</Text>
                   <TextInput
-                    style={[styles.divInput, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
+                    style={[
+                      styles.divInput,
+                      { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text },
+                      previewErrors.end && { borderColor: colors.error },
+                    ]}
                     value={previewEnd}
-                    onChangeText={setPreviewEnd}
+                    onChangeText={(text) => {
+                      setPreviewEnd(text);
+                      if (previewErrors.end) setPreviewErrors((e) => ({ ...e, end: undefined }));
+                    }}
                     placeholder="YYYY-MM-DD"
                     placeholderTextColor={colors.gray400}
                     autoCapitalize="none"
                     editable={!previewLoading && !creatingDist}
                   />
+                  {previewErrors.end && (
+                    <Text style={[styles.divFieldError, { color: colors.error }]}>{previewErrors.end}</Text>
+                  )}
                 </View>
               </View>
 
@@ -344,14 +383,24 @@ function TreasuryShareholdersContent() {
                 {t('admin.treasury.shareholders.modal.percentage')}
               </Text>
               <TextInput
-                style={[styles.divInput, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
+                style={[
+                  styles.divInput,
+                  { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text },
+                  previewErrors.percentage && { borderColor: colors.error },
+                ]}
                 value={previewPercentage}
-                onChangeText={setPreviewPercentage}
+                onChangeText={(text) => {
+                  setPreviewPercentage(text);
+                  if (previewErrors.percentage) setPreviewErrors((e) => ({ ...e, percentage: undefined }));
+                }}
                 placeholder="30"
                 placeholderTextColor={colors.gray400}
                 keyboardType="decimal-pad"
                 editable={!previewLoading && !creatingDist}
               />
+              {previewErrors.percentage && (
+                <Text style={[styles.divFieldError, { color: colors.error }]}>{previewErrors.percentage}</Text>
+              )}
 
               <TouchableOpacity
                 style={[styles.divPreviewBtn, { backgroundColor: `${SHAREHOLDER_COLOR}15`, borderColor: `${SHAREHOLDER_COLOR}40` }]}
@@ -570,6 +619,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     textTransform: 'uppercase',
     marginBottom: 6,
+  },
+  divFieldError: {
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 6,
   },
   divInput: {
     borderWidth: 1.5,

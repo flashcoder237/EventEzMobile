@@ -21,11 +21,15 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import PhoneNumberInput from '../../components/common/PhoneNumberInput';
+import SearchableSelectModal from '../../components/common/SearchableSelectModal';
+import { COUNTRIES, Country, countryName, flagEmoji } from '../../constants/countries';
 import { extractErrorMessage } from '../../lib/utils/errorHandling';
+import { FormErrors } from '../../lib/validation';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import { usersAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import DatePickerField from '../../components/ui/DatePickerField';
 import {
   Colors,
   FontFamily,
@@ -85,7 +89,7 @@ export default function EditProfileScreen() {
   const { user, syncUser } = useAuth();
   const { showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const biometric = useBiometricConfirm();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const inputBg = isDark ? colors.gray100 : colors.gray50;
@@ -107,6 +111,7 @@ export default function EditProfileScreen() {
   // Pas de default 'Cameroun' : on laisse vide pour ne pas imposer un pays à
   // un user venant de l'international ; le placeholder du champ guide la saisie.
   const [country, setCountry] = useState(user?.country || '');
+  const [countryPickerOpen, setCountryPickerOpen] = useState(false);
   const [bio, setBio] = useState(user?.bio || '');
 
   const [companyName, setCompanyName] = useState(user?.company_name || '');
@@ -117,6 +122,11 @@ export default function EditProfileScreen() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  // Erreurs de validation client, affichées sous le champ fautif (un modal ne
+  // peut pas pointer le champ concerné).
+  const [passwordErrors, setPasswordErrors] = useState<
+    FormErrors<'currentPassword' | 'newPassword' | 'confirmPassword'>
+  >({});
 
   const hasProfileChanges =
     firstName !== (user?.first_name || '') ||
@@ -252,20 +262,22 @@ export default function EditProfileScreen() {
   };
 
   const handleChangePassword = async () => {
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      showError(t('common.error'), t('editProfile.fillAllFields'));
-      return;
+    // Validation client → erreurs inline sous le champ fautif.
+    const nextErrors: FormErrors<'currentPassword' | 'newPassword' | 'confirmPassword'> = {};
+
+    if (!currentPassword) nextErrors.currentPassword = t('editProfile.fillAllFields');
+    if (!newPassword) nextErrors.newPassword = t('editProfile.fillAllFields');
+    if (!confirmPassword) nextErrors.confirmPassword = t('editProfile.fillAllFields');
+
+    if (!nextErrors.newPassword && newPassword.length < 8) {
+      nextErrors.newPassword = t('editProfile.passwordMinLength');
+    }
+    if (!nextErrors.confirmPassword && newPassword !== confirmPassword) {
+      nextErrors.confirmPassword = t('editProfile.passwordsNotMatching');
     }
 
-    if (newPassword !== confirmPassword) {
-      showError(t('common.error'), t('editProfile.passwordsNotMatching'));
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      showError(t('common.error'), t('editProfile.passwordMinLength'));
-      return;
-    }
+    setPasswordErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
 
     // Confirmation biométrique catégorie 'account' avant change password.
     const confirmed = await biometric.confirm({
@@ -285,6 +297,7 @@ export default function EditProfileScreen() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+      setPasswordErrors({});
     } catch (error: any) {
       if (__DEV__) console.error('Erreur changement mot de passe:', error);
       showError(t('common.error'), extractErrorMessage(error));
@@ -423,17 +436,23 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.dobLabel')}</Text>
-            <View style={styles.inputWithIcon}>
-              <Ionicons name="calendar-outline" size={18} color={colors.gray400} style={styles.inputIcon} />
-              <TextInput
-                style={[inputStyle, styles.inputWithIconPadding]}
-                value={dateOfBirth}
-                onChangeText={setDateOfBirth}
-                placeholder={t('editProfile.dobPlaceholder')}
-                placeholderTextColor={colors.gray400}
-              />
-            </View>
+            {/* Vrai sélecteur de date (avant : TextInput texte libre « AAAA-MM-JJ »
+                à taper à la main, icône décorative non cliquable). On garde l'état
+                string YYYY-MM-DD attendu par le backend, converti ici. */}
+            <DatePickerField
+              label={t('editProfile.dobLabel')}
+              value={dateOfBirth ? new Date(dateOfBirth) : undefined}
+              maximumDate={new Date()}
+              placeholder={t('editProfile.dobPlaceholder')}
+              onChange={(d) => {
+                // Format YYYY-MM-DD sans décalage de fuseau (toISOString() peut
+                // basculer d'un jour selon l'heure locale).
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                setDateOfBirth(`${y}-${m}-${day}`);
+              }}
+            />
           </View>
         </Section>
 
@@ -462,14 +481,32 @@ export default function EditProfileScreen() {
               />
             </View>
             <View style={[styles.inputGroup, styles.inputHalf]}>
-              <Text style={[styles.label, { color: colors.gray500 }]}>Pays</Text>
-              <TextInput
-                style={inputStyle}
-                value={country}
-                onChangeText={setCountry}
-                placeholder={t('editProfile.countryLabel')}
-                placeholderTextColor={colors.gray400}
-              />
+              <Text style={[styles.label, { color: colors.gray500 }]}>
+                {t('editProfile.countryLabel')}
+              </Text>
+              {/* Sélecteur (et non saisie libre) : le pays alimente des
+                  résolutions côté backend (devise, disponibilité). En texte
+                  libre, un « France » saisi à la main ou un endonyme
+                  (« Deutschland ») ne matchait pas la liste de référence. */}
+              <TouchableOpacity
+                style={[inputStyle, styles.selectTrigger]}
+                onPress={() => setCountryPickerOpen(true)}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={t('editProfile.countryLabel')}
+                accessibilityValue={{ text: country || t('editProfile.countryPlaceholder') }}
+              >
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    fontFamily: FontFamily.medium,
+                    color: country ? colors.text : colors.gray400,
+                  }}
+                >
+                  {country || t('editProfile.countryPlaceholder')}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color={colors.gray400} />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -517,9 +554,18 @@ export default function EditProfileScreen() {
             <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.currentPasswordLabel')}</Text>
             <View style={styles.passwordInput}>
               <TextInput
-                style={[inputStyle, styles.passwordInputField]}
+                style={[
+                  inputStyle,
+                  styles.passwordInputField,
+                  passwordErrors.currentPassword && { borderColor: colors.error },
+                ]}
                 value={currentPassword}
-                onChangeText={setCurrentPassword}
+                onChangeText={(text) => {
+                  setCurrentPassword(text);
+                  if (passwordErrors.currentPassword) {
+                    setPasswordErrors((prev) => ({ ...prev, currentPassword: undefined }));
+                  }
+                }}
                 placeholder="••••••••"
                 placeholderTextColor={colors.gray400}
                 secureTextEntry={!showCurrentPassword}
@@ -537,15 +583,29 @@ export default function EditProfileScreen() {
                 />
               </TouchableOpacity>
             </View>
+            {passwordErrors.currentPassword && (
+              <Text style={[styles.helpText, { color: colors.error }]}>
+                {passwordErrors.currentPassword}
+              </Text>
+            )}
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.newPasswordLabel')}</Text>
             <View style={styles.passwordInput}>
               <TextInput
-                style={[inputStyle, styles.passwordInputField]}
+                style={[
+                  inputStyle,
+                  styles.passwordInputField,
+                  passwordErrors.newPassword && { borderColor: colors.error },
+                ]}
                 value={newPassword}
-                onChangeText={setNewPassword}
+                onChangeText={(text) => {
+                  setNewPassword(text);
+                  if (passwordErrors.newPassword) {
+                    setPasswordErrors((prev) => ({ ...prev, newPassword: undefined }));
+                  }
+                }}
                 placeholder="••••••••"
                 placeholderTextColor={colors.gray400}
                 secureTextEntry={!showNewPassword}
@@ -563,18 +623,35 @@ export default function EditProfileScreen() {
                 />
               </TouchableOpacity>
             </View>
-            <Text style={[styles.helpText, { color: colors.gray500 }]}>
-              Minimum 8 caractères avec lettres, chiffres et symboles
-            </Text>
+            {/* L'erreur remplace l'indice statique — deux lignes d'aide
+                empilées sous le champ brouilleraient le message. */}
+            {passwordErrors.newPassword ? (
+              <Text style={[styles.helpText, { color: colors.error }]}>
+                {passwordErrors.newPassword}
+              </Text>
+            ) : (
+              <Text style={[styles.helpText, { color: colors.gray500 }]}>
+                Minimum 8 caractères avec lettres, chiffres et symboles
+              </Text>
+            )}
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.confirmPasswordLabel')}</Text>
             <View style={styles.passwordInput}>
               <TextInput
-                style={[inputStyle, styles.passwordInputField]}
+                style={[
+                  inputStyle,
+                  styles.passwordInputField,
+                  passwordErrors.confirmPassword && { borderColor: colors.error },
+                ]}
                 value={confirmPassword}
-                onChangeText={setConfirmPassword}
+                onChangeText={(text) => {
+                  setConfirmPassword(text);
+                  if (passwordErrors.confirmPassword) {
+                    setPasswordErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+                  }
+                }}
                 placeholder="••••••••"
                 placeholderTextColor={colors.gray400}
                 secureTextEntry={!showConfirmPassword}
@@ -592,6 +669,11 @@ export default function EditProfileScreen() {
                 />
               </TouchableOpacity>
             </View>
+            {passwordErrors.confirmPassword && (
+              <Text style={[styles.helpText, { color: colors.error }]}>
+                {passwordErrors.confirmPassword}
+              </Text>
+            )}
           </View>
 
           {hasPasswordChanges && (
@@ -641,6 +723,31 @@ export default function EditProfileScreen() {
         </View>
         </View>
       </KeyboardAwareScrollView>
+
+      <SearchableSelectModal<Country>
+        visible={countryPickerOpen}
+        onClose={() => setCountryPickerOpen(false)}
+        title={t('editProfile.countryLabel')}
+        items={COUNTRIES}
+        getKey={(c) => c.code}
+        getLabel={(c) => `${flagEmoji(c.code)}  ${countryName(c, i18n.language)}`}
+        selectedKey={
+          COUNTRIES.find(
+            (c) =>
+              countryName(c, i18n.language) === country ||
+              c.name === country ||
+              c.nameEn === country,
+          )?.code ?? null
+        }
+        onSelect={(c) => {
+          setCountry(countryName(c, i18n.language));
+          setCountryPickerOpen(false);
+        }}
+        onClear={() => {
+          setCountry('');
+          setCountryPickerOpen(false);
+        }}
+      />
 
       {saving && <LoadingSpinner />}
     </EditorialCanvas>
@@ -796,6 +903,11 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: 'row', gap: Spacing.sm },
   inputGroup: { marginBottom: Spacing.md },
   inputHalf: { flex: 1 },
+  selectTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   label: {
     fontFamily: FontFamily.bold,
     fontSize: 10,
@@ -827,7 +939,9 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   inputWithIconPadding: { paddingLeft: Spacing.md + 26 },
-  textArea: { minHeight: 100, paddingTop: Spacing.md },
+  // height:undefined ANNULE le height:50 fixe de `input` (sinon la bio multiligne
+  // est rognée à une seule ligne) — laisse minHeight + le contenu piloter la hauteur.
+  textArea: { height: undefined, minHeight: 100, paddingTop: Spacing.md },
   helpText: {
     fontFamily: FontFamily.regular,
     fontSize: FontSizes.xs,

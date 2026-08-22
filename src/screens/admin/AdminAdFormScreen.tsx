@@ -38,9 +38,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import { advertisementsAPI, AdvertisementAdmin } from '../../api';
-import { getApiErrorMessage } from '../../lib/utils/errorHandling';
+import { getApiErrorMessage, formatFieldErrors } from '../../lib/utils/errorHandling';
 import { RootStackParamList } from '../../types';
 import RoleGuard from '../../components/auth/RoleGuard';
 import {
@@ -51,6 +52,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent, FORM_MAX } from '../../constants/layout';
+import ErrorState from '../../components/ui/ErrorState';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'AdminAdForm'>;
@@ -74,11 +76,13 @@ function AdminAdFormContent() {
   const isEdit = !!adId;
   const { colors, isDark } = useTheme();
   const { showSuccess, showError } = useAlert();
+  const { toastSuccess } = useFeedback();
   const biometric = useBiometricConfirm();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   // === State du form ===
   const [loading, setLoading] = useState(isEdit);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
@@ -100,6 +104,8 @@ function AdminAdFormContent() {
   const fetchAd = useCallback(async () => {
     if (!adId) return;
     try {
+      setLoadFailed(false);
+      setLoading(true);
       const res = await advertisementsAPI.get(adId);
       const ad = res.data as AdvertisementAdmin;
       setTitle(ad.title);
@@ -118,12 +124,14 @@ function AdminAdFormContent() {
       setExistingImageUrl(ad.image_url || null);
     } catch (error) {
       if (__DEV__) console.error('Erreur fetch ad:', error);
-      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'admin.ads.form.loadError' }).message);
-      navigation.goBack();
+      // Plus de modale : l'écran affiche son propre état d'erreur avec Réessayer.
+      // Le formulaire reste masqué tant que l'annonce n'est pas chargée, sinon on
+      // enregistrerait des champs vides par-dessus la publicité réelle.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
-  }, [adId, navigation, showError, t]);
+  }, [adId]);
 
   useEffect(() => {
     fetchAd();
@@ -210,15 +218,21 @@ function AdminAdFormContent() {
 
       if (isEdit) {
         await advertisementsAPI.update(adId!, payload);
-        showSuccess(t('common.success'), t('admin.ads.form.updateSuccess'));
+        toastSuccess(t('admin.ads.form.updateSuccess'));
       } else {
         await advertisementsAPI.create(payload);
-        showSuccess(t('common.success'), t('admin.ads.form.createSuccess'));
+        toastSuccess(t('admin.ads.form.createSuccess'));
       }
       navigation.goBack();
     } catch (error: any) {
       if (__DEV__) console.error('Erreur submit:', error);
-      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'admin.ads.form.submitError' }).message);
+      // Modale sans erreurs inline → détailler les champs fautifs (« Image : … »)
+      // sinon l'admin ne sait pas POURQUOI la création échoue.
+      const { message, fieldErrors } = getApiErrorMessage(error, t, {
+        fallbackKey: 'admin.ads.form.submitError',
+      });
+      const detail = formatFieldErrors(fieldErrors, t);
+      showError(t('common.error'), detail || message);
     } finally {
       setSubmitting(false);
     }
@@ -230,6 +244,30 @@ function AdminAdFormContent() {
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Échec de chargement : on n'affiche PAS le formulaire (ses champs seraient
+  // vides et un enregistrement écraserait la publicité réelle). Seuls le retour
+  // et le bouton Réessayer sont accessibles.
+  if (loadFailed) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        <View style={[styles.header, { borderBottomColor: hairline }]}>
+          <TouchableOpacity
+            style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
+            onPress={() => navigation.goBack()}
+            accessibilityLabel={t('common.back')}
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.text} />
+          </TouchableOpacity>
+          <View style={{ flex: 1, marginLeft: Spacing.md }}>
+            <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.ads.form.eyebrowEdit')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.ads.form.titleEdit')}</Text>
+          </View>
+        </View>
+        <ErrorState withCard message={t('admin.ads.form.loadError')} onRetry={fetchAd} />
       </SafeAreaView>
     );
   }

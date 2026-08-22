@@ -6,22 +6,29 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTranslation } from 'react-i18next';
+
 import { FontFamily } from '../../constants/theme';
 import { useAlert } from '../../contexts/AlertContext';
+import { getMediaUrl } from '../../api';
 
 interface Props {
   eventTitle: string;
   /** Date lisible (ex "sam. 12 juil. · 20:00"). Optionnelle. */
   dateLabel?: string;
-  /** Puce en haut de la carte. */
+  /** Puce en haut de la carte. Défaut : clé i18n `shareCard.eyebrow`. */
   eyebrow?: string;
-  /** Libellé du bouton. */
+  /** Libellé du bouton. Défaut : clé i18n `shareCard.button`. */
   label?: string;
+  /** Bannière de l'événement, affichée en fond de carte. Sans elle, la carte
+   *  retombe sur le seul dégradé de marque. */
+  imageUrl?: string | null;
 }
 
 // Ratio ~9:16 → carte Story-friendly (WhatsApp/Insta/FB stories).
@@ -39,12 +46,20 @@ const CARD_H = 604;
 export default function ShareTicketCardButton({
   eventTitle,
   dateLabel,
-  eyebrow = "J'Y VAIS",
-  label = 'Partager en story',
+  eyebrow,
+  label,
+  imageUrl,
 }: Props) {
   const cardRef = useRef<View>(null);
   const [busy, setBusy] = useState(false);
   const { showError } = useAlert();
+  const { t } = useTranslation();
+
+  // Le composant était intégralement codé en dur en français : il rendait donc
+  // « J'Y VAIS » / « Partager en story » même en anglais.
+  const eyebrowText = eyebrow ?? t('shareCard.eyebrow');
+  const labelText = label ?? t('shareCard.button');
+  const resolvedImage = imageUrl ? getMediaUrl(imageUrl) : null;
 
   const handleShare = async () => {
     if (busy) return;
@@ -60,11 +75,11 @@ export default function ShareTicketCardButton({
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
           mimeType: 'image/png',
-          dialogTitle: 'Partager ma place',
+          dialogTitle: t('shareCard.dialogTitle'),
         });
       }
     } catch {
-      showError('Partage', 'Impossible de générer la carte pour le moment.');
+      showError(t('shareCard.errorTitle'), t('shareCard.errorMessage'));
     } finally {
       setBusy(false);
     }
@@ -77,7 +92,7 @@ export default function ShareTicketCardButton({
         disabled={busy}
         activeOpacity={0.85}
         accessibilityRole="button"
-        accessibilityLabel={label}
+        accessibilityLabel={labelText}
         style={styles.button}
       >
         {busy ? (
@@ -85,22 +100,38 @@ export default function ShareTicketCardButton({
         ) : (
           <Ionicons name="share-social" size={16} color="#FFFFFF" />
         )}
-        <Text style={styles.buttonLabel}>{label}</Text>
+        <Text style={styles.buttonLabel}>{labelText}</Text>
       </TouchableOpacity>
 
       {/* Carte rendue HORS-ÉCRAN. `collapsable={false}` est requis sur Android
           pour capturer une vue non affichée. */}
       <View style={styles.offscreen} pointerEvents="none">
         <View ref={cardRef} collapsable={false} style={styles.card}>
+          {resolvedImage && (
+            <ExpoImage
+              source={{ uri: resolvedImage }}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              // La capture doit partir d'une image DÉJÀ décodée : sans cache
+              // disque/mémoire, captureRef photographie une carte vide.
+              cachePolicy="memory-disk"
+              transition={0}
+            />
+          )}
           <LinearGradient
-            colors={['#4F46E5', '#A855F7', '#FF6B6B']}
+            colors={
+              resolvedImage
+                // Voile sombre : garde le titre lisible par-dessus la photo.
+                ? ['rgba(17,17,16,0.35)', 'rgba(79,70,229,0.75)', 'rgba(255,107,107,0.85)']
+                : ['#4F46E5', '#A855F7', '#FF6B6B']
+            }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
           />
           <View style={styles.cardInner}>
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>{eyebrow}</Text>
+              <Text style={styles.badgeText}>{eyebrowText}</Text>
             </View>
 
             <View style={styles.cardMiddle}>
@@ -115,7 +146,7 @@ export default function ShareTicketCardButton({
                 <Ionicons name="ticket" size={18} color="#FFFFFF" />
                 <Text style={styles.brand}>EventEz</Text>
               </View>
-              <Text style={styles.cta}>Réserve ta place →</Text>
+              <Text style={styles.cta}>{t('shareCard.cta')}</Text>
             </View>
           </View>
         </View>

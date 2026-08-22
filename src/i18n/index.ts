@@ -26,9 +26,35 @@ import { getRemoteTranslation } from './translations';
 
 export const LANGUAGE_STORAGE_KEY = '@eventez_language';
 
-const deviceLocale = getLocales()[0]?.languageCode ?? 'en';
-// Default = anglais. Français uniquement si le device est explicitement en fr.
-const initialLang: 'fr' | 'en' = deviceLocale === 'fr' ? 'fr' : 'en';
+/**
+ * Marque une langue CHOISIE EXPLICITEMENT par l'utilisateur (Onboarding ou
+ * Paramètres), par opposition à une langue auto-détectée depuis la locale du
+ * device et persistée silencieusement.
+ *
+ * Nécessaire car les deux écrivaient dans la même clé : impossible de savoir si
+ * un `en` stocké venait d'un vrai choix ou d'une auto-détection. La migration
+ * ci-dessous ne doit corriger QUE les auto-détections.
+ */
+export const LANGUAGE_EXPLICIT_KEY = '@eventez_language_explicit';
+
+/**
+ * Version de la migration de préférence de langue. Incrémenter invalide la
+ * migration précédente et la rejoue une fois.
+ */
+const LANGUAGE_MIGRATION_KEY = '@eventez_language_migration';
+const LANGUAGE_MIGRATION_VERSION = '1';
+
+const deviceLocale = getLocales()[0]?.languageCode ?? 'fr';
+// Default = FRANÇAIS, aligné sur le backend (apps/core/i18n.py DEFAULT_LANG='fr'
+// et settings.LANGUAGE_CODE='fr'). Anglais uniquement si le device est
+// explicitement en `en`.
+//
+// Avant : le défaut était `en`, si bien qu'un device réglé sur une langue
+// tierce (ou mal détecté) affichait une UI anglaise ALORS QUE le backend
+// répondait en français — d'où les écrans mi-anglais mi-français remontés par
+// les testeurs (libellés i18next en EN, erreurs de validation en FR), et les
+// catégories en anglais (le header `Accept-Language: en` était envoyé à l'API).
+const initialLang: 'fr' | 'en' = deviceLocale === 'en' ? 'en' : 'fr';
 
 // fr + en sont toujours bundlés : base offline + langue de fallback universelle.
 // Les autres langues sont chargées en OTA à la demande (cf. ./translations).
@@ -91,7 +117,25 @@ export async function changeLanguage(lang: string): Promise<void> {
 export const i18nReady: Promise<void> = (async () => {
   try {
     const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-    const stored = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+    let stored = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+
+    // ── Migration one-shot : défaut EN → FR ────────────────────────────────
+    // Les installs antérieures ont persisté `en` par simple auto-détection
+    // (l'ancien défaut basculait en EN dès que la locale device n'était pas
+    // exactement `fr`). Ces utilisateurs restaient bloqués sur une UI anglaise
+    // pour toujours, même après correction du défaut. On re-dérive donc leur
+    // préférence UNE FOIS — sans jamais toucher à un choix explicite.
+    const migrated = await AsyncStorage.getItem(LANGUAGE_MIGRATION_KEY);
+    if (migrated !== LANGUAGE_MIGRATION_VERSION) {
+      const explicit = await AsyncStorage.getItem(LANGUAGE_EXPLICIT_KEY);
+      if (explicit !== 'true' && stored === 'en' && initialLang !== 'en') {
+        stored = initialLang;
+        await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, initialLang);
+        if (__DEV__) console.log('[i18n] migration: auto-detected "en" -> "fr"');
+      }
+      await AsyncStorage.setItem(LANGUAGE_MIGRATION_KEY, LANGUAGE_MIGRATION_VERSION);
+    }
+
     if (stored && typeof stored === 'string') {
       // N'importe quelle langue stockée (fr/en bundlées, autres en OTA).
       if (stored !== initialLang) {

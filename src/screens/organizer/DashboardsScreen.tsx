@@ -27,6 +27,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { analyticsAPI } from '../../api';
 import type { Dashboard, RootStackParamList } from '../../types';
 import {
@@ -38,6 +39,8 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
+import ErrorState from '../../components/ui/ErrorState';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -46,30 +49,36 @@ export default function DashboardsScreen() {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError, showConfirm } = useAlert();
+  const { toastSuccess } = useFeedback();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [items, setItems] = useState<Dashboard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // Création
   const [createOpen, setCreateOpen] = useState(false);
   const [createTitle, setCreateTitle] = useState('');
+  // Erreur de validation client du champ "titre", affichée sous l'input du modal.
+  const [createTitleError, setCreateTitleError] = useState<string | undefined>();
   const [createDescription, setCreateDescription] = useState('');
   const [creating, setCreating] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
+      setLoadFailed(false);
       const res = await analyticsAPI.getDashboards();
       const data: Dashboard[] = res.data?.results || res.data || [];
       setItems(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || t('organizer.dashboards.loadError'));
+    } catch {
+      // Plus de modale : la liste affiche son propre état d'erreur avec Réessayer.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [showError, t]);
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -91,7 +100,8 @@ export default function DashboardsScreen() {
   const submitCreate = async () => {
     const title = createTitle.trim();
     if (!title) {
-      showError(t('organizer.dashboards.titleRequiredTitle'), t('organizer.dashboards.titleRequiredMessage'));
+      // Erreur inline sous le champ — un modal ne peut pas le désigner.
+      setCreateTitleError(t('organizer.dashboards.titleRequiredMessage'));
       return;
     }
     setCreating(true);
@@ -111,9 +121,12 @@ export default function DashboardsScreen() {
       setCreateOpen(false);
       setCreateTitle('');
       setCreateDescription('');
+      setCreateTitleError(undefined);
       showSuccess(t('organizer.dashboards.createdTitle'), t('organizer.dashboards.createdMessage'));
     } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || t('organizer.dashboards.createError'));
+      // Jamais le `detail` brut du backend : message traduit via le helper.
+      const { message } = getApiErrorMessage(error, t, { fallbackKey: 'organizer.dashboards.createError' });
+      showError(t('common.error'), message);
     } finally {
       setCreating(false);
     }
@@ -127,9 +140,11 @@ export default function DashboardsScreen() {
         try {
           await analyticsAPI.deleteDashboard(dash.id);
           setItems(prev => prev.filter(d => d.id !== dash.id));
-          showSuccess(t('organizer.dashboards.deletedTitle'), '');
+          toastSuccess(t('organizer.dashboards.deletedTitle'));
         } catch (error: any) {
-          showError(t('common.error'), error?.response?.data?.detail || t('organizer.dashboards.deleteError'));
+          // Jamais le `detail` brut du backend : message traduit via le helper.
+          const { message } = getApiErrorMessage(error, t, { fallbackKey: 'organizer.dashboards.deleteError' });
+          showError(t('common.error'), message);
         }
       },
     );
@@ -193,7 +208,7 @@ export default function DashboardsScreen() {
         </View>
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}30` }, Shadows.sm]}
-          onPress={() => setCreateOpen(true)}
+          onPress={() => { setCreateTitleError(undefined); setCreateOpen(true); }}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel={t('organizer.dashboards.newA11y')}
@@ -214,19 +229,27 @@ export default function DashboardsScreen() {
           contentContainerStyle={[styles.listContent, items.length === 0 && { flex: 1 }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Ionicons name="grid-outline" size={48} color={colors.gray300} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.dashboards.emptyTitle')}</Text>
-              <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-                {t('organizer.dashboards.emptyText')}
-              </Text>
-            </View>
+            loading ? null : loadFailed ? (
+              <ErrorState
+                withCard
+                message={t('organizer.dashboards.loadError')}
+                onRetry={fetchData}
+              />
+            ) : (
+              <View style={styles.empty}>
+                <Ionicons name="grid-outline" size={48} color={colors.gray300} />
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.dashboards.emptyTitle')}</Text>
+                <Text style={[styles.emptyText, { color: colors.gray500 }]}>
+                  {t('organizer.dashboards.emptyText')}
+                </Text>
+              </View>
+            )
           }
         />
       )}
 
       {/* === CREATE MODAL === */}
-      <Modal visible={createOpen} transparent animationType="fade" onRequestClose={() => !creating && setCreateOpen(false)}>
+      <Modal visible={createOpen} transparent animationType="fade" onRequestClose={() => { if (!creating) { setCreateTitleError(undefined); setCreateOpen(false); } }}>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalEyebrow, { color: colors.accent }]}>{t('organizer.dashboards.modalEyebrow')}</Text>
@@ -234,14 +257,24 @@ export default function DashboardsScreen() {
 
             <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.dashboards.titleField')}</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
+              style={[
+                styles.input,
+                { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text },
+                createTitleError && { borderColor: colors.error },
+              ]}
               value={createTitle}
-              onChangeText={setCreateTitle}
+              onChangeText={(text) => {
+                setCreateTitle(text);
+                if (createTitleError) setCreateTitleError(undefined);
+              }}
               placeholder={t('organizer.dashboards.titlePlaceholder')}
               placeholderTextColor={colors.gray400}
               editable={!creating}
               maxLength={120}
             />
+            {createTitleError && (
+              <Text style={[styles.fieldError, { color: colors.error }]}>{createTitleError}</Text>
+            )}
 
             <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.dashboards.descriptionField')}</Text>
             <TextInput
@@ -260,7 +293,7 @@ export default function DashboardsScreen() {
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.modalBtn, { backgroundColor: colors.gray100 }]}
-                onPress={() => !creating && setCreateOpen(false)}
+                onPress={() => { if (!creating) { setCreateTitleError(undefined); setCreateOpen(false); } }}
                 disabled={creating}
                 activeOpacity={0.85}
               >
@@ -422,6 +455,12 @@ const styles = StyleSheet.create({
   },
   textArea: {
     minHeight: 70,
+  },
+  fieldError: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 6,
   },
   modalActions: {
     flexDirection: 'row',

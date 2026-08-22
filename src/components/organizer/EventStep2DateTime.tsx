@@ -116,6 +116,7 @@ export default function EventStep2DateTime({
       <DateTimePickerField
         label={t('componentsOrganizer.step2.startDateLabel')}
         value={startDate}
+        error={stepErrors.startDate}
         onChange={(date) => {
           onStartDateChange(date);
           if (date > endDate) {
@@ -127,6 +128,7 @@ export default function EventStep2DateTime({
       <DateTimePickerField
         label={t('componentsOrganizer.step2.endDateLabel')}
         value={endDate}
+        error={stepErrors.endDate}
         onChange={onEndDateChange}
         minimumDate={startDate}
       />

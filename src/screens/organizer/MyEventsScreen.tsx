@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Events as EventsIllustration, AnimatedIllustration } from '../../components/illustrations';
@@ -50,6 +51,7 @@ import EventActionsSheet, {
 import { useTabletLayout } from '../../hooks/useTabletLayout';
 import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import { formatCompactNumber } from '../../lib/utils/numberFormatters';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -80,6 +82,7 @@ export default function MyEventsScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
+  const { toastSuccess } = useFeedback();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const tour = useTour();
@@ -206,7 +209,7 @@ export default function MyEventsScreen() {
     } catch (error: any) {
       showError(
         t('common.error'),
-        error?.response?.data?.detail || t('organizer.myEvents.broadcastError'),
+        getApiErrorMessage(error, t, { fallbackKey: 'organizer.myEvents.broadcastError' }).message,
       );
     } finally {
       setBroadcastLoading(false);
@@ -246,7 +249,7 @@ export default function MyEventsScreen() {
       );
       setRecurrenceTarget(null);
     } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || t('organizer.myEvents.recurrenceError'));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'organizer.myEvents.recurrenceError' }).message);
     } finally {
       setRecurrenceLoading(false);
     }
@@ -334,7 +337,7 @@ export default function MyEventsScreen() {
           await eventsAPI.deleteEvent(eventId);
           setEvents(prev => prev.filter(e => e.id !== eventId));
           if (user?.id) CacheService.invalidate(`my-events:${user.id}`);
-          showSuccess(t('common.success'), t('organizer.myEvents.deleteSuccess'));
+          toastSuccess(t('organizer.myEvents.deleteSuccess'));
         } catch (error) {
           if (__DEV__) console.error('Erreur suppression:', error);
           showError(t('common.error'), t('organizer.myEvents.deleteError'));
@@ -397,7 +400,7 @@ export default function MyEventsScreen() {
       );
     } catch (error: any) {
       if (__DEV__) console.error('Erreur upload photos:', error);
-      showError(t('common.error'), error.response?.data?.detail || t('organizer.myEvents.photosError'));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'organizer.myEvents.photosError' }).message);
     }
   };
 
@@ -410,7 +413,7 @@ export default function MyEventsScreen() {
           await eventsAPI.requestFeature(event.id);
           showSuccess(t('organizer.myEvents.featureSentTitle'), t('organizer.myEvents.featureSentMessage'));
         } catch (error: any) {
-          showError(t('common.error'), error.response?.data?.detail || t('organizer.myEvents.featureError'));
+          showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'organizer.myEvents.featureError' }).message);
         }
       },
     );
@@ -435,7 +438,7 @@ export default function MyEventsScreen() {
       showSuccess(t('organizer.myEvents.duplicatedTitle'), t('organizer.myEvents.duplicatedMessage'));
     } catch (error: any) {
       if (__DEV__) console.error('Erreur duplication:', error);
-      showError(t('common.error'), error.response?.data?.detail || t('organizer.myEvents.duplicateError'));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'organizer.myEvents.duplicateError' }).message);
     } finally {
       setDuplicateLoading(null);
     }
@@ -471,7 +474,7 @@ export default function MyEventsScreen() {
       setCancelReason('');
     } catch (error: any) {
       if (__DEV__) console.error('Erreur annulation:', error);
-      showError(t('common.error'), error.response?.data?.detail || t('organizer.myEvents.cancelError'));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'organizer.myEvents.cancelError' }).message);
     } finally {
       setCancelLoading(false);
     }
@@ -487,10 +490,10 @@ export default function MyEventsScreen() {
           setEvents(prev => prev.map(e =>
             e.id === eventId ? { ...e, status: 'submitted' } : e
           ));
-          showSuccess(t('common.success'), t('organizer.myEvents.submitSuccess'));
+          toastSuccess(t('organizer.myEvents.submitSuccess'));
         } catch (error: any) {
           if (__DEV__) console.error('Erreur soumission:', error);
-          showError(t('common.error'), error.response?.data?.detail || t('organizer.myEvents.submitError'));
+          showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'organizer.myEvents.submitError' }).message);
         }
       }
     );

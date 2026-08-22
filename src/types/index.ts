@@ -775,17 +775,62 @@ export interface MessageReaction {
 // ============================================
 
 // Types de notification synchronises avec le backend (notifications.models.Notification.NOTIFICATION_TYPE_CHOICES)
+// Source de vérité : Notification.NOTIFICATION_TYPE_CHOICES
+// (EventEzBackend/apps/notifications/models.py). Garder synchronisé — le
+// résolveur de clic (lib/notifications/resolveTarget) switche sur ces valeurs.
 export type NotificationType =
+  // Événement (cycle de vie / modération)
   | 'event_update'
   | 'event_revalidation'
-  | 'registration_confirmation'
-  | 'payment_confirmation'
-  | 'event_reminder'
-  | 'system_message'
-  | 'custom_message'
-  | 'feature_request'
+  | 'event_changes_requested'
+  | 'event_cancelled'
+  | 'event_validated'
+  | 'event_rejected'
   | 'event_pending_moderation'
   | 'moderation_queue_reminder'
+  // Inscription / paiement / rappels
+  | 'registration_confirmation'
+  | 'payment_confirmation'
+  | 'usage_billing_update'
+  | 'event_reminder'
+  | 'session_reminder'
+  | 'waitlist_available'
+  | 'waitlist_position'
+  | 'verification_reminder'
+  | 'feedback_request'
+  | 'refund_processed'
+  | 'ticket_transfer'
+  | 'check_in_confirmation'
+  // Social / engagement
+  | 'new_follower'
+  | 'followed_organizer_new_event'
+  | 'abandoned_registration'
+  | 'event_feedback'
+  | 'follow_registered'
+  | 'connections_at_event'
+  | 'event_suggestion'
+  | 'event_low_stock'
+  | 'event_today'
+  | 'winback'
+  // Messagerie / groupes événement
+  | 'new_message'
+  | 'system_message'
+  | 'custom_message'
+  | 'event_group_created'
+  | 'event_group_readonly'
+  | 'event_group_imminent'
+  | 'event_group_deleted'
+  // Équipe / exposants
+  | 'event_team_invitation'
+  | 'exhibitor_appli_received'
+  | 'exhibitor_appli_accepted'
+  | 'exhibitor_appli_rejected'
+  | 'exhibitor_appli_waitlisted'
+  | 'exhibitor_option_expired'
+  | 'exhibitor_booking_cancelled'
+  // Divers
+  | 'feature_request'
+  | 'legal_update'
   | 'general';
 
 // Type de canal de notification
@@ -1634,7 +1679,7 @@ export type RootStackParamList = {
     previewEvent?: Partial<Event>;
   };
   EventReviews: { eventId: string; eventTitle?: string };
-  EventSearch: { query?: string; category?: number; city?: string } | undefined;
+  EventSearch: { query?: string; category?: number; city?: string; price?: 'free' | 'paid' } | undefined;
   // Liste de toutes les villes ayant des events. Equivalent /events/in du web.
   CitiesIndex: undefined;
   TicketPurchase: {
@@ -1665,6 +1710,8 @@ export type RootStackParamList = {
     registrationStatus?: string;
     approvalStatus?: string;
     eventTitle?: string;
+    /** Bannière/cover de l'event — sert de fond à la carte « story » partageable. */
+    eventImage?: string | null;
     eventStartDate?: string;
     amount?: number;
     currency?: string;

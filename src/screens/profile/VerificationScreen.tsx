@@ -28,6 +28,7 @@ import { Colors, FontFamily, BorderRadius, Spacing, Shadows } from '../../consta
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { StaggeredItem } from '../../components/ui/Animations';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type VerificationStatus = 'none' | 'pending' | 'under_review' | 'approved' | 'rejected';
 
@@ -206,9 +207,9 @@ export default function VerificationScreen() {
       setStatus('pending');
       showAlert(t('verificationForm.submitSuccessTitle'), t('verificationForm.submitSuccessMessage'), undefined, 'success');
     } catch (error: any) {
-      const message = error.response?.data?.detail
-        || error.response?.data?.non_field_errors?.[0]
-        || t('verificationForm.submitErrorGeneric');
+      const { message } = getApiErrorMessage(error, t, {
+        fallbackKey: 'verificationForm.submitErrorGeneric',
+      });
       showError(t('verificationForm.submitErrorTitle'), message);
     } finally {
       setIsSubmitting(false);

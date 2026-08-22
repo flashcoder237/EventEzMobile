@@ -23,7 +23,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { usersAPI, eventsAPI, messagesAPI, getMediaUrl } from '../../api';
 import { ProfileSkeleton } from '../../components/ui/Skeleton';
 import FollowUserButton from '../../components/common/FollowUserButton';
-import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { findExistingDirectConversation } from '../../lib/utils/messagingHelpers';
@@ -53,7 +52,6 @@ export default function OrganizerProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const route = useRoute<RouteProps>();
-  const { showError, showSuccess } = useAlert();
   const { user } = useAuth();
   const { colors } = useTheme();
   const { t } = useTranslation();
@@ -82,6 +80,7 @@ export default function OrganizerProfileScreen() {
           organizer: organizerId,
           status: 'validated',
           ordering: '-start_date',
+          page_size: 10, // « événements récents » : on borne, pas toute la liste
         });
         setEvents(eventsResponse.data?.results || eventsResponse.data || []);
       } catch {
@@ -91,7 +90,9 @@ export default function OrganizerProfileScreen() {
       }
     } catch (err: any) {
       if (__DEV__) console.error('[OrganizerProfile] Error fetching organizer:', err);
-      showError(t('common.error'), t('organizerProfile.loadError'));
+      // Pas de modale : l'ecran rend deja son propre etat « introuvable »
+      // (en-tete + retour). La modale n'ajoutait qu'une interruption a
+      // acquitter par-dessus un ecran qui disait deja la meme chose.
     } finally {
       setIsLoading(false);
     }
@@ -189,6 +190,10 @@ export default function OrganizerProfileScreen() {
   const rating = ratingRaw != null ? Number(ratingRaw) : null;
   const eventCount = profile?.event_count ?? events.length;
   const socialLinks = profile?.social_links;
+  // Site web : trim + exige un contenu réel (une chaîne d'espaces ou « http:// »
+  // seul ne doit pas afficher la chip). Avant, `profile?.website` truthy suffisait.
+  const websiteRaw = (profile?.website || '').trim();
+  const website = /\.\w{2,}/.test(websiteRaw) ? websiteRaw : '';
 
   return (
     <EditorialCanvas edges={['top']}>
@@ -317,17 +322,17 @@ export default function OrganizerProfileScreen() {
           )}
 
           {/* Réseaux sociaux + site web — chips horizontales unifiées */}
-          {(socialLinks?.facebook || socialLinks?.twitter || socialLinks?.instagram || socialLinks?.linkedin || profile?.website) && (
+          {(socialLinks?.facebook || socialLinks?.twitter || socialLinks?.instagram || socialLinks?.linkedin || website) && (
             <View style={styles.editorialSection}>
               <View style={styles.editorialSectionHead}>
                 <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('organizerProfile.linksEyebrow')}</Text>
                 <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>{t('organizerProfile.linksTitle')}</Text>
               </View>
               <View style={styles.socialChipsRow}>
-                {profile?.website && (
+                {!!website && (
                   <TouchableOpacity
                     style={[styles.socialChip, { backgroundColor: colors.gray50, borderColor: colors.border }]}
-                    onPress={() => handleOpenLink(profile.website)}
+                    onPress={() => handleOpenLink(website)}
                     activeOpacity={TOUCH_OPACITY}
                   >
                     <Ionicons name="globe-outline" size={14} color={colors.primary} />

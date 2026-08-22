@@ -61,6 +61,7 @@ const SponsorsTab = React.lazy(() => import('../../components/events/SponsorsTab
 // Si tu as besoin d'eux, les ajouter en lazy comme les heavy tabs ci-dessus.
 import SimilarEventsSection from '../../components/events/SimilarEventsSection';
 import { useEventDetails } from '../../hooks/useEventDetails';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useAuthGuard } from '../../hooks/useAuthGuard';
 import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
 import { eventsAPI, getMediaUrl } from '../../api';
@@ -135,6 +136,7 @@ export default function EventDetailsScreen() {
     user,
     showError,
   } = useEventDetails(eventId, previewEvent);
+  const { toastError } = useFeedback();
 
   // Toutes les images : banner en premier, puis gallery_images
   const allImages = useMemo(() => {
@@ -800,7 +802,7 @@ export default function EventDetailsScreen() {
                   style={[styles.joinOnlineButton, { marginTop: Spacing.sm }]}
                   onPress={() => {
                     Linking.openURL(event.online_url!).catch(() => {
-                      showError(t('common.error'), t('eventDetails.openLinkError'));
+                      toastError(t('eventDetails.openLinkError'));
                     });
                   }}
                 >

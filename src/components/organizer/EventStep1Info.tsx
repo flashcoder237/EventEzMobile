@@ -625,6 +625,11 @@ export default function EventStep1Info({
           )}
           <Ionicons name="chevron-down" size={18} color={colors.gray400} />
         </TouchableOpacity>
+        {stepErrors.categoryId && (
+          <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>
+            {stepErrors.categoryId}
+          </Text>
+        )}
       </View>
 
       <SearchableSelectModal<Category>

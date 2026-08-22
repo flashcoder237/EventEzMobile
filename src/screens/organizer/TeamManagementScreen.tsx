@@ -11,7 +11,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   RefreshControl,
@@ -32,6 +31,7 @@ import { eventTeamAPI, EventStaffMember, EventStaffRole } from '../../api';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   BorderRadius,
@@ -76,6 +76,7 @@ export default function TeamManagementScreen() {
   const { eventId, eventTitle } = route.params;
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
+  const { toastSuccess, showError, showConfirm } = useFeedback();
 
   const [members, setMembers] = useState<EventStaffMember[]>([]);
   const [rolesCatalog, setRolesCatalog] = useState<RoleCatalogEntry[]>([]);
@@ -119,10 +120,10 @@ export default function TeamManagementScreen() {
 
   const handleInvite = async () => {
     if (!inviteEmail && !invitePhone) {
-      Alert.alert(
+      showError(
         t('common.error'),
         t('teamManagement.emailOrPhoneRequired', {
-          defaultValue: 'Email ou telephone obligatoire.',
+          defaultValue: 'Email ou téléphone obligatoire.',
         }),
       );
       return;
@@ -136,10 +137,9 @@ export default function TeamManagementScreen() {
         invited_phone: invitePhone.trim() || undefined,
         invitation_message: inviteMessage.trim() || undefined,
       });
-      Alert.alert(
-        t('common.success'),
+      toastSuccess(
         t('teamManagement.inviteSentSuccess', {
-          defaultValue: 'Invitation envoyee.',
+          defaultValue: 'Invitation envoyée.',
         }),
       );
       setInviteOpen(false);
@@ -152,7 +152,7 @@ export default function TeamManagementScreen() {
       const { message } = getApiErrorMessage(err, t, {
         fallbackKey: 'teamManagement.inviteSentError',
       });
-      Alert.alert(t('common.error'), message);
+      showError(t('common.error'), message);
     } finally {
       setInviteSubmitting(false);
     }
@@ -160,33 +160,28 @@ export default function TeamManagementScreen() {
 
   const handleRevoke = (member: EventStaffMember) => {
     const target = member.user?.full_name || member.user?.email || member.invited_email || member.invited_phone || '?';
-    Alert.alert(
-      t('teamManagement.revokeTitle', { defaultValue: 'Revoquer l\'acces' }),
+    showConfirm(
+      t('teamManagement.revokeTitle', { defaultValue: 'Révoquer l\'accès' }),
       t('teamManagement.revokeConfirm', {
-        defaultValue: 'Revoquer l\'acces de {{target}} ?',
+        defaultValue: 'Révoquer l\'accès de {{target}} ?',
         target,
       }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('teamManagement.revoke', { defaultValue: 'Revoquer' }),
-          style: 'destructive',
-          onPress: async () => {
-            setActionLoading(member.id);
-            try {
-              await eventTeamAPI.revoke(member.id);
-              fetchData();
-            } catch (err: any) {
-              const { message } = getApiErrorMessage(err, t, {
-                fallbackKey: 'errors.generic',
-              });
-              Alert.alert(t('common.error'), message);
-            } finally {
-              setActionLoading(null);
-            }
-          },
-        },
-      ],
+      async () => {
+        setActionLoading(member.id);
+        try {
+          await eventTeamAPI.revoke(member.id);
+          fetchData();
+        } catch (err: any) {
+          const { message } = getApiErrorMessage(err, t, {
+            fallbackKey: 'errors.generic',
+          });
+          showError(t('common.error'), message);
+        } finally {
+          setActionLoading(null);
+        }
+      },
+      undefined,
+      { confirmText: t('teamManagement.revokeTitle', { defaultValue: 'Révoquer' }), destructive: true },
     );
   };
 
@@ -194,16 +189,15 @@ export default function TeamManagementScreen() {
     setActionLoading(member.id);
     try {
       await eventTeamAPI.resend(member.id);
-      Alert.alert(
-        t('common.success'),
-        t('teamManagement.resendSuccess', { defaultValue: 'Invitation renvoyee.' }),
+      toastSuccess(
+        t('teamManagement.resendSuccess', { defaultValue: 'Invitation renvoyée.' }),
       );
       fetchData();
     } catch (err: any) {
       const { message } = getApiErrorMessage(err, t, {
         fallbackKey: 'errors.generic',
       });
-      Alert.alert(t('common.error'), message);
+      showError(t('common.error'), message);
     } finally {
       setActionLoading(null);
     }

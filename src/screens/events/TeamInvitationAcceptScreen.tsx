@@ -17,7 +17,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -35,6 +34,7 @@ import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { useAuth } from '../../contexts/AuthContext';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   BorderRadius,
@@ -64,6 +64,7 @@ export default function TeamInvitationAcceptScreen() {
   const { user, isAuthenticated } = useAuth();
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const { toastSuccess, showError, showConfirm } = useFeedback();
 
   const [invitation, setInvitation] = useState<EventStaffInvitationLookup | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,30 +106,22 @@ export default function TeamInvitationAcceptScreen() {
     setActionLoading('accept');
     try {
       await eventTeamAPI.accept(invitation.id);
-      Alert.alert(
-        t('common.success'),
+      toastSuccess(
         t('teamInvitation.acceptedTitle', {
-          defaultValue: 'Bienvenue dans l\'equipe !',
+          defaultValue: 'Bienvenue dans l\'équipe !',
         }),
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Retour au dashboard ou vers MyTeamEvents pour voir la liste
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation.navigate('Main' as any);
-              }
-            },
-          },
-        ],
       );
+      // Retour au dashboard ou vers MyTeamEvents pour voir la liste
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.navigate('Main' as any);
+      }
     } catch (err: any) {
       const { message } = getApiErrorMessage(err, t, {
         fallbackKey: 'teamInvitation.acceptError',
       });
-      Alert.alert(t('common.error'), message);
+      showError(t('common.error'), message);
     } finally {
       setActionLoading(null);
     }
@@ -136,33 +129,28 @@ export default function TeamInvitationAcceptScreen() {
 
   const handleDecline = () => {
     if (!invitation) return;
-    Alert.alert(
+    showConfirm(
       t('teamInvitation.declineConfirmTitle', { defaultValue: 'Refuser l\'invitation ?' }),
       t('teamInvitation.declineConfirmBody', {
-        defaultValue: 'Vous ne pourrez pas la recuperer. L\'organisateur sera notifie.',
+        defaultValue: 'Vous ne pourrez pas la récupérer. L\'organisateur sera notifié.',
       }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('teamInvitation.decline', { defaultValue: 'Refuser' }),
-          style: 'destructive',
-          onPress: async () => {
-            setActionLoading('decline');
-            try {
-              await eventTeamAPI.decline(invitation.id);
-              if (navigation.canGoBack()) navigation.goBack();
-              else navigation.navigate('Main' as any);
-            } catch (err: any) {
-              const { message } = getApiErrorMessage(err, t, {
-                fallbackKey: 'errors.generic',
-              });
-              Alert.alert(t('common.error'), message);
-            } finally {
-              setActionLoading(null);
-            }
-          },
-        },
-      ],
+      async () => {
+        setActionLoading('decline');
+        try {
+          await eventTeamAPI.decline(invitation.id);
+          if (navigation.canGoBack()) navigation.goBack();
+          else navigation.navigate('Main' as any);
+        } catch (err: any) {
+          const { message } = getApiErrorMessage(err, t, {
+            fallbackKey: 'errors.generic',
+          });
+          showError(t('common.error'), message);
+        } finally {
+          setActionLoading(null);
+        }
+      },
+      undefined,
+      { confirmText: t('teamInvitation.decline', { defaultValue: 'Refuser' }), destructive: true },
     );
   };
 

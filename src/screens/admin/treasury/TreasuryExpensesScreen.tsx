@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { useAlert } from '../../../contexts/AlertContext';
+import { useFeedback } from '../../../contexts/FeedbackContext';
 import { treasuryAPI } from '../../../api';
 import { fetchAllPages } from '../../../lib/utils/fetchAllPages';
 import { RootStackParamList, Expense } from '../../../types';
@@ -32,6 +33,8 @@ import {
   Spacing,
   Shadows,
 } from '../../../constants/theme';
+import { getApiErrorMessage } from '../../../lib/utils/errorHandling';
+import { FormErrors } from '../../../lib/validation';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -73,6 +76,7 @@ function TreasuryExpensesContent() {
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const { currency: platformCurrency } = useCommissionConfig();
   const { showSuccess, showError } = useAlert();
+  const { toastSuccess } = useFeedback();
   const statusLabel = (s: string): string => {
     switch (s) {
       case 'pending': return t('admin.treasury.expenses.statusPending');
@@ -90,6 +94,8 @@ function TreasuryExpensesContent() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createTitle, setCreateTitle] = useState('');
   const [createAmount, setCreateAmount] = useState('');
+  // Erreurs de validation client, affichées sous le champ fautif du modal.
+  const [createErrors, setCreateErrors] = useState<FormErrors<'title' | 'amount'>>({});
   const [createCategory, setCreateCategory] = useState<string>('other');
   const [createDescription, setCreateDescription] = useState('');
   const [createIsRecurring, setCreateIsRecurring] = useState(false);
@@ -101,6 +107,7 @@ function TreasuryExpensesContent() {
     setCreateCategory('other');
     setCreateDescription('');
     setCreateIsRecurring(false);
+    setCreateErrors({});
   };
 
   const closeCreateModal = () => {
@@ -112,14 +119,16 @@ function TreasuryExpensesContent() {
   const submitCreateExpense = async () => {
     const trimmedTitle = createTitle.trim();
     const numericAmount = parseFloat(createAmount.replace(',', '.'));
+    // Validation client → erreurs inline sous le champ fautif du modal.
+    const nextErrors: FormErrors<'title' | 'amount'> = {};
     if (!trimmedTitle) {
-      showError(t('admin.treasury.expenses.validationTitleRequired'), t('admin.treasury.expenses.validationTitleMessage'));
-      return;
+      nextErrors.title = t('admin.treasury.expenses.validationTitleMessage');
     }
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-      showError(t('admin.treasury.expenses.validationAmountInvalid'), t('admin.treasury.expenses.validationAmountMessage'));
-      return;
+      nextErrors.amount = t('admin.treasury.expenses.validationAmountMessage');
     }
+    setCreateErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
     setCreateLoading(true);
     try {
       const res = await treasuryAPI.createExpense({
@@ -139,8 +148,10 @@ function TreasuryExpensesContent() {
       setCreateOpen(false);
       resetCreateForm();
     } catch (error: any) {
-      const detail = error?.response?.data?.detail || error?.response?.data?.amount?.[0];
-      showError(t('common.error'), detail || t('admin.treasury.expenses.createError'));
+      const { message } = getApiErrorMessage(error, t, {
+        fallbackKey: 'admin.treasury.expenses.createError',
+      });
+      showError(t('common.error'), message);
     } finally {
       setCreateLoading(false);
     }
@@ -172,7 +183,7 @@ function TreasuryExpensesContent() {
     try {
       await treasuryAPI.approveExpense(id);
       setExpenses(prev => prev.map(e => e.id === id ? { ...e, status: 'approved' as const } : e));
-      showSuccess(t('common.success'), t('admin.treasury.expenses.approveSuccess'));
+      toastSuccess(t('admin.treasury.expenses.approveSuccess'));
     } catch (error) {
       showError(t('common.error'), t('admin.treasury.expenses.approveError'));
     }
@@ -182,7 +193,7 @@ function TreasuryExpensesContent() {
     try {
       await treasuryAPI.rejectExpense(id, t('admin.treasury.expenses.rejectReason'));
       setExpenses(prev => prev.map(e => e.id === id ? { ...e, status: 'rejected' as const } : e));
-      showSuccess(t('common.success'), t('admin.treasury.expenses.rejectSuccess'));
+      toastSuccess(t('admin.treasury.expenses.rejectSuccess'));
     } catch (error) {
       showError(t('common.error'), t('admin.treasury.expenses.rejectError'));
     }
@@ -250,7 +261,7 @@ function TreasuryExpensesContent() {
         </View>
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}30` }, Shadows.sm]}
-          onPress={() => setCreateOpen(true)}
+          onPress={() => { setCreateErrors({}); setCreateOpen(true); }}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel={t('admin.treasury.expenses.createNew')}
@@ -308,25 +319,45 @@ function TreasuryExpensesContent() {
 
               <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>{t('admin.treasury.expenses.modal.fieldTitle')}</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.gray50, borderColor: hairline, color: colors.text }]}
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.gray50, borderColor: hairline, color: colors.text },
+                  createErrors.title && { borderColor: colors.error },
+                ]}
                 value={createTitle}
-                onChangeText={setCreateTitle}
+                onChangeText={(text) => {
+                  setCreateTitle(text);
+                  if (createErrors.title) setCreateErrors((e) => ({ ...e, title: undefined }));
+                }}
                 placeholder={t('admin.treasury.expenses.modal.fieldTitlePlaceholder')}
                 placeholderTextColor={colors.gray400}
                 editable={!createLoading}
                 maxLength={120}
               />
+              {createErrors.title && (
+                <Text style={[styles.fieldError, { color: colors.error }]}>{createErrors.title}</Text>
+              )}
 
               <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>{t('admin.treasury.expenses.modal.fieldAmount', { currency: platformCurrency })}</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.gray50, borderColor: hairline, color: colors.text }]}
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.gray50, borderColor: hairline, color: colors.text },
+                  createErrors.amount && { borderColor: colors.error },
+                ]}
                 value={createAmount}
-                onChangeText={setCreateAmount}
+                onChangeText={(text) => {
+                  setCreateAmount(text);
+                  if (createErrors.amount) setCreateErrors((e) => ({ ...e, amount: undefined }));
+                }}
                 placeholder="0"
                 placeholderTextColor={colors.gray400}
                 keyboardType="decimal-pad"
                 editable={!createLoading}
               />
+              {createErrors.amount && (
+                <Text style={[styles.fieldError, { color: colors.error }]}>{createErrors.amount}</Text>
+              )}
 
               <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>{t('admin.treasury.expenses.modal.fieldCategory')}</Text>
               <View style={styles.categoryGrid}>
@@ -544,6 +575,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: Spacing.sm,
     marginBottom: 6,
+  },
+  fieldError: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 6,
   },
   input: {
     borderWidth: 1.5,

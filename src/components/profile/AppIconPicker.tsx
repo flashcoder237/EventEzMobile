@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { FontFamily } from '../../constants/theme';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { haptics } from '../../utils/haptics';
 
@@ -36,6 +37,7 @@ const OPTIONS: { key: string; label: string; source: any }[] = [
  */
 export default function AppIconPicker() {
   const { colors } = useTheme();
+  const { toastInfo } = useFeedback();
 
   const [current, setCurrent] = useState<string>(() => {
     const mod = getIconModule();
@@ -59,8 +61,7 @@ export default function AppIconPicker() {
       haptics.selection();
       setCurrent(key);
     } catch {
-      Alert.alert(
-        'Icône de l\'app',
+      toastInfo(
         "Le changement d'icône sera disponible après la prochaine mise à jour de l'application.",
       );
     }

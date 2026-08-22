@@ -15,7 +15,7 @@
  */
 
 import React, { useEffect, useCallback } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, AccessibilityInfo } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,7 +35,17 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { FontFamily, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 
-export type InAppToastIcon = 'message' | 'notification' | 'success' | 'warning' | 'info';
+export type InAppToastIcon =
+  | 'message'
+  | 'notification'
+  | 'success'
+  | 'warning'
+  | 'info'
+  | 'error';
+
+/** Ancrage vertical. `top` = notifications entrantes (métaphore bannière OS),
+ *  `bottom` = retour d'action (près du pouce qui vient d'agir). */
+export type InAppToastAnchor = 'top' | 'bottom';
 
 export interface InAppToastProps {
   id: string;
@@ -48,12 +58,26 @@ export interface InAppToastProps {
   onPress?: () => void;
   /** Callback quand le toast est dismissé (auto ou manuel). */
   onDismiss: (id: string) => void;
-  /** Durée d'affichage en ms avant auto-dismiss (défaut 4500). */
+  /** Durée d'affichage en ms avant auto-dismiss. Défaut : selon la gravité. */
   duration?: number;
+  /** Ancrage vertical (défaut `top`). */
+  anchor?: InAppToastAnchor;
 }
 
 const SLIDE_DURATION = 300;
 const DEFAULT_DURATION = 4500;
+
+/**
+ * Durée par gravité. Une erreur doit rester lisible plus longtemps qu'un
+ * « Copié ». Une durée unique pour tout est ce qui rend un toast soit trop
+ * fugace, soit envahissant.
+ */
+const DURATION_BY_ICON: Partial<Record<InAppToastIcon, number>> = {
+  success: 2600,
+  info: 2600,
+  warning: 4000,
+  error: 5500,
+};
 
 const ICON_MAP: Record<InAppToastIcon, { name: keyof typeof Ionicons.glyphMap; color: string }> = {
   message: { name: 'chatbubble', color: '#6366F1' },
@@ -61,7 +85,12 @@ const ICON_MAP: Record<InAppToastIcon, { name: keyof typeof Ionicons.glyphMap; c
   success: { name: 'checkmark-circle', color: '#10B981' },
   warning: { name: 'alert-circle', color: '#F59E0B' },
   info: { name: 'information-circle', color: '#3B82F6' },
+  error: { name: 'close-circle', color: '#EF4444' },
 };
+
+/** Les toasts porteurs d'une gravité affichent un liseré de couleur : lisible
+ *  en vision périphérique, sans crier comme un fond saturé. */
+const SEVERITY_ICONS: InAppToastIcon[] = ['success', 'warning', 'error'];
 
 export const InAppToast: React.FC<InAppToastProps> = ({
   id,
@@ -71,17 +100,25 @@ export const InAppToast: React.FC<InAppToastProps> = ({
   avatarUrl,
   onPress,
   onDismiss,
-  duration = DEFAULT_DURATION,
+  duration,
+  anchor = 'top',
 }) => {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { t } = useTranslation();
   const reducedMotion = useReducedMotion();
+
+  // Distance de sortie, signée selon l'ancrage : un toast ancré en bas doit
+  // sortir VERS LE BAS (cohérence directionnelle — on repart d'où l'on vient).
+  const OFFSCREEN = anchor === 'bottom' ? 200 : -200;
+
   // En reduced-motion : pas de slide (translateY reste à 0), on garde le fondu.
-  const translateY = useSharedValue(reducedMotion ? 0 : -200);
+  const translateY = useSharedValue(reducedMotion ? 0 : OFFSCREEN);
   const opacity = useSharedValue(0);
 
   const iconConfig = ICON_MAP[icon];
+  const hasSeverity = SEVERITY_ICONS.includes(icon);
+  const effectiveDuration = duration ?? DURATION_BY_ICON[icon] ?? DEFAULT_DURATION;
 
   const dismiss = useCallback(
     (immediate = false) => {
@@ -89,7 +126,7 @@ export const InAppToast: React.FC<InAppToastProps> = ({
       // Sortie en ease-out (symétrique à l'entrée), pas ease-in. En reduced-motion,
       // on ne bouge pas : seul le fondu d'opacité fait le feedback.
       if (!reducedMotion) {
-        translateY.value = withTiming(-200, { duration: dur, easing: Easing.out(Easing.cubic) });
+        translateY.value = withTiming(OFFSCREEN, { duration: dur, easing: Easing.out(Easing.cubic) });
       }
       opacity.value = withTiming(0, { duration: dur }, (finished) => {
         if (finished) runOnJS(onDismiss)(id);
@@ -104,10 +141,28 @@ export const InAppToast: React.FC<InAppToastProps> = ({
       translateY.value = withTiming(0, { duration: SLIDE_DURATION, easing: Easing.out(Easing.cubic) });
     }
     opacity.value = withTiming(1, { duration: SLIDE_DURATION });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+
+    // Haptique proportionnée : un simple toast d'info ne vibre pas. Sur-notifier
+    // apprend à ignorer TOUS les retours.
+    if (icon === 'success') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    } else if (icon === 'error') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+    } else if (icon === 'warning') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    } else if (icon === 'message' || icon === 'notification') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    }
+
+    // Annonce lecteur d'écran : un toast ne prend pas le focus, donc sans ceci
+    // un utilisateur VoiceOver/TalkBack ne reçoit AUCUN retour. Bloquant dès
+    // lors que ce canal remplace des modales (qui, elles, volaient le focus).
+    AccessibilityInfo.announceForAccessibility?.(
+      [title, body].filter(Boolean).join('. '),
+    );
 
     // Auto-dismiss timer
-    const timer = setTimeout(() => dismiss(false), duration);
+    const timer = setTimeout(() => dismiss(false), effectiveDuration);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -117,18 +172,26 @@ export const InAppToast: React.FC<InAppToastProps> = ({
     dismiss(true);
   }, [onPress, dismiss]);
 
-  // Swipe up to dismiss : Pan vertical seul, on ne se déclenche que si l'user
-  // tire vers le haut (translationY négatif).
+  // Swipe pour fermer, dans le sens de l'ancrage (vers le haut si ancré en
+  // haut, vers le bas si ancré en bas). Le sens opposé n'est pas bloqué net :
+  // il résiste (rubber-banding). Un mur invisible se ressent comme un bug.
+  const dismissSign = anchor === 'bottom' ? 1 : -1;
   const swipe = Gesture.Pan()
     .onUpdate((e) => {
-      if (e.translationY < 0) {
+      const towardsExit = e.translationY * dismissSign;
+      if (towardsExit > 0) {
         translateY.value = e.translationY;
-        opacity.value = interpolate(e.translationY, [-100, 0], [0.3, 1]);
+        opacity.value = interpolate(towardsExit, [0, 100], [1, 0.3]);
+      } else {
+        // Résistance douce dans le sens opposé.
+        translateY.value = e.translationY * 0.25;
       }
     })
     .onEnd((e) => {
-      if (e.translationY < -40 || e.velocityY < -400) {
-        translateY.value = withTiming(-200, { duration: 200 }, (finished) => {
+      const towardsExit = e.translationY * dismissSign;
+      const velocityExit = e.velocityY * dismissSign;
+      if (towardsExit > 40 || velocityExit > 400) {
+        translateY.value = withTiming(OFFSCREEN, { duration: 200 }, (finished) => {
           if (finished) runOnJS(onDismiss)(id);
         });
         opacity.value = withTiming(0, { duration: 200 });
@@ -148,7 +211,9 @@ export const InAppToast: React.FC<InAppToastProps> = ({
       <Animated.View
         style={[
           styles.container,
-          { top: insets.top + 8 },
+          anchor === 'bottom'
+            ? { bottom: insets.bottom + 90 } // au-dessus de la tab bar flottante
+            : { top: insets.top + 8 },
           animatedStyle,
         ]}
         pointerEvents="box-none"
@@ -163,9 +228,17 @@ export const InAppToast: React.FC<InAppToastProps> = ({
               borderColor: colors.border,
               transform: [{ scale: pressed ? 0.98 : 1 }],
             },
+            // Liseré de gravité : distingue succès / erreur d'un coup d'œil.
+            // Sans lui, seule une icône de 20px différenciait les deux.
+            hasSeverity && {
+              borderLeftWidth: 3,
+              borderLeftColor: iconConfig.color,
+            },
             Platform.OS === 'ios' ? styles.shadowIOS : styles.shadowAndroid,
           ]}
-          accessibilityRole="button"
+          // Pas de rôle `button` quand rien n'est cliquable : annoncer un bouton
+          // inexistant envoie l'utilisateur chercher une action qui n'existe pas.
+          accessibilityRole={onPress ? 'button' : 'text'}
           accessibilityLabel={t('componentsCommon.inAppToastA11y', {
             title,
             body: body ?? '',

@@ -71,7 +71,15 @@ export async function getRemoteTranslation(lang: string): Promise<Record<string,
 async function downloadAndCache(lang: string): Promise<Record<string, any> | null> {
   if (!REMOTE_BASE) return null;
   try {
-    const res = await fetch(`${REMOTE_BASE}/${lang}.json`);
+    // Cache-busting : le manifeste porte une version (timestamp) par langue.
+    // On l'ajoute en query pour forcer un re-fetch quand la trad est republiée
+    // (sinon le CDN/GitHub Pages peut servir une version périmée). Best-effort.
+    const manifest = await getTranslationManifest();
+    const version = manifest[lang];
+    const url = version
+      ? `${REMOTE_BASE}/${lang}.json?v=${version}`
+      : `${REMOTE_BASE}/${lang}.json`;
+    const res = await fetch(url);
     if (!res.ok) return null;
     const json = await res.json();
     if (json && typeof json === 'object') {
@@ -93,4 +101,39 @@ async function refreshInBackground(lang: string): Promise<void> {
 
 export function remoteTranslationsEnabled(): boolean {
   return !!REMOTE_BASE;
+}
+
+/**
+ * Manifeste des langues publiées : `{ [code]: version }` (version = timestamp,
+ * sert au cache-busting). Publié à `${REMOTE_BASE}/manifest.json`. Mis en cache
+ * mémoire pour la session (best-effort, ne throw jamais).
+ */
+let _manifestCache: Record<string, number> | null = null;
+
+export async function getTranslationManifest(): Promise<Record<string, number>> {
+  if (_manifestCache) return _manifestCache;
+  if (!REMOTE_BASE) return {};
+  try {
+    const res = await fetch(`${REMOTE_BASE}/manifest.json`);
+    if (!res.ok) return {};
+    const json = await res.json();
+    if (json && typeof json === 'object') {
+      _manifestCache = json as Record<string, number>;
+      return _manifestCache;
+    }
+  } catch {
+    /* réseau KO → manifeste vide, seules fr/en resteront proposées */
+  }
+  return {};
+}
+
+/**
+ * Codes des langues d'interface RÉELLEMENT disponibles : fr + en (toujours
+ * bundlées) + celles publiées sur le CDN. À utiliser pour peupler le sélecteur
+ * de langue, afin de ne jamais proposer une langue qui retomberait en anglais.
+ */
+export async function getAvailableLanguageCodes(): Promise<string[]> {
+  const manifest = await getTranslationManifest();
+  const codes = new Set<string>(['fr', 'en', ...Object.keys(manifest)]);
+  return Array.from(codes);
 }

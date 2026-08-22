@@ -121,6 +121,35 @@ const baseProps = {
   attendees: 120,
 };
 
+/**
+ * Regression — compte a rebours et evenements passes.
+ *
+ * `daysUntil()` clampait toute valeur negative a 0 (`Math.max(0, ...)`), si bien
+ * qu'un evenement DEJA PASSE affichait « J-0 » et prenait le style « imminent »,
+ * indistinguable d'un evenement du jour. Remonte par les testeurs (section
+ * « A venir » affichant des evenements du mois precedent).
+ */
+describe('EventCard — countdown vs past events', () => {
+  // "now" = 2026-05-04T10:00Z (cf. setSystemTime). daysUntil() compte depuis
+  // MINUIT local du jour courant.
+  it("affiche un compte a rebours pour un evenement proche", () => {
+    const { queryByText } = render(
+      <EventCard {...baseProps} variant="horizontal" date="2026-05-07T10:00:00Z" />,
+    );
+    expect(queryByText(/J[-−]4/)).toBeTruthy();
+  });
+
+  it("n'affiche AUCUN compte a rebours pour un evenement passe", () => {
+    const { queryByText } = render(
+      <EventCard {...baseProps} variant="horizontal" date="2026-04-20T10:00:00Z" />,
+    );
+    // Ni "J-0"/"J−0" (ancien bug du clamp Math.max(0,...)), ni AUJOURD'HUI,
+    // ni un J-x negatif : un evenement passe n'a pas de compte a rebours.
+    expect(queryByText("AUJOURD'HUI")).toBeNull();
+    expect(queryByText(/J[-−]/)).toBeNull();
+  });
+});
+
 describe('EventCard snapshots', () => {
   it('renders default variant', () => {
     const tree = render(<EventCard {...baseProps} />).toJSON();

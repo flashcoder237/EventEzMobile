@@ -3,6 +3,8 @@ import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Alert, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useAlert } from '../contexts/AlertContext';
+import { useFeedback } from '../contexts/FeedbackContext';
 import { API_BASE_URL } from '../api/config';
 import { getAccessToken, ensureFreshAccessToken } from '../api/instance';
 import {
@@ -33,6 +35,8 @@ export function useExport() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { t } = useTranslation();
+  const { showError } = useAlert();
+  const { toastSuccess } = useFeedback();
 
   const exportData = useCallback(
     async (
@@ -105,8 +109,7 @@ export function useExport() {
           });
         } else {
           const filename = `${safeName}${ext}`;
-          Alert.alert(
-            t('export.successTitle'),
+          toastSuccess(
             Platform.OS === 'web'
               ? t('export.downloadedWeb', { filename })
               : t('export.downloadedToCache', { filename }),
@@ -115,7 +118,7 @@ export function useExport() {
       } catch (err: any) {
         const msg = mapExportError(err?.message || '', t);
         setError(msg);
-        Alert.alert(t('common.error'), msg);
+        showError(t('common.error'), msg);
         if (__DEV__) console.error('[useExport]', err);
       } finally {
         setLoading(false);

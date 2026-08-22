@@ -6,10 +6,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { eventBus } from '../../lib/eventBus';
@@ -29,6 +30,8 @@ export default function VerificationGuardModal() {
   const { user } = useAuth();
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const { showError } = useAlert();
+  const { toastSuccess } = useFeedback();
   const [visible, setVisible] = useState(false);
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -51,16 +54,10 @@ export default function VerificationGuardModal() {
     setSending(true);
     try {
       await authAPI.resendVerificationEmail(user.email);
-      Alert.alert(
-        t('componentsAuth.verifyEmailSentTitle'),
-        t('componentsAuth.verifyEmailSentMsg'),
-      );
+      toastSuccess(t('componentsAuth.verifyEmailSentMsg'));
       setVisible(false);
     } catch (err: any) {
-      Alert.alert(
-        t('common.error'),
-        err?.response?.data?.detail || t('componentsAuth.verifyResendError'),
-      );
+      showError(t('common.error'), t('componentsAuth.verifyResendError'));
     } finally {
       setSending(false);
     }

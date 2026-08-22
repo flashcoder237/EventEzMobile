@@ -31,6 +31,7 @@ import Animated, {
 import Svg, { Rect, Line, Text as SvgText } from 'react-native-svg';
 
 import { useTheme } from '../../contexts/ThemeContext';
+import ErrorState from '../../components/ui/ErrorState';
 import { useAlert } from '../../contexts/AlertContext';
 import { floorPlansAPI, exhibitorsAPI } from '../../api';
 import type { RootStackParamList } from '../../types';
@@ -135,6 +136,8 @@ export default function BoothPlanEditorScreen() {
   const [plan, setPlan] = useState<{ width: number; height: number }>({ width: 1000, height: 600 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  /** Le chargement a échoué : l'éditeur ne doit rien afficher d'éditable. */
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   // Première catégorie disponible : requise pour créer un vrai Booth (réservable)
   // lié à la zone ajoutée. Sans catégorie, on invite à en créer une d'abord.
@@ -150,6 +153,7 @@ export default function BoothPlanEditorScreen() {
 
   const fetchData = useCallback(async () => {
     try {
+      setLoadFailed(false);
       const [planRes, areasRes, catRes] = await Promise.all([
         floorPlansAPI.getById(floorPlanId),
         floorPlansAPI.getAreas({ floor_plan: floorPlanId }),
@@ -168,7 +172,11 @@ export default function BoothPlanEditorScreen() {
       const cats = catRes.data?.results || catRes.data || [];
       setFirstCategoryId(cats.length > 0 ? cats[0].id : null);
     } catch {
-      showError(t('common.error'), t('organizer.boothPlan.loadError', { defaultValue: 'Impossible de charger le plan.' }));
+      // Pas de modale : on bascule l'écran en état d'échec explicite. Sans ça,
+      // l'éditeur s'affichait avec `areas: []` et un plan par défaut — un
+      // quadrillage vide indiscernable d'un vrai plan vierge, que
+      // l'organisateur pouvait ENREGISTRER par-dessus le plan réel.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -304,6 +312,12 @@ export default function BoothPlanEditorScreen() {
 
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
+      ) : loadFailed ? (
+        <ErrorState
+          withCard
+          message={t('organizer.boothPlan.loadError', { defaultValue: 'Impossible de charger le plan.' })}
+          onRetry={fetchData}
+        />
       ) : (
         <View style={[styles.canvasWrap, { borderColor: hairline }]}>
           <GestureDetector gesture={canvasGesture}>
@@ -331,7 +345,9 @@ export default function BoothPlanEditorScreen() {
         </View>
       )}
 
-      {/* Barre du bas : sauvegarde */}
+      {/* Barre du bas : sauvegarde. Masquée si le plan n'a pas pu être chargé —
+          sinon on offrirait d'écraser le plan réel par un plan vide. */}
+      {!loadFailed && (
       <View style={[styles.footer, { borderTopColor: hairline, backgroundColor: colors.background }]}>
         <Text style={[styles.dirtyText, { color: colors.gray500 }]}>
           {dirtyCount > 0
@@ -351,6 +367,7 @@ export default function BoothPlanEditorScreen() {
           )}
         </TouchableOpacity>
       </View>
+      )}
     </SafeAreaView>
   );
 }

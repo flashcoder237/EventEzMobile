@@ -51,6 +51,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { messagesAPI, eventsAPI, connectionsAPI, getMediaUrl } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { UndoGate } from '../../utils/undoGate';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useMessagingWebSocket } from '../../hooks/useMessagingWebSocket';
@@ -143,6 +144,7 @@ export default function ConversationScreen() {
   const { conversationId: initialConversationId, userId, userName } = route.params;
   const { user } = useAuth();
   const { showError, showSuccess, showConfirm, showAlert } = useAlert();
+  const { toastSuccess, toastError } = useFeedback();
   const { isMuted: isConvMuted, toggle: toggleConvMute } = useMutedConversations();
   const { colors, isDark } = useTheme();
   const { t, i18n } = useTranslation();
@@ -879,7 +881,7 @@ export default function ConversationScreen() {
             await messagesAPI.starConversation(convId);
           } catch {
             setConversationDetails((prev: any) => prev ? { ...prev, is_starred: previous } : prev);
-            showError(t('common.error'), t('conversation.pinError'));
+            toastError(t('conversation.pinError'));
           }
         },
       });
@@ -938,7 +940,7 @@ export default function ConversationScreen() {
       async () => {
         try {
           await messagesAPI.blockUser(state.otherUserId!);
-          showSuccess(t('conversation.userBlocked'), '');
+          toastSuccess(t('conversation.userBlocked'));
           navigation.goBack();
         } catch {
           showError(t('common.error'), t('conversation.blockError'));
@@ -1068,7 +1070,7 @@ export default function ConversationScreen() {
 
         const processed: Processed[] = await Promise.all(
           result.assets.map(async (asset): Promise<Processed> => {
-            const filename = asset.uri.split('/').pop() || `image-${Date.now()}.jpg`;
+            let filename = asset.uri.split('/').pop() || `image-${Date.now()}.jpg`;
             let workingUri = asset.uri;
             try {
               const compressed = await ImageManipulator.manipulateAsync(
@@ -1077,8 +1079,12 @@ export default function ConversationScreen() {
                 { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
               );
               workingUri = compressed.uri;
+              // On ré-encode en JPEG : le nom DOIT finir en .jpg, sinon le backend
+              // rejette (« le contenu ne correspond pas à son extension ») une
+              // capture .png/.webp dont le contenu est désormais du JPEG.
+              filename = filename.replace(/\.[^./\\]+$/, '') + '.jpg';
             } catch {
-              // Compression échouée → fallback sur l'URI brute.
+              // Compression échouée → fallback sur l'URI brute (extension d'origine).
             }
             const sizeBytes = (asset as any).fileSize || 0;
             const sizeError = validateAttachmentSize(sizeBytes, 'image');
@@ -1855,7 +1861,7 @@ export default function ConversationScreen() {
       case 'copy':
         if (message.content) {
           Clipboard.setString(message.content);
-          showSuccess(t('conversation.copiedTitle'), t('conversation.copiedMessage'));
+          toastSuccess(t('conversation.copiedTitle'));
         }
         break;
 
@@ -1891,15 +1897,14 @@ export default function ConversationScreen() {
             if (typeof serverValue === 'boolean' && serverValue !== !wasStarred) {
               actions.updateMessage(String(message.id), { is_starred: serverValue });
             }
-            showSuccess(
+            toastSuccess(
               wasStarred ? t('conversation.unstarredTitle') : t('conversation.starredTitle'),
-              '',
             );
           })
           .catch(() => {
             // Rollback en cas d'échec réseau.
             actions.updateMessage(String(message.id), { is_starred: wasStarred });
-            showError(t('common.error'), t('conversation.starError'));
+            toastError(t('conversation.starError'));
           });
         break;
       }
@@ -1931,7 +1936,7 @@ export default function ConversationScreen() {
         if (att) {
           try {
             Clipboard.setString(att.file);
-            showSuccess(t('conversation.copiedTitle'), t('conversation.copiedMessage'));
+            toastSuccess(t('conversation.copiedTitle'));
           } catch { /* ignore */ }
         }
         break;
@@ -1981,7 +1986,7 @@ export default function ConversationScreen() {
       async () => {
         try {
           await messagesAPI.blockUser(targetUserId);
-          showSuccess(t('conversation.userBlocked'), '');
+          toastSuccess(t('conversation.userBlocked'));
           // Pour une conversation directe, on remonte. Pour un groupe, on
           // reste sur place mais l'user n'aura plus ses futurs messages.
           if (conversationType === 'direct') {
@@ -2115,10 +2120,7 @@ export default function ConversationScreen() {
               attachments: [],
             });
           }
-          showSuccess(
-            t('conversation.bulkDeleteSuccess', { count: ownIds.length }),
-            '',
-          );
+          toastSuccess(t('conversation.bulkDeleteSuccess', { count: ownIds.length }));
           exitSelectionMode();
         } catch (err: any) {
           const { message } = getApiErrorMessage(err, t, {
@@ -2199,7 +2201,7 @@ export default function ConversationScreen() {
       const targets = await loadForwardTargets();
       actions.setForwardTargets(targets);
     } catch {
-      showError(t('common.error'), t('conversation.forwardTargetsError'));
+      toastError(t('conversation.forwardTargetsError'));
     } finally {
       actions.setLoadingForwardTargets(false);
     }
@@ -2214,7 +2216,7 @@ export default function ConversationScreen() {
       const targets = await loadForwardTargets();
       actions.setForwardTargets(targets);
     } catch (error) {
-      showError(t('common.error'), t('conversation.forwardTargetsError'));
+      toastError(t('conversation.forwardTargetsError'));
     } finally {
       actions.setLoadingForwardTargets(false);
     }
@@ -2250,11 +2252,10 @@ export default function ConversationScreen() {
     if (isBulk) exitSelectionMode();
 
     if (failures === 0) {
-      showSuccess(
+      toastSuccess(
         callCount === 1
           ? t('conversation.messageForwarded')
           : t('conversation.messageForwardedMultiple', { count: callCount }),
-        '',
       );
     } else if (failures < callCount) {
       showError(

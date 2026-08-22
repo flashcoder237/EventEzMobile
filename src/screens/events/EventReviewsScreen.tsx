@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useReducer } from 'react';
+import React, { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import {
   View,
   Text,
@@ -33,6 +33,7 @@ import {
 } from '../../constants/theme';
 import { centeredContent } from '../../constants/layout';
 import { extractPaginatedData, extractPaginationMeta } from '../../lib/utils/apiHelpers';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'EventReviews'>;
 type RouteProps = RouteProp<RootStackParamList, 'EventReviews'>;
@@ -173,6 +174,19 @@ export default function EventReviewsScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [state, dispatch] = useReducer(reducer, initialState);
+  const listRef = useRef<FlatList<Feedback>>(null);
+
+  // Ouvre le formulaire d'avis ET remonte en haut de la liste (le form est dans
+  // l'en-tête). Sans ça, si l'utilisateur avait beaucoup scrollé dans les avis,
+  // taper « Laisser un avis » affichait le champ hors écran, tout en haut.
+  const openReviewForm = useCallback(() => {
+    dispatch({ type: 'TOGGLE_FORM', show: true });
+    requestAnimationFrame(() => {
+      try {
+        listRef.current?.scrollToOffset({ offset: 0, animated: true });
+      } catch { /* liste pas encore montée — sans effet */ }
+    });
+  }, []);
 
   // Android uniquement : rendre la nav bar OPAQUE pendant que cet ecran est focus
   // (App.tsx la met en translucide par defaut, ce qui fait chevaucher le FAB).
@@ -275,10 +289,9 @@ export default function EventReviewsScreen() {
       showAlert(t('eventReviews.thanks'), t('eventReviews.publishedSuccess'));
     } catch (err: any) {
       dispatch({ type: 'SUBMIT_END' });
-      const message =
-        err?.response?.data?.detail ||
-        err?.response?.data?.non_field_errors?.[0] ||
-        t('eventReviews.publishError');
+      const { message } = getApiErrorMessage(err, t, {
+        fallbackKey: 'eventReviews.publishError',
+      });
       showAlert(t('common.error'), message);
     }
   }, [eventId, state.formRating, state.formComment, state.submitting, showAlert, t]);
@@ -509,6 +522,7 @@ export default function EventReviewsScreen() {
         </View>
       ) : (
         <FlatList
+          ref={listRef}
           data={state.feedbacks}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
@@ -542,7 +556,7 @@ export default function EventReviewsScreen() {
             styles.fab,
             { backgroundColor: colors.primary, bottom: insets.bottom + Spacing.md },
           ]}
-          onPress={() => dispatch({ type: 'TOGGLE_FORM', show: true })}
+          onPress={openReviewForm}
           activeOpacity={0.85}
           accessibilityRole="button"
           accessibilityLabel={t('eventReviews.leaveReview')}

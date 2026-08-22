@@ -30,6 +30,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { seatingAPI } from '../../api';
 import type { SeatingPlan, RootStackParamList } from '../../types';
 import {
@@ -41,6 +42,8 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
+import ErrorState from '../../components/ui/ErrorState';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'SeatingPlans'>;
@@ -52,30 +55,36 @@ export default function SeatingPlansScreen() {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError, showConfirm } = useAlert();
+  const { toastSuccess } = useFeedback();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [plans, setPlans] = useState<SeatingPlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // Création
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState('');
+  // Erreur de validation client du champ "nom", affichée sous l'input du modal.
+  const [createNameError, setCreateNameError] = useState<string | undefined>();
   const [createDescription, setCreateDescription] = useState('');
   const [creating, setCreating] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
+      setLoadFailed(false);
       const res = await seatingAPI.getPlans({ event: eventId });
       const data: SeatingPlan[] = res.data?.results || res.data || [];
       setPlans(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || t('organizer.seatingPlans.loadError'));
+    } catch {
+      // Plus de modale : la liste affiche son propre état d'erreur avec Réessayer.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [eventId, showError, t]);
+  }, [eventId]);
 
   useEffect(() => {
     fetchData();
@@ -97,7 +106,8 @@ export default function SeatingPlansScreen() {
   const submitCreate = async () => {
     const name = createName.trim();
     if (!name) {
-      showError(t('organizer.seatingPlans.nameRequiredTitle'), t('organizer.seatingPlans.nameRequiredMessage'));
+      // Erreur inline sous le champ — un modal ne peut pas le désigner.
+      setCreateNameError(t('organizer.seatingPlans.nameRequiredMessage'));
       return;
     }
     setCreating(true);
@@ -120,9 +130,12 @@ export default function SeatingPlansScreen() {
       setCreateOpen(false);
       setCreateName('');
       setCreateDescription('');
+      setCreateNameError(undefined);
       showSuccess(t('organizer.seatingPlans.createSuccessTitle'), t('organizer.seatingPlans.createSuccessMessage'));
     } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || t('organizer.seatingPlans.createError'));
+      // Jamais le `detail` brut du backend : message traduit via le helper.
+      const { message } = getApiErrorMessage(error, t, { fallbackKey: 'organizer.seatingPlans.createError' });
+      showError(t('common.error'), message);
     } finally {
       setCreating(false);
     }
@@ -136,9 +149,11 @@ export default function SeatingPlansScreen() {
         try {
           await seatingAPI.deletePlan(plan.id);
           setPlans(prev => prev.filter(p => p.id !== plan.id));
-          showSuccess(t('organizer.seatingPlans.deletedTitle'), '');
+          toastSuccess(t('organizer.seatingPlans.deletedTitle'));
         } catch (error: any) {
-          showError(t('common.error'), error?.response?.data?.detail || t('organizer.seatingPlans.deleteError'));
+          // Jamais le `detail` brut du backend : message traduit via le helper.
+          const { message } = getApiErrorMessage(error, t, { fallbackKey: 'organizer.seatingPlans.deleteError' });
+          showError(t('common.error'), message);
         }
       },
     );
@@ -221,7 +236,7 @@ export default function SeatingPlansScreen() {
         </View>
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}30` }, Shadows.sm]}
-          onPress={() => setCreateOpen(true)}
+          onPress={() => { setCreateNameError(undefined); setCreateOpen(true); }}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel={t('organizer.seatingPlans.newPlanA11y')}
@@ -242,19 +257,27 @@ export default function SeatingPlansScreen() {
           contentContainerStyle={[styles.listContent, plans.length === 0 && { flex: 1 }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Ionicons name="grid-outline" size={48} color={colors.gray300} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.seatingPlans.emptyTitle')}</Text>
-              <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-                {t('organizer.seatingPlans.emptyText')}
-              </Text>
-            </View>
+            loading ? null : loadFailed ? (
+              <ErrorState
+                withCard
+                message={t('organizer.seatingPlans.loadError')}
+                onRetry={fetchData}
+              />
+            ) : (
+              <View style={styles.empty}>
+                <Ionicons name="grid-outline" size={48} color={colors.gray300} />
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.seatingPlans.emptyTitle')}</Text>
+                <Text style={[styles.emptyText, { color: colors.gray500 }]}>
+                  {t('organizer.seatingPlans.emptyText')}
+                </Text>
+              </View>
+            )
           }
         />
       )}
 
       {/* === CREATE MODAL === */}
-      <Modal visible={createOpen} transparent animationType="fade" onRequestClose={() => !creating && setCreateOpen(false)}>
+      <Modal visible={createOpen} transparent animationType="fade" onRequestClose={() => { if (!creating) { setCreateNameError(undefined); setCreateOpen(false); } }}>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalEyebrow, { color: colors.accent }]}>{t('organizer.seatingPlans.modalEyebrow')}</Text>
@@ -262,14 +285,24 @@ export default function SeatingPlansScreen() {
 
             <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.seatingPlans.nameField')}</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
+              style={[
+                styles.input,
+                { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text },
+                createNameError && { borderColor: colors.error },
+              ]}
               value={createName}
-              onChangeText={setCreateName}
+              onChangeText={(text) => {
+                setCreateName(text);
+                if (createNameError) setCreateNameError(undefined);
+              }}
               placeholder={t('organizer.seatingPlans.namePlaceholder')}
               placeholderTextColor={colors.gray400}
               editable={!creating}
               maxLength={200}
             />
+            {createNameError && (
+              <Text style={[styles.fieldError, { color: colors.error }]}>{createNameError}</Text>
+            )}
 
             <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.seatingPlans.descriptionField')}</Text>
             <TextInput
@@ -287,7 +320,7 @@ export default function SeatingPlansScreen() {
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.modalBtn, { backgroundColor: colors.gray100 }]}
-                onPress={() => !creating && setCreateOpen(false)}
+                onPress={() => { if (!creating) { setCreateNameError(undefined); setCreateOpen(false); } }}
                 disabled={creating}
                 activeOpacity={0.85}
               >
@@ -467,6 +500,12 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular,
   },
   textArea: { minHeight: 70 },
+  fieldError: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 6,
+  },
   modalActions: {
     flexDirection: 'row',
     gap: Spacing.sm,

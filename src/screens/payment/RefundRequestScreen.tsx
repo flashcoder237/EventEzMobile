@@ -95,6 +95,9 @@ export default function RefundRequestScreen() {
 
   const [payment, setPayment] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
+  // Distingue « le chargement a ÉCHOUÉ » de « chargé mais vide ». Sans cet
+  // état, un échec réseau s'affichait comme un paiement introuvable.
+  const [loadFailed, setLoadFailed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [additionalDetails, setAdditionalDetails] = useState('');
@@ -107,13 +110,17 @@ export default function RefundRequestScreen() {
 
   const fetchPaymentDetails = async () => {
     try {
+      setLoadFailed(false);
       const response = await paymentsAPI.getPayment(paymentId);
       setPayment(response.data);
       setRefundAmount(String(response.data.amount || 0));
     } catch (error) {
       if (__DEV__) console.error('Error fetching payment:', error);
-      showError(t('common.error'), t('refundRequest.loadError'));
-      navigation.goBack();
+      // Ni modale, ni goBack() : l'écran affiche lui-même son état d'échec avec
+      // un bouton Réessayer. Avant, la modale était suivie d'un `goBack()`
+      // immédiat — l'utilisateur acquittait un message sur un écran qui avait
+      // déjà disparu, et la branche `if (!payment)` ci-dessous était morte.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -222,7 +229,40 @@ export default function RefundRequestScreen() {
         <WatermarkNumeral>{t('refundRequest.watermarkOops')}</WatermarkNumeral>
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
-          <Text style={[styles.errorText, { color: colors.gray500 }]}>{t('refundRequest.paymentNotFound')}</Text>
+          <Text style={[styles.errorText, { color: colors.gray500 }]}>
+            {loadFailed ? t('refundRequest.loadError') : t('refundRequest.paymentNotFound')}
+          </Text>
+          {/* Un échec réseau se réessaie ; un paiement réellement introuvable
+              n'a rien à réessayer, on propose alors le retour. Le bouton était
+              nommé `retryButton` mais ne faisait que revenir en arrière. */}
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: colors.primary }]}
+            onPress={loadFailed ? fetchPaymentDetails : () => navigation.goBack()}
+          >
+            <Text style={styles.retryButtonText}>
+              {loadFailed ? t('componentsUI.errorRetry') : t('refundRequest.back')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </EditorialCanvas>
+    );
+  }
+
+  // Pré-check d'éligibilité (règle serveur miroir) : on explique AVANT de laisser
+  // remplir le formulaire, au lieu du 403 « Vous n'êtes pas autorisé… » à l'envoi.
+  if ((payment as any).can_refund === false) {
+    const reason = (payment as any).refund_blocked_reason as string | undefined;
+    const reasonKey =
+      reason === 'not_owner' ? 'refundRequest.blockedNotOwner'
+      : reason === 'not_completed' ? 'refundRequest.blockedNotCompleted'
+      : reason === 'already_requested' ? 'refundRequest.blockedAlreadyRequested'
+      : 'refundRequest.blockedGeneric';
+    return (
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>{t('refundRequest.watermarkOops')}</WatermarkNumeral>
+        <View style={styles.errorContainer}>
+          <Ionicons name="information-circle-outline" size={48} color={colors.gray400} />
+          <Text style={[styles.errorText, { color: colors.gray500 }]}>{t(reasonKey)}</Text>
           <TouchableOpacity
             style={[styles.retryButton, { backgroundColor: colors.primary }]}
             onPress={() => navigation.goBack()}

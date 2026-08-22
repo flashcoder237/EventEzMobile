@@ -42,6 +42,7 @@ import {
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 interface Props {
   visible: boolean;
@@ -141,7 +142,12 @@ export default function WidgetFormModal({ visible, widget, onClose, onSuccess }:
       }
       onSuccess(res.data);
     } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || (isEditing ? t('componentsCharts.widgetForm.errorEditDenied') : t('componentsCharts.widgetForm.errorCreateDenied')));
+      const { message } = getApiErrorMessage(error, t, {
+        fallbackKey: isEditing
+          ? 'componentsCharts.widgetForm.errorEditDenied'
+          : 'componentsCharts.widgetForm.errorCreateDenied',
+      });
+      showError(t('common.error'), message);
     } finally {
       setSubmitting(false);
     }

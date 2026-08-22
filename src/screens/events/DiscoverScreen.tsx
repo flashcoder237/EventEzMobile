@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
   InteractionManager,
   Share,
-  Alert,
 } from 'react-native';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -46,6 +45,7 @@ import {
   MAIN_TABS_TOUR_STORAGE_KEY,
 } from '../../components/tour';
 import { useAuth } from '../../contexts/AuthContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useUnreadCounts } from '../../contexts/NotificationContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
@@ -108,15 +108,42 @@ function eventPlaceholder(ev: Event) {
     (ev as any).display_placeholder
   );
 }
+/**
+ * Nombre de jours avant le début de l'event. NÉGATIF si l'event est déjà passé.
+ *
+ * Ne PAS ré-introduire de `Math.max(0, …)` : le clamp historique rendait tout
+ * event passé indistinguable d'un event du jour (« J-0 » systématique) et
+ * rendait mortes les gardes `>= 0` des appelants.
+ * Doit rester aligné sur `daysUntil` de components/events/EventCard.tsx.
+ */
 function daysUntil(iso: string): number | null {
   try {
     const now = new Date();
     const target = new Date(iso);
+    if (isNaN(target.getTime())) return null;
     const ms = target.getTime() - now.setHours(0, 0, 0, 0);
-    return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+    return Math.ceil(ms / (1000 * 60 * 60 * 24));
   } catch {
     return null;
   }
+}
+
+/**
+ * Nom de ville affichable dans le bandeau « DÉCOUVRIR · … ».
+ *
+ * `location_city` est un champ libre saisi par l'organisateur : au Cameroun on y
+ * trouve couramment l'arrondissement (« Douala III », « Yaoundé IV »). Affiché
+ * tel quel en capitales, cela donnait « DÉCOUVRIR · DOUALA III » — remonté comme
+ * incompréhensible par les testeurs. On retire le suffixe en chiffres romains ou
+ * arabes pour ne garder que la ville.
+ */
+function cityDisplayName(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const cleaned = raw
+    .trim()
+    .replace(/[\s,-]+(?:[IVXLC]+|\d{1,2})\.?$/i, '')
+    .trim();
+  return cleaned || raw.trim() || null;
 }
 
 // ============================================================================
@@ -202,6 +229,7 @@ export default function DiscoverScreen() {
   const { width: discoverWidth } = useWindowDimensions();
   const categoryCardWidth = Math.floor((Math.min(discoverWidth, 520) - Spacing.lg * 2 - Spacing.sm) / 2);
   const { t } = useTranslation();
+  const { toastSuccess, toastWarning } = useFeedback();
   const { currency: platformCurrency } = useCommissionConfig();
   const { unreadNotificationCount } = useUnreadCounts();
   const { isSlowCellular, isOffline } = useNetworkSpeed();
@@ -264,6 +292,10 @@ export default function DiscoverScreen() {
   forYouHasMoreRef.current = forYouHasMore;
   forYouPageRef.current = forYouPage;
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  // Ville RÉELLE de l'utilisateur (reverse-geocoding de sa position). Le bandeau
+  // « DÉCOUVRIR · … » affichait la ville du 1er event proche — trompeur si
+  // l'utilisateur est ailleurs. On affiche désormais sa vraie ville.
+  const [userCity, setUserCity] = useState<string | null>(null);
   // 'idle' = pas demandé, 'requesting' = en cours, 'granted'/'denied' = état final
   const [locationPermStatus, setLocationPermStatus] = useState<
     'idle' | 'requesting' | 'granted' | 'denied'
@@ -342,18 +374,21 @@ export default function DiscoverScreen() {
 
       // Quand la geoloc est dispo, on transmet lat/lng au backend qui prioritise
       // la proximité dans le tri (sans filtrer par radius — on veut voir tout,
-      // juste mieux trié). Le backend filtre déjà les events passés via
-      // end_date < now, donc plus besoin de isEventInFuture côté client (qui
-      // était même bugué : utilisait start_date, masquant les events multi-jours
-      // en cours).
+      // juste mieux trié).
       const geoParams = location ? { lat: location.lat, lng: location.lng } : {};
 
       // Pour "upcoming" et "free", on ne passe PAS ordering=start_date quand
       // on a une geoloc, sinon le tri par date overwrite la proximité. Sans
       // geoloc, on garde le tri date asc historique.
+      //
+      // `event_status: 'upcoming'` est OBLIGATOIRE ici : le filtre par défaut du
+      // backend est `exclude(end_date__lt=now)`, qui laisse passer un event
+      // DÉJÀ COMMENCÉ tant que sa date de fin est future (un organisateur qui
+      // met une end_date lointaine faisait apparaître son event passé dans « À
+      // venir »). `event_status=upcoming` bascule sur `start_date__gt=now`.
       const upcomingParams = location
-        ? { limit: 15, status: 'validated', ...geoParams }
-        : { ordering: 'start_date', limit: 15, status: 'validated' };
+        ? { limit: 15, status: 'validated', event_status: 'upcoming', ...geoParams }
+        : { ordering: 'start_date', limit: 15, status: 'validated', event_status: 'upcoming' };
       const freeParams = location
         ? { price: 'free', limit: 10, status: 'validated', ...geoParams }
         : { price: 'free', ordering: 'start_date', limit: 10, status: 'validated' };
@@ -559,18 +594,19 @@ export default function DiscoverScreen() {
     try {
       const { pushNotificationService } = await import('../../services/pushNotificationService');
       const granted = await pushNotificationService.requestPermissions();
-      Alert.alert(
-        granted
-          ? t('discover.notifyOnTitle', { defaultValue: 'C\'est noté !' })
-          : t('discover.notifyOffTitle', { defaultValue: 'Notifications désactivées' }),
-        granted
-          ? t('discover.notifyOnBody', { defaultValue: 'Tu seras prévenu dès que les premiers événements arrivent.' })
-          : t('discover.notifyOffBody', { defaultValue: 'Active les notifications dans les réglages pour être prévenu.' }),
-      );
+      if (granted) {
+        toastSuccess(
+          t('discover.notifyOnBody', { defaultValue: 'Tu seras prévenu dès que les premiers événements arrivent.' }),
+        );
+      } else {
+        toastWarning(
+          t('discover.notifyOffBody', { defaultValue: 'Active les notifications dans les réglages pour être prévenu.' }),
+        );
+      }
     } catch {
       // silencieux — ne jamais bloquer l'écran d'accueil sur une erreur de perm.
     }
-  }, [t]);
+  }, [t, toastSuccess, toastWarning]);
 
   // Acquisition robuste d'une position. getCurrentPositionAsync({}) seul est
   // peu fiable (GPS froid → peut hang ou échouer). On tente d'abord le dernier
@@ -594,6 +630,21 @@ export default function DiscoverScreen() {
     }
   }, []);
 
+  // Reverse-geocode la position en nom de ville (best-effort, ne throw jamais).
+  const resolveUserCity = useCallback(async (coords: { lat: number; lng: number }) => {
+    try {
+      const places = await Location.reverseGeocodeAsync({
+        latitude: coords.lat,
+        longitude: coords.lng,
+      });
+      const p = places?.[0];
+      const city = p?.city || p?.subregion || p?.region || null;
+      if (city) setUserCity(city);
+    } catch {
+      // Reverse-geocoding indisponible (offline, quota) → on garde le libellé générique.
+    }
+  }, []);
+
   const requestLocation = useCallback(async () => {
     setLocationPermStatus('requesting');
     try {
@@ -606,7 +657,7 @@ export default function DiscoverScreen() {
       }
       if (status === 'granted') {
         const coords = await acquirePosition();
-        if (coords) setLocation(coords);
+        if (coords) { setLocation(coords); resolveUserCity(coords); }
         // Perm accordée même si le fix GPS échoue — le retry au pull-to-refresh
         // re-tentera acquirePosition().
         setLocationPermStatus('granted');
@@ -617,7 +668,7 @@ export default function DiscoverScreen() {
       if (__DEV__) console.error('Erreur localisation:', error);
       setLocationPermStatus('denied');
     }
-  }, [acquirePosition]);
+  }, [acquirePosition, resolveUserCity]);
 
   // Hydrate l'état de perm au mount (sans déclencher le prompt système)
   const checkLocationPermSilent = useCallback(async () => {
@@ -626,7 +677,7 @@ export default function DiscoverScreen() {
       if (status === 'granted') {
         setLocationPermStatus('granted');
         const coords = await acquirePosition();
-        if (coords) setLocation(coords);
+        if (coords) { setLocation(coords); resolveUserCity(coords); }
       } else if (status === 'denied') {
         setLocationPermStatus('denied');
       }
@@ -634,7 +685,7 @@ export default function DiscoverScreen() {
     } catch {
       // ignore
     }
-  }, [acquirePosition]);
+  }, [acquirePosition, resolveUserCity]);
 
   // === Effects ===
   useEffect(() => {
@@ -739,7 +790,7 @@ export default function DiscoverScreen() {
     const range = getEventPriceRange(ev);
     const isFree = ev.is_free || (range?.min === 0 && range?.max === 0);
     const dUntil = daysUntil(ev.start_date);
-    const isSoon = dUntil !== null && dUntil <= 7;
+    const isSoon = dUntil !== null && dUntil >= 0 && dUntil <= 7;
 
     return (
       <AnimatedPressable
@@ -946,7 +997,7 @@ export default function DiscoverScreen() {
         {list.map((ev, i) => {
           const { day, month } = splitDate(ev.start_date);
           const dUntil = daysUntil(ev.start_date);
-          const isSoon = dUntil !== null && dUntil <= 7;
+          const isSoon = dUntil !== null && dUntil >= 0 && dUntil <= 7;
           const accent = isSoon ? colors.accent : colors.primary;
           const accentBg = isSoon ? `${colors.accent}1A` : colors.primaryBg;
           return (
@@ -1105,7 +1156,7 @@ export default function DiscoverScreen() {
             <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('discover.freeTitle')}</Text>
           </View>
           <TouchableOpacity
-            onPress={() => activateSearch()}
+            onPress={() => navigation.navigate('EventSearch', { price: 'free' })}
             activeOpacity={TOUCH_OPACITY}
             style={[styles.seeAllBtn, { backgroundColor: colors.card }]}
           >
@@ -1356,14 +1407,12 @@ export default function DiscoverScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
                       {(() => {
-                        // Ville dérivée des events nearby si géoloc accordée, sinon
-                        // de la première ville parmi featured/upcoming, sinon générique.
-                        const city =
-                          (location && nearbyEvents[0]?.location_city) ||
-                          featuredEvents[0]?.location_city ||
-                          upcomingEvents[0]?.location_city;
-                        return city
-                          ? t('discover.headerCityWithName', { city: city.toUpperCase() })
+                        // Ville RÉELLE de l'utilisateur (reverse-geocoding de sa
+                        // position), pas celle d'un event proche. Sans géoloc /
+                        // sans résolution, on retombe sur le libellé générique.
+                        const label = cityDisplayName(userCity);
+                        return label
+                          ? t('discover.headerCityWithName', { city: label.toUpperCase() })
                           : t('discover.headerCityPrefix');
                       })()}
                     </Text>
@@ -1749,7 +1798,11 @@ export default function DiscoverScreen() {
               {categories.length > 0 && (
                 <SectionEntrance delay={540}>
                   <View style={styles.section}>
-                    <SectionHeader eyebrow={t('discover.allGenresEyebrow')} title={t('discover.allGenresTitle')} />
+                    <SectionHeader
+                      eyebrow={t('discover.allGenresEyebrow')}
+                      title={t('discover.allGenresTitle')}
+                      onSeeAll={() => navigation.navigate('EventSearch', undefined)}
+                    />
                     <View style={{ paddingHorizontal: Spacing.lg }}>{renderCategories()}</View>
                   </View>
                 </SectionEntrance>

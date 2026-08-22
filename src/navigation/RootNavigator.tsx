@@ -193,9 +193,11 @@ export default function RootNavigator() {
           if (!cancelled) setLanguagePicked(true);
           return;
         }
-        // Pas de préférence → on dérive de la locale device (fr si device en
-        // français, en sinon) et on persiste silencieusement.
-        const deviceLang = getLocales()[0]?.languageCode === 'fr' ? 'fr' : 'en';
+        // Pas de préférence → on dérive de la locale device et on persiste
+        // silencieusement. Défaut FRANÇAIS (aligné backend DEFAULT_LANG='fr') :
+        // seul un device explicitement en anglais bascule en EN. Doit rester
+        // cohérent avec src/i18n/index.ts.
+        const deviceLang = getLocales()[0]?.languageCode === 'en' ? 'en' : 'fr';
         await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, deviceLang);
         await changeLanguage(deviceLang);
         if (!cancelled) setLanguagePicked(true);

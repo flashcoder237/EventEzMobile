@@ -32,6 +32,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { newslettersAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import {
@@ -43,6 +44,8 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
+import ErrorState from '../../components/ui/ErrorState';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -71,6 +74,7 @@ export default function NewslettersScreen() {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError, showConfirm } = useAlert();
+  const { toastSuccess } = useFeedback();
   const STATUS_LABELS: Record<NewsletterStatus, string> = {
     draft: t('organizer.newsletters.statusDraft'),
     scheduled: t('organizer.newsletters.statusScheduled'),
@@ -82,6 +86,7 @@ export default function NewslettersScreen() {
 
   const [items, setItems] = useState<Newsletter[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
 
@@ -93,16 +98,18 @@ export default function NewslettersScreen() {
 
   const fetchData = useCallback(async () => {
     try {
+      setLoadFailed(false);
       const res = await newslettersAPI.getAll();
       const data: Newsletter[] = res.data?.results || res.data || [];
       setItems(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || t('organizer.newsletters.loadError'));
+    } catch {
+      // Plus de modale : la liste affiche son propre état d'erreur avec Réessayer.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [showError, t]);
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -138,7 +145,9 @@ export default function NewslettersScreen() {
       setCreateSubject('');
       setCreateContent('');
     } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || t('organizer.newsletters.createError'));
+      // Jamais le `detail` brut du backend : message traduit via le helper.
+      const { message } = getApiErrorMessage(error, t, { fallbackKey: 'organizer.newsletters.createError' });
+      showError(t('common.error'), message);
     } finally {
       setCreating(false);
     }
@@ -163,7 +172,9 @@ export default function NewslettersScreen() {
           showSuccess(t('organizer.newsletters.sendTriggeredTitle'), t('organizer.newsletters.sendTriggeredMessage'));
         } catch (error: any) {
           setItems(prev => prev.map(n => n.id === item.id ? { ...n, status: 'draft' } : n));
-          showError(t('common.error'), error?.response?.data?.detail || t('organizer.newsletters.sendError'));
+          // Jamais le `detail` brut du backend : message traduit via le helper.
+          const { message } = getApiErrorMessage(error, t, { fallbackKey: 'organizer.newsletters.sendError' });
+          showError(t('common.error'), message);
         } finally {
           setActionId(null);
         }
@@ -179,9 +190,11 @@ export default function NewslettersScreen() {
         try {
           await newslettersAPI.delete(item.id);
           setItems(prev => prev.filter(n => n.id !== item.id));
-          showSuccess(t('organizer.newsletters.deletedTitle'), '');
+          toastSuccess(t('organizer.newsletters.deletedTitle'));
         } catch (error: any) {
-          showError(t('common.error'), error?.response?.data?.detail || t('organizer.newsletters.deleteError'));
+          // Jamais le `detail` brut du backend : message traduit via le helper.
+          const { message } = getApiErrorMessage(error, t, { fallbackKey: 'organizer.newsletters.deleteError' });
+          showError(t('common.error'), message);
         }
       },
     );
@@ -283,13 +296,21 @@ export default function NewslettersScreen() {
           contentContainerStyle={[styles.listContent, items.length === 0 && { flex: 1 }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Ionicons name="mail-outline" size={48} color={colors.gray300} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.newsletters.emptyTitle')}</Text>
-              <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-                {t('organizer.newsletters.emptyText')}
-              </Text>
-            </View>
+            loading ? null : loadFailed ? (
+              <ErrorState
+                withCard
+                message={t('organizer.newsletters.loadError')}
+                onRetry={fetchData}
+              />
+            ) : (
+              <View style={styles.empty}>
+                <Ionicons name="mail-outline" size={48} color={colors.gray300} />
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.newsletters.emptyTitle')}</Text>
+                <Text style={[styles.emptyText, { color: colors.gray500 }]}>
+                  {t('organizer.newsletters.emptyText')}
+                </Text>
+              </View>
+            )
           }
         />
       )}

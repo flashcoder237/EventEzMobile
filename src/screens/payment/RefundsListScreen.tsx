@@ -23,7 +23,6 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { refundsAPI } from '../../api';
 import { Refund, RefundStatus, RootStackParamList } from '../../types';
-import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import {
@@ -35,6 +34,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent } from '../../constants/layout';
+import ErrorState from '../../components/ui/ErrorState';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -69,27 +69,29 @@ function formatDateRelative(iso: string, t: (k: string, opts?: any) => string, l
 
 export default function RefundsListScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { showError } = useAlert();
   const { colors, isDark } = useTheme();
   const { t, i18n } = useTranslation();
   const dateLocale = i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR';
 
   const [refunds, setRefunds] = useState<Refund[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchRefunds = useCallback(async () => {
     try {
+      setLoadFailed(false);
       const response = await refundsAPI.getRefunds();
       const data = response.data?.results || response.data || [];
       setRefunds(data);
     } catch (error) {
       if (__DEV__) console.error('Error fetching refunds:', error);
-      showError(t('refundsList.errorTitle'), t('refundsList.loadError'));
+      // Plus de modale : la liste affiche son propre état d'erreur avec Réessayer.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
-  }, [showError, t]);
+  }, []);
 
   useEffect(() => {
     fetchRefunds();
@@ -189,6 +191,13 @@ export default function RefundsListScreen() {
   };
 
   const renderEmpty = () => (
+    loadFailed ? (
+      <ErrorState
+        withCard
+        message={t('refundsList.loadError')}
+        onRetry={fetchRefunds}
+      />
+    ) :
     <View style={styles.emptyContainer}>
       <View style={[styles.emptyIcon, { backgroundColor: colors.gray100 }]}>
         <Ionicons name="receipt-outline" size={32} color={colors.gray400} />

@@ -15,7 +15,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { speakersAPI } from '../../api';
 import { ProfileSkeleton } from '../../components/ui/Skeleton';
-import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList, Speaker, Session } from '../../types';
@@ -37,7 +36,6 @@ type RouteProps = RouteProp<RootStackParamList, 'SpeakerDetails'>;
 export default function SpeakerDetailsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
-  const { showError } = useAlert();
   const { colors } = useTheme();
   const { t } = useTranslation();
   const { speakerId } = route.params;
@@ -70,7 +68,9 @@ export default function SpeakerDetailsScreen() {
       }
     } catch (err: any) {
       if (__DEV__) console.error('[SpeakerDetails] Error fetching speaker:', err);
-      showError(t('common.error'), t('speakerDetails.loadError'));
+      // Pas de modale : l'ecran rend deja son propre etat « introuvable »
+      // (en-tete + retour). La modale n'ajoutait qu'une interruption a
+      // acquitter par-dessus un ecran qui disait deja la meme chose.
     } finally {
       setIsLoading(false);
     }

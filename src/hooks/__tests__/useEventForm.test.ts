@@ -177,10 +177,29 @@ describe('useEventForm', () => {
 
       act(() => result.current.goToNextStep());
       expect(result.current.form.currentStep).toBe(1);
+      // Toutes les erreurs de l'etape sont exposees D'UN COUP, chacune destinee
+      // a etre rendue sous son propre champ.
       expect(result.current.form.stepErrors).toMatchObject({
         title: expect.stringContaining('titre'),
       });
-      expect(alerts.showError).toHaveBeenCalled();
+      expect(Object.keys(result.current.form.stepErrors).length).toBeGreaterThan(1);
+      // Plus AUCUNE modale : une modale ne peut pas designer le champ fautif.
+      expect(alerts.showError).not.toHaveBeenCalled();
+    });
+
+    it("efface l'erreur d'un champ des qu'il est corrige", () => {
+      const alerts = makeAlerts();
+      const { result } = renderHook(() => useEventForm(alerts));
+
+      act(() => result.current.goToNextStep());
+      expect(result.current.form.stepErrors.title).toBeTruthy();
+
+      // Sans ca, un champ repare restait souligne en rouge jusqu'a la
+      // prochaine tentative de passage a l'etape suivante.
+      act(() => result.current.setTitle('Un titre valide'));
+      expect(result.current.form.stepErrors.title).toBeUndefined();
+      // Les autres erreurs, elles, subsistent.
+      expect(result.current.form.stepErrors.description).toBeTruthy();
     });
 
     it('goToNextStep advances when step 1 is valid', () => {

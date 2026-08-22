@@ -256,7 +256,9 @@ describe('DiscountFormScreen — create mode', () => {
     fireEvent.press(await findByText('Créer le code promo'));
 
     await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith('Erreur serveur');
+      // Le detail brut du backend n'est plus affiche a l'utilisateur
+      // (getApiErrorMessage) : on verifie qu'un message traduit est passe.
+      expect(mockShowError).toHaveBeenCalledWith(expect.any(String));
     });
   });
 });

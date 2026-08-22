@@ -190,7 +190,9 @@ describe('NewslettersScreen', () => {
     fireEvent.press(await findByText('Créer le brouillon'));
 
     await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith('Erreur', 'Quota dépassé');
+      // Idem : le message affiche est traduit, pas le `detail` backend brut.
+      expect(mockShowError).toHaveBeenCalledWith('Erreur', expect.any(String));
+      expect(mockShowError).not.toHaveBeenCalledWith('Erreur', 'Quota dépassé');
     });
   });
 });

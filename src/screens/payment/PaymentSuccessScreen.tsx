@@ -40,9 +40,11 @@ import {
 } from '../../constants/theme';
 import { centeredContent } from '../../constants/layout';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
+import { FormErrors } from '../../lib/validation';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 import { useTranslation } from 'react-i18next';
 import ConfettiEffect from '../../components/ui/ConfettiEffect';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
@@ -84,6 +86,17 @@ export default function PaymentSuccessScreen() {
   const { t } = useTranslation();
   // Hooks d'auth/sound déclarés tôt — utilisés par handleInviteFriend ci-dessous
   const { isGuest, user, upgradeGuest } = useAuth();
+  const { maybePromptForPushPermission } = useNotifications();
+
+  // Moment à forte intention : l'utilisateur vient de s'inscrire/payer → c'est le
+  // meilleur moment pour proposer les notifications (rappels d'événement). Comble
+  // le trou signalé : sans ça, la permission n'était demandée QUE si on suivait
+  // un événement. Idempotent (déjà demandé une fois → no-op).
+  useEffect(() => {
+    if (user && !isGuest) {
+      maybePromptForPushPermission();
+    }
+  }, [user, isGuest, maybePromptForPushPermission]);
 
   // Invoice download — l'ID de la facture est exposé via PaymentSerializer
   // (`invoice = InvoiceSerializer(read_only=True)`), donc on récupère le payment
@@ -223,16 +236,34 @@ export default function PaymentSuccessScreen() {
   const [upgradeLastName, setUpgradeLastName] = useState('');
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [upgradeDismissed, setUpgradeDismissed] = useState(false);
+  // Validation client → erreurs inline sous le champ fautif dans le modal.
+  const [upgradeErrors, setUpgradeErrors] = useState<
+    FormErrors<'password' | 'confirm'>
+  >({});
+
+  // Réinitialise les erreurs à chaque ouverture/fermeture du modal, sinon un
+  // message périmé réapparaît à la réouverture.
+  const closeUpgradeModal = () => {
+    setUpgradeModalVisible(false);
+    setUpgradeErrors({});
+  };
+
+  const openUpgradeModal = () => {
+    setUpgradeErrors({});
+    setUpgradeModalVisible(true);
+  };
 
   const handleUpgrade = async () => {
+    const nextErrors: FormErrors<'password' | 'confirm'> = {};
     if (upgradePassword.length < 8) {
-      showError(t('payment.successUpgradePasswordTooShort'), t('payment.successUpgradePasswordTooShortDetail'));
-      return;
+      nextErrors.password = t('payment.successUpgradePasswordTooShortDetail');
     }
     if (upgradePassword !== upgradeConfirm) {
-      showError(t('payment.successUpgradePasswordMismatch'), t('payment.successUpgradePasswordMismatchDetail'));
-      return;
+      nextErrors.confirm = t('payment.successUpgradePasswordMismatchDetail');
     }
+    setUpgradeErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     setUpgradeLoading(true);
     try {
       await upgradeGuest({
@@ -240,7 +271,7 @@ export default function PaymentSuccessScreen() {
         confirm_password: upgradeConfirm,
         last_name: upgradeLastName.trim() || undefined,
       });
-      setUpgradeModalVisible(false);
+      closeUpgradeModal();
       showSuccess(t('payment.successUpgradeAccountCreated'), t('payment.successUpgradeAccountCreatedDetail'));
     } catch (error) {
       // Jamais le brut (detail/password[0]) : getApiErrorMessage résout un
@@ -501,7 +532,7 @@ export default function PaymentSuccessScreen() {
               </View>
               <View style={styles.upgradeBannerActions}>
                 <TouchableOpacity
-                  onPress={() => setUpgradeModalVisible(true)}
+                  onPress={openUpgradeModal}
                   style={[styles.upgradeCta, { backgroundColor: colors.primary }]}
                   activeOpacity={0.85}
                   accessibilityRole="button"
@@ -660,9 +691,9 @@ export default function PaymentSuccessScreen() {
         visible={upgradeModalVisible}
         transparent
         animationType="fade"
-        onRequestClose={() => setUpgradeModalVisible(false)}
+        onRequestClose={closeUpgradeModal}
       >
-        <Pressable style={styles.upgradeBackdrop} onPress={() => setUpgradeModalVisible(false)}>
+        <Pressable style={styles.upgradeBackdrop} onPress={closeUpgradeModal}>
           <Pressable
             style={[styles.upgradeCard, { backgroundColor: colors.card }]}
             onPress={(e) => e.stopPropagation()}
@@ -694,13 +725,27 @@ export default function PaymentSuccessScreen() {
                 {t('payment.successUpgradePasswordLabel')}
               </Text>
               <TextInput
-                style={[styles.upgradeInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.text }]}
+                style={[
+                  styles.upgradeInput,
+                  { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.text },
+                  upgradeErrors.password && { borderColor: colors.error },
+                ]}
                 value={upgradePassword}
-                onChangeText={setUpgradePassword}
+                onChangeText={(text) => {
+                  setUpgradePassword(text);
+                  if (upgradeErrors.password) {
+                    setUpgradeErrors((prev) => ({ ...prev, password: undefined }));
+                  }
+                }}
                 placeholder={t('payment.successUpgradePasswordPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 secureTextEntry
               />
+              {upgradeErrors.password && (
+                <Text style={[styles.upgradeFieldError, { color: colors.error }]}>
+                  {upgradeErrors.password}
+                </Text>
+              )}
             </View>
 
             <View style={styles.upgradeField}>
@@ -708,19 +753,33 @@ export default function PaymentSuccessScreen() {
                 {t('payment.successUpgradeConfirmLabel')}
               </Text>
               <TextInput
-                style={[styles.upgradeInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.text }]}
+                style={[
+                  styles.upgradeInput,
+                  { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.text },
+                  upgradeErrors.confirm && { borderColor: colors.error },
+                ]}
                 value={upgradeConfirm}
-                onChangeText={setUpgradeConfirm}
+                onChangeText={(text) => {
+                  setUpgradeConfirm(text);
+                  if (upgradeErrors.confirm) {
+                    setUpgradeErrors((prev) => ({ ...prev, confirm: undefined }));
+                  }
+                }}
                 placeholder={t('payment.successUpgradeConfirmPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 secureTextEntry
               />
+              {upgradeErrors.confirm && (
+                <Text style={[styles.upgradeFieldError, { color: colors.error }]}>
+                  {upgradeErrors.confirm}
+                </Text>
+              )}
             </View>
 
             <View style={styles.upgradeActions}>
               <TouchableOpacity
                 style={[styles.upgradeBtn, { backgroundColor: colors.gray100 }]}
-                onPress={() => setUpgradeModalVisible(false)}
+                onPress={closeUpgradeModal}
                 disabled={upgradeLoading}
                 activeOpacity={0.85}
               >
@@ -1072,6 +1131,12 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.medium,
     fontSize: 12,
     marginBottom: 6,
+  },
+  upgradeFieldError: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    marginTop: 6,
+    lineHeight: 16,
   },
   upgradeInput: {
     borderWidth: 1.5,

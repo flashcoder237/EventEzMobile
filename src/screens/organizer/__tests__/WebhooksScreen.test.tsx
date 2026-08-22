@@ -33,6 +33,17 @@ jest.mock('../../../contexts/AlertContext', () => ({
   }),
 }));
 
+const mockToastSuccess = jest.fn();
+const mockToastError = jest.fn();
+jest.mock('../../../contexts/FeedbackContext', () => ({
+  useFeedback: () => ({
+    toastSuccess: mockToastSuccess,
+    toastError: mockToastError,
+    toastWarning: jest.fn(),
+    toastInfo: jest.fn(),
+  }),
+}));
+
 const themeColors = {
   primary: '#4F46E5',
   accent: '#FF6B6B',
@@ -178,6 +189,6 @@ describe('WebhooksScreen', () => {
     // execute confirm callback
     await lastConfirmCallback!();
     await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('wh-1'));
-    expect(mockShowSuccess).toHaveBeenCalledWith('Webhook supprimé', '');
+    expect(mockToastSuccess).toHaveBeenCalledWith('Webhook supprimé');
   });
 });

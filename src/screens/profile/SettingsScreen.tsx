@@ -22,7 +22,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
-import { changeLanguage, LANGUAGE_STORAGE_KEY } from '../../i18n';
+import { changeLanguage, LANGUAGE_STORAGE_KEY, LANGUAGE_EXPLICIT_KEY } from '../../i18n';
+import { getAvailableLanguageCodes } from '../../i18n/translations';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { useAppLock } from '../../hooks/useAppLock';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
@@ -30,6 +31,7 @@ import { useBiometricPrefs } from '../../hooks/useBiometricPrefs';
 import { useTicketLockPref } from '../../hooks/useTicketLockPref';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { usersAPI, messagesAPI, languagesAPI } from '../../api';
+import CacheService from '../../services/CacheService';
 import SearchableSelectModal from '../../components/common/SearchableSelectModal';
 import AppIconPicker from '../../components/profile/AppIconPicker';
 import { RootStackParamList } from '../../types';
@@ -40,6 +42,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -375,6 +378,10 @@ export default function SettingsScreen() {
   const [notifySocial, setNotifySocial] = useState(true);
   // Fréquence emails "nouvelle inscription" (organisateur) : realtime/hourly/daily/off
   const [notifyNewRegistrations, setNotifyNewRegistrations] = useState<'realtime' | 'hourly' | 'daily' | 'off'>('hourly');
+  // Heures de silence (push/SMS non essentiels reportés la nuit)
+  const [quietHoursEnabled, setQuietHoursEnabled] = useState(false);
+  const [quietHoursStart, setQuietHoursStart] = useState<string>('22:00');
+  const [quietHoursEnd, setQuietHoursEnd] = useState<string>('07:00');
 
   // Confidentialité (P19)
   const [showInAttendees, setShowInAttendees] = useState(true);
@@ -398,8 +405,24 @@ export default function SettingsScreen() {
     { code: 'en', label: 'English' },
   ]);
   useEffect(() => {
-    languagesAPI.list()
-      .then((res) => { if (Array.isArray(res.data) && res.data.length) setLanguageList(res.data); })
+    // /languages/ renvoie le référentiel ISO complet (~184 langues), pensé pour
+    // la « langue de rédaction d'un événement » — PAS pour l'UI. On ne garde que
+    // les langues d'interface RÉELLEMENT traduites (fr/en bundlées + celles
+    // publiées sur le CDN, cf. manifest.json), sinon on proposerait des langues
+    // qui retombent silencieusement en anglais.
+    Promise.all([
+      languagesAPI.list().then((res) => (Array.isArray(res.data) ? res.data : [])).catch(() => []),
+      getAvailableLanguageCodes().catch(() => ['fr', 'en']),
+    ])
+      .then(([iso, available]) => {
+        const labelByCode = new Map(
+          (iso as { code: string; label: string }[]).map((l) => [l.code, l.label])
+        );
+        const filtered = available
+          .map((code) => ({ code, label: labelByCode.get(code) || code.toUpperCase() }))
+          .sort((a, b) => a.label.localeCompare(b.label));
+        if (filtered.length) setLanguageList(filtered);
+      })
       .catch(() => {});
   }, []);
   const [timezone, setTimezone] = useState('Africa/Douala');
@@ -523,6 +546,9 @@ export default function SettingsScreen() {
         setNotifyMarketing(settings.notify_marketing ?? false);
         setNotifySocial(settings.notify_social ?? true);
         setNotifyNewRegistrations(settings.notify_new_registrations ?? 'hourly');
+        setQuietHoursEnabled(settings.quiet_hours_enabled ?? false);
+        setQuietHoursStart(settings.quiet_hours_start ?? '22:00');
+        setQuietHoursEnd(settings.quiet_hours_end ?? '07:00');
         setLanguage(settings.language ?? 'fr');
         setTimezone(settings.timezone ?? 'Africa/Douala');
         setTwoFactorAuth(settings.two_factor_auth ?? false);
@@ -615,7 +641,7 @@ export default function SettingsScreen() {
       if (__DEV__) console.error('Erreur suppression compte:', error);
       showError(
         t('common.error'),
-        error.response?.data?.detail || t('settings.deleteAccountError')
+        getApiErrorMessage(error, t, { fallbackKey: 'settings.deleteAccountError' }).message
       );
     } finally {
       setSaving(false);
@@ -655,7 +681,14 @@ export default function SettingsScreen() {
     setLanguage(lang);
     try {
       await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+      // Choix explicite : protège contre la migration auto de langue.
+      await AsyncStorage.setItem(LANGUAGE_EXPLICIT_KEY, 'true');
       await changeLanguage(lang);
+      // Purge du cache : une partie du contenu est localisée PAR LE BACKEND
+      // (noms de catégories, etc.) via le header `Accept-Language`. Sans purge,
+      // les entrées mises en cache dans l'ancienne langue restaient affichées
+      // jusqu'à expiration du TTL → UI mi-FR mi-EN après un changement.
+      await CacheService.clearAll();
     } catch (error) {
       if (__DEV__) console.error('[Settings] failed to persist language', error);
     }
@@ -1014,6 +1047,57 @@ export default function SettingsScreen() {
                   </TouchableOpacity>
                 );
               })}
+            </View>
+          )}
+          {/* Heures de silence : push/SMS non essentiels reportés la nuit. */}
+          {matchesQuery(searchQuery, [t('settings.quietHoursTitle'), t('settings.quietHoursDescription')]) && (
+          <OptionCard
+            icon="moon-outline"
+            eyebrow={t('settings.quietHoursEyebrow')}
+            title={t('settings.quietHoursTitle')}
+            subtitle={t('settings.quietHoursDescription')}
+            right={
+              <SoftToggle
+                value={quietHoursEnabled}
+                onToggle={(v) => handleToggle('quiet_hours_enabled', v, setQuietHoursEnabled)}
+              />
+            }
+          />
+          )}
+          {quietHoursEnabled && matchesQuery(searchQuery, [t('settings.quietHoursTitle')]) && (
+            <View style={{ marginTop: -4, marginBottom: 8, paddingHorizontal: 4, gap: 10 }}>
+              {([
+                { label: t('settings.quietHoursFrom'), value: quietHoursStart, set: setQuietHoursStart, key: 'quiet_hours_start' },
+                { label: t('settings.quietHoursTo'), value: quietHoursEnd, set: setQuietHoursEnd, key: 'quiet_hours_end' },
+              ] as const).map((row) => (
+                <View key={row.key}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.gray400, marginBottom: 6 }}>
+                    {row.label}
+                  </Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {(['20:00', '21:00', '22:00', '23:00', '00:00', '06:00', '07:00', '08:00'] as const).map((h) => {
+                      const active = row.value === h;
+                      return (
+                        <TouchableOpacity
+                          key={h}
+                          onPress={() => { row.set(h); handleUpdateSetting(row.key, h); }}
+                          activeOpacity={0.7}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: active }}
+                          accessibilityLabel={`${row.label} ${h}`}
+                          style={{
+                            paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1,
+                            backgroundColor: active ? colors.primary : colors.card,
+                            borderColor: active ? colors.primary : (isDark ? colors.gray200 : 'rgba(0,0,0,0.08)'),
+                          }}
+                        >
+                          <Text style={{ fontSize: 13, fontWeight: '600', color: active ? '#fff' : colors.text }}>{h}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
             </View>
           )}
         </View>

@@ -47,6 +47,8 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent, FORM_MAX } from '../../constants/layout';
+import ErrorState from '../../components/ui/ErrorState';
+import { getApiErrorMessage, formatFieldErrors } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'AnnouncementForm'>;
 type ScreenRoute = RouteProp<RootStackParamList, 'AnnouncementForm'>;
@@ -91,6 +93,7 @@ function AnnouncementFormContent() {
   const inputBg = isDark ? colors.gray100 : colors.gray50;
 
   const [loading, setLoading] = useState(isEdit);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Form state
@@ -108,38 +111,39 @@ function AnnouncementFormContent() {
   const [validUntil, setValidUntil] = useState('');
   const [isPublished, setIsPublished] = useState(false);
 
-  useEffect(() => {
+  const fetchAnnouncement = useCallback(async () => {
     if (!isEdit || !announcementId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await announcementsAPI.get(announcementId);
-        if (cancelled) return;
-        const a = res.data;
-        setTitle(a.title || '');
-        setMessage(a.message || '');
-        setSeverity(a.severity || 'info');
-        setIsDismissible(a.is_dismissible ?? true);
-        setCtaLabel(a.cta_label || '');
-        setCtaUrl(a.cta_url || '');
-        setAudience(a.audience || 'all');
-        setPlatform(a.platform || 'all');
-        setMinVersion(a.target_min_app_version || '');
-        setMaxVersion(a.target_max_app_version || '');
-        setValidFrom(a.valid_from || '');
-        setValidUntil(a.valid_until || '');
-        setIsPublished(a.is_published ?? false);
-      } catch (error: any) {
-        const detail = error?.response?.data?.detail;
-        showError(t('common.error'), detail || t('admin.announcements.form.loadError'));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [announcementId, isEdit, showError]);
+    try {
+      setLoadFailed(false);
+      setLoading(true);
+      const res = await announcementsAPI.get(announcementId);
+      const a = res.data;
+      setTitle(a.title || '');
+      setMessage(a.message || '');
+      setSeverity(a.severity || 'info');
+      setIsDismissible(a.is_dismissible ?? true);
+      setCtaLabel(a.cta_label || '');
+      setCtaUrl(a.cta_url || '');
+      setAudience(a.audience || 'all');
+      setPlatform(a.platform || 'all');
+      setMinVersion(a.target_min_app_version || '');
+      setMaxVersion(a.target_max_app_version || '');
+      setValidFrom(a.valid_from || '');
+      setValidUntil(a.valid_until || '');
+      setIsPublished(a.is_published ?? false);
+    } catch {
+      // Plus de modale : l'écran affiche son propre état d'erreur avec Réessayer.
+      // Le formulaire reste masqué tant que l'annonce n'est pas chargée, sinon
+      // un enregistrement écraserait l'annonce réelle par des champs vides.
+      setLoadFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [announcementId, isEdit]);
+
+  useEffect(() => {
+    fetchAnnouncement();
+  }, [fetchAnnouncement]);
 
   const handleSave = useCallback(async () => {
     if (!title.trim() || !message.trim()) {
@@ -171,14 +175,14 @@ function AnnouncementFormContent() {
       showSuccess(isEdit ? t('admin.announcements.form.updateSuccess') : t('admin.announcements.form.createSuccess'));
       navigation.goBack();
     } catch (error: any) {
-      const data = error?.response?.data;
-      // Erreurs DRF par champ : on affiche le premier message rencontré
-      const firstError =
-        (data && typeof data === 'object' && Object.values(data)[0]) ||
-        data?.detail ||
-        t('admin.announcements.form.saveError');
-      const msg = Array.isArray(firstError) ? String(firstError[0]) : String(firstError);
-      showError(t('common.error'), msg);
+      // Résolveur centralisé (jamais d'objet brut → fini le « {} »). Cet écran
+      // est une modale sans erreurs inline : on détaille donc les champs fautifs
+      // (« Titre : … ») dans le message plutôt que le générique « validation ».
+      const { message, fieldErrors } = getApiErrorMessage(error, t, {
+        fallbackKey: 'admin.announcements.form.saveError',
+      });
+      const detail = formatFieldErrors(fieldErrors, t);
+      showError(t('common.error'), detail || message);
     } finally {
       setSaving(false);
     }
@@ -210,6 +214,31 @@ function AnnouncementFormContent() {
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Échec de chargement : formulaire masqué (l'enregistrer écraserait l'annonce
+  // réelle par des champs vides). Seuls le retour et Réessayer sont accessibles.
+  if (loadFailed) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        <View style={[styles.header, { borderBottomColor: hairline }]}>
+          <TouchableOpacity
+            style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.text} />
+          </TouchableOpacity>
+          <View style={{ flex: 1, marginLeft: Spacing.md }}>
+            <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.announcements.form.eyebrow')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.announcements.form.titleEdit')}</Text>
+          </View>
+        </View>
+        <ErrorState withCard message={t('admin.announcements.form.loadError')} onRetry={fetchAnnouncement} />
       </SafeAreaView>
     );
   }

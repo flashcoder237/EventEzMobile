@@ -31,6 +31,7 @@ import {
 } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import {
@@ -150,7 +151,8 @@ const buildSubscriptionWebUrl = (planName?: string, billingCycle?: string): stri
 export default function SubscriptionScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
-  const { showError } = useAlert();
+  const { showError, showConfirm } = useAlert();
+  const { toastSuccess } = useFeedback();
   const { t, i18n } = useTranslation();
   const numberLocale = i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR';
   // Commission affichee en bas (rappel) : on utilise le pays organisateur
@@ -308,10 +310,8 @@ export default function SubscriptionScreen() {
       //   - 'cancel'  : utilisateur a ferme le navigateur manuellement
       //   - 'dismiss' : navigateur ferme par le systeme
       if (result.type === 'success') {
-        Alert.alert(
-          t('subscriptionForm.subscriptionUpdatedTitle'),
+        toastSuccess(
           t('subscriptionForm.subscriptionUpdatedMessage', { plan: plan.display_name }),
-          [{ text: t('refundRequest.okButton') }]
         );
       }
       // Dans tous les cas on recharge — l'utilisateur a peut-etre paye puis
@@ -330,38 +330,33 @@ export default function SubscriptionScreen() {
   // Downgrade vers le plan gratuit : aucun paiement, pas de probleme de
   // policy. On reste in-app pour cette action (UX : pas besoin du web).
   const handleDowngradeToFree = async (plan: SubscriptionPlan) => {
-    Alert.alert(
+    // Changement de plan = argent : la confirmation RESTE bloquante.
+    showConfirm(
       t('subscriptionForm.confirmChangeTitle'),
       t('subscriptionForm.confirmDowngrade', {
         plan: plan.display_name,
         price: t('subscriptionForm.free'),
         cycle: '',
       }),
-      [
-        { text: t('subscriptionForm.cancelButton'), style: 'cancel' },
-        {
-          text: t('refundRequest.confirmButton'),
-          onPress: async () => {
-            setUpgrading(plan.id);
-            try {
-              await subscriptionsAPI.upgrade(plan.id, billingCycle);
-              Alert.alert(
-                t('subscriptionForm.subscriptionUpdatedTitle'),
-                t('subscriptionForm.subscriptionUpdatedMessage', { plan: plan.display_name }),
-                [{ text: t('refundRequest.okButton') }]
-              );
-              await loadData();
-            } catch (err: any) {
-              const { message } = getApiErrorMessage(err, t, {
-                fallbackKey: 'subscriptionForm.genericChangeError',
-              });
-              showError(t('common.error'), message);
-            } finally {
-              setUpgrading(null);
-            }
-          },
-        },
-      ]
+      async () => {
+        setUpgrading(plan.id);
+        try {
+          await subscriptionsAPI.upgrade(plan.id, billingCycle);
+          toastSuccess(
+            t('subscriptionForm.subscriptionUpdatedMessage', { plan: plan.display_name }),
+          );
+          await loadData();
+        } catch (err: any) {
+          const { message } = getApiErrorMessage(err, t, {
+            fallbackKey: 'subscriptionForm.genericChangeError',
+          });
+          showError(t('common.error'), message);
+        } finally {
+          setUpgrading(null);
+        }
+      },
+      undefined,
+      { confirmText: t('refundRequest.confirmButton'), cancelText: t('subscriptionForm.cancelButton') },
     );
   };
 
@@ -375,31 +370,29 @@ export default function SubscriptionScreen() {
   };
 
   const handleCancel = () => {
-    Alert.alert(
+    // Résiliation d'abonnement : destructif ET financier → modale `critical`,
+    // pill rouge, fermeture au tap sur le fond désactivée.
+    showConfirm(
       t('subscriptionForm.cancelTitle'),
       t('subscriptionForm.cancelMessage'),
-      [
-        { text: t('subscriptionForm.cancelNo'), style: 'cancel' },
-        {
-          text: t('subscriptionForm.cancelYes'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await subscriptionsAPI.cancel();
-              Alert.alert(
-                t('subscriptionForm.cancelledTitle'),
-                t('subscriptionForm.cancelledMessage')
-              );
-              await loadData();
-            } catch (err: any) {
-              const { message } = getApiErrorMessage(err, t, {
-                fallbackKey: 'subscriptionForm.cancelGenericError',
-              });
-              showError(t('common.error'), message);
-            }
-          },
-        },
-      ]
+      async () => {
+        try {
+          await subscriptionsAPI.cancel();
+          toastSuccess(t('subscriptionForm.cancelledTitle'));
+          await loadData();
+        } catch (err: any) {
+          const { message } = getApiErrorMessage(err, t, {
+            fallbackKey: 'subscriptionForm.cancelGenericError',
+          });
+          showError(t('common.error'), message);
+        }
+      },
+      undefined,
+      {
+        confirmText: t('subscriptionForm.cancelYes'),
+        cancelText: t('subscriptionForm.cancelNo'),
+        destructive: true,
+      },
     );
   };
 

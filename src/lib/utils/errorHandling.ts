@@ -86,6 +86,16 @@ export function getApiErrorMessage(
   const fieldErrors = status === 400 ? nonEmpty(extractFieldErrors(error)) : null;
   let message: string;
   if (fieldErrors) {
+    // `message` reste GÉNÉRIQUE, volontairement : les erreurs de champ sont
+    // renvoyées à part dans `fieldErrors`, pour que l'appelant les rattache au
+    // champ concerné (bordure rouge + message dessous). Les recracher ici
+    // reviendrait à afficher du texte backend brut dans une modale qui, par
+    // construction, ne peut pas désigner le champ fautif — exactement ce que ce
+    // helper existe pour éviter.
+    //
+    // Un écran qui veut détailler lit `fieldErrors` (cf. RegisterScreen,
+    // ResetPasswordScreen, VerifyEmailScreen) ; il ne doit pas compter sur
+    // `message` pour ça.
     message = t('errors.validation');
   } else if (status && status >= 500) {
     message = t('errors.http.server');
@@ -99,6 +109,64 @@ export function getApiErrorMessage(
 
 function nonEmpty(o: Record<string, string>): Record<string, string> | null {
   return o && Object.keys(o).length ? o : null;
+}
+
+/**
+ * Construit un message lisible à partir d'une map d'erreurs de champ, préfixé du
+ * label du champ quand connu (« Titre : … »). Réservé aux écrans SANS erreurs
+ * inline (ex. formulaires admin en modale) : ailleurs, préférer rattacher
+ * `fieldErrors` aux champs. Retourne '' si rien d'exploitable.
+ */
+export function formatFieldErrors(
+  fieldErrors: Record<string, string> | null | undefined,
+  t: TFunc,
+  max = 3,
+): string {
+  if (!fieldErrors) return '';
+  return Object.entries(fieldErrors)
+    .slice(0, max)
+    .map(([field, msg]) => {
+      const label = fieldLabel(field, t);
+      return label ? `${label} : ${msg}` : msg;
+    })
+    .join('\n');
+}
+
+/**
+ * Label lisible pour un champ d'erreur (errors.fields.*). Retourne null si aucun
+ * label i18n n'existe → l'appelant affiche alors le message seul, jamais la clé
+ * technique brute.
+ */
+function fieldLabel(field: string, t: TFunc): string | null {
+  const key = `errors.fields.${field}`;
+  const translated = t(key);
+  return translated && translated !== key ? translated : null;
+}
+
+/**
+ * Aplati une valeur d'erreur DRF (string | string[] | objet imbriqué) en une
+ * seule string lisible. Évite le « [object Object] » / « {} » qui s'affichait
+ * quand une valeur d'erreur était un dict imbriqué. Pour une liste, on garde le
+ * PREMIER message (contrat historique : un message par champ, cf. tests).
+ */
+function flattenErrorValue(value: any): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) {
+    for (const v of value) {
+      const flat = flattenErrorValue(v);
+      if (flat) return flat;
+    }
+    return '';
+  }
+  if (typeof value === 'object') {
+    for (const v of Object.values(value)) {
+      const flat = flattenErrorValue(v);
+      if (flat) return flat;
+    }
+    return '';
+  }
+  return String(value);
 }
 
 interface ApiErrorData {
@@ -201,13 +269,15 @@ export function extractErrorMessage(error: any): string {
 export function extractFieldErrors(error: any): Record<string, string> {
   const fieldErrors: Record<string, string> = {};
 
-  if (error?.response?.data) {
+  if (error?.response?.data && typeof error.response.data === 'object') {
     const data = error.response.data;
 
     Object.keys(data).forEach(key => {
-      if (key !== 'detail' && key !== 'non_field_errors') {
-        const value = data[key];
-        fieldErrors[key] = Array.isArray(value) ? value[0] : String(value);
+      // `code` est injecté par le DRF exception handler (validation_error…), ce
+      // n'est pas une erreur de champ. `detail`/`non_field_errors` traités ailleurs.
+      if (key !== 'detail' && key !== 'non_field_errors' && key !== 'code') {
+        const flat = flattenErrorValue(data[key]);
+        if (flat) fieldErrors[key] = flat;
       }
     });
   }

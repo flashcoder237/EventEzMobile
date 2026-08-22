@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { virtualRoomsAPI, recordingsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 import { formatCount } from '../../lib/utils/numberFormatters';
@@ -48,6 +48,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
   const { colors, isDark } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { t } = useTranslation();
+  const { showAlert, showError } = useFeedback();
   const [rooms, setRooms] = useState<VirtualRoom[]>([]);
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,10 +81,9 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
   const handleJoinRoom = async (_roomId: string) => {
     // Utiliser event_join qui retourne le token et l'URL selon le provider
     if (!isRegistered) {
-      Alert.alert(
+      showError(
         t('componentsEvents.virtualRegistrationRequiredTitle'),
-        t('componentsEvents.virtualRegistrationRequiredMessage'),
-        [{ text: t('common.ok') }]
+        t('componentsEvents.virtualRegistrationRequiredMessage')
       );
       return;
     }
@@ -94,7 +94,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
       const data = res.data;
 
       if (!data.url) {
-        Alert.alert(t('common.error'), t('componentsEvents.virtualUrlError'));
+        showError(t('common.error'), t('componentsEvents.virtualUrlError'));
         return;
       }
 
@@ -107,7 +107,9 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
       // jitsi_public : URL directe, afficher mot de passe si présent
 
       if (data.provider === 'jitsi_public' && data.password) {
-        Alert.alert(
+        // Modale bloquante volontaire : l'utilisateur doit LIRE et retenir ce
+        // mot de passe avant d'entrer dans la salle. Jamais un toast.
+        showAlert(
           t('componentsEvents.virtualPasswordTitle'),
           t('componentsEvents.virtualPasswordMessage', { password: data.password }),
           [
@@ -116,7 +118,8 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
               text: t('componentsEvents.virtualJoinAction'),
               onPress: () => navigation.navigate('Browser', { url: finalUrl }),
             },
-          ]
+          ],
+          'info'
         );
       } else {
         navigation.navigate('Browser', { url: finalUrl });
@@ -126,7 +129,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
     } catch (error: any) {
       const msg = error?.response?.data?.error || t('componentsEvents.virtualGenericError');
       const minsRemaining = error?.response?.data?.minutes_remaining;
-      Alert.alert(
+      showError(
         t('componentsEvents.virtualAccessDenied'),
         minsRemaining
           ? t('componentsEvents.virtualAccessLater', { minutes: minsRemaining })

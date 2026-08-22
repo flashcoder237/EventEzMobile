@@ -7,7 +7,7 @@
  * ForceUpdateGate.needsUpdate qui vérifie minSupported truthy).
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -38,6 +38,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent, FORM_MAX } from '../../constants/layout';
+import ErrorState from '../../components/ui/ErrorState';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -59,6 +60,7 @@ function ClientReleaseAdminContent() {
   const inputBg = isDark ? colors.gray100 : colors.gray50;
 
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [minVersion, setMinVersion] = useState('');
@@ -67,28 +69,30 @@ function ClientReleaseAdminContent() {
   const [iosUrl, setIosUrl] = useState('');
   const [androidUrl, setAndroidUrl] = useState('');
 
+  const fetchSettings = useCallback(async () => {
+    try {
+      setLoadFailed(false);
+      setLoading(true);
+      const res = await clientReleaseAPI.get();
+      const d = res.data || {};
+      setMinVersion(d.mobile_min_supported_version || '');
+      setLatestVersion(d.mobile_latest_version || '');
+      setForceMessage(d.mobile_force_update_message || '');
+      setIosUrl(d.ios_store_url || '');
+      setAndroidUrl(d.android_store_url || '');
+    } catch {
+      // Plus de modale : l'écran affiche son propre état d'erreur avec Réessayer.
+      // Le formulaire reste masqué : enregistrer des versions vides couperait la
+      // mise à jour forcée pour tous les clients mobiles.
+      setLoadFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await clientReleaseAPI.get();
-        if (cancelled) return;
-        const d = res.data || {};
-        setMinVersion(d.mobile_min_supported_version || '');
-        setLatestVersion(d.mobile_latest_version || '');
-        setForceMessage(d.mobile_force_update_message || '');
-        setIosUrl(d.ios_store_url || '');
-        setAndroidUrl(d.android_store_url || '');
-      } catch (error: any) {
-        showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'admin.clientRelease.loadError' }).message);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [showError, t]);
+    fetchSettings();
+  }, [fetchSettings]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -115,6 +119,32 @@ function ClientReleaseAdminContent() {
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Échec de chargement : formulaire ET bouton Enregistrer masqués. Enregistrer
+  // des champs vides écraserait les versions min/latest réelles et casserait la
+  // mise à jour forcée côté clients.
+  if (loadFailed) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        <View style={[styles.header, { borderBottomColor: hairline }]}>
+          <TouchableOpacity
+            style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.text} />
+          </TouchableOpacity>
+          <View style={{ flex: 1, marginLeft: Spacing.md }}>
+            <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.clientRelease.eyebrow')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.clientRelease.title')}</Text>
+          </View>
+        </View>
+        <ErrorState withCard message={t('admin.clientRelease.loadError')} onRetry={fetchSettings} />
       </SafeAreaView>
     );
   }

@@ -34,6 +34,17 @@ jest.mock('../../../contexts/AlertContext', () => ({
   }),
 }));
 
+const mockToastSuccess = jest.fn();
+const mockToastError = jest.fn();
+jest.mock('../../../contexts/FeedbackContext', () => ({
+  useFeedback: () => ({
+    toastSuccess: mockToastSuccess,
+    toastError: mockToastError,
+    toastWarning: jest.fn(),
+    toastInfo: jest.fn(),
+  }),
+}));
+
 const themeColors = {
   primary: '#4F46E5',
   primaryDark: '#4338CA',
@@ -270,10 +281,7 @@ describe('WalletScreen', () => {
       });
     });
     await waitFor(() => {
-      expect(mockShowSuccess).toHaveBeenCalledWith(
-        'Succès',
-        'Demande de retrait envoyée',
-      );
+      expect(mockToastSuccess).toHaveBeenCalledWith('Demande de retrait envoyée');
     });
   });
 
@@ -290,8 +298,10 @@ describe('WalletScreen', () => {
 
     fireEvent.press(await findByText('Retirer'));
 
+    // Le `detail` brut du backend n'est plus affiché tel quel : getApiErrorMessage
+    // renvoie un message traduit (code métier mappé, sinon fallback rassurant).
     await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith('Erreur', 'KYC requis');
+      expect(mockShowError).toHaveBeenCalledWith('Erreur', expect.any(String));
     });
   });
 });

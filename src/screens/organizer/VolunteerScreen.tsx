@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   FlatList,
   TouchableOpacity,
-  Alert,
   RefreshControl,
   Modal,
   TextInput,
@@ -26,6 +25,8 @@ import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { FontSizes, FontFamily, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type VolunteerRouteProp = RouteProp<RootStackParamList, 'Volunteers'>;
@@ -63,6 +64,8 @@ export default function VolunteerScreen() {
   const route = useRoute<VolunteerRouteProp>();
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const { showError, showConfirm } = useAlert();
+  const { toastSuccess } = useFeedback();
   const eventId = route.params?.eventId;
   // Vue organisateur = l'utilisateur GÈRE réellement cet event. Le flag `manage`
   // est posé par l'appelant : MyEvents (toujours), ou EventDetails uniquement si
@@ -111,11 +114,11 @@ export default function VolunteerScreen() {
     const title = createTitle.trim();
     const cap = parseInt(createCapacity, 10);
     if (!title) {
-      Alert.alert(t('organizer.volunteer.titleRequiredTitle'), t('organizer.volunteer.titleRequiredMessage'));
+      showError(t('organizer.volunteer.titleRequiredTitle'), t('organizer.volunteer.titleRequiredMessage'));
       return;
     }
     if (!Number.isFinite(cap) || cap < 1) {
-      Alert.alert(t('organizer.volunteer.capacityInvalidTitle'), t('organizer.volunteer.capacityInvalidMessage'));
+      showError(t('organizer.volunteer.capacityInvalidTitle'), t('organizer.volunteer.capacityInvalidMessage'));
       return;
     }
     setCreateLoading(true);
@@ -134,14 +137,14 @@ export default function VolunteerScreen() {
       } else {
         await fetchData();
       }
-      Alert.alert(t('organizer.volunteer.roleCreatedTitle'), t('organizer.volunteer.roleCreatedMessage'));
+      toastSuccess(t('organizer.volunteer.roleCreatedMessage'));
       setCreateOpen(false);
       resetCreateForm();
     } catch (error: any) {
       const { message } = getApiErrorMessage(error, t, {
         fallbackKey: 'organizer.volunteer.createRoleError',
       });
-      Alert.alert(t('common.error'), message);
+      showError(t('common.error'), message);
     } finally {
       setCreateLoading(false);
     }
@@ -186,156 +189,134 @@ export default function VolunteerScreen() {
   }, [eventId]);
 
   const handleApply = (role: VolunteerRole) => {
-    Alert.alert(
+    showConfirm(
       t('organizer.volunteer.applyTitle'),
       t('organizer.volunteer.applyMessage', { title: role.title }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('organizer.volunteer.apply'),
-          onPress: async () => {
-            setActionLoading(role.id);
-            try {
-              await volunteersAPI.apply({ role: role.id });
-              Alert.alert(t('common.success'), t('organizer.volunteer.applySuccess'));
-              fetchData();
-            } catch (error: any) {
-              if (__DEV__) console.error('Erreur apply volunteer:', error);
-              const { message } = getApiErrorMessage(error, t, {
-                fallbackKey: 'organizer.volunteer.applyError',
-              });
-              Alert.alert(t('common.error'), message);
-            } finally {
-              setActionLoading(null);
-            }
-          },
-        },
-      ]
+      async () => {
+        setActionLoading(role.id);
+        try {
+          await volunteersAPI.apply({ role: role.id });
+          toastSuccess(t('organizer.volunteer.applySuccess'));
+          fetchData();
+        } catch (error: any) {
+          if (__DEV__) console.error('Erreur apply volunteer:', error);
+          const { message } = getApiErrorMessage(error, t, {
+            fallbackKey: 'organizer.volunteer.applyError',
+          });
+          showError(t('common.error'), message);
+        } finally {
+          setActionLoading(null);
+        }
+      },
+      undefined,
+      { confirmText: t('organizer.volunteer.apply') },
     );
   };
 
   const handleCompleteTask = (taskId: string) => {
-    Alert.alert(
+    showConfirm(
       t('organizer.volunteer.completeTaskTitle'),
       t('organizer.volunteer.completeTaskMessage'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('organizer.volunteer.complete'),
-          onPress: async () => {
-            setActionLoading(taskId);
-            // Optimistic : on flip le status local pour éviter d'attendre.
-            setTasks(prev => prev.map(task => task.id === taskId ? { ...task, status: 'completed' } : task));
-            try {
-              await volunteersAPI.completeTask(taskId);
-            } catch (error: any) {
-              setTasks(prev => prev.map(task => task.id === taskId ? { ...task, status: task.status === 'completed' ? 'in_progress' : task.status } : task));
-              const { message } = getApiErrorMessage(error, t, {
-                fallbackKey: 'organizer.volunteer.completeError',
-              });
-              Alert.alert(t('common.error'), message);
-            } finally {
-              setActionLoading(null);
-            }
-          },
-        },
-      ]
+      async () => {
+        setActionLoading(taskId);
+        // Optimistic : on flip le status local pour éviter d'attendre.
+        setTasks(prev => prev.map(task => task.id === taskId ? { ...task, status: 'completed' } : task));
+        try {
+          await volunteersAPI.completeTask(taskId);
+        } catch (error: any) {
+          setTasks(prev => prev.map(task => task.id === taskId ? { ...task, status: task.status === 'completed' ? 'in_progress' : task.status } : task));
+          const { message } = getApiErrorMessage(error, t, {
+            fallbackKey: 'organizer.volunteer.completeError',
+          });
+          showError(t('common.error'), message);
+        } finally {
+          setActionLoading(null);
+        }
+      },
+      undefined,
+      { confirmText: t('organizer.volunteer.completeTaskTitle') },
     );
   };
 
   // Organizer accepte une candidature recue
   const handleAcceptApplication = (application: VolunteerApplication) => {
-    Alert.alert(
+    showConfirm(
       t('organizer.volunteer.acceptTitle', { defaultValue: 'Accepter la candidature' }),
       t('organizer.volunteer.acceptMessage', {
         defaultValue: 'Confirmer l\'acceptation de cette candidature ? Le benevole sera notifie.',
       }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('organizer.volunteer.accept', { defaultValue: 'Accepter' }),
-          onPress: async () => {
-            setActionLoading(application.id);
-            try {
-              await volunteersAPI.acceptApplication(application.id);
-              setReceivedApps((prev) =>
-                prev.map((a) =>
-                  a.id === application.id ? { ...a, status: 'accepted' } : a,
-                ),
-              );
-            } catch (err: any) {
-              const { message } = getApiErrorMessage(err, t, {
-                fallbackKey: 'errors.generic',
-              });
-              Alert.alert(t('common.error'), message);
-            } finally {
-              setActionLoading(null);
-            }
-          },
-        },
-      ],
+      async () => {
+        setActionLoading(application.id);
+        try {
+          await volunteersAPI.acceptApplication(application.id);
+          setReceivedApps((prev) =>
+            prev.map((a) =>
+              a.id === application.id ? { ...a, status: 'accepted' } : a,
+            ),
+          );
+        } catch (err: any) {
+          const { message } = getApiErrorMessage(err, t, {
+            fallbackKey: 'errors.generic',
+          });
+          showError(t('common.error'), message);
+        } finally {
+          setActionLoading(null);
+        }
+      },
+      undefined,
+      { confirmText: t('organizer.volunteer.acceptTitle', { defaultValue: 'Accepter' }) },
     );
   };
 
   // Organizer rejette une candidature recue (avec raison optionnelle)
   const handleRejectApplication = (application: VolunteerApplication) => {
-    Alert.alert(
+    showConfirm(
       t('organizer.volunteer.rejectTitle', { defaultValue: 'Refuser la candidature' }),
       t('organizer.volunteer.rejectMessage', {
         defaultValue: 'Confirmer le refus ? Le benevole sera notifie.',
       }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('organizer.volunteer.reject', { defaultValue: 'Refuser' }),
-          style: 'destructive',
-          onPress: async () => {
-            setActionLoading(application.id);
-            try {
-              await volunteersAPI.rejectApplication(application.id);
-              setReceivedApps((prev) =>
-                prev.map((a) =>
-                  a.id === application.id ? { ...a, status: 'rejected' } : a,
-                ),
-              );
-            } catch (err: any) {
-              const { message } = getApiErrorMessage(err, t, {
-                fallbackKey: 'errors.generic',
-              });
-              Alert.alert(t('common.error'), message);
-            } finally {
-              setActionLoading(null);
-            }
-          },
-        },
-      ],
+      async () => {
+        setActionLoading(application.id);
+        try {
+          await volunteersAPI.rejectApplication(application.id);
+          setReceivedApps((prev) =>
+            prev.map((a) =>
+              a.id === application.id ? { ...a, status: 'rejected' } : a,
+            ),
+          );
+        } catch (err: any) {
+          const { message } = getApiErrorMessage(err, t, {
+            fallbackKey: 'errors.generic',
+          });
+          showError(t('common.error'), message);
+        } finally {
+          setActionLoading(null);
+        }
+      },
+      undefined,
+      { confirmText: t('organizer.volunteer.rejectTitle', { defaultValue: 'Refuser' }), destructive: true },
     );
   };
 
   const handleWithdraw = (applicationId: string) => {
-    Alert.alert(
+    showConfirm(
       t('organizer.volunteer.withdrawTitle'),
       t('organizer.volunteer.withdrawMessage'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('organizer.volunteer.withdraw'),
-          style: 'destructive',
-          onPress: async () => {
-            setActionLoading(applicationId);
-            try {
-              await volunteersAPI.withdrawApplication(applicationId);
-              Alert.alert(t('common.success'), t('organizer.volunteer.withdrawSuccess'));
-              fetchData();
-            } catch (error) {
-              if (__DEV__) console.error('Erreur withdraw:', error);
-              Alert.alert(t('common.error'), t('organizer.volunteer.withdrawError'));
-            } finally {
-              setActionLoading(null);
-            }
-          },
-        },
-      ]
+      async () => {
+        setActionLoading(applicationId);
+        try {
+          await volunteersAPI.withdrawApplication(applicationId);
+          toastSuccess(t('organizer.volunteer.withdrawSuccess'));
+          fetchData();
+        } catch (error) {
+          if (__DEV__) console.error('Erreur withdraw:', error);
+          showError(t('common.error'), t('organizer.volunteer.withdrawError'));
+        } finally {
+          setActionLoading(null);
+        }
+      },
+      undefined,
+      { confirmText: t('organizer.volunteer.withdrawTitle'), destructive: true },
     );
   };
 

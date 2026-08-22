@@ -63,13 +63,22 @@ function splitDate(iso: string, t: (k: string) => string) {
   };
 }
 
+/**
+ * Nombre de jours avant le début de l'event. NÉGATIF si l'event est déjà passé.
+ *
+ * Ne PAS ré-introduire de `Math.max(0, …)` ici : le clamp historique écrasait
+ * toute valeur négative à 0, si bien qu'un event commencé il y a 2 semaines
+ * affichait « J-0 » (et déclenchait le style « imminent »), impossible à
+ * distinguer d'un event qui commence aujourd'hui. Les appelants filtrent
+ * eux-mêmes sur `>= 0`.
+ */
 function daysUntil(iso: string): number | null {
   try {
     const now = new Date();
     const target = new Date(iso);
     if (isNaN(target.getTime())) return null;
     const ms = target.getTime() - now.setHours(0, 0, 0, 0);
-    return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+    return Math.ceil(ms / (1000 * 60 * 60 * 24));
   } catch {
     return null;
   }
@@ -150,7 +159,9 @@ function EventCardComponent({
   const shortPriceText = formatPriceShort(priceParams);
   const { day, month } = splitDate(date, t);
   const dUntil = daysUntil(date);
-  const isSoon = dUntil !== null && dUntil <= 7;
+  // Borne basse OBLIGATOIRE : un event passé a un dUntil négatif et ne doit ni
+  // afficher de compte à rebours ni prendre le style « imminent ».
+  const isSoon = dUntil !== null && dUntil >= 0 && dUntil <= 7;
 
   const isGratuit = isFree || cardPriceText === t('componentsEvents.priceFree');
   const cardShadow = isDark ? Shadows.md : Shadows.cardViolet;

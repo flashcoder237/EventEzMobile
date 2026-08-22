@@ -20,6 +20,7 @@ import { exhibitorsAPI } from '../../api/exhibitors';
 import { Spacing, Shadows, BorderRadius, FontFamily, FontSizes } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import type { RootStackParamList } from '../../types';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -96,7 +97,7 @@ export default function MyBoothScreen() {
       await load();
     } catch (e: any) {
       showError(t('common.error', { defaultValue: 'Erreur' }),
-        e?.response?.data?.detail || t('myBoothMobile.acceptError', { defaultValue: 'Impossible d\'accepter.' }));
+        getApiErrorMessage(e, t, { fallbackKey: 'myBoothMobile.acceptError', fallbackValues: { defaultValue: 'Impossible d\'accepter.' } }).message);
     } finally {
       setAccepting(null);
     }

@@ -32,6 +32,17 @@ jest.mock('../../../contexts/AlertContext', () => ({
   useAlert: () => ({ showError: mockShowError, showSuccess: mockShowSuccess }),
 }));
 
+const mockToastSuccess = jest.fn();
+const mockToastError = jest.fn();
+jest.mock('../../../contexts/FeedbackContext', () => ({
+  useFeedback: () => ({
+    toastSuccess: mockToastSuccess,
+    toastError: mockToastError,
+    toastWarning: jest.fn(),
+    toastInfo: jest.fn(),
+  }),
+}));
+
 const themeColors = {
   primary: '#4F46E5',
   accent: '#FF6B6B',
@@ -157,7 +168,7 @@ describe('AdminAdFormScreen — creation', () => {
     // Avec une image picked, payload doit etre FormData
     expect(payload).toBeInstanceOf(FormData);
     expect(mockBiometricConfirm).toHaveBeenCalled();
-    expect(mockShowSuccess).toHaveBeenCalledWith('Succès', 'Publicité créée');
+    expect(mockToastSuccess).toHaveBeenCalledWith('Publicité créée');
     expect(mockGoBack).toHaveBeenCalled();
   });
 });
@@ -197,7 +208,7 @@ describe('AdminAdFormScreen — edition', () => {
     const payload = mockAdUpdate.mock.calls[0][1];
     expect(payload).not.toBeInstanceOf(FormData);
     expect(payload.title).toBe('Existing Ad');
-    expect(mockShowSuccess).toHaveBeenCalledWith('Succès', 'Publicité mise à jour');
+    expect(mockToastSuccess).toHaveBeenCalledWith('Publicité mise à jour');
   });
 });
 

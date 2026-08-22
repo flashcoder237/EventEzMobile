@@ -24,7 +24,6 @@ import {
   Modal,
   TextInput,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -38,6 +37,7 @@ import { exhibitorsAPI, floorPlansAPI, eventsAPI } from '../../api';
 import { CURRENCY_CODE as DEFAULT_CURRENCY } from '../../constants/payment';
 import type { RootStackParamList } from '../../types';
 import SalesDelegationTab from './SalesDelegationTab';
+import ErrorState from '../../components/ui/ErrorState';
 import {
   FontFamily,
   FontSizes,
@@ -46,6 +46,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'BoothManagement'>;
@@ -65,7 +66,7 @@ export default function BoothManagementScreen() {
   const { eventId } = route.params;
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
-  const { showSuccess, showError, showConfirm } = useAlert();
+  const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [tab, setTab] = useState<Tab>('booths');
@@ -78,6 +79,7 @@ export default function BoothManagementScreen() {
   // organisateur, verrouillee). On l'affiche telle quelle, jamais 'XAF' en dur.
   const [currency, setCurrency] = useState<string>(DEFAULT_CURRENCY);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // Modal création catégorie
@@ -93,6 +95,7 @@ export default function BoothManagementScreen() {
 
   const fetchData = useCallback(async () => {
     try {
+      setLoadFailed(false);
       const [catRes, boothRes, appRes] = await Promise.all([
         exhibitorsAPI.getCategories({ event: eventId }),
         exhibitorsAPI.getBooths({ event: eventId }),
@@ -120,8 +123,12 @@ export default function BoothManagementScreen() {
         setAreas([]);
         setFloorPlanId(null);
       }
-    } catch (error: any) {
-      showError(t('common.error'), t('organizer.booths.loadError', { defaultValue: 'Impossible de charger les stands.' }));
+    } catch {
+      // Plus de modale bloquante : l'écran affiche désormais son propre état
+      // d'erreur avec un bouton Réessayer. L'ancien état vide (« Aucun stand.
+      // Créez-en un. ») faisait passer une panne réseau pour une absence de
+      // données — on distingue maintenant les deux.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -145,7 +152,7 @@ export default function BoothManagementScreen() {
       setCatOpen(false); setCatName(''); setCatPrice('');
       showSuccess(t('organizer.booths.categoryCreated', { defaultValue: 'Catégorie créée' }), '');
     } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || t('organizer.booths.createError', { defaultValue: 'Échec.' }));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'organizer.booths.createError', fallbackValues: { defaultValue: 'Échec.' } }).message);
     } finally { setBusy(false); }
   };
 
@@ -162,7 +169,7 @@ export default function BoothManagementScreen() {
       setBoothOpen(false); setBoothCode(''); setBoothCat('');
       showSuccess(t('organizer.booths.boothCreated', { defaultValue: 'Stand créé' }), '');
     } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || t('organizer.booths.createError', { defaultValue: 'Échec.' }));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'organizer.booths.createError', fallbackValues: { defaultValue: 'Échec.' } }).message);
     } finally { setBusy(false); }
   };
 
@@ -175,7 +182,7 @@ export default function BoothManagementScreen() {
           await exhibitorsAPI.deleteBooth(b.id);
           setBooths((prev) => prev.filter((x) => x.id !== b.id));
         } catch (error: any) {
-          showError(t('common.error'), error?.response?.data?.detail || t('organizer.booths.deleteError', { defaultValue: 'Suppression impossible.' }));
+          showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'organizer.booths.deleteError', fallbackValues: { defaultValue: 'Suppression impossible.' } }).message);
         }
       },
     );
@@ -200,13 +207,14 @@ export default function BoothManagementScreen() {
         }
       },
     }));
-    // AlertContext.showConfirm ne gère qu'une action ; on utilise Alert natif
-    // pour la liste des zones.
-
-    Alert.alert(
+    // Liste de choix dynamique : `showConfirm` ne gère qu'une action, mais
+    // `showAlert` accepte un tableau de boutons arbitraire — on reste donc
+    // dans le design system au lieu de retomber sur l'alerte native de l'OS.
+    showAlert(
       t('organizer.booths.chooseArea', { defaultValue: 'Placer sur une zone' }),
       booth.code,
       [...options, { text: t('common.cancel'), style: 'cancel' }],
+      'confirm',
     );
   };
 
@@ -218,7 +226,7 @@ export default function BoothManagementScreen() {
       return;
     }
 
-    Alert.alert(
+    showAlert(
       t('organizer.booths.assignBooth', { defaultValue: 'Attribuer un stand' }),
       app.company_name || app.exhibitor_name || '',
       [
@@ -230,7 +238,7 @@ export default function BoothManagementScreen() {
               await fetchData();
               showSuccess(t('organizer.booths.accepted', { defaultValue: 'Candidature acceptée' }), '');
             } catch (error: any) {
-              showError(t('common.error'), error?.response?.data?.detail || t('organizer.booths.actionError', { defaultValue: 'Action impossible.' }));
+              showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'organizer.booths.actionError', fallbackValues: { defaultValue: 'Action impossible.' } }).message);
             }
           },
         })),
@@ -426,9 +434,17 @@ export default function BoothManagementScreen() {
             ) : null
           }
           ListEmptyComponent={
-            <View style={styles.center}>
-              <Text style={[styles.emptyText, { color: colors.gray500 }]}>{emptyText}</Text>
-            </View>
+            loadFailed ? (
+              <ErrorState
+                withCard
+                message={t('organizer.booths.loadError', { defaultValue: 'Impossible de charger les stands.' })}
+                onRetry={fetchData}
+              />
+            ) : (
+              <View style={styles.center}>
+                <Text style={[styles.emptyText, { color: colors.gray500 }]}>{emptyText}</Text>
+              </View>
+            )
           }
         />
       )}

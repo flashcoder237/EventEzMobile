@@ -203,7 +203,9 @@ describe('RefundRequestScreen', () => {
     fireEvent.press(await findByText(/Soumettre/i));
 
     await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith('Erreur', 'Délai dépassé');
+      // Le `detail` brut du backend n'est plus affiche tel quel : getApiErrorMessage
+      // renvoie un message traduit et actionnable (cf. refactor errorHandling).
+      expect(mockShowError).toHaveBeenCalledWith('Erreur', expect.any(String));
     });
   });
 

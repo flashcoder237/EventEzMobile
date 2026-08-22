@@ -26,7 +26,7 @@ import React, {
   ReactNode,
 } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { InAppToast, InAppToastIcon } from '../components/common/InAppToast';
+import { InAppToast, InAppToastIcon, InAppToastAnchor } from '../components/common/InAppToast';
 
 interface ToastInput {
   title: string;
@@ -36,8 +36,10 @@ interface ToastInput {
   onPress?: () => void;
   /** Clé de dédoublonnage. Si déjà présent, le toast est skip. */
   dedupKey?: string;
-  /** Durée d'affichage en ms (défaut 4500). */
+  /** Durée d'affichage en ms (défaut : selon la gravité). */
   duration?: number;
+  /** Ancrage vertical : `top` (push entrant) ou `bottom` (retour d'action). */
+  anchor?: InAppToastAnchor;
 }
 
 interface ToastInternal extends ToastInput {
@@ -52,7 +54,11 @@ interface InAppToastContextType {
 
 const InAppToastContext = createContext<InAppToastContextType | undefined>(undefined);
 
-const MAX_TOASTS = 1; // Stack vertical possible mais 1 suffit. Les nouveaux remplacent.
+// Un seul toast VISIBLE à la fois : au-delà ça encombre. Mais les suivants sont
+// MIS EN FILE, pas détruits — avant, un `slice()` écrasait le toast en cours
+// sans animation de sortie, donc sur deux erreurs rapprochées la première
+// n'était jamais lue.
+const MAX_VISIBLE = 1;
 
 export function InAppToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastInternal[]>([]);
@@ -60,6 +66,8 @@ export function InAppToastProvider({ children }: { children: ReactNode }) {
   // de la même conv en 2s → un seul toast affiché).
   const dedupSeenRef = useRef<Map<string, number>>(new Map());
   const idCounterRef = useRef(0);
+  /** File d'attente des toasts quand la scène est déjà occupée. */
+  const queueRef = useRef<ToastInternal[]>([]);
 
   const showToast = useCallback((input: ToastInput): string | null => {
     // Dédoublonnage : si la même clé a été vue dans les 3 dernières secondes, skip.
@@ -80,19 +88,37 @@ export function InAppToastProvider({ children }: { children: ReactNode }) {
     }
 
     const id = `toast_${++idCounterRef.current}`;
+    const entry: ToastInternal = { ...input, id };
+
     setToasts((prev) => {
-      // Si on dépasse la limite, on remplace le plus ancien (FIFO).
-      const next = [...prev, { ...input, id }];
-      return next.length > MAX_TOASTS ? next.slice(next.length - MAX_TOASTS) : next;
+      if (prev.length < MAX_VISIBLE) return [...prev, entry];
+      // Plein → on met en attente au lieu d'écraser.
+      queueRef.current.push(entry);
+      return prev;
     });
     return id;
   }, []);
 
-  const dismiss = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+  /** Dépile le toast suivant, s'il y en a un. */
+  const drainQueue = useCallback(() => {
+    const next = queueRef.current.shift();
+    if (!next) return;
+    // Court battement pour que la sortie du précédent soit perçue : deux toasts
+    // qui se succèdent sans respiration se lisent comme un scintillement.
+    setTimeout(() => setToasts((prev) => (prev.length ? prev : [next])), 150);
   }, []);
 
+  const dismiss = useCallback((id: string) => {
+    setToasts((prev) => {
+      const next = prev.filter((t) => t.id !== id);
+      // On ne dépile que si le retrait a bien eu lieu et que la scène est libre.
+      if (next.length !== prev.length && next.length === 0) drainQueue();
+      return next;
+    });
+  }, [drainQueue]);
+
   const dismissAll = useCallback(() => {
+    queueRef.current = [];
     setToasts([]);
   }, []);
 
@@ -121,6 +147,7 @@ export function InAppToastProvider({ children }: { children: ReactNode }) {
             icon={t.icon}
             avatarUrl={t.avatarUrl}
             duration={t.duration}
+            anchor={t.anchor}
             onPress={t.onPress}
             onDismiss={dismiss}
           />

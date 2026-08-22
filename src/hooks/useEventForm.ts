@@ -185,6 +185,8 @@ export interface EventFormState {
 
   // Step validation — populated quand goToNextStep échoue, lu par les Steps
   stepErrors: Record<string, string>;
+  ticketErrors: Record<number, string>;
+  fieldErrors: Record<number, string>;
 
   // Mode edition : true si on edite un event existant (vs create). Sert a relacher
   // certaines validations qui n'ont du sens qu'au create (ex: start_date dans le passe).
@@ -395,6 +397,10 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
   // components Step1/2/3 lisent ce map pour appliquer un border rouge sur
   // les champs invalides. Reset à null à chaque édition de champ.
   const [stepErrors, setStepErrors] = useState<Record<string, string>>({});
+  /** Erreurs de validation par INDEX de billet (step 3). */
+  const [ticketErrors, setTicketErrors] = useState<Record<number, string>>({});
+  /** Erreurs de validation par INDEX de champ du formulaire perso (step 3). */
+  const [fieldErrors, setFieldErrors] = useState<Record<number, string>>({});
 
   // AI Assist
   const [aiEnabled, setAiEnabled] = useState(false);
@@ -424,6 +430,8 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
     aiEnabled, aiLoading, aiResult, aiError, aiUsage,
     aiTitleLoading, aiDescLoading, aiPricingLoading,
     stepErrors,
+    ticketErrors,
+    fieldErrors,
     isEditMode: !!editEventId,
   };
 
@@ -861,21 +869,83 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
     const result = validateStep.withDetails(currentStep);
     if (result.valid) {
       setStepErrors({});
+      setTicketErrors({});
+      setFieldErrors({});
       setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
-    } else {
-      setStepErrors(result.errors as Record<string, string>);
-      // Toast pour la première erreur (UX existante préservée)
-      const firstError = Object.values(result.errors)[0];
-      if (firstError) showError(t('common.error'), firstError);
+      return;
     }
-  }, [currentStep, validateStep, showError, t]);
+    // Plus de modale : chaque erreur est rendue SOUS le champ (ou sur la carte
+    // du billet) qui la produit. Une modale ne peut pas désigner la ligne
+    // fautive — c'est pourquoi les messages devaient embarquer « billet n°2 ».
+    // Toutes les erreurs sont affichées d'un coup, au lieu d'une modale par
+    // problème découvert successivement.
+    setStepErrors(result.errors as Record<string, string>);
+    setTicketErrors(result.ticketErrors);
+    setFieldErrors(result.fieldErrors);
+  }, [currentStep, validateStep]);
+
+  /**
+   * Efface une erreur dès que le champ fautif est modifié.
+   *
+   * Sans ça, un champ corrigé restait souligné en rouge jusqu'à la prochaine
+   * tentative de passage à l'étape suivante — l'utilisateur ne sait pas s'il a
+   * bien réparé le problème. Ici le message disparaît à la frappe.
+   *
+   * On ne revalide PAS à chaque touche (ce serait agressif : « titre requis »
+   * s'afficherait dès la 1re lettre effacée) — on retire simplement l'erreur
+   * déjà affichée pour ce champ précis.
+   */
+  const clearFieldError = useCallback((key: string) => {
+    setStepErrors(prev => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }, []);
+
+  useEffect(() => { clearFieldError('title'); }, [title, clearFieldError]);
+  useEffect(() => { clearFieldError('description'); }, [description, clearFieldError]);
+  useEffect(() => { clearFieldError('categoryId'); }, [categoryId, clearFieldError]);
+  useEffect(() => { clearFieldError('coverVideoUrl'); }, [coverVideoUrl, clearFieldError]);
+  useEffect(() => { clearFieldError('startDate'); }, [startDate, clearFieldError]);
+  useEffect(() => { clearFieldError('endDate'); }, [endDate, clearFieldError]);
+  useEffect(() => { clearFieldError('locationCity'); }, [locationCity, clearFieldError]);
+  useEffect(() => { clearFieldError('onlineUrl'); }, [onlineUrl, clearFieldError]);
+
+  // Billets / champs : on efface aussi les erreurs PAR INDEX, la liste ayant
+  // changé (ajout, suppression, édition d'une valeur).
+  useEffect(() => {
+    setTicketErrors(prev => (Object.keys(prev).length ? {} : prev));
+    clearFieldError('ticketTypes');
+  }, [ticketTypes, clearFieldError]);
+  useEffect(() => {
+    setFieldErrors(prev => (Object.keys(prev).length ? {} : prev));
+    clearFieldError('formFields');
+  }, [formFields, clearFieldError]);
 
   const goToPrevStep = useCallback(() => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   }, []);
 
   const goToStep = useCallback((step: number) => {
-    if (step < currentStep || validateStep(currentStep)) setCurrentStep(step);
+    // Revenir en arrière est toujours permis. Avancer via le stepper doit se
+    // comporter comme le bouton « Suivant » : erreurs INLINE, pas de modale.
+    if (step < currentStep) {
+      setCurrentStep(step);
+      return;
+    }
+    const result = validateStep.withDetails(currentStep);
+    if (result.valid) {
+      setStepErrors({});
+      setTicketErrors({});
+      setFieldErrors({});
+      setCurrentStep(step);
+      return;
+    }
+    setStepErrors(result.errors as Record<string, string>);
+    setTicketErrors(result.ticketErrors);
+    setFieldErrors(result.fieldErrors);
   }, [currentStep, validateStep]);
 
   // ============================================

@@ -686,7 +686,21 @@
     "registeredStatus": "Registered",
     "pendingStatus": "Pending",
     "priceLabel": "Price",
-    "fromLabel": "Starting from"
+    "fromLabel": "Starting from",
+    "waitlistJoinedDetail": "You have joined the waitlist. We'll notify you as soon as a spot opens up.",
+    "waitlistLeftMsg": "You have left the waitlist",
+    "waitlistLeaveError": "Could not leave the waitlist",
+    "waitlistJoinError": "Unable to join the waitlist",
+    "waitlistLeaveTitle": "Leave the waitlist",
+    "waitlistLeaveConfirm": "Are you sure you want to leave the waitlist?",
+    "whatsappNotInstalled": "WhatsApp is not installed on this device",
+    "reviewRatingRange": "Please select a rating between 1 and 5",
+    "reviewThanksTitle": "Thank you!",
+    "reviewSubmitted": "Your review was submitted successfully",
+    "loginRequiredTitle": "Sign-in required",
+    "loginRequiredReview": "Sign in to leave a review",
+    "reviewSubmitError": "Could not submit your review",
+    "loginRequiredWaitlist": "Sign in to join the waitlist"
   },
   "events": {
     "videoBadge": "Video",
@@ -1850,6 +1864,8 @@
     "declinedSuccess": "Invitation declined.",
     "declineError": "Couldn't decline the invitation.",
     "declineButton": "Decline",
+    "declineConfirmTitle": "Decline invitation",
+    "declineConfirmMessage": "Are you sure you want to decline this invitation?",
     "fromLabel": "FROM",
     "toLabel": "RECIPIENT",
     "organizerFallback": "Organizer",
@@ -1996,6 +2012,26 @@
     "contactSupport": "Contact support",
     "timeout": "The request took too long. Check your connection and try again.",
     "validation": "Some details are invalid. Fix the highlighted fields and try again.",
+    "fields": {
+      "title": "Title",
+      "subtitle": "Subtitle",
+      "message": "Message",
+      "image": "Image",
+      "cta_label": "Button label",
+      "cta_url": "Button link",
+      "link_url": "Link",
+      "target_event": "Target event",
+      "country": "Country",
+      "city": "City",
+      "radius_km": "Radius",
+      "placement": "Placement",
+      "priority": "Priority",
+      "severity": "Severity",
+      "audience": "Audience",
+      "platform": "Platform",
+      "valid_from": "Valid from",
+      "valid_until": "Valid until"
+    },
     "http": {
       "badRequest": "We couldn't process your request. Please check your details and try again.",
       "unauthorized": "Your session has expired. Please sign in again.",
@@ -2849,7 +2885,7 @@
     "linkedin": "LinkedIn",
     "agendaEyebrow_one": "AGENDA · {{count}} EVENT",
     "agendaEyebrow_other": "AGENDA · {{count}} EVENTS",
-    "agendaTitle": "Published events",
+    "agendaTitle": "Recent events",
     "loadingEvents": "Loading…",
     "noEvents": "No events published",
     "freeBadge": "FREE"
@@ -3282,7 +3318,11 @@
     "codeLabel": "CODE",
     "emptyEyebrow": "COMING",
     "emptyTitle": "No code yet",
-    "emptySubtitle": "Your referral codes will appear here as soon as they are available."
+    "emptySubtitle": "Generate your referral code and share it to start earning.",
+    "generateCta": "Generate my code",
+    "generating": "Generating…",
+    "generateSuccess": "Referral code created!",
+    "generateError": "Couldn't generate the code. Please try again."
   },
   "teamManagement": {
     "eyebrow": "TEAM",
@@ -3744,6 +3784,10 @@
     "watermarkOops": "OOPS",
     "loadError": "Could not load payment details",
     "paymentNotFound": "Payment not found",
+    "blockedNotOwner": "This payment isn't linked to your account, so you can't request a refund for it.",
+    "blockedNotCompleted": "Only confirmed payments can be refunded. This payment isn't in a refundable state.",
+    "blockedAlreadyRequested": "A refund request is already in progress for this payment.",
+    "blockedGeneric": "This payment isn't eligible for a refund right now.",
     "back": "Back",
     "closeA11y": "Close",
     "eyebrow": "REFUND • REFUND",
@@ -4145,7 +4189,8 @@
       "sourceEventTypes": "Event type breakdown",
       "sourcePaymentMethods": "Payment methods",
       "sourceGeographical": "Geographical breakdown"
-    }
+    },
+    "widgetDataUnavailable": "Data unavailable."
   },
   "componentsForms": {
     "dynamicFields": {

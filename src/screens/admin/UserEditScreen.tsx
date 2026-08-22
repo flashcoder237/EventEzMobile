@@ -14,7 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import ErrorState from '../../components/ui/ErrorState';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { usersAPI } from '../../api';
 import { User, RootStackParamList } from '../../types';
 import Badge from '../../components/ui/Badge';
@@ -40,9 +42,11 @@ export default function UserEditScreen() {
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const { showSuccess, showError, showConfirm } = useAlert();
+  const { toastSuccess } = useFeedback();
 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedRole, setSelectedRole] = useState<string>('user');
 
@@ -52,12 +56,17 @@ export default function UserEditScreen() {
 
   const fetchUser = async () => {
     try {
+      setLoadFailed(false);
       const res = await usersAPI.getUser(userId);
       setUser(res.data);
       setSelectedRole(res.data.role || 'user');
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement utilisateur:', error);
-      showError(t('common.error'), t('admin.userEdit.loadError'));
+      // Pas de modale : l'écran affiche son propre état d'échec (avec en-tête,
+      // donc bouton retour, et Réessayer). Avant, `if (!user) return null`
+      // rendait un écran ENTIÈREMENT VIDE : l'utilisateur était piégé, sans
+      // même un bouton pour revenir.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -69,7 +78,7 @@ export default function UserEditScreen() {
     try {
       await usersAPI.updateUser(userId, { role: selectedRole });
       setUser(prev => prev ? { ...prev, role: selectedRole as import('../../types').UserRole } : prev);
-      showSuccess(t('common.success'), t('admin.userEdit.roleUpdated'));
+      toastSuccess(t('admin.userEdit.roleUpdated'));
     } catch (error) {
       showError(t('common.error'), t('admin.userEdit.roleUpdateError'));
     } finally {
@@ -87,7 +96,7 @@ export default function UserEditScreen() {
         await usersAPI.verifyProfile(userId);
       }
       setUser(prev => prev ? { ...prev, is_verified: !prev.is_verified } : prev);
-      showSuccess(t('common.success'), user.is_verified ? t('admin.userEdit.userUnverified') : t('admin.userEdit.userVerified'));
+      toastSuccess(user.is_verified ? t('admin.userEdit.userUnverified') : t('admin.userEdit.userVerified'));
     } catch (error) {
       showError(t('common.error'), t('admin.userEdit.verificationToggleError'));
     } finally {
@@ -106,7 +115,7 @@ export default function UserEditScreen() {
       const res = await usersAPI.setUserActive(userId, !user.is_active);
       const nowActive = res.data?.is_active ?? !user.is_active;
       setUser(prev => prev ? { ...prev, is_active: nowActive } : prev);
-      showSuccess(t('common.success'), nowActive ? t('admin.userEdit.accountActivated') : t('admin.userEdit.accountDeactivated'));
+      toastSuccess(nowActive ? t('admin.userEdit.accountActivated') : t('admin.userEdit.accountDeactivated'));
     } catch (error) {
       showError(t('common.error'), t('admin.userEdit.statusToggleError'));
     } finally {
@@ -121,7 +130,7 @@ export default function UserEditScreen() {
       async () => {
         try {
           await usersAPI.deleteUser(userId);
-          showSuccess(t('common.success'), t('admin.userEdit.userDeleted'));
+          toastSuccess(t('admin.userEdit.userDeleted'));
           navigation.goBack();
         } catch (error) {
           showError(t('common.error'), t('admin.userEdit.deleteError'));
@@ -159,7 +168,17 @@ export default function UserEditScreen() {
     );
   }
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        {renderHeader()}
+        <ErrorState
+          message={loadFailed ? t('admin.userEdit.loadError') : undefined}
+          onRetry={fetchUser}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>

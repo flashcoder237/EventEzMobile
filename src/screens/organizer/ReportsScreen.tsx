@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { analyticsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import Badge from '../../components/ui/Badge';
@@ -47,6 +48,7 @@ export default function ReportsScreen() {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError } = useAlert();
+  const { toastSuccess } = useFeedback();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -81,7 +83,7 @@ export default function ReportsScreen() {
         report_type: 'custom',
         title: `${t('organizer.reports.reportTitlePrefix')} ${new Date().toLocaleDateString('fr-FR')}`,
       });
-      showSuccess(t('common.success'), t('organizer.reports.generateSuccess'));
+      toastSuccess(t('organizer.reports.generateSuccess'));
       fetchReports();
     } catch (error) {
       showError(t('common.error'), t('organizer.reports.generateError'));

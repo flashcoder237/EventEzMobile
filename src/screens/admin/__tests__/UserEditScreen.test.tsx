@@ -31,6 +31,17 @@ jest.mock('../../../contexts/AlertContext', () => ({
   }),
 }));
 
+const mockToastSuccess = jest.fn();
+const mockToastError = jest.fn();
+jest.mock('../../../contexts/FeedbackContext', () => ({
+  useFeedback: () => ({
+    toastSuccess: mockToastSuccess,
+    toastError: mockToastError,
+    toastWarning: jest.fn(),
+    toastInfo: jest.fn(),
+  }),
+}));
+
 const themeColors = {
   primary: '#4F46E5',
   accent: '#FF6B6B',
@@ -109,7 +120,7 @@ describe('UserEditScreen', () => {
 
     await waitFor(() => expect(mockUpdateUser).toHaveBeenCalledTimes(1));
     expect(mockUpdateUser).toHaveBeenCalledWith('42', { role: 'organizer' });
-    expect(mockShowSuccess).toHaveBeenCalledWith('Succès', 'Rôle mis à jour');
+    expect(mockToastSuccess).toHaveBeenCalledWith('Rôle mis à jour');
   });
 
   it('verifies the user via usersAPI.verifyProfile', async () => {

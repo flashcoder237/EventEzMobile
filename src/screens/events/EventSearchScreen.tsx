@@ -35,6 +35,7 @@ import { useTranslation } from 'react-i18next';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { useSearchHistory } from '../../hooks/useSearchHistory';
 import { useTabletLayout } from '../../hooks/useTabletLayout';
+import { useSavedEvents } from '../../hooks/useSavedEvents';
 import { Event, Category, RootStackParamList } from '../../types';
 import {
   Colors,
@@ -277,6 +278,9 @@ function computeDateRange(preset: DatePreset): { start?: string; end?: string } 
 
 export default function EventSearchScreen() {
   const navigation = useNavigation<NavigationProp>();
+  // Marque-page des cartes : sans ce hook, l'icone etait un bouton mort
+  // (onLikePress/isLiked jamais fournis) — cf. useSavedEvents.
+  const { isSaved, toggleSaved, isAuthenticated: savedAuth } = useSavedEvents();
   const route = useRoute<RouteProps>();
 
   // Largeurs RÉACTIVES (grille de suggestions 2 col + hauteur max de la modal
@@ -289,6 +293,9 @@ export default function EventSearchScreen() {
   const initialCategory = route.params?.category ?? null;
   const initialQuery = route.params?.query ?? '';
   const initialCity = route.params?.city ?? null;
+  // Filtre prix passé en param (ex. « Voir tout » de la section gratuite de
+  // l'accueil). Sans ça, le lien ouvrait la recherche sans le filtre gratuit.
+  const initialPrice = route.params?.price ?? 'any';
 
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
@@ -309,6 +316,7 @@ export default function EventSearchScreen() {
     debouncedQuery: initialQuery,
     categoryId: initialCategory,
     city: initialCity,
+    priceFilter: initialPrice,
   });
 
   const [showFilters, setShowFilters] = useState(false);
@@ -640,6 +648,16 @@ export default function EventSearchScreen() {
             variant={columns > 1 ? 'grid' : 'default'}
             fullWidth={columns === 1}
             onPress={() => handleEventPress(item)}
+            isLiked={isSaved(item.id)}
+            onLikePress={() => {
+              // Non connecte : la sauvegarde est liee au compte -> on envoie
+              // vers Login plutot que de laisser un tap sans effet.
+              if (!savedAuth) {
+                navigation.navigate('Login');
+                return;
+              }
+              toggleSaved(item.id);
+            }}
             coverVideo={item.cover_video}
             coverVideoEmbed={item.cover_video_embed}
             isVisible={visibleIdsRef.current.has(item.id)}
@@ -648,7 +666,7 @@ export default function EventSearchScreen() {
       );
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [columns, platformCurrency, navigation, visibleVersion]
+    [columns, platformCurrency, navigation, visibleVersion, isSaved, toggleSaved, savedAuth]
   );
 
   // === ACTIVE FILTER CHIPS (removable, shown when filters active) ===

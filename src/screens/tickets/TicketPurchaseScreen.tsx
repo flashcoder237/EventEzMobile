@@ -18,9 +18,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import ErrorState from '../../components/ui/ErrorState';
 import ConvertedPrice from '../../components/common/ConvertedPrice';
 import {
   TourTarget,
@@ -111,6 +113,7 @@ export default function TicketPurchaseScreen() {
   const route = useRoute<TicketPurchaseRouteProp>();
   const { eventId, ticketTypeId, registrationId, additionalTickets } = route.params;
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
+  const { toastSuccess } = useFeedback();
   const { user } = useAuth();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -128,6 +131,7 @@ export default function TicketPurchaseScreen() {
   const [selections, setSelections] = useState<Map<string, number>>(new Map());
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [existingRegistration, setExistingRegistration] = useState<any>(null);
@@ -219,6 +223,7 @@ export default function TicketPurchaseScreen() {
 
   const fetchData = async () => {
     try {
+      setLoadFailed(false);
       const [eventRes, ticketsRes, myRegsRes] = await Promise.all([
         eventsAPI.getEvent(eventId),
         ticketTypesAPI.getTicketTypes({ event: eventId }),
@@ -278,7 +283,12 @@ export default function TicketPurchaseScreen() {
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement données:', error);
-      showError(t('common.error'), t('ticketPurchase.loadError'));
+      // Plus de modale bloquante : l'écran affiche désormais son propre état
+      // d'erreur avec un bouton Réessayer. Sans garde, l'écran se rendait avec
+      // `event` à null — titre vide et AUCUN billet (la section est gatée sur
+      // event.event_type), soit une entrée de tunnel d'achat cassée qui faisait
+      // passer une panne réseau pour un événement sans billets.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -489,7 +499,7 @@ export default function TicketPurchaseScreen() {
         }
         setAppliedDiscount(discount);
         setDiscountError(null);
-        showSuccess(t('common.success'), t('ticketPurchase.discountAppliedToast', { code: discountCode }));
+        toastSuccess(t('ticketPurchase.discountAppliedToast', { code: discountCode }));
       } else {
         setDiscountError(data.message || t('ticketPurchase.discountInvalid'));
       }
@@ -580,7 +590,7 @@ export default function TicketPurchaseScreen() {
         const response = await registrationsAPI.updateTickets(registrationId, tickets);
         finalRegistrationId = registrationId;
         paymentRequired = response.data.registration?.payment_required || getTotalPrice() > 0;
-        showSuccess(t('common.success'), t('ticketPurchase.ticketsUpdated'));
+        toastSuccess(t('ticketPurchase.ticketsUpdated'));
       } else if (isAdditionalMode && !existingRegistration) {
         // On est venu en mode "achat supplémentaire" mais aucune inscription
         // active n'a été trouvée -> ne PAS créer silencieusement une nouvelle
@@ -616,7 +626,7 @@ export default function TicketPurchaseScreen() {
           return;
         }
 
-        showSuccess(t('common.success'), `${response.data.message || t('ticketPurchase.ticketsAddedSuccess')}`);
+        toastSuccess(`${response.data.message || t('ticketPurchase.ticketsAddedSuccess')}`);
       } else {
         // Mode création: créer une nouvelle inscription.
         // IMPORTANT : le backend attend l'UUID de l'event (champ UUIDField). Selon
@@ -669,6 +679,7 @@ export default function TicketPurchaseScreen() {
           registrationStatus: 'confirmed',
           approvalStatus: event?.auto_approve_registrations === false ? 'pending' : 'approved',
           eventTitle: event?.title,
+          eventImage: (event as any)?.banner_image || (event as any)?.display_image || null,
           eventSlug: event?.slug,
         });
       }
@@ -713,6 +724,39 @@ export default function TicketPurchaseScreen() {
   if (loading) {
     return (
       <LoadingSpinner />
+    );
+  }
+
+  // Sans `event`, tout le tunnel d'achat en dessous est inexploitable (titre
+  // vide, section billets gatée sur event.event_type donc aucun billet). On
+  // rend un état d'erreur avec Réessayer + un retour, plutôt qu'une coquille
+  // vide qui ressemble à un événement sans billets.
+  // On garde sur `!event` seulement : si un rechargement échoue alors qu'un
+  // event est déjà affiché, mieux vaut laisser le tunnel en place que de le
+  // remplacer par une erreur plein écran.
+  if (!event) {
+    return (
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>BUY</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <View style={styles.headerTopRowE}>
+            <TouchableOpacity
+              style={[styles.iconDiscE, { backgroundColor: colors.gray100 }]}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.7}
+              accessibilityLabel={t('ticketPurchase.back')}
+              accessibilityRole="button"
+            >
+              <Ionicons name="chevron-back" size={18} color={colors.gray600} />
+            </TouchableOpacity>
+          </View>
+          <ErrorState
+            message={t('ticketPurchase.loadError')}
+            onRetry={fetchData}
+            showRetry={loadFailed}
+          />
+        </View>
+      </EditorialCanvas>
     );
   }
 
@@ -868,7 +912,7 @@ export default function TicketPurchaseScreen() {
                       try {
                         await registrationsAPI.cancelRegistration(existingRegistration.id);
                         setExistingRegistration(null);
-                        showSuccess(t('common.success'), t('ticketPurchase.cancelSuccess'));
+                        toastSuccess(t('ticketPurchase.cancelSuccess'));
                       } catch (error) {
                         showError(t('common.error'), t('ticketPurchase.cancelError'));
                       }

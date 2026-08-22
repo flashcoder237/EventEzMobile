@@ -20,12 +20,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { ticketTransfersAPI } from '../../api';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import ErrorState from '../../components/ui/ErrorState';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import QRCodeDisplay from '../../components/common/QRCodeDisplay';
 import { Colors, FontSizes, FontFamily, BorderRadius, Spacing } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { RootStackParamList } from '../../types';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'received' | 'sent';
@@ -83,6 +85,7 @@ export default function PendingTransfersScreen() {
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [sentTransfers, setSentTransfers] = useState<Transfer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showQRModal, setShowQRModal] = useState(false);
@@ -91,6 +94,7 @@ export default function PendingTransfersScreen() {
 
   const fetchTransfers = useCallback(async () => {
     try {
+      setLoadFailed(false);
       const [receivedRes, sentRes] = await Promise.all([
         ticketTransfersAPI.getPendingTransfers(),
         ticketTransfersAPI.getSentTransfers(),
@@ -98,12 +102,16 @@ export default function PendingTransfersScreen() {
       setTransfers(receivedRes.data || []);
       setSentTransfers(sentRes.data?.results || sentRes.data || []);
     } catch {
-      showError(t('common.error'), t('pendingTransfers.loadError'));
+      // Plus de modale bloquante : l'écran affiche désormais son propre état
+      // d'erreur avec un bouton Réessayer. L'ancien état vide (« Rien pour
+      // l'instant ») faisait passer une panne réseau pour une absence de
+      // données — on distingue maintenant les deux.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [showError, t]);
+  }, []);
 
   useFocusEffect(useCallback(() => { fetchTransfers(); }, [fetchTransfers]));
 
@@ -122,7 +130,7 @@ export default function PendingTransfersScreen() {
           showSuccess(t('pendingTransfers.acceptSuccessTitle'), t('pendingTransfers.acceptSuccessMsg'));
           fetchTransfers();
         } catch (err: any) {
-          showError(t('common.error'), err.response?.data?.detail || t('pendingTransfers.acceptError'));
+          showError(t('common.error'), getApiErrorMessage(err, t, { fallbackKey: 'pendingTransfers.acceptError' }).message);
         } finally { setActionLoading(null); }
       },
     );
@@ -139,7 +147,7 @@ export default function PendingTransfersScreen() {
           showSuccess(t('pendingTransfers.declineSuccessTitle'), t('pendingTransfers.declineSuccessMsg'));
           fetchTransfers();
         } catch (err: any) {
-          showError(t('common.error'), err.response?.data?.detail || t('pendingTransfers.declineError'));
+          showError(t('common.error'), getApiErrorMessage(err, t, { fallbackKey: 'pendingTransfers.declineError' }).message);
         } finally { setActionLoading(null); }
       },
     );
@@ -156,7 +164,7 @@ export default function PendingTransfersScreen() {
           showSuccess(t('pendingTransfers.cancelSuccessTitle'), t('pendingTransfers.cancelSuccessMsg'));
           fetchTransfers();
         } catch (err: any) {
-          showError(t('common.error'), err.response?.data?.detail || t('pendingTransfers.cancelError'));
+          showError(t('common.error'), getApiErrorMessage(err, t, { fallbackKey: 'pendingTransfers.cancelError' }).message);
         } finally { setActionLoading(null); }
       },
     );
@@ -449,7 +457,19 @@ export default function PendingTransfersScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={s.list}
-          ListEmptyComponent={activeTab === 'received' ? EmptyReceived : EmptySent}
+          ListEmptyComponent={
+            loadFailed ? (
+              <ErrorState
+                withCard
+                message={t('pendingTransfers.loadError')}
+                onRetry={fetchTransfers}
+              />
+            ) : activeTab === 'received' ? (
+              <EmptyReceived />
+            ) : (
+              <EmptySent />
+            )
+          }
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl

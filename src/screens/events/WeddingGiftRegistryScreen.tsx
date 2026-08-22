@@ -9,7 +9,6 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -25,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { weddingsAPI } from '../../api';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { DEEP_LINK_SCHEME } from '../../constants/urls';
 import {
@@ -50,6 +50,7 @@ export default function WeddingGiftRegistryScreen() {
   const { slug } = route.params;
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const { showError } = useFeedback();
 
   const [registry, setRegistry] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -94,7 +95,7 @@ export default function WeddingGiftRegistryScreen() {
       const url = res.data?.payment_url;
       const contributionId = res.data?.contribution_id;
       if (!url) {
-        Alert.alert('', t('wedding.giftError', { defaultValue: "Le paiement n'a pas pu démarrer." }));
+        showError(t('common.error'), t('wedding.giftError', { defaultValue: "Le paiement n'a pas pu démarrer." }));
         return;
       }
       const returnUrl = `${DEEP_LINK_SCHEME}://payment-success/${contributionId}`;
@@ -109,7 +110,7 @@ export default function WeddingGiftRegistryScreen() {
       setName('');
       await load();
     } catch {
-      Alert.alert('', t('wedding.giftError', { defaultValue: "Le paiement n'a pas pu démarrer." }));
+      showError(t('common.error'), t('wedding.giftError', { defaultValue: "Le paiement n'a pas pu démarrer." }));
     } finally {
       setPaying(false);
     }

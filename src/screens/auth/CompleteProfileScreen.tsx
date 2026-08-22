@@ -22,6 +22,7 @@ import { RootStackParamList } from '../../types';
 import { FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 import { centeredContent, FORM_MAX } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'CompleteProfile'>;
 type ScreenRoute = RouteProp<RootStackParamList, 'CompleteProfile'>;
@@ -75,7 +76,7 @@ export default function CompleteProfileScreen() {
     } catch (e: any) {
       showError(
         t('common.error'),
-        e?.response?.data?.detail || t('auth.completeProfile.error'),
+        getApiErrorMessage(e, t, { fallbackKey: 'auth.completeProfile.error' }).message,
       );
       setIsSaving(false);
     }

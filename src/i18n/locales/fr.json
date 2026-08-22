@@ -686,7 +686,21 @@
     "registeredStatus": "Inscrit",
     "pendingStatus": "En attente",
     "priceLabel": "Prix",
-    "fromLabel": "À partir de"
+    "fromLabel": "À partir de",
+    "waitlistJoinedDetail": "Vous avez rejoint la liste d'attente. Vous serez notifié dès qu'une place se libère.",
+    "waitlistLeftMsg": "Vous avez quitté la liste d'attente",
+    "waitlistLeaveError": "Impossible de quitter la liste d'attente",
+    "waitlistJoinError": "Impossible de rejoindre la liste d'attente",
+    "waitlistLeaveTitle": "Quitter la liste d'attente",
+    "waitlistLeaveConfirm": "Êtes-vous sûr de vouloir quitter la liste d'attente ?",
+    "whatsappNotInstalled": "WhatsApp n'est pas installé sur cet appareil",
+    "reviewRatingRange": "Veuillez sélectionner une note entre 1 et 5",
+    "reviewThanksTitle": "Merci !",
+    "reviewSubmitted": "Votre avis a été soumis avec succès",
+    "loginRequiredTitle": "Connexion requise",
+    "loginRequiredReview": "Connectez-vous pour laisser un avis",
+    "reviewSubmitError": "Impossible de soumettre votre avis",
+    "loginRequiredWaitlist": "Connectez-vous pour rejoindre la liste d'attente"
   },
   "events": {
     "videoBadge": "Vidéo",
@@ -1850,6 +1864,8 @@
     "declinedSuccess": "Invitation refusée.",
     "declineError": "Impossible de refuser l'invitation.",
     "declineButton": "Refuser",
+    "declineConfirmTitle": "Refuser l'invitation",
+    "declineConfirmMessage": "Êtes-vous sûr de vouloir refuser cette invitation ?",
     "fromLabel": "DE LA PART DE",
     "toLabel": "DESTINATAIRE",
     "organizerFallback": "Organisateur",
@@ -1996,6 +2012,26 @@
     "contactSupport": "Contacter le support",
     "timeout": "La requête a mis trop de temps. Vérifiez votre connexion et réessayez.",
     "validation": "Certaines informations sont invalides. Corrigez les champs signalés et réessayez.",
+    "fields": {
+      "title": "Titre",
+      "subtitle": "Sous-titre",
+      "message": "Message",
+      "image": "Image",
+      "cta_label": "Libellé du bouton",
+      "cta_url": "Lien du bouton",
+      "link_url": "Lien",
+      "target_event": "Événement ciblé",
+      "country": "Pays",
+      "city": "Ville",
+      "radius_km": "Rayon",
+      "placement": "Emplacement",
+      "priority": "Priorité",
+      "severity": "Gravité",
+      "audience": "Audience",
+      "platform": "Plateforme",
+      "valid_from": "Début de validité",
+      "valid_until": "Fin de validité"
+    },
     "http": {
       "badRequest": "Nous n'avons pas pu traiter votre demande. Vérifiez vos informations et réessayez.",
       "unauthorized": "Votre session a expiré. Veuillez vous reconnecter.",
@@ -2849,7 +2885,7 @@
     "linkedin": "LinkedIn",
     "agendaEyebrow_one": "AGENDA · {{count}} ÉVÉNEMENT",
     "agendaEyebrow_other": "AGENDA · {{count}} ÉVÉNEMENTS",
-    "agendaTitle": "Événements publiés",
+    "agendaTitle": "Événements récents",
     "loadingEvents": "Chargement…",
     "noEvents": "Aucun événement publié",
     "freeBadge": "GRATUIT"
@@ -3503,7 +3539,8 @@
       "sourceEventTypes": "Répartition types d'event",
       "sourcePaymentMethods": "Méthodes de paiement",
       "sourceGeographical": "Répartition géographique"
-    }
+    },
+    "widgetDataUnavailable": "Données indisponibles."
   },
   "componentsForms": {
     "dynamicFields": {
@@ -3610,7 +3647,11 @@
     "codeLabel": "CODE",
     "emptyEyebrow": "BIENTÔT",
     "emptyTitle": "Pas de code pour l'instant",
-    "emptySubtitle": "Vos codes de parrainage apparaîtront ici dès qu'ils seront disponibles."
+    "emptySubtitle": "Génère ton code de parrainage et partage-le pour commencer à gagner.",
+    "generateCta": "Générer mon code",
+    "generating": "Génération…",
+    "generateSuccess": "Code de parrainage créé !",
+    "generateError": "Impossible de générer le code. Réessaie."
   },
   "teamManagement": {
     "eyebrow": "EQUIPE",
@@ -4072,6 +4113,10 @@
     "watermarkOops": "OOPS",
     "loadError": "Impossible de charger les détails du paiement",
     "paymentNotFound": "Paiement non trouvé",
+    "blockedNotOwner": "Ce paiement n'est pas rattaché à votre compte, vous ne pouvez pas en demander le remboursement.",
+    "blockedNotCompleted": "Seuls les paiements confirmés peuvent être remboursés. Ce paiement n'est pas dans un état remboursable.",
+    "blockedAlreadyRequested": "Une demande de remboursement est déjà en cours pour ce paiement.",
+    "blockedGeneric": "Ce paiement n'est pas éligible à un remboursement pour le moment.",
     "back": "Retour",
     "closeA11y": "Fermer",
     "eyebrow": "REMBOURSEMENT • REFUND",

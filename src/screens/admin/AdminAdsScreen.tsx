@@ -26,6 +26,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import { advertisementsAPI, AdvertisementAdmin } from '../../api';
 import { RootStackParamList } from '../../types';
@@ -39,6 +40,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -56,6 +58,7 @@ function AdminAdsContent() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError, showConfirm } = useAlert();
+  const { toastSuccess } = useFeedback();
   const biometric = useBiometricConfirm();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
@@ -106,9 +109,9 @@ function AdminAdsContent() {
         try {
           await advertisementsAPI.delete(ad.id);
           setAds((prev) => prev.filter((a) => a.id !== ad.id));
-          showSuccess(t('common.success'), t('admin.ads.list.deleted'));
+          toastSuccess(t('admin.ads.list.deleted'));
         } catch (error: any) {
-          showError(t('common.error'), error?.response?.data?.detail || t('admin.ads.list.deleteError'));
+          showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'admin.ads.list.deleteError' }).message);
         }
       },
     );

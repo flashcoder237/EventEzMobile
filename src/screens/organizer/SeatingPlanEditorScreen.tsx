@@ -36,6 +36,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { seatingAPI } from '../../api';
 import type { SeatingPlan, SeatingZone, RootStackParamList } from '../../types';
 import {
@@ -47,6 +48,8 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent, WIDE_MAX } from '../../constants/layout';
+import ErrorState from '../../components/ui/ErrorState';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'SeatingPlanEditor'>;
@@ -81,11 +84,13 @@ export default function SeatingPlanEditorScreen() {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError, showConfirm } = useAlert();
+  const { toastSuccess } = useFeedback();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [plan, setPlan] = useState<SeatingPlan | null>(null);
   const [zones, setZones] = useState<SeatingZone[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // Modal zone
@@ -96,18 +101,22 @@ export default function SeatingPlanEditorScreen() {
 
   const fetchPlan = useCallback(async () => {
     try {
+      setLoadFailed(false);
       const res = await seatingAPI.getPlan(planId);
       const p: SeatingPlan = res.data;
       setPlan(p);
       // Le serializer SeatingPlan inclut déjà zones via prefetch_related.
       setZones(p.zones || []);
-    } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || t('organizer.seatingPlanEditor.loadError'));
+    } catch {
+      // Plus de modale : l'écran affiche son propre état d'erreur avec Réessayer.
+      // L'éditeur reste masqué : sans plan chargé, les stats affichaient 0 place
+      // et on pouvait ajouter des zones à un plan qu'on n'a jamais lu.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [planId, showError, t]);
+  }, [planId]);
 
   useEffect(() => {
     fetchPlan();
@@ -245,7 +254,9 @@ export default function SeatingPlanEditorScreen() {
       setZoneModalOpen(false);
       setEditingZone(null);
     } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || t('organizer.seatingPlanEditor.saveError'));
+      // Jamais le `detail` brut du backend : message traduit via le helper.
+      const { message } = getApiErrorMessage(error, t, { fallbackKey: 'organizer.seatingPlanEditor.saveError' });
+      showError(t('common.error'), message);
     } finally {
       setZoneSubmitting(false);
     }
@@ -267,9 +278,11 @@ export default function SeatingPlanEditorScreen() {
             next.reduce((sum, z) => sum + (z.capacity || 0), 0),
             { ...(plan?.layout_data || {}), zones: layoutZones },
           );
-          showSuccess(t('organizer.seatingPlanEditor.zoneDeleted'), '');
+          toastSuccess(t('organizer.seatingPlanEditor.zoneDeleted'));
         } catch (error: any) {
-          showError(t('common.error'), error?.response?.data?.detail || t('organizer.seatingPlanEditor.deleteError'));
+          // Jamais le `detail` brut du backend : message traduit via le helper.
+          const { message } = getApiErrorMessage(error, t, { fallbackKey: 'organizer.seatingPlanEditor.deleteError' });
+          showError(t('common.error'), message);
         }
       },
     );
@@ -297,6 +310,9 @@ export default function SeatingPlanEditorScreen() {
             {plan?.name || '…'}
           </Text>
         </View>
+        {/* Ajout de zone masqué si le plan n'a pas pu être chargé : on
+            n'écrit pas dans un plan dont on ignore le contenu réel. */}
+        {!loadFailed && (
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}30` }, Shadows.sm]}
           onPress={openCreateZone}
@@ -306,12 +322,19 @@ export default function SeatingPlanEditorScreen() {
         >
           <Ionicons name="add" size={20} color={colors.primary} />
         </TouchableOpacity>
+        )}
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
+      ) : loadFailed ? (
+        <ErrorState
+          withCard
+          message={t('organizer.seatingPlanEditor.loadError')}
+          onRetry={fetchPlan}
+        />
       ) : (
         <ScrollView
           contentContainerStyle={styles.scrollContent}

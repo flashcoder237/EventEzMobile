@@ -17,6 +17,7 @@ export { useOfflineQueue } from './useOfflineQueue';
 export { useOfflineTickets } from './useOfflineTickets';
 export type { CachedTicket, CachedTicketIndex } from './useOfflineTickets';
 export { useEventReminders } from './useEventReminders';
+export { useSavedEvents, followingCacheKey } from './useSavedEvents';
 export type { ScheduledReminder, NotificationSettings } from './useEventReminders';
 export { useSavedPaymentMethods, detectPaymentType, maskPhoneNumber, getPaymentMethodLabel } from './useSavedPaymentMethods';
 export type { SavedPaymentMethod, PaymentMethodType } from './useSavedPaymentMethods';

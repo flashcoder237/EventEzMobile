@@ -7,8 +7,9 @@
  *  - submit OK → appelle usersAPI.updateCurrentUser uniquement avec les
  *    champs réellement modifiés (diff)
  *  - submit fail → showError affiche le detail backend
- *  - changePassword : validations (champs requis, longueur, mismatch) +
- *    biometric + appel usersAPI.changePassword
+ *  - changePassword : validations (champs requis, longueur, mismatch) rendues
+ *    en erreurs INLINE sous le champ fautif (pas de modale) + biometric +
+ *    appel usersAPI.changePassword
  *  - upload image (handlePickImage) : pickImage → updateProfileImage(FormData)
  */
 import React from 'react';
@@ -246,13 +247,33 @@ describe('EditProfileScreen', () => {
 
     fireEvent.press(getByText('Changer le mot de passe'));
 
+    // Erreur inline sous le champ concerné (plus de modale bloquante).
     await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith(
-        'Erreur',
-        'Les mots de passe ne correspondent pas'
-      );
+      expect(getByText('Les mots de passe ne correspondent pas')).toBeTruthy();
     });
+    expect(mockShowError).not.toHaveBeenCalled();
     expect(mockChangePassword).not.toHaveBeenCalled();
+  });
+
+  it('clears the inline password error as the user types', async () => {
+    const { getAllByPlaceholderText, getByText, queryByText } = render(<EditProfileScreen />);
+    fireEvent.press(getByText('Sécurité'));
+    const pwInputs = getAllByPlaceholderText('••••••••');
+
+    fireEvent.changeText(pwInputs[0], 'currentpass');
+    fireEvent.changeText(pwInputs[1], 'newpass12');
+    fireEvent.changeText(pwInputs[2], 'differentpass');
+    fireEvent.press(getByText('Changer le mot de passe'));
+
+    await waitFor(() => {
+      expect(getByText('Les mots de passe ne correspondent pas')).toBeTruthy();
+    });
+
+    // Re-saisie du champ fautif → le message disparaît.
+    fireEvent.changeText(pwInputs[2], 'newpass12');
+    await waitFor(() => {
+      expect(queryByText('Les mots de passe ne correspondent pas')).toBeNull();
+    });
   });
 
   it('rejects password change when new is shorter than 8 chars', async () => {
@@ -266,12 +287,11 @@ describe('EditProfileScreen', () => {
 
     fireEvent.press(getByText('Changer le mot de passe'));
 
+    // Erreur inline sous le champ "nouveau mot de passe".
     await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith(
-        'Erreur',
-        'Le mot de passe doit contenir au moins 8 caractères'
-      );
+      expect(getByText('Le mot de passe doit contenir au moins 8 caractères')).toBeTruthy();
     });
+    expect(mockShowError).not.toHaveBeenCalled();
     expect(mockChangePassword).not.toHaveBeenCalled();
   });
 

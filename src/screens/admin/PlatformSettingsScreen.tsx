@@ -29,6 +29,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
+import ErrorState from '../../components/ui/ErrorState';
 
 interface SiteSettings {
   ai_moderation_enabled?: boolean;
@@ -70,6 +71,7 @@ function PlatformSettingsContent() {
 
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   // Toggle key qui est en train d'être patché — on désactive le Switch
   // correspondant pour éviter les double-clicks pendant le PATCH.
@@ -77,11 +79,14 @@ function PlatformSettingsContent() {
 
   const fetchSettings = async () => {
     try {
+      setLoadFailed(false);
       const res = await siteSettingsAPI.get();
       setSettings(res.data || {});
-    } catch (error: any) {
-      const detail = error?.response?.data?.detail;
-      showError(t('common.error'), detail || t('admin.platformSettings.loadError'));
+    } catch {
+      // Plus de modale : l'écran affiche son propre état d'erreur avec Réessayer.
+      // Les toggles restent masqués : sans `settings`, ils s'afficheraient tous
+      // sur OFF et un tap PATCHerait un flag que l'admin n'a jamais vu.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -267,6 +272,11 @@ function PlatformSettingsContent() {
                 {t('admin.platformSettings.loadingSettings')}
               </Text>
             </View>
+          ) : loadFailed ? (
+            <ErrorState
+              message={t('admin.platformSettings.loadError')}
+              onRetry={fetchSettings}
+            />
           ) : (
             <>
               <ToggleRow

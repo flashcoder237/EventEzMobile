@@ -1,6 +1,17 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import CustomAlert, { AlertType } from '../components/common/CustomAlert';
+import CustomAlert, { AlertType, AlertWeight } from '../components/common/CustomAlert';
+
+/** Options d'une confirmation. Le verbe et le caractère destructif doivent être
+ *  visibles sur le bouton, pas seulement déductibles du titre. */
+export interface ConfirmOptions {
+  /** Libellé du bouton de confirmation (« Refuser », « Retirer »…). */
+  confirmText?: string;
+  /** Libellé du bouton d'annulation. */
+  cancelText?: string;
+  /** Action irréversible : pill rouge + poids `critical`. */
+  destructive?: boolean;
+}
 
 interface AlertButton {
   text: string;
@@ -14,14 +25,21 @@ interface AlertState {
   title: string;
   message?: string;
   buttons: AlertButton[];
+  weight?: AlertWeight;
 }
 
 interface AlertContextType {
-  showAlert: (title: string, message?: string, buttons?: AlertButton[], type?: AlertType) => void;
+  showAlert: (title: string, message?: string, buttons?: AlertButton[], type?: AlertType, weight?: AlertWeight) => void;
   showSuccess: (title: string, message?: string) => void;
   showError: (title: string, message?: string) => void;
   showWarning: (title: string, message?: string) => void;
-  showConfirm: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => void;
+  showConfirm: (
+    title: string,
+    message: string,
+    onConfirm: () => void,
+    onCancel?: ConfirmOptions | (() => void),
+    maybeOptions?: ConfirmOptions,
+  ) => void;
   hideAlert: () => void;
 }
 
@@ -48,7 +66,8 @@ export function AlertProvider({ children }: { children: ReactNode }) {
     title: string,
     message?: string,
     buttons?: AlertButton[],
-    type: AlertType = 'info'
+    type: AlertType = 'info',
+    weight?: AlertWeight,
   ) => {
     setAlertState({
       visible: true,
@@ -56,6 +75,7 @@ export function AlertProvider({ children }: { children: ReactNode }) {
       title,
       message,
       buttons: buttons || [{ text: okLabel }],
+      weight,
     });
   }, [okLabel]);
 
@@ -79,12 +99,33 @@ export function AlertProvider({ children }: { children: ReactNode }) {
     title: string,
     message: string,
     onConfirm: () => void,
-    onCancel?: () => void
+    onCancel?: ConfirmOptions | (() => void),
+    maybeOptions?: ConfirmOptions,
   ) => {
-    showAlert(title, message, [
-      { text: cancelLabel, style: 'cancel', onPress: onCancel },
-      { text: confirmLabel, onPress: onConfirm },
-    ], 'confirm');
+    // 4e argument polymorphe pour rester rétro-compatible : historiquement
+    // `onCancel`, désormais aussi un objet d'options.
+    const opts: ConfirmOptions =
+      (typeof onCancel === 'object' && onCancel !== null ? onCancel : maybeOptions) ?? {};
+    const cancelFn = typeof onCancel === 'function' ? onCancel : undefined;
+
+    showAlert(
+      title,
+      message,
+      [
+        { text: opts.cancelText ?? cancelLabel, style: 'cancel', onPress: cancelFn },
+        {
+          // Un verbe explicite (« Refuser », « Retirer ») vaut mieux qu'un
+          // « Confirmer » générique : le bouton doit dire ce qu'il fait.
+          text: opts.confirmText ?? confirmLabel,
+          // Une action destructive doit se VOIR : pill rouge, et le poids
+          // `critical` verrouille la fermeture au tap sur le fond.
+          style: opts.destructive ? 'destructive' : 'default',
+          onPress: onConfirm,
+        },
+      ],
+      'confirm',
+      opts.destructive ? 'critical' : undefined,
+    );
   }, [showAlert, cancelLabel, confirmLabel]);
 
   const value = useMemo(() => ({
@@ -105,6 +146,7 @@ export function AlertProvider({ children }: { children: ReactNode }) {
         title={alertState.title}
         message={alertState.message}
         buttons={alertState.buttons}
+        weight={alertState.weight}
         onClose={hideAlert}
       />
     </AlertContext.Provider>

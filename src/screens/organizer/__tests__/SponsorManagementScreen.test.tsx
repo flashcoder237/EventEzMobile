@@ -7,6 +7,7 @@
  *  - showSuccess après confirmation OK
  *  - rollback + showError si confirm() throw
  *  - empty state quand aucun sponsor
+ *  - état d'erreur in-screen + Réessayer si le fetch initial échoue
  */
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
@@ -142,17 +143,29 @@ describe('SponsorManagementScreen', () => {
     fireEvent.press(confirmBtn);
 
     await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith('Erreur', 'Permission refusée');
+      // Le `detail` brut du backend n'est plus affiche tel quel : getApiErrorMessage
+      // renvoie un message traduit. On verifie que le texte brut ne fuit PAS.
+      expect(mockShowError).toHaveBeenCalledWith('Erreur', expect.any(String));
+      expect(mockShowError).not.toHaveBeenCalledWith('Erreur', 'Permission refusée');
     });
   });
 
-  it('shows an error toast when the initial fetch fails', async () => {
+  it('shows an in-screen error state with Retry when the initial fetch fails', async () => {
     mockGetByEvent.mockRejectedValueOnce({ response: { data: { detail: 'Network down' } } });
 
-    render(<SponsorManagementScreen />);
+    const { findByText, queryByText } = render(<SponsorManagementScreen />);
 
-    await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith('Erreur', 'Network down');
-    });
+    // Plus de modale bloquante : l'erreur est rendue dans l'écran…
+    await findByText('Impossible de charger les sponsors.');
+    expect(mockShowError).not.toHaveBeenCalled();
+    // …et le détail brut du backend n'est jamais exposé à l'utilisateur.
+    expect(queryByText('Network down')).toBeNull();
+
+    // Retry relance le fetch et affiche la liste.
+    mockGetByEvent.mockResolvedValueOnce({ data: { results: [sponsorPending] } });
+    fireEvent.press(await findByText('Réessayer'));
+
+    await findByText('Confirmer le sponsor');
+    expect(mockGetByEvent).toHaveBeenCalledTimes(2);
   });
 });

@@ -270,7 +270,9 @@ describe('PendingTransfersScreen', () => {
     fireEvent.press(acceptBtn);
 
     await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith('Erreur', 'Lien expiré');
+      // Le detail brut du backend n'est plus affiche a l'utilisateur
+      // (getApiErrorMessage) : on verifie qu'un message traduit est passe.
+      expect(mockShowError).toHaveBeenCalledWith('Erreur', expect.any(String));
     });
   });
 });

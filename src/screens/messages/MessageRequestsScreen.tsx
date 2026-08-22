@@ -42,6 +42,7 @@ import {
 } from '../../lib/utils/messagingHelpers';
 import { RootStackParamList, Conversation, User } from '../../types';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -103,8 +104,10 @@ export default function MessageRequestsScreen() {
       navigation.navigate('Conversation', { conversationId: id });
     } catch (error: any) {
       if (__DEV__) console.error('[MessageRequests] accept failed:', error);
-      const detail = error?.response?.data?.error || error?.response?.data?.detail;
-      showError(t('common.error'), String(detail || t('messageRequests.acceptFailed')));
+      const { message } = getApiErrorMessage(error, t, {
+        fallbackKey: 'messageRequests.acceptFailed',
+      });
+      showError(t('common.error'), message);
     } finally {
       markActioning(id, false);
     }
@@ -118,8 +121,10 @@ export default function MessageRequestsScreen() {
       setRequests(prev => prev.filter(c => String(c.id) !== id));
     } catch (error: any) {
       if (__DEV__) console.error('[MessageRequests] decline failed:', error);
-      const detail = error?.response?.data?.error || error?.response?.data?.detail;
-      showError(t('common.error'), String(detail || t('messageRequests.declineFailed')));
+      const { message } = getApiErrorMessage(error, t, {
+        fallbackKey: 'messageRequests.declineFailed',
+      });
+      showError(t('common.error'), message);
     } finally {
       markActioning(id, false);
     }

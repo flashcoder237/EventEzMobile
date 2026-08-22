@@ -18,6 +18,7 @@ import { exhibitorsAPI } from '../../api/exhibitors';
 import { eventsAPI } from '../../api/events';
 import { Spacing, Shadows } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 /**
  * Onglet « Vente déléguée » du BoothManagementScreen (côté HÔTE) :
@@ -107,7 +108,7 @@ export default function SalesDelegationTab({ eventId }: { eventId: string }) {
       setSatellites((prev) => prev.filter((s) => s.id !== sat.id));
     } catch (e: any) {
       showError(t('common.error', { defaultValue: 'Erreur' }),
-        e?.response?.data?.detail || t('exhibitorSales.actionError', { defaultValue: 'Action impossible.' }));
+        getApiErrorMessage(e, t, { fallbackKey: 'exhibitorSales.actionError', fallbackValues: { defaultValue: 'Action impossible.' } }).message);
     } finally {
       setActionId(null);
     }
@@ -125,7 +126,7 @@ export default function SalesDelegationTab({ eventId }: { eventId: string }) {
       setSatellites((prev) => prev.filter((s) => s.id !== sat.id));
     } catch (e: any) {
       showError(t('common.error', { defaultValue: 'Erreur' }),
-        e?.response?.data?.detail || t('exhibitorSales.actionError', { defaultValue: 'Action impossible.' }));
+        getApiErrorMessage(e, t, { fallbackKey: 'exhibitorSales.actionError', fallbackValues: { defaultValue: 'Action impossible.' } }).message);
     } finally {
       setActionId(null);
     }

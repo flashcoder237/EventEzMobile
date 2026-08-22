@@ -22,6 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { messagesAPI } from '../../api';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList, User } from '../../types';
 import {
@@ -42,6 +43,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export default function BlockedUsersScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { showError, showSuccess, showConfirm } = useAlert();
+  const { toastSuccess } = useFeedback();
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
 
@@ -81,7 +83,7 @@ export default function BlockedUsersScreen() {
         try {
           await messagesAPI.unblockUser(String(target.id));
           setUsers(prev => prev.filter(u => u.id !== target.id));
-          showSuccess(t('profile.unblockedSuccess'), '');
+          toastSuccess(t('profile.unblockedSuccess'));
         } catch (error) {
           showError(t('common.error'), t('profile.unblockError'));
         } finally {

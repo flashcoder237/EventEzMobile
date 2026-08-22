@@ -6,14 +6,15 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { newslettersAPI } from '../../api';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 function NewsletterIcon({ size = 28, color = Colors.primary }: { size?: number; color?: string }) {
   return (
@@ -48,6 +49,7 @@ interface NewsletterTabProps {
 export default function NewsletterTab({ eventId, categoryName }: NewsletterTabProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
+  const { toastSuccess, showError } = useFeedback();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -55,7 +57,7 @@ export default function NewsletterTab({ eventId, categoryName }: NewsletterTabPr
 
   const handleSubscribe = async () => {
     if (!email.trim()) {
-      Alert.alert(t('common.error'), t('componentsEvents.newsletterEmailRequired'));
+      showError(t('common.error'), t('componentsEvents.newsletterEmailRequired'));
       return;
     }
     setSubmitting(true);
@@ -65,10 +67,10 @@ export default function NewsletterTab({ eventId, categoryName }: NewsletterTabPr
         name: name.trim() || undefined,
       });
       setSubscribed(true);
-      Alert.alert(t('common.success'), t('componentsEvents.newsletterSubscribed'));
+      toastSuccess(t('componentsEvents.newsletterSubscribed'));
     } catch (error: any) {
-      const msg = error?.response?.data?.detail || error?.response?.data?.message || t('componentsEvents.newsletterSubscribeError');
-      Alert.alert(t('common.error'), msg);
+      const msg = getApiErrorMessage(error, t, { fallbackKey: 'componentsEvents.newsletterSubscribeError' }).message;
+      showError(t('common.error'), msg);
     } finally {
       setSubmitting(false);
     }

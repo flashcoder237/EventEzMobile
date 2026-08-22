@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors, FontFamily, Spacing, BorderRadius } from '../../constants/theme';
 import { authAPI } from '../../api';
@@ -16,6 +18,8 @@ interface VerificationBannerProps {
 export default function VerificationBanner({ compact = false }: VerificationBannerProps) {
   const { user, isAuthenticated } = useAuth();
   const { t } = useTranslation();
+  const { showError } = useAlert();
+  const { toastSuccess } = useFeedback();
   const [sending, setSending] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
@@ -31,12 +35,9 @@ export default function VerificationBanner({ compact = false }: VerificationBann
     setSending(true);
     try {
       await authAPI.resendVerificationEmail(user.email);
-      Alert.alert(t('componentsAuth.verifyEmailSentTitle'), t('componentsAuth.verifyEmailSentMsg'));
+      toastSuccess(t('componentsAuth.verifyEmailSentMsg'));
     } catch (err: any) {
-      Alert.alert(
-        t('common.error'),
-        err?.response?.data?.detail || t('componentsAuth.verifyResendError'),
-      );
+      showError(t('common.error'), t('componentsAuth.verifyResendError'));
     } finally {
       setSending(false);
     }

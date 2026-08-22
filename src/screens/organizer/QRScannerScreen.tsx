@@ -60,6 +60,7 @@ import {
   TextStyles,
   Shadows,
 } from '../../constants/theme';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'QRScanner'>;
@@ -507,9 +508,13 @@ export default function QRScannerScreen() {
       if (error.response?.status === 404) {
         message = t('organizer.qrScanner.noTicketFound');
       } else if (error.response?.status === 400) {
-        message = error.response.data?.detail || error.response.data?.message || t('organizer.qrScanner.ticketUsed');
+        message = getApiErrorMessage(error, t, {
+          fallbackKey: 'organizer.qrScanner.ticketUsed',
+        }).message;
       } else if (error.response?.data?.detail) {
-        message = error.response.data.detail;
+        message = getApiErrorMessage(error, t, {
+          fallbackKey: 'organizer.qrScanner.qrInvalid',
+        }).message;
       }
 
       setScanResult({ success: false, message });
@@ -616,7 +621,9 @@ export default function QRScannerScreen() {
         alreadyCheckedIn: false,
       } : null);
     } catch (error: any) {
-      showError(t('common.error'), error.response?.data?.detail || t('organizer.qrScanner.checkInError'));
+      showError(t('common.error'), getApiErrorMessage(error, t, {
+        fallbackKey: 'organizer.qrScanner.checkInError',
+      }).message);
     } finally {
       setProcessing(false);
     }

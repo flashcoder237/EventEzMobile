@@ -20,7 +20,6 @@ import {
   FlatList,
   ActivityIndicator,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +27,8 @@ import { messagesAPI } from '../../api';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 
+import { useFeedback } from '../../contexts/FeedbackContext';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 export interface GroupAdminParticipant {
   id: number;
   email: string;
@@ -71,7 +72,8 @@ export default function GroupAdminPanel({
 }: GroupAdminPanelProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
-  const { showSuccess, showError } = useAlert();
+  const { showSuccess, showError, showConfirm } = useAlert();
+  const { toastSuccess } = useFeedback();
 
   const [mode, setMode] = useState<'all' | 'organizer_only' | 'admins_only'>(initialPostingMode);
   const [savingMode, setSavingMode] = useState(false);
@@ -114,52 +116,46 @@ export default function GroupAdminPanel({
     try {
       await messagesAPI.setPostingMode(conversationId, newMode);
       setMode(newMode);
-      showSuccess(t('componentsMessages.groupPermissionsUpdated'), '');
+      toastSuccess(t('componentsMessages.groupPermissionsUpdated'));
       onMutationApplied?.();
     } catch (err: any) {
-      showError(t('common.error'), err?.response?.data?.detail || t('componentsMessages.groupPermissionsError'));
+      showError(t('common.error'), getApiErrorMessage(err, t, { fallbackKey: 'componentsMessages.groupPermissionsError' }).message);
     } finally {
       setSavingMode(false);
     }
   };
 
   const handleRemoveParticipant = (userId: number, displayName: string) => {
-    // Confirmation native (l'AlertContext n'est pas dispo ici — on utilise
-    // l'API utilitaire `RN.Alert` via le pattern existant du panel). Pour
-    // garder le composant indépendant on inline ici avec un confirm.
-    Alert.alert(
+    // Action destructive et irréversible → modale de confirmation du design
+    // system (cf. échelle de retour dans FeedbackContext).
+    showConfirm(
       t('componentsMessages.groupRemoveConfirmTitle'),
       t('componentsMessages.groupRemoveConfirmBody', { name: displayName }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('componentsMessages.groupRemoveAction'),
-          style: 'destructive',
-          onPress: async () => {
-            setRemovingId(userId);
-            try {
-              await messagesAPI.removeParticipant(String(conversationId), String(userId));
-              setRemovedIds(prev => {
-                const next = new Set(prev);
-                next.add(userId);
-                return next;
-              });
-              showSuccess(
-                t('componentsMessages.groupRemoveSuccess'),
-                t('componentsMessages.groupRemoveSuccessBody', { name: displayName }),
-              );
-              onMutationApplied?.();
-            } catch (err: any) {
-              showError(
-                t('common.error'),
-                err?.response?.data?.detail || t('componentsMessages.groupRemoveError'),
-              );
-            } finally {
-              setRemovingId(null);
-            }
-          },
-        },
-      ],
+      async () => {
+        setRemovingId(userId);
+        try {
+          await messagesAPI.removeParticipant(String(conversationId), String(userId));
+          setRemovedIds(prev => {
+            const next = new Set(prev);
+            next.add(userId);
+            return next;
+          });
+          showSuccess(
+            t('componentsMessages.groupRemoveSuccess'),
+            t('componentsMessages.groupRemoveSuccessBody', { name: displayName }),
+          );
+          onMutationApplied?.();
+        } catch (err: any) {
+          showError(
+            t('common.error'),
+            getApiErrorMessage(err, t, { fallbackKey: 'componentsMessages.groupRemoveError' }).message,
+          );
+        } finally {
+          setRemovingId(null);
+        }
+      },
+      undefined,
+      { confirmText: t('common.remove', { defaultValue: 'Retirer' }), destructive: true },
     );
   };
 
@@ -186,7 +182,7 @@ export default function GroupAdminPanel({
       }
       onMutationApplied?.();
     } catch (err: any) {
-      showError(t('common.error'), err?.response?.data?.detail || t('componentsMessages.groupActionImpossible'));
+      showError(t('common.error'), getApiErrorMessage(err, t, { fallbackKey: 'componentsMessages.groupActionImpossible' }).message);
     } finally {
       setTogglingId(null);
     }

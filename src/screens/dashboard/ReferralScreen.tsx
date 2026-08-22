@@ -5,11 +5,11 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Alert,
   Share,
   RefreshControl,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,6 +25,7 @@ import { Colors, FontFamily, Spacing, BorderRadius, Shadows } from '../../consta
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { StaggeredItem } from '../../components/ui/Animations';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -56,6 +57,7 @@ export default function ReferralScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { t, i18n } = useTranslation();
+  const { toastError, toastSuccess } = useFeedback();
   const numberLocale = i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR';
   const { currency: platformCurrency } = useCommissionConfig();
   const [codes, setCodes] = useState<ReferralCode[]>([]);
@@ -63,6 +65,24 @@ export default function ReferralScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+
+  // Génère un code de parrainage général. L'écran ne faisait que LIRE des codes
+  // existants — sans aucun point d'entrée pour en créer un, l'utilisateur restait
+  // bloqué sur « Pas de code ». Le backend auto-génère la chaîne à la création.
+  const handleGenerateCode = async () => {
+    if (generating) return;
+    setGenerating(true);
+    try {
+      await referralsAPI.createCode({ code_type: 'general' });
+      await fetchData();
+      toastSuccess(t('referralForm.generateSuccess'));
+    } catch (error: any) {
+      toastError(getApiErrorMessage(error, t, { fallbackKey: 'referralForm.generateError' }).message);
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
@@ -111,7 +131,7 @@ export default function ReferralScreen() {
       setTimeout(() => setCopiedId(null), 2000);
     } catch (error) {
       if (__DEV__) console.error('Erreur copie:', error);
-      Alert.alert(t('common.error'), t('referralForm.copyError'));
+      toastError(t('referralForm.copyError'));
     }
   };
 
@@ -410,6 +430,19 @@ export default function ReferralScreen() {
             <Text style={[styles.emptySubtext, { color: colors.gray500 }]}>
               {t('referralForm.emptySubtitle')}
             </Text>
+            <TouchableOpacity
+              style={[styles.generateBtn, { backgroundColor: colors.primary, opacity: generating ? 0.6 : 1 }]}
+              onPress={handleGenerateCode}
+              disabled={generating}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={t('referralForm.generateCta')}
+            >
+              <Ionicons name="add-circle-outline" size={18} color={Colors.white} />
+              <Text style={styles.generateBtnText}>
+                {generating ? t('referralForm.generating') : t('referralForm.generateCta')}
+              </Text>
+            </TouchableOpacity>
           </View>
         }
         renderItem={renderCodeCard}
@@ -817,5 +850,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 19,
     maxWidth: 260,
+  },
+  generateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.xl,
+  },
+  generateBtnText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 14,
+    color: Colors.white,
   },
 });

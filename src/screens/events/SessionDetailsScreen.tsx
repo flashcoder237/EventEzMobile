@@ -119,7 +119,9 @@ export default function SessionDetailsScreen() {
       }
     } catch (err: any) {
       if (__DEV__) console.error('[SessionDetails] Error fetching session:', err);
-      showError(t('common.error'), t('sessionDetails.loadError'));
+      // Pas de modale : l'ecran rend deja son propre etat « introuvable »
+      // (en-tete + retour). La modale n'ajoutait qu'une interruption a
+      // acquitter par-dessus un ecran qui disait deja la meme chose.
     } finally {
       setIsLoading(false);
     }

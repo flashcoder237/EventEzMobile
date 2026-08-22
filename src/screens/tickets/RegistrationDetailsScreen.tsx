@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import QRCode from 'react-native-qrcode-svg';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 import { registrationsAPI, ticketTransfersAPI, paymentsAPI } from '../../api';
 import { getVerificationUrl, getEventInviteUrl, WEB_BASE_URL } from '../../constants/urls';
@@ -35,6 +37,7 @@ import {
 } from '../../constants/theme';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   EditorialCanvas,
@@ -61,6 +64,7 @@ export default function RegistrationDetailsScreen() {
   const route = useRoute<RegistrationDetailsRouteProp>();
   const { registrationId } = route.params;
   const { showError, showSuccess, showConfirm } = useAlert();
+  const { toastSuccess, toastError } = useFeedback();
   const { colors, isDark } = useTheme();
 
   const [registration, setRegistration] = useState<Registration | null>(null);
@@ -75,6 +79,28 @@ export default function RegistrationDetailsScreen() {
   const { hasReminder, toggleReminder, permissionGranted } = useEventReminders();
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+
+  // Ref vers le QR affiché : `toDataURL()` en fournit le PNG base64 à embarquer
+  // dans le PDF, sans dépendre d'un générateur de QR distant.
+  const qrSvgRef = useRef<any>(null);
+
+  const getQrDataUrl = useCallback((): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const ref = qrSvgRef.current;
+      if (!ref || typeof ref.toDataURL !== 'function') {
+        resolve(null);
+        return;
+      }
+      try {
+        ref.toDataURL((data: string) => {
+          resolve(data ? `data:image/png;base64,${data}` : null);
+        });
+      } catch {
+        resolve(null);
+      }
+    });
+  }, []);
 
   // Sessions auxquelles ce billet donne effectivement accès, calculées
   // côté backend à partir des `included_sessions` du ticket_type acheté
@@ -157,7 +183,9 @@ export default function RegistrationDetailsScreen() {
       }
     } catch (error) {
       if (__DEV__) console.error('Error fetching registration:', error);
-      showError(t('common.error'), t('registrationDetails.loadError'));
+      // Pas de modale : l'ecran rend deja son propre etat « introuvable »
+      // (en-tete + retour). La modale n'ajoutait qu'une interruption a
+      // acquitter par-dessus un ecran qui disait deja la meme chose.
     } finally {
       setLoading(false);
     }
@@ -215,6 +243,89 @@ export default function RegistrationDetailsScreen() {
     }
   };
 
+  /**
+   * Export PDF du récapitulatif d'inscription.
+   *
+   * Cet écran active `useTicketDisplayGuard()` (anti-capture) : l'utilisateur ne
+   * PEUT PAS faire de capture d'écran de son récap. Sans export, il n'avait donc
+   * aucun moyen d'emporter/imprimer ses infos — remonté en test. Le bouton de
+   * partage de l'en-tête reste, lui, volontairement un partage du lien PUBLIC de
+   * l'événement (boucle virale), pas du récap privé.
+   */
+  const escapeHtml = (v: unknown): string =>
+    String(v ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+  const buildRecapHTML = (qrDataUrl: string): string => {
+    const event = registration?.event_detail || (typeof registration?.event === 'object' ? registration?.event : null);
+    const rows: Array<[string, string]> = [];
+    if (event?.start_date) {
+      rows.push([t('registrationDetails.pdfDate'), `${formatDate(event.start_date)} - ${formatTime(event.start_date)}`]);
+    }
+    const place = event?.location_name || event?.location_city;
+    if (place) rows.push([t('registrationDetails.pdfPlace'), String(place)]);
+    if (registration?.reference_code) rows.push([t('registrationDetails.pdfReference'), registration.reference_code]);
+    if (registration?.status) rows.push([t('registrationDetails.pdfStatus'), String(registration.status)]);
+
+    const rowsHtml = rows
+      .map(
+        ([k, v]) =>
+          `<div class="row"><span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(v)}</span></div>`,
+      )
+      .join('');
+
+    return `
+      <html><head><meta charset="utf-8" />
+      <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: #111827; padding: 40px; }
+        .eyebrow { color: #FF6B6B; letter-spacing: 3px; font-size: 11px; font-weight: 700; }
+        h1 { font-size: 28px; margin: 6px 0 24px; letter-spacing: -0.5px; }
+        .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #E5E7EB; }
+        .k { color: #6B7280; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        .v { font-weight: 600; font-size: 13px; text-align: right; }
+        .qr { text-align: center; margin-top: 28px; }
+        .qr img { width: 200px; height: 200px; }
+        .hint { color: #6B7280; font-size: 11px; margin-top: 8px; }
+        .footer { margin-top: 32px; color: #9CA3AF; font-size: 10px; text-align: center; }
+      </style></head>
+      <body>
+        <div class="eyebrow">${escapeHtml(t('registrationDetails.pdfEyebrow'))}</div>
+        <h1>${escapeHtml(event?.title || t('registrationDetails.eventFallback'))}</h1>
+        ${rowsHtml}
+        ${qrDataUrl ? `<div class="qr"><img src="${qrDataUrl}" /><div class="hint">${escapeHtml(t('registrationDetails.pdfQrHint'))}</div></div>` : ''}
+        <div class="footer">EventEz</div>
+      </body></html>
+    `;
+  };
+
+  const handleExportPDF = async () => {
+    if (!registration || exportingPdf) return;
+    setExportingPdf(true);
+    try {
+      const qrDataUrl = await getQrDataUrl();
+      const html = buildRecapHTML(qrDataUrl || '');
+      const { uri } = await Print.printToFileAsync({ html });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: t('registrationDetails.pdfShareDialog'),
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        showError(t('common.error'), t('registrationDetails.pdfError'));
+      }
+    } catch (error) {
+      if (__DEV__) console.error('[RegistrationDetails] PDF export failed:', error);
+      showError(t('common.error'), t('registrationDetails.pdfError'));
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   const handleToggleReminder = async () => {
     if (!registration) return;
 
@@ -245,7 +356,7 @@ export default function RegistrationDetailsScreen() {
       async () => {
         try {
           await registrationsAPI.cancelRegistration(registrationId);
-          showSuccess(t('common.success'), t('registrationDetails.cancelSuccess'));
+          toastSuccess(t('registrationDetails.cancelSuccess'));
           navigation.goBack();
         } catch (error) {
           showError(t('common.error'), t('registrationDetails.cancelError'));
@@ -387,6 +498,18 @@ export default function RegistrationDetailsScreen() {
                 />
               </TouchableOpacity>
             )}
+            <TouchableOpacity
+              style={styles.headerIconBtn}
+              onPress={handleExportPDF}
+              disabled={exportingPdf}
+              accessibilityLabel={t('registrationDetails.pdfA11y')}
+            >
+              {exportingPdf ? (
+                <ActivityIndicator size="small" color={colors.gray700} />
+              ) : (
+                <Ionicons name="download-outline" size={20} color={colors.gray700} />
+              )}
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerIconBtn}
               onPress={handleShare}
@@ -556,7 +679,7 @@ export default function RegistrationDetailsScreen() {
                       label={t('registrationDetails.joinNow')}
                       onPress={() => {
                         Linking.openURL(event.online_url!).catch(() => {
-                          showError(t('common.error'), t('registrationDetails.openLinkError'));
+                          toastError(t('registrationDetails.openLinkError'));
                         });
                       }}
                       tone="primary"
@@ -617,6 +740,9 @@ export default function RegistrationDetailsScreen() {
                       size={QR_SIZE}
                       color={isDark ? '#4C1D95' : '#5B21B6'}
                       backgroundColor="#FFFFFF"
+                      getRef={(c: any) => {
+                        qrSvgRef.current = c;
+                      }}
                     />
                   </View>
                   <View style={[styles.qrCorner, styles.qrCornerTL, { borderColor: colors.primary }]} />

@@ -38,6 +38,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -85,10 +86,22 @@ export default function FollowingUsersScreen() {
   const fetchFollows = useCallback(async () => {
     try {
       const res = await usersAPI.getFollowingUsers();
-      const data: UserFollow[] = res.data?.results || res.data || [];
-      setFollows(Array.isArray(data) ? data : []);
+      const raw: any[] = res.data?.results || res.data || [];
+      // Le backend (UserFollowSerializer) sérialise `following` comme un ID FK
+      // brut ; l'objet enrichi (id, nom, avatar…) est dans `following_details`.
+      // On normalise ici pour que tout l'écran (affichage, unfollow, navigation)
+      // manipule un objet. Sans ça, `following.id` valait undefined → on ouvrait
+      // OrganizerProfile avec "undefined" → « impossible de charger l'organisateur ».
+      const data: UserFollow[] = (Array.isArray(raw) ? raw : []).map((r) => ({
+        ...r,
+        following:
+          r.following_details && typeof r.following_details === 'object'
+            ? r.following_details
+            : r.following,
+      }));
+      setFollows(data.filter((f) => f.following && typeof f.following === 'object'));
     } catch (error: any) {
-      showError(t('common.error'), error.response?.data?.detail || t('profile.loadFollowsError'));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'profile.loadFollowsError' }).message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -114,7 +127,7 @@ export default function FollowingUsersScreen() {
       await usersAPI.unfollowUser(userId);
     } catch (error: any) {
       setFollows(prev);
-      showError(t('common.error'), error.response?.data?.detail || t('profile.unfollowError'));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'profile.unfollowError' }).message);
     } finally {
       setUnfollowingId(null);
     }

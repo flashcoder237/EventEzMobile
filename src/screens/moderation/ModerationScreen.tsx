@@ -23,7 +23,9 @@ import { RootStackParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import ErrorState from '../../components/ui/ErrorState';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import { AccessDenied, WellDone, AnimatedIllustration } from '../../components/illustrations';
 import Badge from '../../components/ui/Badge';
@@ -37,6 +39,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent, WIDE_MAX } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -78,12 +81,15 @@ export default function ModerationScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { showSuccess, showError } = useAlert();
+  const { toastSuccess } = useFeedback();
   const { colors, isDark } = useTheme();
   const biometric = useBiometricConfirm();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [events, setEvents] = useState<PendingEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  /** Le chargement de la file a échoué (≠ file réellement vide). */
+  const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
@@ -113,12 +119,17 @@ export default function ModerationScreen() {
 
   const fetchPendingEvents = async () => {
     try {
+      setLoadFailed(false);
       const response = await eventsAPI.getPendingValidation();
       const data = response.data?.results || response.data || [];
       setEvents(data);
     } catch (error: any) {
       if (__DEV__) console.error('Error fetching pending events:', error);
-      showError(t('common.error'), t('moderation.loadError'));
+      // Pas de modale : on marque l'échec pour que l'écran affiche un état
+      // d'erreur avec Réessayer. Sinon `renderEmpty()` affichait l'illustration
+      // « bravo, file vide » — un modérateur pouvait croire qu'il n'avait plus
+      // rien à traiter alors que le chargement avait simplement échoué.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -140,10 +151,10 @@ export default function ModerationScreen() {
     setActionLoading(eventId);
     try {
       await eventsAPI.validateEvent(eventId);
-      showSuccess(t('common.success'), t('moderation.validateSuccess'));
+      toastSuccess(t('moderation.validateSuccess'));
       setEvents(prev => prev.filter(e => e.id !== eventId));
     } catch (error: any) {
-      showError(t('common.error'), error.response?.data?.detail || t('moderation.validateError'));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'moderation.validateError' }).message);
     } finally {
       setActionLoading(null);
     }
@@ -164,13 +175,13 @@ export default function ModerationScreen() {
     setActionLoading(selectedEvent.id);
     try {
       await eventsAPI.rejectEvent(selectedEvent.id, rejectionReason);
-      showSuccess(t('common.success'), t('moderation.rejectSuccess'));
+      toastSuccess(t('moderation.rejectSuccess'));
       setEvents(prev => prev.filter(e => e.id !== selectedEvent.id));
       setShowRejectModal(false);
       setSelectedEvent(null);
       setRejectionReason('');
     } catch (error: any) {
-      showError(t('common.error'), error.response?.data?.detail || t('moderation.rejectError'));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'moderation.rejectError' }).message);
     } finally {
       setActionLoading(null);
     }
@@ -278,7 +289,7 @@ export default function ModerationScreen() {
       setSelectedEvent(null);
       setChangesNote('');
     } catch (error: any) {
-      showError(t('common.error'), error.response?.data?.detail || t('moderation.changesError'));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'moderation.changesError' }).message);
     } finally {
       setActionLoading(null);
     }
@@ -385,7 +396,13 @@ export default function ModerationScreen() {
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     if (diffDays === 0) return t('common.today');
     if (diffDays === 1) return t('common.yesterday');
-    if (diffDays < 7) return `${t('time.ago', { defaultValue: 'il y a' })} ${diffDays} ${t('common.day')}`;
+    if (diffDays < 7) {
+      // `time.ago` = « Il y a {{time}} » (template complet) : on lui passe la
+      // durée dans {{time}}, sinon le placeholder s'affichait littéralement
+      // (« IL Y A {{TIME}} 2 J » signalé en test).
+      const duration = `${diffDays} ${t('common.day')}`;
+      return t('time.ago', { time: duration, defaultValue: `Il y a ${duration}` });
+    }
     return formatDate(dateString);
   };
 
@@ -629,6 +646,13 @@ export default function ModerationScreen() {
   };
 
   const renderEmpty = () => (
+    loadFailed ? (
+      <ErrorState
+        withCard
+        message={t('moderation.loadError')}
+        onRetry={fetchPendingEvents}
+      />
+    ) :
     <View style={styles.emptyContainer}>
       <AnimatedIllustration entry="bounce" idle="breathe">
         <WellDone color="#10B981" size={160} />

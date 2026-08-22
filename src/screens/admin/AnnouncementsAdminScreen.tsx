@@ -40,6 +40,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
+import ErrorState from '../../components/ui/ErrorState';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -67,22 +68,26 @@ function AnnouncementsAdminContent() {
 
   const [items, setItems] = useState<AnnouncementAdmin[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchItems = useCallback(async (showSpinner = false) => {
     if (showSpinner) setLoading(true);
     try {
+      setLoadFailed(false);
       const res = await announcementsAPI.list();
       const data = res.data?.results ?? res.data ?? [];
       setItems(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      const detail = error?.response?.data?.detail;
-      showError(t('common.error'), detail || t('admin.announcements.list.loadError'));
+    } catch {
+      // Plus de modale : la liste affiche son propre état d'erreur avec Réessayer.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [showError]);
+  }, []);
+
+  const retryFetch = useCallback(() => { fetchItems(true); }, [fetchItems]);
 
   // Refresh à chaque retour sur l'écran (depuis le form)
   useFocusEffect(
@@ -217,13 +222,21 @@ function AnnouncementsAdminContent() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
           }
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Ionicons name="megaphone-outline" size={48} color={colors.gray400} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('admin.announcements.list.emptyTitle')}</Text>
-              <Text style={[styles.emptyMessage, { color: colors.gray500 }]}>
-                {t('admin.announcements.list.emptyMessage')}
-              </Text>
-            </View>
+            loading ? null : loadFailed ? (
+              <ErrorState
+                withCard
+                message={t('admin.announcements.list.loadError')}
+                onRetry={retryFetch}
+              />
+            ) : (
+              <View style={styles.empty}>
+                <Ionicons name="megaphone-outline" size={48} color={colors.gray400} />
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('admin.announcements.list.emptyTitle')}</Text>
+                <Text style={[styles.emptyMessage, { color: colors.gray500 }]}>
+                  {t('admin.announcements.list.emptyMessage')}
+                </Text>
+              </View>
+            )
           }
         />
       )}

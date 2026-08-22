@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   FlatList,
   TouchableOpacity,
-  Alert,
   RefreshControl,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -18,6 +17,7 @@ import { invitationsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { InvitationsScreenSkeleton } from '../../components/ui/Skeleton';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontFamily, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
@@ -44,6 +44,7 @@ export default function InvitationsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
+  const { toastSuccess, showError, showConfirm } = useFeedback();
   const [received, setReceived] = useState<Invitation[]>([]);
   const [sent, setSent] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,40 +91,35 @@ export default function InvitationsScreen() {
     setActionLoading(id);
     try {
       await invitationsAPI.accept(id);
-      Alert.alert(t('invitations.successLabel'), t('invitations.acceptedSuccess'));
+      toastSuccess(t('invitations.acceptedSuccess'));
       fetchData();
     } catch (error) {
       if (__DEV__) console.error('Erreur accept invitation:', error);
-      Alert.alert(t('common.error'), t('invitations.acceptError'));
+      showError(t('common.error'), t('invitations.acceptError'));
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleDecline = async (id: string) => {
-    Alert.alert(
-      'Refuser l\'invitation',
-      'Êtes-vous sûr de vouloir refuser cette invitation ?',
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('invitations.declineButton'),
-          style: 'destructive',
-          onPress: async () => {
-            setActionLoading(id);
-            try {
-              await invitationsAPI.decline(id);
-              Alert.alert(t('invitations.successLabel'), t('invitations.declinedSuccess'));
-              fetchData();
-            } catch (error) {
-              if (__DEV__) console.error('Erreur decline invitation:', error);
-              Alert.alert(t('common.error'), t('invitations.declineError'));
-            } finally {
-              setActionLoading(null);
-            }
-          },
-        },
-      ]
+    showConfirm(
+      t('invitations.declineConfirmTitle'),
+      t('invitations.declineConfirmMessage'),
+      async () => {
+        setActionLoading(id);
+        try {
+          await invitationsAPI.decline(id);
+          toastSuccess(t('invitations.declinedSuccess'));
+          fetchData();
+        } catch (error) {
+          if (__DEV__) console.error('Erreur decline invitation:', error);
+          showError(t('common.error'), t('invitations.declineError'));
+        } finally {
+          setActionLoading(null);
+        }
+      },
+      undefined,
+      { confirmText: t('invitations.decline', { defaultValue: 'Refuser' }), destructive: true },
     );
   };
 

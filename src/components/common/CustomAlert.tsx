@@ -1,28 +1,44 @@
 /**
  * CustomAlert — Editorial Bottom Sheet
  *
- * Direction visuelle : éditorial neo-brutalist (style guide EventEz)
- *  - Eyebrow uppercase tracking 1.8 + display title large
- *  - Icon hero gradient + ring animée
- *  - Watermark numéral discret (signature du type)
- *  - Boutons : pill gradient pour primary, ghost pour cancel
+ * ⚠️ RÉSERVÉ AUX INTERRUPTIONS LÉGITIMES. Une modale bloquante ne se justifie
+ * que si l'une de ces conditions est vraie :
+ *   1. L'utilisateur doit CHOISIR et l'app ne peut pas continuer sans réponse.
+ *   2. L'action est DESTRUCTIVE et irréversible.
+ *   3. Le message engage de l'ARGENT ou du JURIDIQUE (paiement, CGU, payout).
+ *   4. Une erreur BLOQUE le flux et doit être acquittée.
  *
- * Animations (Reanimated) — préservées :
- *  - sheet spring entrée + rotation initiale
- *  - backdrop fade
- *  - icon rings cascade
+ * Sinon → `useFeedback().toastSuccess/toastError` (discret, non bloquant) ou un
+ * message inline sous le champ. Cf. `src/contexts/FeedbackContext.tsx`.
+ *
+ * ── Poids visuel (prop `weight`) ────────────────────────────────────────────
+ * Le squelette s'adapte à la gravité au lieu d'être identique partout — c'est
+ * le retour testeur « ces pop-ups font trop template » :
+ *   • `compact`  : info/succès simple — icône inline, titre 17px, pas de
+ *                  watermark, backdrop léger.
+ *   • `standard` : warning/confirm — icône 44px centrée, titre 22px.
+ *   • `critical` : destructif/argent — plein traitement éditorial (ring héro
+ *                  76px, watermark, pill gradient), backdrop le plus dense,
+ *                  fermeture au tap sur le fond DÉSACTIVÉE.
+ *
+ * L'opacité du backdrop porte elle-même la gravité : elle se ressent avant
+ * même d'avoir lu un mot.
+ *
+ * Animations (Reanimated) : spring d'entrée, fade du backdrop, cascade des
+ * anneaux d'icône — le tout neutralisé sous `prefers-reduced-motion`.
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
   StyleSheet,
   Modal,
+  ScrollView,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import Reanimated, {
   useSharedValue,
@@ -44,11 +60,15 @@ import {
   TOUCH_OPACITY,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { FORM_MAX } from '../../constants/layout';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type AlertType = 'success' | 'error' | 'warning' | 'info' | 'confirm';
+
+/** Poids visuel du sheet. Cf. doc d'en-tête. */
+export type AlertWeight = 'compact' | 'standard' | 'critical';
 
 interface AlertButton {
   text: string;
@@ -63,25 +83,95 @@ interface CustomAlertProps {
   message?: string;
   buttons?: AlertButton[];
   onClose: () => void;
+  /** Force le poids visuel. Par défaut déduit du `type` et du nb de boutons. */
+  weight?: AlertWeight;
+  /**
+   * Eyebrow contextuel (« PAIEMENT », « BILLETTERIE »…). Remplace le libellé
+   * générique du type. Un eyebrow qui répète le titre (« ERREUR » au-dessus de
+   * « Erreur ») n'apporte rien : préférer le domaine d'origine du message.
+   */
+  domain?: string;
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const ACCENT: Record<AlertType, string> = {
-  success: '#10B981',
-  error: '#EF4444',
-  warning: '#F59E0B',
-  info: '',
-  confirm: '',
-};
+/**
+ * Accent par type, résolu depuis le THÈME (et non plus en dur).
+ *
+ * Avant : `#10B981` / `#EF4444` / `#F59E0B` en dur — les valeurs Tailwind par
+ * défaut, identiques à n'importe quelle app, et surtout inchangées en thème
+ * sombre où elles vibrent sur le fond `#1E293B`. `DarkColors` embarque déjà des
+ * équivalents désaturés (`#34D399`, `#F87171`, `#FBBF24`) : on les utilise.
+ */
+function accentFor(type: AlertType, colors: any): string {
+  switch (type) {
+    case 'success': return colors.success;
+    case 'error': return colors.error;
+    case 'warning': return colors.warning;
+    default: return colors.primary;
+  }
+}
 
-const ACCENT_DARK: Record<AlertType, string> = {
-  success: '#059669',
-  error: '#DC2626',
-  warning: '#D97706',
-  info: '',
-  confirm: '',
-};
+function accentDarkFor(type: AlertType, colors: any): string {
+  switch (type) {
+    case 'success': return colors.successDark || colors.success;
+    case 'error': return colors.error;
+    case 'warning': return colors.warningDark || colors.warning;
+    default: return colors.primaryDark || colors.primary;
+  }
+}
+
+/** Spécification visuelle par poids. */
+const WEIGHT_SPEC = {
+  compact: {
+    backdrop: 0.35,
+    radius: 26,
+    titleSize: 17,
+    titleTracking: -0.2,
+    titleLineHeight: 23,
+    iconSize: 20,
+    showWatermark: false,
+    showHeroIcon: false,
+    gradientPrimary: false,
+    dismissOnBackdrop: true,
+  },
+  standard: {
+    backdrop: 0.5,
+    radius: 28,
+    titleSize: 22,
+    titleTracking: -0.5,
+    titleLineHeight: 28,
+    iconSize: 44,
+    showWatermark: false,
+    showHeroIcon: true,
+    gradientPrimary: false,
+    dismissOnBackdrop: true,
+  },
+  critical: {
+    backdrop: 0.62,
+    radius: 32,
+    titleSize: 26,
+    titleTracking: -0.9,
+    titleLineHeight: 32,
+    iconSize: 76,
+    showWatermark: true,
+    showHeroIcon: true,
+    gradientPrimary: true,
+    // Une action destructive/argent ne se ferme pas par inadvertance.
+    dismissOnBackdrop: false,
+  },
+} as const;
+
+/**
+ * Poids par défaut si l'appelant n'en impose pas.
+ * Un choix (plusieurs boutons) pèse au moins `standard`; un simple accusé de
+ * réception info/succès reste `compact`.
+ */
+function inferWeight(type: AlertType, buttonCount: number): AlertWeight {
+  if (buttonCount > 1) return type === 'error' ? 'critical' : 'standard';
+  if (type === 'success' || type === 'info') return 'compact';
+  return 'standard';
+}
 
 const ICON: Record<AlertType, keyof typeof Ionicons.glyphMap> = {
   success: 'checkmark',
@@ -110,10 +200,14 @@ const WATERMARK: Record<AlertType, string> = {
 
 // ─── Animation constants ─────────────────────────────────────────────────────
 
-const { height: SCREEN_H } = Dimensions.get('window');
-const SPRING_IN = { damping: 17, stiffness: 190, mass: 0.9 } as const;
-const SPRING_OUT = { damping: 24, stiffness: 300, mass: 0.8 } as const;
-const EXIT_DELAY = 290;
+// `damping: 22` = quasi critique, sans rebond. Une alerte apparaît sur un tap :
+// aucun élan n'a été transmis, donc aucun rebond à restituer. Le rebond est
+// réservé à l'icône — une modale qui rebondit pour annoncer un échec de
+// paiement envoie un signal de légèreté déplacé.
+const SPRING_IN = { damping: 22, stiffness: 220, mass: 0.9 } as const;
+const SPRING_OUT = { damping: 26, stiffness: 320, mass: 0.8 } as const;
+// Sortie plus rapide que l'entrée.
+const EXIT_DELAY = 200;
 
 // ─── Component ──────────────────────────────────────────────────────
 
@@ -124,77 +218,151 @@ export default function CustomAlert({
   message,
   buttons = [{ text: 'OK' }],
   onClose,
+  weight,
+  domain,
 }: CustomAlertProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const reducedMotion = useReducedMotion();
+  // `useWindowDimensions` et NON `Dimensions.get()` figé au chargement du
+  // module : sinon la hauteur est périmée après rotation / Split View iPad et
+  // le sheet sort de l'écran de travers (cf. audit iPad).
+  const { height: SCREEN_H } = useWindowDimensions();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [modalOpen, setModalOpen] = useState(false);
 
-  const sheetY = useSharedValue(SCREEN_H);
-  const sheetRotate = useSharedValue(-0.012);
-  const backdropAlp = useSharedValue(0);
-  const outerScale = useSharedValue(0);
-  const innerScale = useSharedValue(0);
+  const resolvedWeight: AlertWeight = weight ?? inferWeight(type, buttons.length);
+  const spec = WEIGHT_SPEC[resolvedWeight];
 
-  const accent = ACCENT[type] || colors.primary;
-  const accentDark = ACCENT_DARK[type] || colors.primaryDark;
+  const sheetY = useSharedValue(SCREEN_H);
+  const backdropAlp = useSharedValue(0);
+  // Les anneaux démarrent à 0.9 et non 0 : rien dans le monde réel n'apparaît
+  // à partir de rien. Un pop depuis scale(0) est une signature de composant
+  // générique.
+  const outerScale = useSharedValue(0.9);
+  const innerScale = useSharedValue(0.9);
+
+  const accent = accentFor(type, colors);
+  const accentDark = accentDarkFor(type, colors);
+
+  // Opacité du sheet : sert de feedback d'apparition en reduced-motion, où l'on
+  // n'anime aucune translation.
+  const sheetAlp = useSharedValue(0);
 
   useEffect(() => {
     if (visible) {
-      sheetY.value = SCREEN_H;
-      sheetRotate.value = -0.012;
       backdropAlp.value = 0;
-      outerScale.value = 0;
-      innerScale.value = 0;
+      outerScale.value = 0.9;
+      innerScale.value = 0.9;
+
+      if (reducedMotion) {
+        // Aucune translation : un spring sur toute la hauteur d'écran est
+        // précisément le déclencheur vestibulaire que `prefers-reduced-motion`
+        // existe pour éviter. Seule l'opacité fait le travail.
+        sheetY.value = 0;
+        sheetAlp.value = 0;
+      } else {
+        sheetY.value = SCREEN_H;
+        sheetAlp.value = 1;
+      }
 
       setModalOpen(true);
+      return;
+    }
 
-      const id = setTimeout(() => {
-        sheetY.value = withSpring(0, SPRING_IN);
-        sheetRotate.value = withSpring(0, { damping: 14, stiffness: 180 });
-        backdropAlp.value = withTiming(1, { duration: 300, easing: Easing.out(Easing.ease) });
-        outerScale.value = withDelay(130, withSpring(1, { damping: 10, stiffness: 210 }));
-        innerScale.value = withDelay(185, withSpring(1, { damping: 8, stiffness: 230 }));
-      }, 10);
-
-      return () => clearTimeout(id);
+    if (reducedMotion) {
+      sheetAlp.value = withTiming(0, { duration: 120 });
+      backdropAlp.value = withTiming(0, { duration: 120 });
     } else {
       sheetY.value = withSpring(SCREEN_H, SPRING_OUT);
-      sheetRotate.value = withTiming(-0.008, { duration: 220 });
-      backdropAlp.value = withTiming(0, { duration: 220 });
-      outerScale.value = withTiming(0, { duration: 180 });
-      innerScale.value = withTiming(0, { duration: 140 });
-
-      const id = setTimeout(() => setModalOpen(false), EXIT_DELAY);
-      return () => clearTimeout(id);
+      backdropAlp.value = withTiming(0, { duration: 180 });
+      outerScale.value = withTiming(0.9, { duration: 140 });
+      innerScale.value = withTiming(0.9, { duration: 120 });
     }
-  }, [visible]);
+
+    const id = setTimeout(() => setModalOpen(false), EXIT_DELAY);
+    return () => clearTimeout(id);
+  }, [visible, reducedMotion, SCREEN_H]);
+
+  /**
+   * Entrée pilotée par `onShow` du Modal, et non par un `setTimeout(…, 10)`.
+   * Ce délai artificiel contournait la course au montage du Modal au prix d'une
+   * latence sur le chemin d'entrée — `onShow` garantit que la vue native est
+   * prête, sans attente arbitraire.
+   */
+  const handleShown = useCallback(() => {
+    if (reducedMotion) {
+      sheetAlp.value = withTiming(1, { duration: 140 });
+      backdropAlp.value = withTiming(1, { duration: 140 });
+      outerScale.value = 1;
+      innerScale.value = 1;
+      return;
+    }
+    sheetY.value = withSpring(0, SPRING_IN);
+    backdropAlp.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.ease) });
+    outerScale.value = withDelay(120, withSpring(1, { damping: 14, stiffness: 210 }));
+    innerScale.value = withDelay(170, withSpring(1, { damping: 14, stiffness: 230 }));
+  }, [reducedMotion]);
 
   const sheetAnim = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: sheetY.value },
-      { rotate: `${sheetRotate.value}rad` },
-    ],
+    opacity: sheetAlp.value,
+    transform: [{ translateY: sheetY.value }],
   }));
 
   const backdropAnim = useAnimatedStyle(() => ({ opacity: backdropAlp.value }));
   const outerAnim = useAnimatedStyle(() => ({ transform: [{ scale: outerScale.value }] }));
   const innerAnim = useAnimatedStyle(() => ({ transform: [{ scale: innerScale.value }] }));
 
+  /**
+   * Le callback est invoqué SYNCHRONEMENT, le sheet s'anime par-dessus.
+   *
+   * Avant : `setTimeout(btn.onPress, EXIT_DELAY + 50)` — 340 ms de vide après
+   * chaque tap sur « Confirmer » (aucune navigation, aucun spinner), au seul
+   * bénéfice d'une animation de sortie non perturbée. Sur un flux de paiement
+   * c'est une latence perçue comme un bug. Si le callback navigue, le sheet est
+   * démonté en pleine sortie : c'est le comportement correct — une transition
+   * doit rester interruptible.
+   */
   const handlePress = useCallback((btn: AlertButton) => {
     onClose();
-    if (btn.onPress) {
-      setTimeout(btn.onPress, EXIT_DELAY + 50);
-    }
+    btn.onPress?.();
   }, [onClose]);
+
+  /**
+   * Tap sur le fond. Passe par le bouton d'annulation quand il existe, sinon
+   * ferme simplement. Avant, on appelait `onClose()` nu : tout nettoyage porté
+   * par `onCancel` était silencieusement sauté.
+   */
+  const handleBackdrop = useCallback(() => {
+    if (!spec.dismissOnBackdrop) return;
+    const cancel = buttons.find(b => b.style === 'cancel');
+    onClose();
+    cancel?.onPress?.();
+  }, [buttons, onClose, spec.dismissOnBackdrop]);
 
   // Reorder buttons : actions first, cancel last
   const actionButtons = buttons.filter(b => b.style !== 'cancel');
   const cancelButtons = buttons.filter(b => b.style === 'cancel');
   const ordered = [...actionButtons, ...cancelButtons];
   const isColumn = buttons.length > 2;
+
+  /**
+   * Eyebrow effectif.
+   *  - `domain` fourni → on l'affiche (« PAIEMENT »), il apporte le contexte
+   *    que l'utilisateur ne peut pas deviner.
+   *  - sinon, libellé générique du type, MAIS supprimé s'il ne fait que répéter
+   *    le titre (cas « Erreur » / « Succès », soit ~217 appels).
+   */
+  const eyebrowLabel = useMemo(() => {
+    if (domain) return domain.toUpperCase();
+    const generic = t(EYEBROW_KEYS[type]);
+    const norm = (v: string) =>
+      v.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    if (norm(generic) === norm(title)) return null;
+    return generic;
+  }, [domain, type, title, t]);
 
   const renderButton = (btn: AlertButton, i: number) => {
     const isCancel = btn.style === 'cancel';
@@ -207,7 +375,14 @@ export default function CustomAlert({
           key={i}
           style={[
             styles.cancelBtn,
-            { backgroundColor: colors.gray100 },
+            {
+              // En sombre `gray100` vaut `#1E293B`, exactement la couleur de la
+              // carte : le bouton devenait un rectangle invisible. On monte
+              // d'un cran et on ajoute un filet.
+              backgroundColor: isDark ? colors.gray200 : colors.gray100,
+              borderWidth: isDark ? 1 : 0,
+              borderColor: hairline,
+            },
             !isColumn && { flex: 1 },
             isColumn && styles.btnFull,
           ]}
@@ -280,12 +455,26 @@ export default function CustomAlert({
       visible={modalOpen}
       transparent
       animationType="none"
-      onRequestClose={onClose}
+      onRequestClose={handleBackdrop}
+      onShow={handleShown}
       statusBarTranslucent
     >
       {/* Backdrop */}
-      <TouchableWithoutFeedback onPress={onClose}>
-        <Reanimated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropAnim]} />
+      <TouchableWithoutFeedback
+        onPress={handleBackdrop}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Reanimated.View
+          style={[
+            StyleSheet.absoluteFill,
+            styles.backdrop,
+            // L'opacité du fond EST le signal de gravité : elle se ressent
+            // avant même d'avoir lu un mot.
+            { backgroundColor: `rgba(0,0,0,${spec.backdrop})` },
+            backdropAnim,
+          ]}
+        />
       </TouchableWithoutFeedback>
 
       {/* Sheet wrapper — plein écran, ancre le sheet en bas + centré (iPad) */}
@@ -296,42 +485,120 @@ export default function CustomAlert({
           {
             backgroundColor: colors.card,
             borderTopColor: hairline,
+            borderTopLeftRadius: spec.radius,
+            borderTopRightRadius: spec.radius,
             paddingBottom: Math.max(insets.bottom + Spacing.sm, Spacing.xl),
+            // Sans plafond, un titre long + message + 3 boutons empilés passe
+            // sous la status bar et devient inatteignable (grandes tailles de
+            // police notamment).
+            maxHeight: SCREEN_H - insets.top - 24,
           },
           sheetAnim,
         ]}
+        accessibilityViewIsModal
+        accessibilityRole="alert"
+        accessibilityLiveRegion="assertive"
+        accessibilityLabel={[eyebrowLabel, title, message].filter(Boolean).join('. ')}
       >
-        {/* Watermark numeral */}
-        <Text style={[styles.watermark, { color: accent + '08' }]}>
-          {WATERMARK[type]}
-        </Text>
+        {/* Watermark — masqué hors `critical`. En sombre, un accent saturé à 3%
+            d'alpha est invisible : on passe par un blanc translucide. */}
+        {spec.showWatermark && (
+          <Text
+            style={[
+              styles.watermark,
+              { color: isDark ? 'rgba(255,255,255,0.05)' : accent + '0D' },
+            ]}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          >
+            {WATERMARK[type]}
+          </Text>
+        )}
 
-        {/* Handle */}
-        <View style={[styles.handle, { backgroundColor: colors.gray300 }]} />
+        {/* Handle — uniquement quand le sheet est réellement « lourd ». Sans
+            geste de drag attaché, c'est une fausse affordance : on le réserve
+            au format qui ressemble le plus à une vraie bottom sheet. */}
+        {resolvedWeight === 'critical' && (
+          <View style={[styles.handle, { backgroundColor: colors.gray300 }]} />
+        )}
 
-        {/* Editorial Icon — gradient hero */}
-        <Reanimated.View style={[styles.iconOuter, { borderColor: accent + '30' }, outerAnim]}>
-          <Reanimated.View style={[styles.iconInner, innerAnim]}>
-            <LinearGradient
-              colors={[accent, accentDark]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
-            <Ionicons name={ICON[type]} size={32} color="#FFFFFF" />
-          </Reanimated.View>
-        </Reanimated.View>
+        <ScrollView
+          bounces={false}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollInner}
+        >
+          {spec.showHeroIcon ? (
+            <Reanimated.View
+              style={[
+                styles.iconOuter,
+                {
+                  borderColor: accent + '30',
+                  width: spec.iconSize,
+                  height: spec.iconSize,
+                  borderRadius: spec.iconSize / 2,
+                  // L'anneau extérieur n'existe qu'en `critical`.
+                  borderWidth: resolvedWeight === 'critical' ? 2 : 0,
+                },
+                outerAnim,
+              ]}
+            >
+              <Reanimated.View
+                style={[
+                  styles.iconInner,
+                  {
+                    width: spec.iconSize - (resolvedWeight === 'critical' ? 20 : 0),
+                    height: spec.iconSize - (resolvedWeight === 'critical' ? 20 : 0),
+                    borderRadius: spec.iconSize / 2,
+                  },
+                  innerAnim,
+                ]}
+              >
+                <LinearGradient
+                  colors={[accent, accentDark]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                <Ionicons
+                  name={ICON[type]}
+                  size={resolvedWeight === 'critical' ? 32 : 20}
+                  color="#FFFFFF"
+                />
+              </Reanimated.View>
+            </Reanimated.View>
+          ) : (
+            // `compact` : la marque de gravité reste un simple glyphe teinté,
+            // aligné avec le titre — pas un héros centré.
+            <View style={[styles.compactIcon, { backgroundColor: accent + '1A' }]}>
+              <Ionicons name={ICON[type]} size={spec.iconSize} color={accent} />
+            </View>
+          )}
 
-        {/* Eyebrow */}
-        <Text style={[styles.eyebrow, { color: accent }]}>{t(EYEBROW_KEYS[type])}</Text>
+          {/* Eyebrow — affiché seulement s'il APPORTE quelque chose. Un
+              « ERREUR » au-dessus d'un titre « Erreur » encode la gravité une
+              troisième fois sans rien ajouter. */}
+          {!!eyebrowLabel && (
+            <Text style={[styles.eyebrow, { color: accent }]}>{eyebrowLabel}</Text>
+          )}
 
-        {/* Title display */}
-        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+          <Text
+            style={[
+              styles.title,
+              {
+                color: colors.text,
+                fontSize: spec.titleSize,
+                letterSpacing: spec.titleTracking,
+                lineHeight: spec.titleLineHeight,
+              },
+            ]}
+          >
+            {title}
+          </Text>
 
-        {/* Message */}
-        {message ? (
-          <Text style={[styles.message, { color: colors.gray500 }]}>{message}</Text>
-        ) : null}
+          {message ? (
+            <Text style={[styles.message, { color: colors.gray500 }]}>{message}</Text>
+          ) : null}
+        </ScrollView>
 
         {/* Buttons */}
         <View style={[styles.buttonsWrap, isColumn && styles.buttonsColumn]}>
@@ -346,9 +613,8 @@ export default function CustomAlert({
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  backdrop: {
-    backgroundColor: 'rgba(0,0,0,0.62)',
-  },
+  // La couleur est injectée au render depuis WEIGHT_SPEC.backdrop.
+  backdrop: {},
 
   // Wrapper plein écran : ancre le sheet en bas et le centre horizontalement.
   // Le fond (backdrop) reste bord-à-bord ; seul le sheet est plafonné (iPad).
@@ -361,8 +627,6 @@ const styles = StyleSheet.create({
   sheet: {
     width: '100%',
     maxWidth: FORM_MAX,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
     paddingHorizontal: Spacing.xl,
     paddingTop: 10,
     alignItems: 'center',
@@ -394,19 +658,25 @@ const styles = StyleSheet.create({
   },
 
   // Icon — editorial style with gradient
+  // Dimensions pilotées par WEIGHT_SPEC au render (width/height/radius/border).
   iconOuter: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.md,
   },
+  // `compact` : pastille discrète, pas de héros centré.
+  compactIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
+  },
+  scrollInner: {
+    alignItems: 'center',
+  },
   iconInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -422,13 +692,11 @@ const styles = StyleSheet.create({
   },
 
   // Title display
+  // fontSize / letterSpacing / lineHeight injectés depuis WEIGHT_SPEC.
   title: {
     fontFamily: FontFamily.displayExtraBold,
-    fontSize: 26,
-    letterSpacing: -0.9,
     textAlign: 'center',
     marginBottom: Spacing.sm,
-    lineHeight: 30,
   },
 
   // Message

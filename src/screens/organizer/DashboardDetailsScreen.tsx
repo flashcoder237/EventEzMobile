@@ -34,6 +34,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { analyticsAPI } from '../../api';
 import type { Dashboard, DashboardWidget, RootStackParamList } from '../../types';
 import {
@@ -46,6 +47,8 @@ import {
 import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import WidgetRenderer from '../../components/charts/WidgetRenderer';
 import WidgetFormModal from '../../components/charts/WidgetFormModal';
+import ErrorState from '../../components/ui/ErrorState';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'DashboardDetails'>;
@@ -57,11 +60,13 @@ export default function DashboardDetailsScreen() {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError, showConfirm } = useAlert();
+  const { toastSuccess } = useFeedback();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [widgets, setWidgets] = useState<DashboardWidget[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   // Bump pour forcer un refetch coordonné de TOUS les widgets sur pull-to-refresh.
   const [refreshKey, setRefreshKey] = useState(0);
@@ -71,6 +76,7 @@ export default function DashboardDetailsScreen() {
 
   const fetchData = useCallback(async () => {
     try {
+      setLoadFailed(false);
       const [dashRes, widgetsRes] = await Promise.all([
         analyticsAPI.getDashboard(dashboardId),
         analyticsAPI.getDashboardWidgets(dashboardId),
@@ -78,13 +84,14 @@ export default function DashboardDetailsScreen() {
       setDashboard(dashRes.data);
       const ws: DashboardWidget[] = widgetsRes.data?.results || widgetsRes.data || [];
       setWidgets(Array.isArray(ws) ? ws : []);
-    } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || t('organizer.dashboardDetails.loadError'));
+    } catch {
+      // Plus de modale : l'écran affiche son propre état d'erreur avec Réessayer.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [dashboardId, showError, t]);
+  }, [dashboardId]);
 
   useEffect(() => {
     fetchData();
@@ -103,7 +110,7 @@ export default function DashboardDetailsScreen() {
     });
     setWidgetFormOpen(false);
     setEditingWidget(null);
-    showSuccess(t('organizer.dashboardDetails.widgetSaved'), '');
+    toastSuccess(t('organizer.dashboardDetails.widgetSaved'));
   };
 
   const handleEditWidget = (widget: DashboardWidget) => {
@@ -119,9 +126,11 @@ export default function DashboardDetailsScreen() {
         try {
           await analyticsAPI.deleteWidget(widget.id);
           setWidgets(prev => prev.filter(w => w.id !== widget.id));
-          showSuccess(t('organizer.dashboardDetails.deletedTitle'), '');
+          toastSuccess(t('organizer.dashboardDetails.deletedTitle'));
         } catch (error: any) {
-          showError(t('common.error'), error?.response?.data?.detail || t('organizer.dashboardDetails.deleteError'));
+          // Jamais le `detail` brut du backend : message traduit via le helper.
+          const { message } = getApiErrorMessage(error, t, { fallbackKey: 'organizer.dashboardDetails.deleteError' });
+          showError(t('common.error'), message);
         }
       },
     );
@@ -154,6 +163,9 @@ export default function DashboardDetailsScreen() {
             {dashboard?.title || '…'}
           </Text>
         </View>
+        {/* Ajout masqué tant que le dashboard n'est pas chargé : on ne propose
+            pas d'ajouter un widget à un dashboard qu'on n'a pas pu lire. */}
+        {!loadFailed && (
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}30` }, Shadows.sm]}
           onPress={() => {
@@ -166,12 +178,19 @@ export default function DashboardDetailsScreen() {
         >
           <Ionicons name="add" size={20} color={colors.primary} />
         </TouchableOpacity>
+        )}
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
+      ) : loadFailed ? (
+        <ErrorState
+          withCard
+          message={t('organizer.dashboardDetails.loadError')}
+          onRetry={fetchData}
+        />
       ) : (
         <ScrollView
           contentContainerStyle={[styles.scrollContent, widgets.length === 0 && { flexGrow: 1 }]}

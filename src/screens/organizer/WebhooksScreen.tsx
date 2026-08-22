@@ -33,6 +33,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { webhooksAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import {
@@ -44,6 +45,8 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
+import ErrorState from '../../components/ui/ErrorState';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -84,11 +87,13 @@ export default function WebhooksScreen() {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError, showConfirm } = useAlert();
+  const { toastSuccess } = useFeedback();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const EVENT_TYPES = EVENT_TYPE_KEYS.map(key => ({ key, label: t(`organizer.webhooks.eventTypes.${key.replace('.', '_')}`) }));
 
   const [webhooks, setWebhooks] = useState<Webhook[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
 
@@ -101,16 +106,18 @@ export default function WebhooksScreen() {
 
   const fetchWebhooks = useCallback(async () => {
     try {
+      setLoadFailed(false);
       const res = await webhooksAPI.getAll();
       const data: Webhook[] = res.data?.results || res.data || [];
       setWebhooks(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || t('organizer.webhooks.loadError'));
+    } catch {
+      // Plus de modale : la liste affiche son propre état d'erreur avec Réessayer.
+      setLoadFailed(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [showError, t]);
+  }, []);
 
   useEffect(() => {
     fetchWebhooks();
@@ -181,7 +188,9 @@ export default function WebhooksScreen() {
       await webhooksAPI.toggleActive(hook.id);
     } catch (error: any) {
       setWebhooks(prev => prev.map(h => h.id === hook.id ? { ...h, is_active: hook.is_active } : h));
-      showError(t('common.error'), error?.response?.data?.detail || t('organizer.webhooks.toggleError'));
+      // Jamais le `detail` brut du backend : message traduit via le helper.
+      const { message } = getApiErrorMessage(error, t, { fallbackKey: 'organizer.webhooks.toggleError' });
+      showError(t('common.error'), message);
     } finally {
       setActionId(null);
     }
@@ -194,7 +203,9 @@ export default function WebhooksScreen() {
       await webhooksAPI.test(hook.id);
       showSuccess(t('organizer.webhooks.testSentTitle'), t('organizer.webhooks.testSentMessage'));
     } catch (error: any) {
-      showError(t('common.error'), error?.response?.data?.detail || t('organizer.webhooks.testError'));
+      // Jamais le `detail` brut du backend : message traduit via le helper.
+      const { message } = getApiErrorMessage(error, t, { fallbackKey: 'organizer.webhooks.testError' });
+      showError(t('common.error'), message);
     } finally {
       setActionId(null);
     }
@@ -208,9 +219,11 @@ export default function WebhooksScreen() {
         try {
           await webhooksAPI.delete(hook.id);
           setWebhooks(prev => prev.filter(h => h.id !== hook.id));
-          showSuccess(t('organizer.webhooks.deletedTitle'), '');
+          toastSuccess(t('organizer.webhooks.deletedTitle'));
         } catch (error: any) {
-          showError(t('common.error'), error?.response?.data?.detail || t('organizer.webhooks.deleteError'));
+          // Jamais le `detail` brut du backend : message traduit via le helper.
+          const { message } = getApiErrorMessage(error, t, { fallbackKey: 'organizer.webhooks.deleteError' });
+          showError(t('common.error'), message);
         }
       },
     );
@@ -301,13 +314,21 @@ export default function WebhooksScreen() {
           contentContainerStyle={[styles.listContent, webhooks.length === 0 && { flex: 1 }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Ionicons name="git-network-outline" size={48} color={colors.gray300} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.webhooks.emptyTitle')}</Text>
-              <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-                {t('organizer.webhooks.emptyText')}
-              </Text>
-            </View>
+            loading ? null : loadFailed ? (
+              <ErrorState
+                withCard
+                message={t('organizer.webhooks.loadError')}
+                onRetry={fetchWebhooks}
+              />
+            ) : (
+              <View style={styles.empty}>
+                <Ionicons name="git-network-outline" size={48} color={colors.gray300} />
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.webhooks.emptyTitle')}</Text>
+                <Text style={[styles.emptyText, { color: colors.gray500 }]}>
+                  {t('organizer.webhooks.emptyText')}
+                </Text>
+              </View>
+            )
           }
         />
       )}

@@ -19,6 +19,7 @@ import { downloadConversationBackup, getLastExportAt } from '../../lib/utils/con
 import { formatBytes } from '../../constants/messaging';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 export interface QuotaState {
   conversation_type: 'direct' | 'group' | 'event';
@@ -127,7 +128,7 @@ export default function ConversationQuotaBanner({
     } catch (err: any) {
       showError(
         t('common.error'),
-        err?.response?.data?.detail || t('componentsMessages.quotaSaveError'),
+        getApiErrorMessage(err, t, { fallbackKey: 'componentsMessages.quotaSaveError' }).message,
       );
     } finally {
       setExporting(false);

@@ -31,6 +31,7 @@ import DateTimePickerField from '../../components/ui/DateTimePickerField';
 import { GradientButton } from '../../components/ui';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
 import { centeredContent, FORM_MAX } from '../../constants/layout';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RoutePropType = RouteProp<RootStackParamList, 'DiscountForm'>;
@@ -173,7 +174,12 @@ export default function DiscountFormScreen() {
       if (detail.toLowerCase().includes('unique') || detail.toLowerCase().includes('existe')) {
         showError(t('organizer.discountForm.errCodeExists'));
       } else {
-        showError(detail || t('organizer.discountForm.errSave'));
+        // `detail` sert uniquement au sniffing "code deja pris" ci-dessus ;
+        // jamais affiche brut a l'utilisateur.
+        const { message } = getApiErrorMessage(error, t, {
+          fallbackKey: 'organizer.discountForm.errSave',
+        });
+        showError(message);
       }
       if (__DEV__) console.error('Erreur sauvegarde:', error);
     } finally {

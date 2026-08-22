@@ -27,6 +27,12 @@ import { displayCurrency } from '../../lib/utils/priceFormatters';
 // ============================================
 
 interface EventStep3PricingProps {
+  /** Erreurs de niveau LISTE (aucun billet, aucun champ). */
+  stepErrors?: Record<string, string>;
+  /** Erreur de validation par INDEX de billet — rendue sur la carte concernée. */
+  ticketErrors?: Record<number, string>;
+  /** Erreur de validation par INDEX de champ du formulaire personnalisé. */
+  fieldErrors?: Record<number, string>;
   // Core state
   eventType: 'billetterie' | 'inscription';
   isFree: boolean;
@@ -84,12 +90,18 @@ function FormFieldsSection({
   onAddFormField,
   onUpdateFormField,
   onRemoveFormField,
+  fieldErrors = {},
+  listError,
 }: {
   formFields: FormFieldForm[];
   isOptional: boolean;
   onAddFormField: () => void;
   onUpdateFormField: (index: number, field: string, value: any) => void;
   onRemoveFormField: (index: number) => void;
+  /** Erreur de validation par INDEX de champ. */
+  fieldErrors?: Record<number, string>;
+  /** Erreur de niveau liste (ex. « au moins un champ requis »). */
+  listError?: string;
 }) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
@@ -108,6 +120,9 @@ function FormFieldsSection({
             ? t('componentsOrganizer.step3.noFieldsOptionalText')
             : t('componentsOrganizer.step3.noFieldsRequiredText')}
         </Text>
+        {!!listError && (
+          <Text style={{ color: '#EF4444', fontSize: 12, marginBottom: 8 }}>{listError}</Text>
+        )}
         <TouchableOpacity style={[styles.addButton, themed.addButton]} onPress={onAddFormField}>
           <Ionicons name="add" size={20} color={colors.white} />
           <Text style={[styles.addButtonText, themed.addButtonText]}>{t('componentsOrganizer.step3.addField')}</Text>
@@ -119,13 +134,27 @@ function FormFieldsSection({
   return (
     <>
       {formFields.map((field, index) => (
-        <View key={index} style={[styles.card, themed.card]}>
+        <View
+          key={index}
+          style={[
+            styles.card,
+            themed.card,
+            // La carte fautive se signale elle-même : une modale ne pouvait pas
+            // désigner la ligne, d'où les messages du type « champ n°2 ».
+            fieldErrors[index] && { borderColor: '#EF4444', borderWidth: 1.5 },
+          ]}
+        >
           <View style={[styles.cardHeader, themed.cardHeader]}>
             <Text style={[styles.cardTitle, themed.cardTitle]}>{t('componentsOrganizer.step3.fieldIndex', { index: index + 1 })}</Text>
             <TouchableOpacity onPress={() => onRemoveFormField(index)}>
               <Ionicons name="trash-outline" size={20} color={colors.error} />
             </TouchableOpacity>
           </View>
+          {!!fieldErrors[index] && (
+            <Text style={{ color: '#EF4444', fontSize: 12, marginBottom: 8 }}>
+              {fieldErrors[index]}
+            </Text>
+          )}
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.fieldLabel')}</Text>
@@ -235,6 +264,9 @@ export default function EventStep3Pricing({
   feeBearer,
   startDate,
   ticketTypes,
+  stepErrors = {},
+  ticketErrors = {},
+  fieldErrors = {},
   showFormFieldsForBilletterie,
   attendeeFormScope,
   onAttendeeFormScopeChange,
@@ -349,6 +381,12 @@ export default function EventStep3Pricing({
             <Text style={[styles.sectionHeaderTitle, themed.sectionHeaderTitle]}>{t('componentsOrganizer.step3.ticketTypesTitle')}</Text>
           </View>
 
+          {!!stepErrors.ticketTypes && (
+            <Text style={{ color: '#EF4444', fontSize: 12, marginBottom: 8 }}>
+              {stepErrors.ticketTypes}
+            </Text>
+          )}
+
           {ticketTypes.length === 0 ? (
             <View style={[styles.emptyContainer, themed.emptyContainer]}>
               <View style={[styles.emptyIcon, themed.emptyIcon]}>
@@ -366,13 +404,25 @@ export default function EventStep3Pricing({
           ) : (
             <>
               {ticketTypes.map((ticket, index) => (
-                <View key={index} style={[styles.card, themed.card]}>
+                <View
+                  key={index}
+                  style={[
+                    styles.card,
+                    themed.card,
+                    ticketErrors[index] && { borderColor: '#EF4444', borderWidth: 1.5 },
+                  ]}
+                >
                   <View style={[styles.cardHeader, themed.cardHeader]}>
                     <Text style={[styles.cardTitle, themed.cardTitle]}>{t('componentsOrganizer.step3.ticketIndex', { index: index + 1 })}</Text>
                     <TouchableOpacity onPress={() => onRemoveTicketType(index)}>
                       <Ionicons name="trash-outline" size={20} color={colors.error} />
                     </TouchableOpacity>
                   </View>
+                  {!!ticketErrors[index] && (
+                    <Text style={{ color: '#EF4444', fontSize: 12, marginBottom: 8 }}>
+                      {ticketErrors[index]}
+                    </Text>
+                  )}
 
                   <View style={styles.inputGroup}>
                     <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.ticketNameLabel')}</Text>
@@ -557,6 +607,8 @@ export default function EventStep3Pricing({
                   onAddFormField={onAddFormField}
                   onUpdateFormField={onUpdateFormField}
                   onRemoveFormField={onRemoveFormField}
+                  fieldErrors={fieldErrors}
+                  listError={stepErrors.formFields}
                 />
                 {/* Portée : par commande (défaut) ou par participant (après paiement). */}
                 {formFields.length > 0 && (
@@ -593,6 +645,8 @@ export default function EventStep3Pricing({
           onAddFormField={onAddFormField}
           onUpdateFormField={onUpdateFormField}
           onRemoveFormField={onRemoveFormField}
+          fieldErrors={fieldErrors}
+          listError={stepErrors.formFields}
         />
       )}
 

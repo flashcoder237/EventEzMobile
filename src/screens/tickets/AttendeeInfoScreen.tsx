@@ -10,6 +10,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { attendeeFormsAPI } from '../../api/attendees';
 import DynamicFormFields from '../../components/forms/DynamicFormFields';
+import ErrorState from '../../components/ui/ErrorState';
 import { FontFamily, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 
 interface AttendeeSlot {
@@ -39,6 +40,7 @@ export default function AttendeeInfoScreen() {
   const [fields, setFields] = useState<FieldSchema[]>([]);
   const [attendees, setAttendees] = useState<AttendeeSlot[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [pending, setPending] = useState(false);
   const [editing, setEditing] = useState<AttendeeSlot | null>(null);
   const [draft, setDraft] = useState<Record<string, any>>({});
@@ -49,6 +51,7 @@ export default function AttendeeInfoScreen() {
 
   const load = useCallback(async () => {
     try {
+      setLoadFailed(false);
       const res = await attendeeFormsAPI.getAttendees(registrationId);
       setFields(res.data.form_fields || []);
       setAttendees(res.data.attendees || []);
@@ -57,12 +60,15 @@ export default function AttendeeInfoScreen() {
       if (err?.response?.status === 409 && err?.response?.data?.code === 'payment_pending') {
         setPending(true);
       } else {
-        showError(t('attendeeForm.errorTitle'), t('attendeeForm.loadError'));
+        // Plus de modale : l'écran affiche son propre état d'erreur avec Réessayer.
+        // La liste des participants reste masquée : sans `fields`, l'éditeur
+        // enregistrerait un formulaire sans ses champs obligatoires.
+        setLoadFailed(true);
       }
     } finally {
       setLoading(false);
     }
-  }, [registrationId, showError, t]);
+  }, [registrationId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -119,6 +125,17 @@ export default function AttendeeInfoScreen() {
     return (
       <SafeAreaView style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator color={colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  // Échec de chargement : ni la liste ni l'éditeur ne sont accessibles. `fields`
+  // serait vide, donc la validation des champs obligatoires de save() passerait
+  // à tort et on enregistrerait une fiche participant incomplète.
+  if (loadFailed) {
+    return (
+      <SafeAreaView style={[styles.flex, { backgroundColor: colors.background }]}>
+        <ErrorState withCard message={t('attendeeForm.loadError')} onRetry={load} />
       </SafeAreaView>
     );
   }

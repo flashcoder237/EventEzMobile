@@ -20,6 +20,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useTranslation } from 'react-i18next';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { registrationsAPI, eventsAPI } from '../../api';
 import ExportButton from '../../components/common/ExportButton';
@@ -66,6 +67,7 @@ export default function EventRegistrationsScreen() {
   const { t } = useTranslation();
   const { eventId } = route.params;
   const { showAlert, showSuccess, showError } = useAlert();
+  const { toastSuccess } = useFeedback();
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -266,7 +268,7 @@ export default function EventRegistrationsScreen() {
           : r
         )
       );
-      showSuccess(t('common.success'), t('organizer.eventRegistrations.bulkApproveSuccess', { count: ids.length }));
+      toastSuccess(t('organizer.eventRegistrations.bulkApproveSuccess', { count: ids.length }));
       cancelSelection();
     } catch (error) {
       showError(t('common.error'), t('organizer.eventRegistrations.bulkApproveError'));
@@ -292,7 +294,7 @@ export default function EventRegistrationsScreen() {
                 : r
               )
             );
-            showSuccess(t('common.success'), t('organizer.eventRegistrations.bulkRejectSuccess', { count: ids.length }));
+            toastSuccess(t('organizer.eventRegistrations.bulkRejectSuccess', { count: ids.length }));
             cancelSelection();
           } catch (error) {
             showError(t('common.error'), t('organizer.eventRegistrations.bulkRejectError'));
@@ -312,7 +314,7 @@ export default function EventRegistrationsScreen() {
               : r
             )
           );
-          showSuccess(t('common.success'), t('organizer.eventRegistrations.bulkRejectSuccess', { count: ids.length }));
+          toastSuccess(t('organizer.eventRegistrations.bulkRejectSuccess', { count: ids.length }));
           cancelSelection();
         })
         .catch(() => showError(t('common.error'), t('organizer.eventRegistrations.bulkRejectError')))
@@ -331,7 +333,7 @@ export default function EventRegistrationsScreen() {
           : r
         )
       );
-      showSuccess(t('common.success'), t('organizer.eventRegistrations.bulkCheckInSuccess', { count: ids.length }));
+      toastSuccess(t('organizer.eventRegistrations.bulkCheckInSuccess', { count: ids.length }));
       cancelSelection();
     } catch (error) {
       showError(t('common.error'), t('organizer.eventRegistrations.bulkCheckInError'));
@@ -351,7 +353,7 @@ export default function EventRegistrationsScreen() {
         )
       );
       setShowDetailModal(false);
-      showSuccess(t('common.success'), t('organizer.eventRegistrations.approveSuccess'));
+      toastSuccess(t('organizer.eventRegistrations.approveSuccess'));
     } catch (error) {
       if (__DEV__) console.error('Erreur approbation:', error);
       showError(t('common.error'), t('organizer.eventRegistrations.approveError'));
@@ -380,7 +382,7 @@ export default function EventRegistrationsScreen() {
       setShowRejectModal(false);
       setShowDetailModal(false);
       setRejectReason('');
-      showSuccess(t('common.success'), t('organizer.eventRegistrations.rejectSuccess'));
+      toastSuccess(t('organizer.eventRegistrations.rejectSuccess'));
     } catch (error) {
       if (__DEV__) console.error('Erreur refus:', error);
       showError(t('common.error'), t('organizer.eventRegistrations.rejectError'));

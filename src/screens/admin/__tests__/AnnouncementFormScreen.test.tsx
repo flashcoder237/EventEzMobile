@@ -152,8 +152,13 @@ describe('AnnouncementFormScreen — creation', () => {
     fireEvent.press(getByText("Créer l'annonce"));
 
     await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith('Erreur', 'Ce champ est trop court.');
+      // Message GENERIQUE : le detail par champ est renvoye a part dans
+      // `fieldErrors`, pour etre rattache au champ concerne. Une modale ne peut
+      // pas designer le champ fautif — on n'y recrache donc pas le texte brut
+      // du backend.
+      expect(mockShowError).toHaveBeenCalledWith('Erreur', expect.any(String));
     });
+    expect(mockShowError).not.toHaveBeenCalledWith('Erreur', 'Ce champ est trop court.');
     expect(mockGoBack).not.toHaveBeenCalled();
   });
 });

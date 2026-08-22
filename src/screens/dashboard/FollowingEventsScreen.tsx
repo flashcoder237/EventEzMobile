@@ -27,6 +27,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { eventsAPI, usersAPI, getMediaUrl } from '../../api';
 import CacheService from '../../services/CacheService';
@@ -610,6 +611,7 @@ export default function FollowingEventsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { showError, showConfirm } = useAlert();
+  const { toastError } = useFeedback();
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -671,7 +673,7 @@ export default function FollowingEventsScreen() {
           // Invalide le cache pour rester cohérent au prochain mount
           CacheService.invalidate(`following:organizers:${user?.id}`);
         } catch {
-          showError(t('common.error'), t('followingEvents.unfollowOrganizerError'));
+          toastError(t('followingEvents.unfollowOrganizerError'));
         }
       },
     );
@@ -715,7 +717,7 @@ export default function FollowingEventsScreen() {
         CacheService.invalidate(`following:${user?.id}`);
       } catch (error) {
         if (__DEV__) console.error('Error unfollowing:', error);
-        showError(t('common.error'), t('followingEvents.unfollowError'));
+        toastError(t('followingEvents.unfollowError'));
       }
     });
   }, [user?.id, showConfirm, showError, t]);
@@ -735,7 +737,7 @@ export default function FollowingEventsScreen() {
       );
     } catch (error) {
       if (__DEV__) console.error('Error updating preferences:', error);
-      showError(t('common.error'), t('followingEvents.updatePrefsError'));
+      toastError(t('followingEvents.updatePrefsError'));
     }
   }, [showError, t]);
 

@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { useVerificationGuard } from '../../hooks/useVerificationGuard';
 import { RootStackParamList } from '../../types';
@@ -61,6 +62,7 @@ function FollowEventButtonImpl({
   const { maybePromptForPushPermission } = useNotifications();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { showAlert, showError, showWarning } = useAlert();
+  const { toastError } = useFeedback();
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const [isFollowing, setIsFollowing] = useState(initialFollowing);
@@ -165,7 +167,7 @@ function FollowEventButtonImpl({
           setFollowersCount(prev => (next ? Math.max(0, prev - 1) : prev + 1));
         }
         onFollowChange?.(!next);
-        showError(t('common.error'), t('componentsEvents.followError'));
+        toastError(t('componentsEvents.followError'));
       } finally {
         toggleInFlight.current = false;
       }
@@ -179,7 +181,7 @@ function FollowEventButtonImpl({
       setShowPreferences(false);
     } catch (error) {
       if (__DEV__) console.error('Error updating preferences:', error);
-      showError(t('common.error'), t('componentsEvents.followPreferencesError'));
+      toastError(t('componentsEvents.followPreferencesError'));
     } finally {
       setIsLoading(false);
     }

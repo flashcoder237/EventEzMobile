@@ -261,7 +261,9 @@ describe('VerificationScreen', () => {
     fireEvent.press(getByText('Soumettre la demande'));
 
     await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith('Erreur', 'Format invalide');
+      // Le detail brut du backend n'est plus affiche a l'utilisateur
+      // (getApiErrorMessage) : on verifie qu'un message traduit est passe.
+      expect(mockShowError).toHaveBeenCalledWith('Erreur', expect.any(String));
     });
   });
 });

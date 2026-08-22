@@ -16,6 +16,8 @@
 // au mieux et le renderer affichera un placeholder.
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { getApiErrorMessage } from '../lib/utils/errorHandling';
 import { analyticsAPI } from '../api';
 import type { WidgetDataSource } from '../types';
 
@@ -41,6 +43,7 @@ const empty: WidgetData = {
 };
 
 export function useWidgetData(dataSource: WidgetDataSource | null | undefined, refreshKey: number = 0): WidgetData {
+  const { t } = useTranslation();
   const [state, setState] = useState<WidgetData>(empty);
 
   useEffect(() => {
@@ -58,8 +61,12 @@ export function useWidgetData(dataSource: WidgetDataSource | null | undefined, r
 
     const fail = (err: any) => {
       if (cancelled) return;
-      const detail = err?.response?.data?.detail || 'Données indisponibles.';
-      setState({ ...empty, loading: false, error: String(detail) });
+      // Jamais le `detail` brut du backend (texte technique, souvent anglais) :
+      // message traduit et actionnable via le helper centralisé.
+      const { message } = getApiErrorMessage(err, t, {
+        fallbackKey: 'componentsCharts.widgetDataUnavailable',
+      });
+      setState({ ...empty, loading: false, error: message });
     };
 
     (async () => {
@@ -179,6 +186,11 @@ export function useWidgetData(dataSource: WidgetDataSource | null | undefined, r
     })();
 
     return () => { cancelled = true; };
+    // `t` volontairement hors deps : un changement de langue ne doit pas
+    // relancer tous les appels réseau des widgets. Le message d'erreur déjà
+    // affiché garde son ancienne langue jusqu'au prochain refresh — acceptable
+    // au regard du coût d'un rechargement complet.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataSource, refreshKey]);
 
   return state;

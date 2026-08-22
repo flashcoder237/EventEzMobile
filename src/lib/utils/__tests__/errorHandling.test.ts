@@ -58,9 +58,15 @@ describe('extractErrorMessage', () => {
     expect(extractErrorMessage(err)).toContain('trop de temps');
   });
 
-  it('falls back to error.message', () => {
+  it("n'expose PAS le error.message brut a l'utilisateur", () => {
+    // Un `error.message` brut est technique et souvent en anglais (« Something
+    // went wrong », « Request failed with status code 500 »). On renvoie un
+    // message generique en francais plutot que de le faire remonter tel quel.
     const err = { message: 'Something went wrong' };
-    expect(extractErrorMessage(err)).toBe('Something went wrong');
+    const out = extractErrorMessage(err);
+    expect(out).not.toBe('Something went wrong');
+    expect(out).toEqual(expect.any(String));
+    expect(out.length).toBeGreaterThan(0);
   });
 
   it('returns generic message for empty error', () => {
