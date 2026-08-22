@@ -45,7 +45,7 @@ type DateFilter = 'all' | '7d' | '30d' | '90d';
  * directement dans <Text> crashe RN ("Objects are not valid as a React child").
  * On accepte aussi une string (rétro-compat / autres providers) et null.
  */
-function targetLabel(target: unknown): string {
+export function targetLabel(target: unknown): string {
   if (!target) return '';
   if (typeof target === 'string') return target;
   if (typeof target === 'object') {
@@ -175,12 +175,15 @@ function AuditLogsContent() {
     const sev = severityConfig[item.severity || 'info'] || severityConfig.info;
 
     return (
-      <View
+      <TouchableOpacity
         style={[
           styles.logCard,
           { backgroundColor: colors.card, borderColor: hairline },
           Shadows.sm,
         ]}
+        onPress={() => navigation.navigate('AuditLogDetail', { logId: item.id })}
+        activeOpacity={0.7}
+        accessibilityRole="button"
       >
         <View style={styles.logHeader}>
           <View style={[styles.severityDot, { backgroundColor: sev.color }]} />
@@ -205,7 +208,7 @@ function AuditLogsContent() {
             {formatTime(item.timestamp)}
           </Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 

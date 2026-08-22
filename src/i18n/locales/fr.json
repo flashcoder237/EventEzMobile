@@ -6268,7 +6268,8 @@
         "ticketMaxMin": "Le max par commande du billet « {{label}} » doit être ≥ au min",
         "fieldLabelRequired": "L'intitulé du champ #{{n}} est requis",
         "fieldOptionsRequired": "Les options sont requises pour le champ « {{label}} »"
-      }
+      },
+      "loadFailedBlocksSave": "Les données de l'événement n'ont pas pu être chargées. Rechargez la page avant d'enregistrer, sinon vos informations actuelles seraient écrasées."
     },
     "eventRegistrations": {
       "title": "Inscriptions",
@@ -6478,12 +6479,15 @@
       "kpiEvents": "Evenements",
       "kpiRevenue": "Revenus",
       "kpiVerifications": "Verifications",
+      "activityChartTitle": "Activité de la plateforme",
+      "activityChartSubtitle": "Actions d'audit sur les 7 derniers jours",
       "quickActions": "ACTIONS RAPIDES",
       "recentActivity": "ACTIVITÉ RÉCENTE",
       "noActivity": "Aucune activité récente",
       "viewAllAudit": "Voir tout l'audit",
       "actions": {
         "users": "Utilisateurs",
+        "verifications": "Vérifications",
         "subscriptions": "Abonnements",
         "audit": "Audit",
         "announcements": "Annonces",
@@ -6492,6 +6496,30 @@
         "settings": "Paramètres",
         "treasury": "Trésorerie"
       }
+    },
+    "verifications": {
+      "watermark": "KYC",
+      "guardTitle": "Accès réservé",
+      "eyebrow": "Modération",
+      "title": "Demandes de vérification",
+      "typeOrg": "Organisation",
+      "typeIndividual": "Particulier",
+      "noDocuments": "Aucun document fourni",
+      "approve": "Approuver",
+      "reject": "Rejeter",
+      "approveTitle": "Approuver la vérification",
+      "approveMessage": "Confirmer l'approbation de {{name}} comme organisateur vérifié ?",
+      "approveBio": "Confirmez pour approuver cette vérification",
+      "approveSuccess": "Organisateur vérifié",
+      "rejectTitle": "Rejeter la demande",
+      "rejectMessage": "Indiquez le motif du rejet pour {{name}}. Il sera communiqué à l'utilisateur.",
+      "rejectReasonPlaceholder": "Motif du rejet…",
+      "rejectReasonRequired": "Le motif est obligatoire.",
+      "rejectSuccess": "Demande rejetée",
+      "actionError": "L'action a échoué. Réessayez.",
+      "loadError": "Impossible de charger les demandes de vérification.",
+      "emptyTitle": "Aucune demande en attente",
+      "emptySubtitle": "Les nouvelles demandes de vérification d'organisateurs apparaîtront ici."
     },
     "platformSettings": {
       "watermark": "CFG",
@@ -6601,6 +6629,16 @@
       "loadError": "Impossible de charger l'utilisateur",
       "roleSection": "RÔLE",
       "actionsSection": "ACTIONS",
+      "profileSection": "PROFIL",
+      "fieldFirstName": "Prénom",
+      "fieldLastName": "Nom",
+      "fieldEmail": "Email",
+      "fieldPhone": "Téléphone",
+      "fieldCompany": "Société",
+      "saveProfile": "Enregistrer le profil",
+      "profileUpdated": "Profil mis à jour",
+      "profileUpdateError": "Impossible de mettre à jour le profil.",
+      "emailRequired": "L'email est obligatoire.",
       "infoSection": "INFORMATIONS",
       "active": "Actif",
       "inactive": "Inactif",
@@ -6793,6 +6831,21 @@
       "title": "Logs d'audit",
       "target": "Cible",
       "user": "User #{{id}}",
+      "detail": {
+        "guardTitle": "Détail du log",
+        "eyebrow": "Journal d'audit",
+        "title": "Détail du log",
+        "action": "Action",
+        "target": "Cible",
+        "user": "Utilisateur",
+        "system": "Système",
+        "timestamp": "Horodatage",
+        "ip": "Adresse IP",
+        "userAgent": "Appareil / navigateur",
+        "changes": "Modifications",
+        "metadata": "Détails",
+        "loadError": "Impossible de charger ce log."
+      },
       "stats": {
         "total": "Total"
       },

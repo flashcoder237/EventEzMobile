@@ -98,9 +98,11 @@ beforeEach(() => {
 describe('UserEditScreen', () => {
   it('loads user and renders name + email + role list', async () => {
     mockGetUser.mockResolvedValueOnce({ data: baseUser });
-    const { findByText, getByText } = render(<UserEditScreen />);
+    const { findByText, getByText, getAllByText } = render(<UserEditScreen />);
     expect(await findByText('Alice Martin')).toBeTruthy();
-    expect(getByText('alice@example.com')).toBeTruthy();
+    // L'email apparait desormais 2x : en en-tete ET dans le champ de profil
+    // editable (ajout de l'edition de profil admin).
+    expect(getAllByText('alice@example.com').length).toBeGreaterThan(0);
     expect(getByText('Utilisateur')).toBeTruthy();
     expect(getByText('Organisateur')).toBeTruthy();
     expect(getByText('Modérateur')).toBeTruthy();

@@ -185,6 +185,8 @@ export interface EventFormState {
 
   // Step validation — populated quand goToNextStep échoue, lu par les Steps
   stepErrors: Record<string, string>;
+  /** Le chargement de l'événement à éditer a échoué (édition uniquement). */
+  loadFailed: boolean;
   ticketErrors: Record<number, string>;
   fieldErrors: Record<number, string>;
 
@@ -317,6 +319,9 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
   // Step navigation
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  /** Le chargement de l'événement à éditer a échoué : le formulaire ne
+   *  reflète PAS les données réelles, toute sauvegarde les écraserait. */
+  const [loadFailed, setLoadFailed] = useState(false);
 
   // Reference data
   const [categories, setCategories] = useState<Category[]>([]);
@@ -430,6 +435,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
     aiEnabled, aiLoading, aiResult, aiError, aiUsage,
     aiTitleLoading, aiDescLoading, aiPricingLoading,
     stepErrors,
+    loadFailed,
     ticketErrors,
     fieldErrors,
     isEditMode: !!editEventId,
@@ -1124,6 +1130,13 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
         });
       } catch (error) {
         if (__DEV__) console.error('[useEventForm] Error loading event for edit:', error);
+        // DESTRUCTION DE DONNÉES : sans ce drapeau, l'échec de chargement
+        // laissait le formulaire ÉDITABLE avec des valeurs vides. Un
+        // enregistrement envoyait alors un PUT complet — et surtout
+        // `updateFormFields(..., { clear_existing: true, fields: [] })` — qui
+        // effaçait lieu, géoloc, bannière, galerie, tags ET tous les champs
+        // d'inscription personnalisés de l'événement réel.
+        setLoadFailed(true);
         showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'errors.generic' }).message);
       } finally {
         setLoading(false);

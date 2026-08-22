@@ -27,6 +27,19 @@ export function useEventFormSubmit(
 ) {
   const { t } = useTranslation();
   const handleSubmit = useCallback(async (): Promise<string | null> => {
+    // GARDE ANTI-ÉCRASEMENT : en édition, si le chargement de l'événement a
+    // échoué, le formulaire contient des valeurs vides et NON les données
+    // réelles. Un PUT enverrait ces vides, et `syncFormFields` ferait un
+    // `clear_existing: true` avec un tableau vide — effaçant les champs
+    // d'inscription personnalisés de l'organisateur. On bloque à la source :
+    // le garde est ici, pas dans l'UI, pour qu'aucun chemin ne le contourne.
+    if (form.loadFailed) {
+      showError(
+        t('common.error'),
+        t('organizer.eventCreate.loadFailedBlocksSave'),
+      );
+      return null;
+    }
     if (!validateStep(form.currentStep)) return null;
 
     try {

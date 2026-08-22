@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +29,7 @@ import {
 } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import ErrorState from '../../components/ui/ErrorState';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 interface SiteSettings {
   ai_moderation_enabled?: boolean;
@@ -238,7 +238,9 @@ function PlatformSettingsContent() {
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+    <EditorialCanvas edges={['top', 'bottom']}>
+      <WatermarkNumeral>{t('admin.platformSettings.watermark')}</WatermarkNumeral>
+      <View style={styles.container}>
       <View style={[styles.header, { borderBottomColor: hairline }]}>
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
@@ -339,7 +341,8 @@ function PlatformSettingsContent() {
         ))}
         <View style={{ height: 100 }} />
       </ScrollView>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

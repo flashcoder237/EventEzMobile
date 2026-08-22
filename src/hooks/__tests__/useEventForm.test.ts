@@ -622,6 +622,38 @@ describe('useEventForm', () => {
       expect(mockedEventsAPI.createFormField).toHaveBeenCalled();
     });
 
+    it("edit mode: un chargement ECHOUE bloque la sauvegarde (anti-ecrasement)", async () => {
+      // Regression : sans garde, l'echec de chargement laissait le formulaire
+      // editable avec des valeurs VIDES. Un enregistrement envoyait alors un
+      // PUT complet + `updateFormFields(clear_existing: true, fields: [])`,
+      // effacant lieu, banniere, tags et TOUS les champs d'inscription
+      // personnalises de l'evenement reel.
+      const alerts = makeAlerts();
+      mockedEventsAPI.getEvent.mockRejectedValueOnce(new Error('network down'));
+
+      const { result } = renderHook(() => useEventForm(alerts, 'evt-ko'));
+
+      await waitFor(() => expect(result.current.form.loadFailed).toBe(true));
+
+      // CAS DANGEREUX : l'organisateur re-saisit de quoi rendre le formulaire
+      // VALIDE (il ne sait pas que le chargement a echoue). Sans la garde, la
+      // validation passe et l'ecriture destructrice part. Un formulaire laisse
+      // vide, lui, serait deja bloque par la validation — ce n'est donc pas ce
+      // cas-la qu'il faut tester.
+      setupValidForm(result);
+
+      let id: string | null | undefined;
+      await act(async () => {
+        id = await result.current.handleSubmit();
+      });
+
+      expect(id).toBeNull();
+      // Aucune ecriture ne doit partir, surtout pas le clear_existing.
+      expect(mockedEventsAPI.updateEvent).not.toHaveBeenCalled();
+      expect(mockedEventsAPI.updateFormFields).not.toHaveBeenCalled();
+      expect(alerts.showError).toHaveBeenCalled();
+    });
+
     it('edit mode: charge billets + form fields + sessions depuis getEvent (régression)', async () => {
       const alerts = makeAlerts();
       mockedEventsAPI.getEvent.mockResolvedValueOnce({

@@ -149,6 +149,8 @@ const UserManagementScreen = withSuspense(lazy(() => import('../screens/admin/Us
 const UserEditScreen = withSuspense(lazy(() => import('../screens/admin/UserEditScreen')));
 const SubscriptionManagementScreen = withSuspense(lazy(() => import('../screens/admin/SubscriptionManagementScreen')));
 const AuditLogsScreen = withSuspense(lazy(() => import('../screens/admin/AuditLogsScreen')));
+const AuditLogDetailScreen = withSuspense(lazy(() => import('../screens/admin/AuditLogDetailScreen')));
+const VerificationRequestsAdminScreen = withSuspense(lazy(() => import('../screens/admin/VerificationRequestsAdminScreen')));
 const PlatformSettingsScreen = withSuspense(lazy(() => import('../screens/admin/PlatformSettingsScreen')));
 const AnnouncementsAdminScreen = withSuspense(lazy(() => import('../screens/admin/AnnouncementsAdminScreen')));
 const AnnouncementFormScreen = withSuspense(lazy(() => import('../screens/admin/AnnouncementFormScreen')));
@@ -468,6 +470,8 @@ export default function RootNavigator() {
       <Stack.Screen name="UserEdit" component={UserEditScreen} />
       <Stack.Screen name="SubscriptionManagement" component={SubscriptionManagementScreen} />
       <Stack.Screen name="AuditLogs" component={AuditLogsScreen} />
+      <Stack.Screen name="AuditLogDetail" component={AuditLogDetailScreen} />
+      <Stack.Screen name="VerificationRequestsAdmin" component={VerificationRequestsAdminScreen} />
       <Stack.Screen name="PlatformSettings" component={PlatformSettingsScreen} />
       <Stack.Screen name="AnnouncementsAdmin" component={AnnouncementsAdminScreen} />
       <Stack.Screen name="AnnouncementForm" component={AnnouncementFormScreen} />

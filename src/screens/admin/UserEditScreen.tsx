@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -28,6 +29,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent, FORM_MAX } from '../../constants/layout';
+import { getApiErrorMessage, formatFieldErrors } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'UserEdit'>;
@@ -49,6 +51,14 @@ export default function UserEditScreen() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedRole, setSelectedRole] = useState<string>('user');
+  // Champs de profil éditables (avant : uniquement rôle/vérif/actif, aucun champ
+  // texte modifiable — reproche testeur « modifier un utilisateur »).
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [company, setCompany] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
 
   useEffect(() => {
     fetchUser();
@@ -60,6 +70,11 @@ export default function UserEditScreen() {
       const res = await usersAPI.getUser(userId);
       setUser(res.data);
       setSelectedRole(res.data.role || 'user');
+      setFirstName(res.data.first_name || '');
+      setLastName(res.data.last_name || '');
+      setEmail(res.data.email || '');
+      setPhone(res.data.phone || (res.data as any).phone_number || '');
+      setCompany(res.data.company_name || '');
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement utilisateur:', error);
       // Pas de modale : l'écran affiche son propre état d'échec (avec en-tête,
@@ -83,6 +98,31 @@ export default function UserEditScreen() {
       showError(t('common.error'), t('admin.userEdit.roleUpdateError'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setSavingProfile(true);
+    try {
+      // NB : `email` et `role` sont read-only sur UserSerializer (email = identifiant,
+      // role via l'action dédiée) → non inclus ici. Le champ backend est
+      // `phone_number`, pas `phone`.
+      const payload: Record<string, any> = {
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        phone_number: phone.trim(),
+        company_name: company.trim(),
+      };
+      const res = await usersAPI.updateUser(userId, payload);
+      setUser(prev => (prev ? { ...prev, ...res.data } : prev));
+      toastSuccess(t('admin.userEdit.profileUpdated'));
+    } catch (error: any) {
+      const { message } = getApiErrorMessage(error, t, { fallbackKey: 'admin.userEdit.profileUpdateError' });
+      const detail = formatFieldErrors(getApiErrorMessage(error, t, { fallbackKey: 'admin.userEdit.profileUpdateError' }).fieldErrors, t);
+      showError(t('common.error'), detail || message);
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -285,13 +325,47 @@ export default function UserEditScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Info */}
+        {/* Profil éditable */}
+        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>{t('admin.userEdit.profileSection')}</Text>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
+          {([
+            { key: 'first', label: t('admin.userEdit.fieldFirstName'), value: firstName, set: setFirstName, kb: 'default' as const },
+            { key: 'last', label: t('admin.userEdit.fieldLastName'), value: lastName, set: setLastName, kb: 'default' as const },
+            { key: 'phone', label: t('admin.userEdit.fieldPhone'), value: phone, set: setPhone, kb: 'phone-pad' as const },
+            { key: 'company', label: t('admin.userEdit.fieldCompany'), value: company, set: setCompany, kb: 'default' as const },
+          ]).map((f) => (
+            <View key={f.key} style={styles.fieldGroup}>
+              <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{f.label}</Text>
+              <TextInput
+                style={[styles.fieldInput, { color: colors.text, borderColor: hairline, backgroundColor: colors.gray50 }]}
+                value={f.value}
+                onChangeText={f.set}
+                keyboardType={f.kb}
+                autoCapitalize={f.key === 'email' ? 'none' : 'sentences'}
+                placeholderTextColor={colors.gray400}
+              />
+            </View>
+          ))}
+          <TouchableOpacity
+            style={[styles.saveProfileBtn, { backgroundColor: colors.primary, opacity: savingProfile ? 0.6 : 1 }]}
+            onPress={handleSaveProfile}
+            disabled={savingProfile}
+            activeOpacity={0.85}
+          >
+            {savingProfile ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.saveProfileText}>{t('admin.userEdit.saveProfile')}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Info (lecture seule) */}
         <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>{t('admin.userEdit.infoSection')}</Text>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
           {[
             { label: t('admin.userEdit.infoId'), value: String(user.id) },
-            { label: t('admin.userEdit.infoPhone'), value: user.phone || '-' },
-            { label: t('admin.userEdit.infoCompany'), value: user.company_name || '-' },
+            { label: t('admin.userEdit.fieldEmail'), value: email || '-' },
             { label: t('admin.userEdit.infoJoined'), value: user.date_joined ? new Date(user.date_joined).toLocaleDateString('fr-FR') : '-' },
           ].map((item, idx) => (
             <View key={item.label} style={[styles.infoRow, idx > 0 && { borderTopWidth: 1, borderTopColor: hairline }]}>
@@ -428,4 +502,22 @@ const styles = StyleSheet.create({
   },
   infoLabel: { fontFamily: FontFamily.medium, fontSize: FontSizes.sm },
   infoValue: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
+  fieldGroup: { padding: Spacing.md, paddingBottom: Spacing.sm },
+  fieldLabel: { fontFamily: FontFamily.medium, fontSize: 12, marginBottom: 6 },
+  fieldInput: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 11,
+    fontFamily: FontFamily.regular,
+    fontSize: 14,
+  },
+  saveProfileBtn: {
+    margin: Spacing.md,
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    alignItems: 'center',
+  },
+  saveProfileText: { fontFamily: FontFamily.semiBold, fontSize: 14, color: '#fff' },
 });

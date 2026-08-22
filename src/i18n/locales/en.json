@@ -6268,7 +6268,8 @@
         "ticketMaxMin": "Ticket “{{label}}” max per order must be ≥ the min",
         "fieldLabelRequired": "Field #{{n}} label is required",
         "fieldOptionsRequired": "Options are required for field “{{label}}”"
-      }
+      },
+      "loadFailedBlocksSave": "The event data could not be loaded. Reload the page before saving, otherwise your current information would be overwritten."
     },
     "eventRegistrations": {
       "title": "Registrations",
@@ -6478,12 +6479,15 @@
       "kpiEvents": "Events",
       "kpiRevenue": "Revenue",
       "kpiVerifications": "Verifications",
+      "activityChartTitle": "Platform activity",
+      "activityChartSubtitle": "Audit actions over the last 7 days",
       "quickActions": "QUICK ACTIONS",
       "recentActivity": "RECENT ACTIVITY",
       "noActivity": "No recent activity",
       "viewAllAudit": "View all audit logs",
       "actions": {
         "users": "Users",
+        "verifications": "Verifications",
         "subscriptions": "Subscriptions",
         "audit": "Audit",
         "announcements": "Announcements",
@@ -6492,6 +6496,30 @@
         "settings": "Settings",
         "treasury": "Treasury"
       }
+    },
+    "verifications": {
+      "watermark": "KYC",
+      "guardTitle": "Restricted access",
+      "eyebrow": "Moderation",
+      "title": "Verification requests",
+      "typeOrg": "Organization",
+      "typeIndividual": "Individual",
+      "noDocuments": "No documents provided",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approveTitle": "Approve verification",
+      "approveMessage": "Confirm approving {{name}} as a verified organizer?",
+      "approveBio": "Confirm to approve this verification",
+      "approveSuccess": "Organizer verified",
+      "rejectTitle": "Reject request",
+      "rejectMessage": "Provide a reason for rejecting {{name}}. It will be shared with the user.",
+      "rejectReasonPlaceholder": "Reason for rejection…",
+      "rejectReasonRequired": "A reason is required.",
+      "rejectSuccess": "Request rejected",
+      "actionError": "The action failed. Please try again.",
+      "loadError": "Couldn't load verification requests.",
+      "emptyTitle": "No pending requests",
+      "emptySubtitle": "New organizer verification requests will appear here."
     },
     "platformSettings": {
       "watermark": "CFG",
@@ -6601,6 +6629,16 @@
       "loadError": "Unable to load user",
       "roleSection": "ROLE",
       "actionsSection": "ACTIONS",
+      "profileSection": "PROFILE",
+      "fieldFirstName": "First name",
+      "fieldLastName": "Last name",
+      "fieldEmail": "Email",
+      "fieldPhone": "Phone",
+      "fieldCompany": "Company",
+      "saveProfile": "Save profile",
+      "profileUpdated": "Profile updated",
+      "profileUpdateError": "Couldn't update the profile.",
+      "emailRequired": "Email is required.",
       "infoSection": "INFORMATION",
       "active": "Active",
       "inactive": "Inactive",
@@ -6793,6 +6831,21 @@
       "title": "Audit logs",
       "target": "Target",
       "user": "User #{{id}}",
+      "detail": {
+        "guardTitle": "Log detail",
+        "eyebrow": "Audit log",
+        "title": "Log detail",
+        "action": "Action",
+        "target": "Target",
+        "user": "User",
+        "system": "System",
+        "timestamp": "Timestamp",
+        "ip": "IP address",
+        "userAgent": "Device / browser",
+        "changes": "Changes",
+        "metadata": "Details",
+        "loadError": "Couldn't load this log."
+      },
       "stats": {
         "total": "Total"
       },

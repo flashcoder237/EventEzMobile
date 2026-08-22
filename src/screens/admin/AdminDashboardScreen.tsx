@@ -18,6 +18,7 @@ import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { usersAPI, auditAPI, analyticsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { KPICard } from '../../components/charts';
+import BarChart from '../../components/charts/BarChart';
 import RoleGuard from '../../components/auth/RoleGuard';
 import {
   FontFamily,
@@ -53,6 +54,8 @@ function AdminDashboardContent() {
     pendingVerifications: 0,
   });
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  // Activité d'audit des 7 derniers jours (pour le graphique).
+  const [dailyActions, setDailyActions] = useState<{ label: string; value: number }[]>([]);
 
   useEffect(() => {
     // Le RoleGuard parent garantit que user.role === 'admin' (ou is_staff). Le
@@ -63,11 +66,12 @@ function AdminDashboardContent() {
 
   const fetchData = async () => {
     try {
-      const [usersRes, analyticsRes, auditRes, verificationRes] = await Promise.all([
+      const [usersRes, analyticsRes, auditRes, verificationRes, auditStatsRes] = await Promise.all([
         usersAPI.getUsers({ page_size: 1 }).catch(() => ({ data: { count: 0 } })),
         analyticsAPI.getDashboardSummary().catch(() => ({ data: null })),
         auditAPI.getRecentLogs({ limit: 5 }).catch(() => ({ data: [] })),
         usersAPI.getPendingVerification().catch(() => ({ data: [] })),
+        auditAPI.getStatistics().catch(() => ({ data: null })),
       ]);
 
       setStats({
@@ -81,6 +85,22 @@ function AdminDashboardContent() {
 
       const logs = auditRes.data?.results || auditRes.data || [];
       setRecentLogs(Array.isArray(logs) ? logs.slice(0, 5) : []);
+
+      // Graphique : activité d'audit sur 7 jours (daily_actions = [{date, count}]).
+      const daily = auditStatsRes.data?.daily_actions;
+      if (Array.isArray(daily)) {
+        setDailyActions(
+          daily.map((d: { date: string; count: number }) => {
+            let label = '';
+            try {
+              label = new Date(d.date).toLocaleDateString(undefined, { weekday: 'short' });
+            } catch {
+              label = String(d.date).slice(5);
+            }
+            return { label, value: d.count || 0 };
+          }),
+        );
+      }
     } catch (error) {
       if (__DEV__) console.error('Erreur admin dashboard:', error);
     }
@@ -94,6 +114,7 @@ function AdminDashboardContent() {
 
   const quickActions: { icon: keyof typeof Ionicons.glyphMap; title: string; screen: string; color: string }[] = [
     { icon: 'people-outline', title: t('admin.dashboard.actions.users'), screen: 'UserManagement', color: '#4F46E5' },
+    { icon: 'shield-checkmark-outline', title: t('admin.dashboard.actions.verifications'), screen: 'VerificationRequestsAdmin', color: '#0EA5E9' },
     { icon: 'receipt-outline', title: t('admin.dashboard.actions.subscriptions'), screen: 'SubscriptionManagement', color: '#A855F7' },
     { icon: 'shield-outline', title: t('admin.dashboard.actions.audit'), screen: 'AuditLogs', color: '#10B981' },
     { icon: 'megaphone-outline', title: t('admin.dashboard.actions.announcements'), screen: 'AnnouncementsAdmin', color: '#3B82F6' },
@@ -135,6 +156,15 @@ function AdminDashboardContent() {
           <KPICard title={t('admin.dashboard.kpiRevenue')} value={`${stats.totalRevenue.toLocaleString()} ${platformCurrency}`} icon="cash-outline" color="#10B981" />
           <KPICard title={t('admin.dashboard.kpiVerifications')} value={stats.pendingVerifications} icon="shield-checkmark-outline" color="#F59E0B" />
         </View>
+
+        {/* Graphique : activité d'audit sur 7 jours (avant : que des chiffres). */}
+        {dailyActions.some((d) => d.value > 0) && (
+          <View style={[styles.chartCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
+            <Text style={[styles.chartTitle, { color: colors.text }]}>{t('admin.dashboard.activityChartTitle')}</Text>
+            <Text style={[styles.chartSubtitle, { color: colors.gray500 }]}>{t('admin.dashboard.activityChartSubtitle')}</Text>
+            <BarChart data={dailyActions} height={160} gradientColors={[colors.primary, colors.accent]} />
+          </View>
+        )}
 
         {/* Quick Actions */}
         <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>{t('admin.dashboard.quickActions')}</Text>
@@ -237,6 +267,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, ...centeredContent(WIDE_MAX) },
   kpiRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm },
+  chartCard: { borderWidth: 1, borderRadius: BorderRadius.xl, padding: Spacing.lg, marginTop: Spacing.sm, marginBottom: Spacing.md },
+  chartTitle: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.base },
+  chartSubtitle: { fontFamily: FontFamily.regular, fontSize: 12, marginTop: 2, marginBottom: Spacing.md },
   sectionEyebrow: {
     fontFamily: FontFamily.bold,
     fontSize: 10,
