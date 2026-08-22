@@ -23,6 +23,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { resolveNotificationTarget } from '../../lib/notifications/resolveTarget';
 import { MyNotifications, AnimatedIllustration } from '../../components/illustrations';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
@@ -360,74 +361,20 @@ export default function NotificationsScreen() {
     if (!selectedNotification) return;
     dispatch({ type: 'CLOSE_DETAIL' });
 
-    const { notification_type, related_object_type, related_object_id, event, data } = selectedNotification;
-
-    // Notifs de modération → file de modération (pas la page publique de l'event).
-    // Prioritaire sur le routage related_object=event ci-dessous.
-    if (notification_type === 'event_pending_moderation' || notification_type === 'moderation_queue_reminder') {
-      navigation.navigate('Moderation');
-      return;
-    }
-
-    if (event && typeof event === 'object' && event.id) {
-      navigation.navigate('EventDetails', { eventId: event.slug || event.id });
-      return;
-    }
-
-    if (related_object_type && related_object_id) {
-      switch (related_object_type) {
-        case 'event':
-          navigation.navigate('EventDetails', { eventId: related_object_id });
-          break;
-        case 'registration':
-          navigation.navigate('RegistrationDetails', { registrationId: related_object_id });
-          break;
-        case 'ticket':
-        case 'ticket_purchase':
-          navigation.navigate('QRCode', { ticketId: related_object_id });
-          break;
-        case 'payment':
-          navigation.navigate('Main', { screen: 'MyTickets' } as any);
-          break;
-        case 'conversation':
-        case 'message':
-          navigation.navigate('Conversation', { conversationId: related_object_id });
-          break;
-      }
-      return;
-    }
-
-    if (data) {
-      if (data.event_id) {
-        navigation.navigate('EventDetails', { eventId: data.event_id });
-        return;
-      }
-      if (data.registration_id) {
-        navigation.navigate('RegistrationDetails', { registrationId: data.registration_id });
-        return;
-      }
-    }
-
-    switch (notification_type) {
-      case 'registration_confirmation':
-      case 'payment_confirmation':
-        navigation.navigate('Main', { screen: 'MyTickets' } as any);
-        break;
-      case 'system_message':
-      case 'custom_message':
-        navigation.navigate('Messages');
-        break;
+    // Résolution centralisée : action naturelle par TYPE de notification, avec
+    // fallback générique par objet. Cf. lib/notifications/resolveTarget.
+    const target = resolveNotificationTarget(selectedNotification);
+    if (!target) return;
+    if ('tab' in target) {
+      navigation.navigate('Main', { screen: target.tab } as any);
+    } else {
+      navigation.navigate(target.screen as any, target.params as any);
     }
   };
 
-  const canNavigate = (notification: Notification): boolean => {
-    if (notification.event && typeof notification.event === 'object') return true;
-    if (notification.related_object_type && notification.related_object_id) return true;
-    if (notification.data?.event_id || notification.data?.registration_id) return true;
-    if (['registration', 'registration_confirmation', 'payment', 'payment_confirmation', 'message'].includes(notification.notification_type)) return true;
-    if (['event_pending_moderation', 'moderation_queue_reminder'].includes(notification.notification_type)) return true;
-    return false;
-  };
+  // Une notif est cliquable exactement quand le resolver lui trouve une cible.
+  const canNavigate = (notification: Notification): boolean =>
+    resolveNotificationTarget(notification) !== null;
 
   // === EDITORIAL NOTIFICATION CARD ===
   const renderNotification = ({ item, index }: { item: Notification; index: number }) => {

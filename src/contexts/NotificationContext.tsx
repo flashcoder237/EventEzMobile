@@ -8,6 +8,7 @@ import pushNotificationService, { PushNotificationData } from '../services/pushN
 import PushPermissionModal from '../components/common/PushPermissionModal';
 import { useNotificationWebSocket } from '../hooks/useNotificationWebSocket';
 import { navigationRef } from '../navigation/navigationRef';
+import { resolveNotificationTarget } from '../lib/notifications/resolveTarget';
 
 const PUSH_PERMISSION_PROMPTED_KEY = '@eventez_push_permission_prompted';
 
@@ -41,6 +42,8 @@ const KNOWN_NOTIF_NAV_SCREENS = new Set<string>([
   'Webhooks', 'Newsletters',
   'Dashboards', 'DashboardDetails',
   'SeatingPlans', 'SeatingPlanEditor',
+  'BoothManagement', 'BoothPlanEditor', 'MyBooth',
+  'TeamManagement', 'TeamInvitation', 'MyTeamEvents',
   'Help', 'AnalyticsDashboard', 'Reports',
   'AdminDashboard', 'UserManagement', 'UserEdit',
   'SubscriptionManagement', 'AuditLogs', 'PlatformSettings',
@@ -237,56 +240,34 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           })
         );
       }
-      // Priority 2: navigate based on data fields
-      else if (data.event_id) {
-        navigation.dispatch(
-          CommonActions.navigate({ name: 'EventDetails', params: { eventId: data.event_id } })
-        );
-      } else if (data.registration_id) {
-        navigation.dispatch(
-          CommonActions.navigate({ name: 'MyTickets' })
-        );
-      } else if (data.ticket_id) {
-        navigation.dispatch(
-          CommonActions.navigate({ name: 'QRCode', params: { ticketId: data.ticket_id } })
-        );
-      } else if (data.conversation_id) {
-        navigation.dispatch(
-          CommonActions.navigate({ name: 'Conversation', params: { conversationId: data.conversation_id } })
-        );
-      }
-      // Priority 3: use related_object fields from backend
-      else if (data.related_object_type && data.related_object_id) {
-        switch (data.related_object_type) {
-          case 'event':
-            navigation.dispatch(
-              CommonActions.navigate({ name: 'EventDetails', params: { eventId: data.related_object_id } })
-            );
-            break;
-          case 'registration':
-            navigation.dispatch(
-              CommonActions.navigate({ name: 'MyTickets' })
-            );
-            break;
-          case 'ticket':
-          case 'ticket_purchase':
-            navigation.dispatch(
-              CommonActions.navigate({ name: 'QRCode', params: { ticketId: data.related_object_id } })
-            );
-            break;
-          case 'conversation':
-          case 'message':
-            navigation.dispatch(
-              CommonActions.navigate({ name: 'Conversation', params: { conversationId: data.related_object_id } })
-            );
-            break;
-          default:
-            // Type inconnu côté client (probablement une nouvelle entité que
-            // ce build ne connaît pas encore). On log explicitement et on
-            // retombe sur Notifications pour ne pas perdre le tap.
-            if (__DEV__) console.warn('[Notification] Unknown related_object_type, fallback to Notifications:', data.related_object_type);
+      // Priority 2 : action naturelle par TYPE de notification (resolver
+      // partagé avec l'écran Notifications). Remplace l'ancien routage
+      // générique par-objet qui ouvrait toujours EventDetails/MyTickets.
+      else if (
+        (() => {
+          const synthetic: any = {
+            notification_type: data.notification_type,
+            related_object_type: data.related_object_type,
+            related_object_id: data.related_object_id,
+            extra_data: {
+              event_id: data.event_id,
+              event_slug: (data as any).event_slug,
+              registration_id: data.registration_id,
+            },
+          };
+          const target = resolveNotificationTarget(synthetic);
+          if (!target) return false;
+          if ('tab' in target) {
+            navigation.dispatch(CommonActions.navigate({ name: 'Main', params: { screen: target.tab } }));
+          } else if (KNOWN_NOTIF_NAV_SCREENS.has(target.screen)) {
+            navigation.dispatch(CommonActions.navigate({ name: target.screen, params: target.params }));
+          } else {
             navigation.dispatch(CommonActions.navigate({ name: 'Notifications' }));
-        }
+          }
+          return true;
+        })()
+      ) {
+        // routage effectué dans l'IIFE ci-dessus.
       }
       // Priority 4: notification_id → mark read and go to notifications
       else if (data.notification_id) {
