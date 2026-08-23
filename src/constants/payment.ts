@@ -31,10 +31,14 @@ export function calculateServiceFee(
   amount: number,
   config?: CommissionConfigResponse | null,
   eventCurrency?: string,
+  ticketQuantity: number = 1,
 ): number {
   if (amount <= 0) return 0;
   const rate = config ? Number(config.commission_rate) : COMMISSION_RATE;
   const fixed = config ? Number(config.fixed_fee) : FIXED_FEE;
+  // Frais fixe PAR BILLET (standard Eventbrite) — aligné avec le backend
+  // (payments/utils.calculate_commission ticket_quantity=…).
+  const qty = Math.max(1, Math.floor(ticketQuantity) || 1);
 
   // Sanity check : si on detecte un mismatch de devise (le frontend a
   // oublie target_currency), on log un warning mais on calcule quand meme.
@@ -50,7 +54,7 @@ export function calculateServiceFee(
     }
   }
 
-  return Math.round(amount * rate) + fixed;
+  return Math.round(amount * rate) + fixed * qty;
 }
 
 /**
@@ -76,10 +80,10 @@ export function getServiceFeeLabel(
       ? 'FCFA'
       : displayCurrencyCode;
 
-  // Format : "5% + 200 FCFA" (cas normal) ou "5%" (si fixed=0).
+  // Format : "5% + 200 FCFA/billet" (frais fixe PAR BILLET) ou "5%" (si fixed=0).
   const ratePart = `${(rate * 100).toFixed(0)}%`;
   if (fixed <= 0) return ratePart;
-  return `${ratePart} + ${fixed.toLocaleString('fr-FR')} ${displayCurrency}`;
+  return `${ratePart} + ${fixed.toLocaleString('fr-FR')} ${displayCurrency}/billet`;
 }
 
 /** Label statique par défaut (rétrocompatibilité) */

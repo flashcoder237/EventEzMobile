@@ -457,7 +457,8 @@ export default function TicketPurchaseScreen() {
     // Passe eventCurrencyCode pour que `calculateServiceFee` puisse rejeter
     // le `fixed_fee` si commissionConfig.currency != event.currency
     // (sinon mix de devises numerique fausse).
-    return calculateServiceFee(getTotalPrice(), commissionConfig, eventCurrencyCode);
+    // Frais fixe PAR BILLET → passer la quantité totale.
+    return calculateServiceFee(getTotalPrice(), commissionConfig, eventCurrencyCode, getTotalQuantity());
   };
 
   const getGrandTotal = () => {

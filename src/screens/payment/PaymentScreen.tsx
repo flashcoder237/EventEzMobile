@@ -643,6 +643,14 @@ export default function PaymentScreen() {
     }, 0);
   };
 
+  // Nombre TOTAL de billets — le frais fixe est PAR BILLET.
+  const calculateTicketCount = () => {
+    const tickets = getTicketsToDisplay();
+    if (!tickets || tickets.length === 0) return 1;
+    const q = tickets.reduce((n, ti: any) => n + (Number(ti.quantity) || 1), 0);
+    return Math.max(1, q);
+  };
+
   // Commission config dynamique par pays. Le backend RegistrationSerializer
   // expose `event` comme UUID (FK) ET `event_detail` comme objet complet.
   // On lit event_detail en priorite — sinon `currency` retombe sur 'XAF' par
@@ -670,7 +678,7 @@ export default function PaymentScreen() {
   const feeBearer = (eventObj as any)?.fee_bearer || 'participant';
   // Passe eventCurrencyCode pour rejeter le fixed_fee si commissionConfig
   // n'est pas dans la meme devise que l'event (cas fallback backend).
-  const serviceFee = feeBearer === 'organizer' ? 0 : calculateServiceFee(subtotal, commissionConfig, eventCurrencyCode);
+  const serviceFee = feeBearer === 'organizer' ? 0 : calculateServiceFee(subtotal, commissionConfig, eventCurrencyCode, calculateTicketCount());
   const serviceFeeLabel = getServiceFeeLabel(commissionConfig, eventCurrencyCode);
   const finalTotal = Math.round((subtotal + serviceFee) * 100) / 100;
 
