@@ -353,7 +353,12 @@ describe('TicketPurchaseScreen', () => {
     });
   });
 
-  it('shows showError when createRegistration fails', async () => {
+  it('affiche le message backend spécifique (detail/non_field_errors) sur échec création', async () => {
+    // Retour testeur : sur échec de création (ex. champ requis manquant, stock
+    // épuisé, mauvais type), l'utilisateur restait bloqué avec un message
+    // générique. Les ValidationError NON-field du backend registrations sont des
+    // messages métier TRADUITS destinés à l'utilisateur → on les affiche pour
+    // qu'il sache quoi corriger.
     mockCreateRegistration.mockRejectedValueOnce({
       response: { data: { detail: 'Stock épuisé' } },
     });
@@ -363,16 +368,29 @@ describe('TicketPurchaseScreen', () => {
     fireEvent.press(getAllByLabelText('Ajouter un billet')[0]);
     fireEvent.press(await findByText('Continuer'));
 
-    // Le brut du backend (detail "Stock épuisé", sans champ `code` ni status HTTP
-    // mappé) n'est JAMAIS relayé : getApiErrorMessage retombe sur la clé de fallback
-    // ticketPurchase.createRegistrationError, traduite. On assère le message rassurant
-    // et l'absence du brut.
     await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith(
-        'Erreur',
-        "Impossible de créer l'inscription",
-      );
+      expect(mockShowError).toHaveBeenCalledWith('Erreur', 'Stock épuisé');
     });
-    expect(mockShowError.mock.calls[0][1]).not.toContain('Stock épuisé');
+  });
+
+  it('retombe sur le message générique si le backend ne donne pas de detail', async () => {
+    // Erreur sans detail/non_field_errors exploitable → fallback traduit
+    // (jamais error.message brut d'axios).
+    mockCreateRegistration.mockRejectedValueOnce({
+      response: { status: 500, data: {} },
+    });
+
+    const { findByText, getAllByLabelText } = render(<TicketPurchaseScreen />);
+    await findByText('Pass Standard');
+    fireEvent.press(getAllByLabelText('Ajouter un billet')[0]);
+    fireEvent.press(await findByText('Continuer'));
+
+    await waitFor(() => {
+      expect(mockShowError).toHaveBeenCalled();
+    });
+    // Pas de fuite technique
+    const shown = mockShowError.mock.calls[0][1];
+    expect(shown).not.toContain('500');
+    expect(shown).not.toMatch(/network error/i);
   });
 });

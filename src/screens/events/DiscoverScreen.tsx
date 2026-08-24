@@ -64,6 +64,7 @@ import {
   TOUCH_OPACITY,
 } from '../../constants/theme';
 import { centeredContent, WIDE_MAX } from '../../constants/layout';
+import { getEventUrl } from '../../constants/urls';
 import { getApiResults } from '../../lib/utils/apiHelpers';
 import { getEventPriceRange } from '../../lib/utils/priceFormatters';
 
@@ -2054,8 +2055,12 @@ export default function DiscoverScreen() {
                             <TouchableOpacity
                               style={styles.feedCardActionGhost}
                               onPress={() => {
+                                // Toujours inclure le LIEN de l'event (sinon le
+                                // partage n'envoie que du texte, inexploitable).
+                                const shareUrl = getEventUrl(ev.slug || ev.id);
                                 Share.share({
-                                  message: `${ev.title}\n${ev.short_description || ''}`,
+                                  message: `${ev.title}\n${ev.short_description || ''}\n\n${shareUrl}`,
+                                  url: shareUrl,
                                   title: ev.title,
                                 }).catch(() => { /* user cancelled */ });
                               }}

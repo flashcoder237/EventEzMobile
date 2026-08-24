@@ -42,9 +42,17 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
       return eventId ? { screen: 'EventDetails', params: { eventId: eventNav } } : null;
     case 'event_low_stock':
     case 'new_registration':
-    case 'abandoned_registration':
     case 'follow_registered':
       return eventId ? { screen: 'EventRegistrations', params: { eventId } } : null;
+
+    // ─── Inscription NON finalisée (participant) : « finalise ton inscription »
+    // → reprise du paiement/inscription du user, PAS la vue organisateur.
+    // On cible RegistrationDetails (qui expose le bouton payer si status=pending) ;
+    // fallback sur l'onglet MyTickets si l'id d'inscription est absent. ───
+    case 'abandoned_registration':
+      return regId
+        ? { screen: 'RegistrationDetails', params: { registrationId: regId } }
+        : { tab: 'MyTickets' };
     case 'event_feedback':
       return eventId ? { screen: 'EventReviews', params: { eventId } } : null;
 

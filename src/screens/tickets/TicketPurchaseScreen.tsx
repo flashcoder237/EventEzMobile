@@ -703,10 +703,20 @@ export default function TicketPurchaseScreen() {
           }
         );
       } else {
+        // La création d'inscription échoue souvent sur une ValidationError
+        // NON-field du backend (ex. « Le champ requis 'X' n'est pas renseigné »,
+        // « type d'inscription doit être … »). Ces messages sont traduits et
+        // destinés à l'utilisateur : on les affiche tels quels pour qu'il sache
+        // quoi corriger, au lieu du message générique qui le laissait bloqué.
+        const backendData = error?.response?.data;
+        const specific =
+          (typeof backendData?.detail === 'string' && backendData.detail) ||
+          (Array.isArray(backendData?.non_field_errors) && backendData.non_field_errors[0]) ||
+          '';
         const { message } = getApiErrorMessage(error, t, {
           fallbackKey: 'ticketPurchase.createRegistrationError',
         });
-        showError(t('common.error'), message);
+        showError(t('common.error'), specific || message);
       }
     } finally {
       setSubmitting(false);
