@@ -3467,6 +3467,14 @@ expo-brightness@~14.0.8:
   resolved "https://registry.yarnpkg.com/expo-brightness/-/expo-brightness-14.0.8.tgz#040ba3e06646f918218fd8dca43d7c237c3ba07f"
   integrity sha512-WOg3UxzkHFTKBW3XvROlrVRmnJmZLhGBGd1RdzTfrtt2/MdSzvVmCevqWh4bohkeLABh0Yc9YRo1vFgfT73DWw==
 
+expo-build-properties@~1.0.10:
+  version "1.0.10"
+  resolved "https://registry.yarnpkg.com/expo-build-properties/-/expo-build-properties-1.0.10.tgz#2c3fb4248f78828e952defa636635a653e3ad546"
+  integrity sha512-mFCZbrbrv0AP5RB151tAoRzwRJelqM7bCJzCkxpu+owOyH+p/rFC/q7H5q8B9EpVWj8etaIuszR+gKwohpmu1Q==
+  dependencies:
+    ajv "^8.11.0"
+    semver "^7.6.0"
+
 expo-camera@^17.0.10:
   version "17.0.10"
   resolved "https://registry.npmjs.org/expo-camera/-/expo-camera-17.0.10.tgz"
