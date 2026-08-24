@@ -527,7 +527,9 @@ class PushNotificationService {
       ...(fcmToken ? { fcm_token: fcmToken } : {}),
       device_type: Platform.OS as 'ios' | 'android' | 'web',
       device_name: Device.deviceName || `${Platform.OS} device`,
-      app_version: '1.0.0',
+      // Vraie version de l'app (app.json) — jamais codée en dur, sinon le
+      // backend croit toujours à 1.0.0 (fausse les stats + le ciblage version).
+      app_version: Constants.expoConfig?.version || '',
     };
 
     const ok = await this.registerDeviceWithRetry(deviceInfo);
