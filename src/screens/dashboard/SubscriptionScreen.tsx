@@ -716,21 +716,21 @@ export default function SubscriptionScreen() {
                   </Text>
                 </View>
 
-                {/* Max events */}
+                {/* Max events — 0 = illimité (convention backend), idem >100 */}
                 <View style={styles.featureRow}>
                   <Ionicons name="calendar-outline" size={18} color={planColor} />
                   <Text style={[styles.featureText, { color: colors.gray600 }]}>
-                    {plan.max_active_events > 100
+                    {(plan.max_active_events <= 0 || plan.max_active_events > 100)
                       ? t('subscriptionForm.eventsUnlimited')
                       : t('subscriptionForm.eventsUpTo', { count: plan.max_active_events })}
                   </Text>
                 </View>
 
-                {/* Max participants */}
+                {/* Max participants — 0 = illimité (convention backend), idem >10000 */}
                 <View style={styles.featureRow}>
                   <Ionicons name="people-outline" size={18} color={planColor} />
                   <Text style={[styles.featureText, { color: colors.gray600 }]}>
-                    {plan.max_participants_per_event > 10000
+                    {(plan.max_participants_per_event <= 0 || plan.max_participants_per_event > 10000)
                       ? t('subscriptionForm.participantsUnlimited')
                       : t('subscriptionForm.participantsUpTo', { count: plan.max_participants_per_event.toLocaleString(numberLocale) })}
                   </Text>
