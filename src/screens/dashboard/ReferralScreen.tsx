@@ -74,7 +74,10 @@ export default function ReferralScreen() {
     if (generating) return;
     setGenerating(true);
     try {
-      await referralsAPI.createCode({ code_type: 'general' });
+      // code_type DOIT être une valeur valide du backend (user/organizer/
+      // affiliate). 'general' n'existe pas → 400 "informations invalides".
+      // 'user' = code de parrainage personnel (comme le défaut web).
+      await referralsAPI.createCode({ code_type: 'user' });
       await fetchData();
       toastSuccess(t('referralForm.generateSuccess'));
     } catch (error: any) {
