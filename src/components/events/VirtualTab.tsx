@@ -17,6 +17,7 @@ import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 import { formatCount } from '../../lib/utils/numberFormatters';
+import { useLiveStatus } from '../../hooks/useLiveStatus';
 
 interface VirtualRoom {
   id: string;
@@ -53,6 +54,8 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
   const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null);
+  // Statut « en direct » temps réel (bannière + CTA quand c'est en cours).
+  const { status: live } = useLiveStatus(eventId, { enabled: true });
 
   useEffect(() => {
     fetchVirtualData();
@@ -77,6 +80,11 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
       setLoading(false);
     }
   };
+
+  // Rejoindre depuis la bannière « en direct » (pas de room précise ciblée) :
+  // même flux gaté que handleJoinRoom, avec un id de spinner dédié.
+  const LIVE_JOIN_ID = '__live__';
+  const handleJoinLive = () => handleJoinRoom(LIVE_JOIN_ID);
 
   const handleJoinRoom = async (_roomId: string) => {
     // Utiliser event_join qui retourne le token et l'URL selon le provider
@@ -164,6 +172,37 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
     return room.is_active === true || room.status === 'active' || room.status === 'live';
   };
 
+  // Bannière « en direct » rouge + CTA de rejointe (rendue quel que soit l'état
+  // de contenu tant que l'event est effectivement live).
+  const liveBanner = live?.is_live ? (
+    <View style={styles.liveBanner}>
+      <View style={styles.liveBannerLeft}>
+        <View style={styles.liveDot} />
+        <View style={{ flexShrink: 1 }}>
+          <Text style={styles.liveBannerTitle}>{t('componentsEvents.virtualLiveNow')}</Text>
+          {live.participants > 0 && (
+            <Text style={styles.liveBannerSub}>
+              {t('componentsEvents.virtualLiveParticipants', { count: live.participants })}
+            </Text>
+          )}
+        </View>
+      </View>
+      <TouchableOpacity
+        style={[styles.liveJoinButton, joiningRoomId !== null && { opacity: 0.6 }]}
+        onPress={handleJoinLive}
+        disabled={joiningRoomId !== null}
+        activeOpacity={0.7}
+      >
+        {joiningRoomId === LIVE_JOIN_ID ? (
+          <LoadingSpinner size="small" color={Colors.error} />
+        ) : (
+          <Ionicons name="videocam" size={16} color={Colors.error} />
+        )}
+        <Text style={styles.liveJoinButtonText}>{t('componentsEvents.virtualJoinLive')}</Text>
+      </TouchableOpacity>
+    </View>
+  ) : null;
+
   if (loading) {
     return (
       <View style={styles.emptyTab}>
@@ -178,6 +217,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
   if (!hasContent) {
     return (
       <View style={styles.section}>
+        {liveBanner}
         <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.virtualTitle')}</Text>
         <View style={styles.emptyTab}>
           <Ionicons name="videocam-outline" size={40} color={colors.gray300} />
@@ -189,6 +229,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
 
   return (
     <View style={styles.section}>
+      {liveBanner}
       {/* Virtual Rooms */}
       {rooms.length > 0 && (
         <>
@@ -306,6 +347,56 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing['3xl'],
+  },
+  // Bannière « en direct »
+  liveBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.error,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  liveBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    flexShrink: 1,
+  },
+  liveDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.white,
+  },
+  liveBannerTitle: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.white,
+  },
+  liveBannerSub: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 1,
+  },
+  liveJoinButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    backgroundColor: Colors.white,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    flexShrink: 0,
+  },
+  liveJoinButtonText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.error,
   },
   emptyTabText: {
     fontSize: FontSizes.sm,

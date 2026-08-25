@@ -141,6 +141,11 @@ export const virtualRoomsAPI = {
   /** Capacités vidéo du plan pour un événement donné */
   eventPlanInfo: (eventId: string) =>
     api.get(`/virtual-rooms/event/${eventId}/plan-info/`),
+
+  /** Statut « en direct » PUBLIC et léger (polling). Accepte UUID ou slug.
+   *  → { is_live, is_online, has_started, has_ended, starts_in_minutes, participants } */
+  liveStatus: (eventIdOrSlug: string) =>
+    api.get(`/virtual-rooms/event/${eventIdOrSlug}/live-status/`),
 };
 
 // ============================================

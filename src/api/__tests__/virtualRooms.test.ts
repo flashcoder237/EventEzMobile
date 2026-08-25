@@ -50,4 +50,14 @@ describe('virtualRoomsAPI', () => {
     await virtualRoomsAPI.eventPlanInfo('eid');
     expect(api.get).toHaveBeenCalledWith('/virtual-rooms/event/eid/plan-info/');
   });
+
+  it('liveStatus() GETs /virtual-rooms/event/{eventId}/live-status/', async () => {
+    await virtualRoomsAPI.liveStatus('eid');
+    expect(api.get).toHaveBeenCalledWith('/virtual-rooms/event/eid/live-status/');
+  });
+
+  it('liveStatus() accepts a slug', async () => {
+    await virtualRoomsAPI.liveStatus('my-event-slug');
+    expect(api.get).toHaveBeenCalledWith('/virtual-rooms/event/my-event-slug/live-status/');
+  });
 });
