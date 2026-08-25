@@ -41,6 +41,9 @@ export interface TicketTypeForm {
   is_visible: boolean;
   max_per_order: string;
   min_per_order: string;
+  /** Accès conféré (in_person/online/hybrid). Pertinent sur event hybride ;
+   *  ailleurs le backend déduit du type d'event. Optionnel = non explicité. */
+  access_mode?: 'in_person' | 'online' | 'hybrid';
 }
 
 export interface FormFieldForm {
@@ -1037,6 +1040,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
           is_visible: tk.is_visible !== undefined ? tk.is_visible : true,
           max_per_order: tk.max_per_order != null ? String(tk.max_per_order) : '10',
           min_per_order: tk.min_per_order != null ? String(tk.min_per_order) : '1',
+          access_mode: tk.access_mode,
         }));
 
         // Champs de formulaire existants → format FormFieldForm.

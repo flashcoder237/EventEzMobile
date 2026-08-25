@@ -5,11 +5,14 @@ import { publicSettingsAPI } from '../api';
 interface FeatureFlags {
   phone_otp_enabled: boolean;
   sms_notifications_enabled: boolean;
+  visio_available: boolean;
 }
 
 const DEFAULT_FLAGS: FeatureFlags = {
   phone_otp_enabled: true,
   sms_notifications_enabled: true,
+  // Défaut false : on ne propose « EventEz Visio » que si l'API confirme la dispo.
+  visio_available: false,
 };
 
 // Cache process-wide pour eviter de refetch les flags sur chaque mount.
@@ -28,6 +31,7 @@ async function fetchAndCache(): Promise<FeatureFlags | null> {
     const next: FeatureFlags = {
       phone_otp_enabled: res.data?.phone_otp_enabled ?? true,
       sms_notifications_enabled: res.data?.sms_notifications_enabled ?? true,
+      visio_available: res.data?.visio_available ?? false,
     };
     cached = { value: next, ts: Date.now() };
     return next;

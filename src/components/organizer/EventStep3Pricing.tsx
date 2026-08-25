@@ -546,6 +546,42 @@ export default function EventStep3Pricing({
                     maximumDate={startDate}
                   />
 
+                  {/* Accès du billet — uniquement event HYBRIDE (présentiel + visio
+                      coexistent). « Limiter certains billets à la visio ». */}
+                  {locationType === 'hybrid' && (
+                    <View style={{ marginTop: 4 }}>
+                      <Text style={[styles.switchLabel, themed.switchLabel, { marginBottom: 6 }]}>
+                        {t('componentsOrganizer.step3.accessModeLabel')}
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        {([
+                          { v: 'in_person', l: t('componentsOrganizer.step3.accessInPerson') },
+                          { v: 'online', l: t('componentsOrganizer.step3.accessOnline') },
+                          { v: 'hybrid', l: t('componentsOrganizer.step3.accessBoth') },
+                        ] as const).map((opt) => {
+                          const active = (ticket.access_mode || 'hybrid') === opt.v;
+                          return (
+                            <TouchableOpacity
+                              key={opt.v}
+                              onPress={() => onUpdateTicketType(index, 'access_mode', opt.v)}
+                              activeOpacity={0.7}
+                              style={{
+                                flex: 1, paddingVertical: 9, borderRadius: 999, borderWidth: 1,
+                                alignItems: 'center',
+                                backgroundColor: active ? colors.primary : colors.card,
+                                borderColor: active ? colors.primary : (isDark ? colors.gray200 : 'rgba(0,0,0,0.08)'),
+                              }}
+                            >
+                              <Text style={{ fontSize: 12, fontWeight: '600', color: active ? '#fff' : colors.text }}>
+                                {opt.l}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  )}
+
                   <View style={[styles.switchRow, themed.switchRow]}>
                     <View style={styles.switchContent}>
                       <Text style={[styles.switchLabel, themed.switchLabel]}>{t('componentsOrganizer.step3.visibleLabel')}</Text>

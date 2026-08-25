@@ -76,7 +76,10 @@ export function useEventFormValidation(
           }
         }
         if (form.locationType === 'online' || form.locationType === 'hybrid') {
-          if (!form.onlineUrl.trim()) {
+          // EventEz Visio natif : la salle est générée côté serveur, pas d'URL
+          // externe à saisir → on n'exige pas onlineUrl dans ce cas.
+          const usingEventezVisio = form.onlinePlatform === 'eventez_visio';
+          if (!usingEventezVisio && !form.onlineUrl.trim()) {
             errors.onlineUrl = vk(t, 'onlineUrlRequired');
           }
         }

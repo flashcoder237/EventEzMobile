@@ -20,7 +20,9 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { usersAPI, eventsAPI, messagesAPI, getMediaUrl } from '../../api';
+import { usersAPI, eventsAPI, messagesAPI, connectionsAPI, getMediaUrl } from '../../api';
+import { useFeedback } from '../../contexts/FeedbackContext';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { ProfileSkeleton } from '../../components/ui/Skeleton';
 import FollowUserButton from '../../components/common/FollowUserButton';
 import { useAuth } from '../../contexts/AuthContext';
@@ -62,6 +64,9 @@ export default function OrganizerProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [isFollowingAction, setIsFollowingAction] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const { toastSuccess, toastError } = useFeedback();
 
   useEffect(() => {
     fetchOrganizerData();
@@ -118,6 +123,34 @@ export default function OrganizerProfileScreen() {
       userName: getDisplayName(organizer),
     });
   }, [organizer, navigation, user?.id]);
+
+  // Détecte si on est déjà connecté à ce profil (pour l'état du bouton).
+  useEffect(() => {
+    let cancelled = false;
+    if (!organizer || !user || String(organizer.id) === String(user.id)) return;
+    connectionsAPI.list()
+      .then((res) => {
+        if (cancelled) return;
+        const ids = (res.data?.results || []).map((c: any) => String(c.user?.id));
+        setIsConnected(ids.includes(String(organizer.id)));
+      })
+      .catch(() => { /* non bloquant */ });
+    return () => { cancelled = true; };
+  }, [organizer?.id, user?.id]);
+
+  const handleConnect = useCallback(async () => {
+    if (!organizer || connecting || isConnected) return;
+    setConnecting(true);
+    try {
+      await connectionsAPI.connect(organizer.id);
+      setIsConnected(true);
+      toastSuccess(t('organizerProfile.connectSuccess', { name: getDisplayName(organizer) }));
+    } catch (error: any) {
+      toastError(getApiErrorMessage(error, t, { fallbackKey: 'organizerProfile.connectError' }).message);
+    } finally {
+      setConnecting(false);
+    }
+  }, [organizer, connecting, isConnected, t, toastSuccess, toastError]);
 
   const handleOpenLink = useCallback((url: string | undefined, title?: string) => {
     if (!url) return;
@@ -298,6 +331,29 @@ export default function OrganizerProfileScreen() {
                   initialFollowing={!!(organizer as any)?.is_following}
                 />
               </View>
+              {/* Se connecter (source='manual') — masqué sur son propre profil.
+                  Une connexion débloque le DM direct. */}
+              {!!user && String(user.id) !== String(organizerId) && (
+                <TouchableOpacity
+                  style={[
+                    styles.contactIconButton,
+                    { backgroundColor: isConnected ? `${colors.primary}18` : colors.gray100 },
+                  ]}
+                  onPress={handleConnect}
+                  disabled={connecting || isConnected}
+                  activeOpacity={TOUCH_OPACITY}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    isConnected ? t('organizerProfile.connectedA11y') : t('organizerProfile.connectA11y')
+                  }
+                >
+                  <Ionicons
+                    name={isConnected ? 'people' : 'person-add-outline'}
+                    size={20}
+                    color={isConnected ? colors.primary : colors.gray700}
+                  />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={[styles.contactIconButton, { backgroundColor: colors.gray100 }]}
                 onPress={handleContact}

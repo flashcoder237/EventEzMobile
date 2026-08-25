@@ -197,6 +197,9 @@ function ticketPayload(eventId: string, ticket: EventFormState['ticketTypes'][nu
     is_visible: ticket.is_visible,
     max_per_order: parseInt(ticket.max_per_order) || 10,
     min_per_order: parseInt(ticket.min_per_order) || 1,
+    // access_mode envoyé seulement s'il est explicité (event hybride) ; sinon le
+    // backend le déduit du type d'event.
+    ...(ticket.access_mode ? { access_mode: ticket.access_mode } : {}),
   };
 }
 

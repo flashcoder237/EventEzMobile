@@ -14,6 +14,11 @@ import { Spacing } from '../../constants/theme';
 import { LocationType } from '../../types';
 import { LOCATION_TYPES } from '../../hooks/useEventForm';
 import DateTimePickerField from '../ui/DateTimePickerField';
+import { useFeatureFlags } from '../../hooks/useFeatureFlags';
+
+// Sentinelle : online_platform == cette valeur → visio native EventEz (Jitsi),
+// pas de lien externe. Doit matcher le backend (apps/virtual + views event_join).
+const EVENTEZ_VISIO = 'eventez_visio';
 import DatePickerField from '../ui/DatePickerField';
 import styles from './eventCreateStyles';
 import { useEventCreateThemedStyles } from './useEventCreateThemedStyles';
@@ -105,6 +110,9 @@ export default function EventStep2DateTime({
 }: EventStep2DateTimeProps) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
+  const { flags } = useFeatureFlags();
+  const visioAvailable = flags.visio_available;
+  const usingEventezVisio = onlinePlatform === EVENTEZ_VISIO;
   const themed = useEventCreateThemedStyles();
 
   return (
@@ -266,6 +274,39 @@ export default function EventStep2DateTime({
       {(locationType === 'online' || locationType === 'hybrid') && (
         <View style={[styles.locationFields, themed.locationFields]}>
           <Text style={[styles.subSectionTitle, themed.subSectionTitle]}>{t('componentsOrganizer.step2.virtualLocationTitle')}</Text>
+
+          {/* EventEz Visio (natif) — proposé UNIQUEMENT si l'infra est configurée.
+              Sélectionné → pas de lien externe (la salle est générée par EventEz). */}
+          {visioAvailable && (
+            <View style={{
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+              padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: Spacing.md,
+              backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}40`,
+            }}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="videocam" size={16} color={colors.primary} />
+                  <Text style={[styles.label, themed.label, { marginBottom: 0 }]}>{t('componentsOrganizer.step2.eventezVisioLabel')}</Text>
+                </View>
+                <Text style={{ fontSize: 12, color: colors.gray500, marginTop: 4 }}>
+                  {t('componentsOrganizer.step2.eventezVisioHint')}
+                </Text>
+              </View>
+              <Switch
+                value={usingEventezVisio}
+                onValueChange={(on) => {
+                  onOnlinePlatformChange(on ? EVENTEZ_VISIO : '');
+                  if (on) onOnlineUrlChange(''); // salle générée par EventEz, pas d'URL externe
+                }}
+                trackColor={{ false: colors.gray300, true: `${colors.primary}80` }}
+                thumbColor={usingEventezVisio ? colors.primary : colors.gray100}
+              />
+            </View>
+          )}
+
+          {/* Champs plateforme externe — masqués quand EventEz Visio est choisi. */}
+          {!usingEventezVisio && (
+            <>
           <View style={styles.inputGroup}>
             <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step2.platformLabel')}</Text>
             <TextInput
@@ -315,6 +356,8 @@ export default function EventStep2DateTime({
               placeholderTextColor={colors.gray400}
             />
           </View>
+            </>
+          )}
           <View style={styles.inputGroup}>
             <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step2.instructionsLabel')}</Text>
             <TextInput

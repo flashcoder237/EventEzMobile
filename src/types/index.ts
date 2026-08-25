@@ -818,6 +818,7 @@ export type NotificationType =
   | 'event_suggestion'
   | 'event_low_stock'
   | 'event_today'
+  | 'event_live'
   | 'winback'
   // Messagerie / groupes événement
   | 'new_message'

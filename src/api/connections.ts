@@ -49,4 +49,11 @@ export const connectionsAPI = {
    */
   fromQr: (token: string) =>
     api.post<Connection>('/connections/from_qr/', { token }),
+
+  /**
+   * Se connecter MANUELLEMENT à un user (depuis son profil). Idempotent, débloque
+   * le DM direct. `source='manual'`.
+   */
+  connect: (userId: number | string) =>
+    api.post<Connection & { created: boolean }>('/connections/connect/', { user_id: userId }),
 };

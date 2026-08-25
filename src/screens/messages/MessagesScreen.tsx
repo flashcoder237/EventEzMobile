@@ -29,7 +29,7 @@ import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
-import { messagesAPI, usersAPI, getMediaUrl } from '../../api';
+import { messagesAPI, usersAPI, connectionsAPI, getMediaUrl } from '../../api';
 import CacheService from '../../services/CacheService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -620,6 +620,9 @@ export default function MessagesScreen() {
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [userSearch, setUserSearch] = useState('');
+  // true quand la liste affichée = mes connexions (recherche vide), false quand
+  // ce sont des résultats de recherche libre. Sert au libellé de section.
+  const [showingConnections, setShowingConnections] = useState(true);
   // Bottom sheet d'actions sur une conversation (long-press d'une row).
   // Remplace l'ancien `showAlert` qui affichait un modal multi-boutons sans
   // icônes ni descriptions.
@@ -957,12 +960,35 @@ export default function MessagesScreen() {
       clearTimeout(userSearchTimerRef.current);
     }
 
+    // Recherche vide → afficher MES CONNEXIONS (carnet de contacts in-app :
+    // gens rencontrés via QR/networking). Une connexion permet le DM direct
+    // sans passer par une demande. Avant : la liste restait vide tant qu'on
+    // n'avait pas tapé 2 caractères, donc on ne « voyait » pas ses contacts.
     if (userSearch.length < 2) {
-      setAvailableUsers([]);
-      setLoadingUsers(false);
+      setShowingConnections(true);
+      setLoadingUsers(true);
+      const myReqId = ++userSearchReqIdRef.current;
+      (async () => {
+        try {
+          const res = await connectionsAPI.list();
+          if (myReqId !== userSearchReqIdRef.current) return;
+          const connections = res.data?.results || [];
+          const users = connections
+            .map((c: any) => c.user)
+            .filter((u: any) => u && u.id !== user?.id);
+          setAvailableUsers(users);
+        } catch (error) {
+          if (myReqId !== userSearchReqIdRef.current) return;
+          if (__DEV__) console.error('Erreur chargement connexions:', error);
+          setAvailableUsers([]);
+        } finally {
+          if (myReqId === userSearchReqIdRef.current) setLoadingUsers(false);
+        }
+      })();
       return;
     }
 
+    setShowingConnections(false);
     setLoadingUsers(true);
     const myReqId = ++userSearchReqIdRef.current;
     userSearchTimerRef.current = setTimeout(async () => {
@@ -1071,6 +1097,8 @@ export default function MessagesScreen() {
   };
 
   const handleOpenNewModal = () => {
+    // Repartir de zéro : recherche vide → la modale affiche mes connexions.
+    setUserSearch('');
     setShowNewModal(true);
   };
 
@@ -1927,15 +1955,39 @@ export default function MessagesScreen() {
                   keyExtractor={(item) => String(item.id)}
                   style={styles.usersList}
                   keyboardShouldPersistTaps="handled"
+                  ListHeaderComponent={
+                    filteredUsers.length > 0 ? (
+                      <Text style={[styles.modalSectionLabel, { color: colors.gray500 }]}>
+                        {showingConnections
+                          ? t('messages.myConnectionsSection')
+                          : t('messages.searchResultsSection')}
+                      </Text>
+                    ) : null
+                  }
                   ListEmptyComponent={
                     <View style={styles.noUsers}>
                       <AnimatedIllustration entry="fadeIn" idle="breathe">
                         <PeopleSearch color={colors.primary} size={120} />
                       </AnimatedIllustration>
-                      <Text style={[styles.noUsersEyebrow, { color: colors.gray500 }]}>{t('messages.searchEyebrow')}</Text>
-                      <Text style={[styles.noUsersTitle, { color: colors.text }]}>
-                        {userSearch.length < 2 ? t('messages.searchHint') : t('messages.noOneFound')}
-                      </Text>
+                      {showingConnections ? (
+                        <>
+                          <Text style={[styles.noUsersEyebrow, { color: colors.gray500 }]}>{t('messages.noConnectionsEyebrow')}</Text>
+                          <Text style={[styles.noUsersTitle, { color: colors.text }]}>{t('messages.noConnectionsTitle')}</Text>
+                          <TouchableOpacity
+                            style={[styles.connectCta, { backgroundColor: colors.primary }]}
+                            onPress={() => { setShowNewModal(false); navigation.navigate('Connections' as never); }}
+                            activeOpacity={0.85}
+                          >
+                            <Ionicons name="qr-code-outline" size={16} color="#fff" />
+                            <Text style={styles.connectCtaText}>{t('messages.noConnectionsCta')}</Text>
+                          </TouchableOpacity>
+                        </>
+                      ) : (
+                        <>
+                          <Text style={[styles.noUsersEyebrow, { color: colors.gray500 }]}>{t('messages.searchEyebrow')}</Text>
+                          <Text style={[styles.noUsersTitle, { color: colors.text }]}>{t('messages.noOneFound')}</Text>
+                        </>
+                      )}
                     </View>
                   }
                 />
@@ -2315,5 +2367,28 @@ const styles = StyleSheet.create({
     fontSize: 24,
     letterSpacing: -0.9,
     textAlign: 'center',
+  },
+  modalSectionLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    paddingHorizontal: 4,
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  connectCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: 999,
+  },
+  connectCtaText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 14,
+    color: '#fff',
   },
 });
