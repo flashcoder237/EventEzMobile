@@ -21,7 +21,7 @@ const notif = (over: Record<string, any>): any => ({
 
 describe('resolveNotificationTarget — par notification_type', () => {
   // ─── Modération ───
-  it.each(['event_pending_moderation', 'moderation_queue_reminder'])(
+  it.each(['event_pending_moderation', 'moderation_queue_reminder', 'event_revalidation'])(
     '%s → Moderation',
     (type) => {
       expect(resolveNotificationTarget(notif({ notification_type: type })))
@@ -46,7 +46,7 @@ describe('resolveNotificationTarget — par notification_type', () => {
   });
 
   // ─── Événement — vue détail (utilise eventNav = slug prioritaire) ───
-  it.each(['event_validated', 'event_update', 'event_revalidation', 'event_cancelled', 'event_today'])(
+  it.each(['event_validated', 'event_update', 'event_cancelled', 'event_today'])(
     '%s → EventDetails (slug prioritaire)',
     (type) => {
       expect(resolveNotificationTarget(notif({
@@ -56,17 +56,85 @@ describe('resolveNotificationTarget — par notification_type', () => {
     },
   );
 
-  // ─── Événement — vue ORGANISATEUR ───
-  it.each(['event_low_stock', 'new_registration', 'follow_registered'])(
-    '%s → EventRegistrations (organisateur)',
+  // ─── Événement — vue ORGANISATEUR (nouvel inscrit) ───
+  it('new_registration → EventRegistrations (organisateur)', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'new_registration',
+      related_object_id: 'evt-1',
+      related_object_type: 'event',
+    }))).toEqual({ screen: 'EventRegistrations', params: { eventId: 'evt-1' } });
+  });
+
+  // ─── Notifs PARTICIPANT/social sur un event → fiche publique, PAS gestion inscrits ───
+  it.each(['event_low_stock', 'follow_registered'])(
+    '%s → EventDetails (participant, jamais EventRegistrations)',
     (type) => {
-      expect(resolveNotificationTarget(notif({
+      const target = resolveNotificationTarget(notif({
         notification_type: type,
         related_object_id: 'evt-1',
         related_object_type: 'event',
-      }))).toEqual({ screen: 'EventRegistrations', params: { eventId: 'evt-1' } });
+      }));
+      expect(target).toEqual({ screen: 'EventDetails', params: { eventId: 'evt-1' } });
     },
   );
+
+  // ─── Rappel / avis de SESSION → SessionDetails ───
+  it('session_reminder → SessionDetails via related_object_type=session', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'session_reminder',
+      related_object_id: 'sess-1',
+      related_object_type: 'session',
+      extra_data: { session_id: 'sess-1' },
+    }))).toEqual({ screen: 'SessionDetails', params: { sessionId: 'sess-1' } });
+  });
+  it('feedback_request AVEC session_id → SessionDetails', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'feedback_request',
+      extra_data: { session_id: 'sess-2' },
+    }))).toEqual({ screen: 'SessionDetails', params: { sessionId: 'sess-2' } });
+  });
+  it('feedback_request SANS session (post-event) → EventDetails', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'feedback_request',
+      extra_data: { event_id: 'evt-9' },
+    }))).toEqual({ screen: 'EventDetails', params: { eventId: 'evt-9' } });
+  });
+
+  // ─── Vérification profil (organisateur) ───
+  it('verification_reminder → Verification', () => {
+    expect(resolveNotificationTarget(notif({ notification_type: 'verification_reminder' })))
+      .toEqual({ screen: 'Verification' });
+  });
+
+  // ─── new_follower : user vs event ───
+  it('new_follower (user→user) → Connections', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'new_follower', related_object_type: 'user', related_object_id: 'u-1',
+    }))).toEqual({ screen: 'Connections' });
+  });
+  it('new_follower (suit ton EVENT) → EventDetails', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'new_follower', related_object_type: 'event', related_object_id: 'evt-5',
+    }))).toEqual({ screen: 'EventDetails', params: { eventId: 'evt-5' } });
+  });
+
+  // ─── system_message signalé (modérateur) → Moderation ───
+  it('system_message message_report → Moderation', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'system_message',
+      related_object_type: 'message_report', related_object_id: 'rep-1',
+    }))).toEqual({ screen: 'Moderation' });
+  });
+
+  // ─── exhibitor_appli_received : prend meta.event_id, pas l'id de candidature ───
+  it('exhibitor_appli_received → BoothManagement avec meta.event_id', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'exhibitor_appli_received',
+      related_object_id: 'appli-1',
+      related_object_type: 'booth_application',
+      extra_data: { event_id: 'evt-booth' },
+    }))).toEqual({ screen: 'BoothManagement', params: { eventId: 'evt-booth' } });
+  });
 
   // ─── Inscription NON finalisée (participant) → Payment ───
   it('abandoned_registration avec registration_id → Payment', () => {

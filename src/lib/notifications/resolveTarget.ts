@@ -20,11 +20,14 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
   const eventId = eventObj?.id || objId || meta.event_id || meta.event_slug;
   const eventNav = eventObj?.slug || eventObj?.id || objId || meta.event_slug || meta.event_id;
   const regId = meta.registration_id;
+  // session_id : soit dans extra_data, soit related_object_type='session'.
+  const sessionId = meta.session_id || (n.related_object_type === 'session' ? objId : null);
 
   switch (n.notification_type as string) {
-    // ─── Modération ───
+    // ─── Modération (modérateur) → file de modération (action = valider) ───
     case 'event_pending_moderation':
     case 'moderation_queue_reminder':
+    case 'event_revalidation':
       return { screen: 'Moderation' };
 
     // ─── Événement renvoyé/refusé → ÉDITION (corriger puis re-soumettre).
@@ -33,17 +36,22 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
     case 'event_rejected':
       return eventId ? { screen: 'EventEdit', params: { eventId } } : null;
 
-    // ─── Événement — vue ORGANISATEUR ───
+    // ─── Événement — vue détail (organisateur ou participant, écran neutre) ───
     case 'event_validated':
     case 'event_update':
-    case 'event_revalidation':
     case 'event_cancelled':
     case 'event_today':
       return eventId ? { screen: 'EventDetails', params: { eventId: eventNav } } : null;
-    case 'event_low_stock':
+    // new_registration = notif ORGANISATEUR (« nouvel inscrit ») → gestion des inscrits.
     case 'new_registration':
-    case 'follow_registered':
       return eventId ? { screen: 'EventRegistrations', params: { eventId } } : null;
+
+    // event_low_stock (« il ne reste que N places, réserve ! ») et
+    // follow_registered (« une personne suivie s'est inscrite ») sont des notifs
+    // PARTICIPANT/social → fiche event publique, PAS la gestion des inscrits.
+    case 'event_low_stock':
+    case 'follow_registered':
+      return eventNav ? { screen: 'EventDetails', params: { eventId: eventNav } } : null;
 
     // ─── Inscription NON finalisée (participant) : « finalise ton inscription »
     // → écran de PAIEMENT directement (reprise du paiement), PAS la vue
@@ -82,7 +90,12 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
       return eventNav ? { screen: 'EventDetails', params: { eventId: eventNav } } : null;
 
     // ─── Social ───
+    // new_follower est surchargé : « X vous suit » (user→user, related=user) →
+    // Connections ; « X suit votre événement » (related=event) → fiche event.
     case 'new_follower':
+      if (n.related_object_type === 'event' && eventNav) {
+        return { screen: 'EventDetails', params: { eventId: eventNav } };
+      }
       return { screen: 'Connections' };
 
     // ─── Messagerie (dont conversations de groupe event) ───
@@ -91,13 +104,19 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
     case 'custom_message':
     case 'event_group_created':
     case 'event_group_imminent':
+      // Message signalé (modérateur) → hub de modération, pas l'inbox perso.
+      if (n.related_object_type === 'message_report') return { screen: 'Moderation' };
       return n.related_object_type === 'conversation' && objId
         ? { screen: 'Conversation', params: { conversationId: objId } }
         : { screen: 'Messages' };
 
     // ─── Exposants / salon ───
-    case 'exhibitor_appli_received':
-      return eventId ? { screen: 'BoothManagement', params: { eventId } } : null;
+    // related_object_id = id de la CANDIDATURE, pas de l'event → on prend
+    // meta.event_id en priorité pour BoothManagement (qui attend l'event id).
+    case 'exhibitor_appli_received': {
+      const boothEventId = meta.event_id || (n.related_object_type === 'event' ? objId : null);
+      return boothEventId ? { screen: 'BoothManagement', params: { eventId: boothEventId } } : null;
+    }
     case 'exhibitor_appli_accepted':
     case 'exhibitor_appli_rejected':
     case 'exhibitor_appli_waitlisted':
@@ -111,9 +130,21 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
     case 'event_team_invitation':
       return { screen: 'MyTeamEvents' };
 
-    // ─── Demande d'avis (participant, post-event) ───
+    // ─── Rappel de SESSION (participant) → détail de la session ───
+    case 'session_reminder':
+      return sessionId
+        ? { screen: 'SessionDetails', params: { sessionId } }
+        : (eventNav ? { screen: 'EventDetails', params: { eventId: eventNav } } : null);
+
+    // ─── Demande d'avis (participant) : sur une SESSION si session_id présent,
+    // sinon sur l'ÉVÉNEMENT (post-event). ───
     case 'feedback_request':
+      if (sessionId) return { screen: 'SessionDetails', params: { sessionId } };
       return eventNav ? { screen: 'EventDetails', params: { eventId: eventNav } } : null;
+
+    // ─── Rappel de vérification de profil (organisateur) → écran Vérification ───
+    case 'verification_reminder':
+      return { screen: 'Verification' };
 
     case 'legal_update':
       return { screen: 'Terms' };
