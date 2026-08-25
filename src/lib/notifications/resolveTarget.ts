@@ -41,6 +41,8 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
     case 'event_update':
     case 'event_cancelled':
     case 'event_today':
+    // « L'événement est en cours » → page détail (le bouton Rejoindre visio y est).
+    case 'event_live':
       return eventId ? { screen: 'EventDetails', params: { eventId: eventNav } } : null;
     // new_registration = notif ORGANISATEUR (« nouvel inscrit ») → gestion des inscrits.
     case 'new_registration':
@@ -72,10 +74,15 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
         ? { screen: 'RegistrationDetails', params: { registrationId: regId } }
         : { tab: 'MyTickets' };
     // Reçus / factures côté payeur → écran des paiements (téléchargement facture).
+    // EXCEPTION : les paiements d'ABONNEMENT (related_object_type=
+    // 'subscription_payment') et la facturation d'usage concernent l'ORGANISATEUR
+    // → écran Abonnement, pas les reçus participant.
+    case 'usage_billing_update':
+      return { screen: 'Subscription' };
     case 'payment_confirmation':
     case 'payment_failed':
     case 'invoice_ready':
-    case 'usage_billing_update':
+      if (n.related_object_type === 'subscription_payment') return { screen: 'Subscription' };
       return { screen: 'MyPayments' };
     case 'refund_processed':
       return { screen: 'RefundsList' };
@@ -145,6 +152,16 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
     // ─── Rappel de vérification de profil (organisateur) → écran Vérification ───
     case 'verification_reminder':
       return { screen: 'Verification' };
+
+    // ─── Discussion de groupe SUPPRIMÉE → inbox (surtout pas la conversation
+    // morte, qui donnerait un écran vide/erreur). ───
+    case 'event_group_deleted':
+      return { screen: 'Messages' };
+
+    // ─── Demande de mise en avant (admin) → fiche de l'event concerné, que
+    // l'admin peut consulter pour décider. ───
+    case 'feature_request':
+      return eventNav ? { screen: 'EventDetails', params: { eventId: eventNav } } : null;
 
     case 'legal_update':
       return { screen: 'Terms' };

@@ -179,7 +179,8 @@ describe('resolveNotificationTarget — par notification_type', () => {
   });
 
   // ─── Reçus / factures (payeur) ───
-  it.each(['payment_confirmation', 'payment_failed', 'invoice_ready', 'usage_billing_update'])(
+  // Sans related_object_type='subscription_payment' → reçus participant.
+  it.each(['payment_confirmation', 'payment_failed', 'invoice_ready'])(
     '%s → MyPayments',
     (type) => {
       expect(resolveNotificationTarget(notif({ notification_type: type })))
@@ -264,6 +265,40 @@ describe('resolveNotificationTarget — par notification_type', () => {
   it('legal_update → Terms', () => {
     expect(resolveNotificationTarget(notif({ notification_type: 'legal_update' })))
       .toEqual({ screen: 'Terms' });
+  });
+
+  // ─── P2 : abonnement / facturation orga → Subscription ───
+  it('usage_billing_update → Subscription', () => {
+    expect(resolveNotificationTarget(notif({ notification_type: 'usage_billing_update' })))
+      .toEqual({ screen: 'Subscription' });
+  });
+  it('payment_confirmation abonnement → Subscription', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'payment_confirmation',
+      related_object_type: 'subscription_payment',
+    }))).toEqual({ screen: 'Subscription' });
+  });
+  it('payment_confirmation billet → MyPayments', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'payment_confirmation',
+      related_object_type: 'payment',
+    }))).toEqual({ screen: 'MyPayments' });
+  });
+
+  // ─── P2 : discussion supprimée → inbox (pas la conversation morte) ───
+  it('event_group_deleted → Messages', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'event_group_deleted',
+      related_object_type: 'conversation', related_object_id: 'conv-dead',
+    }))).toEqual({ screen: 'Messages' });
+  });
+
+  // ─── P2 : demande de mise en avant (admin) → fiche event ───
+  it('feature_request → EventDetails', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'feature_request',
+      related_object_id: 'evt-feat', related_object_type: 'event',
+    }))).toEqual({ screen: 'EventDetails', params: { eventId: 'evt-feat' } });
   });
 });
 
