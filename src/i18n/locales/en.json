@@ -503,6 +503,7 @@
     "viewAction": "View",
     "viewEvent": "View event",
     "share": "Share",
+    "scrollToTop": "Back to top",
     "freeEyebrow": "ZERO COST",
     "freeTitle": "Free, no strings",
     "freeBadge": "FREE",
@@ -1243,7 +1244,14 @@
     "myPaymentsFallbackTitle": "Payment",
     "myPaymentsFilterCompleted": "Completed",
     "myPaymentsFilterPending": "Pending",
-    "myPaymentsFilterFailed": "Failed"
+    "myPaymentsFilterFailed": "Failed",
+    "finalizeEndedTitle": "This event has ended",
+    "finalizeEndedBody": "You can no longer complete your registration: the event is already over. You were not charged.",
+    "finalizeClosedTitle": "Registration closed",
+    "finalizeClosedBody": "The registration period for this event has ended.",
+    "finalizeSoldOutTitle": "Tickets sold out",
+    "finalizeSoldOutBody": "The tickets you had reserved are no longer available. Your reservation expired. You were not charged.",
+    "finalizeBackToEvent": "Back to event"
   },
   "memories": {
     "title": "My memories",

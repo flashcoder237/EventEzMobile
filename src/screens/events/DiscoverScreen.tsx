@@ -23,8 +23,15 @@ import Animated, {
   interpolate,
   Extrapolation,
   useAnimatedScrollHandler,
+  useAnimatedRef,
+  scrollTo,
+  withTiming,
+  runOnUI,
+  runOnJS,
   FadeInDown,
   FadeOutUp,
+  FadeIn,
+  FadeOut,
 } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 
@@ -311,6 +318,28 @@ export default function DiscoverScreen() {
 
   // === Scroll-driven compact header ===
   const scrollY = useSharedValue(0);
+  // Ref animée du feed → permet scrollTo(0) sur le thread UI (fluide).
+  const feedRef = useAnimatedRef<Animated.ScrollView>();
+  // Bouton flottant « remonter en haut » : visible au-delà d'un seuil de scroll.
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const scrollToTop = useCallback(() => {
+    runOnUI(() => {
+      'worklet';
+      scrollTo(feedRef, 0, 0, true);
+    })();
+  }, [feedRef]);
+
+  // Re-tap sur l'onglet Découvrir déjà actif → remonte en haut (comportement
+  // natif iOS / Twitter / Instagram). L'écran est monté directement comme
+  // Tab.Screen, donc `navigation` est le tab navigator.
+  useEffect(() => {
+    const unsub = (navigation as any).addListener?.('tabPress', () => {
+      if ((navigation as any).isFocused?.()) {
+        scrollToTop();
+      }
+    });
+    return unsub;
+  }, [navigation, scrollToTop]);
   const compactHeaderStyle = useAnimatedStyle(() => {
     const opacity = interpolate(
       scrollY.value,
@@ -323,9 +352,18 @@ export default function DiscoverScreen() {
       pointerEvents: opacity > 0.5 ? ('auto' as const) : ('none' as const),
     };
   });
+  // Seuil d'apparition du bouton « remonter » (~1.5 écran de scroll).
+  const SCROLL_TOP_THRESHOLD = 600;
   const onScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
-      scrollY.value = event.contentOffset.y;
+      const y = event.contentOffset.y;
+      scrollY.value = y;
+      // On ne rebascule l'état React que sur franchissement du seuil (évite un
+      // setState à chaque frame).
+      const shouldShow = y > SCROLL_TOP_THRESHOLD;
+      if (shouldShow !== showScrollTop) {
+        runOnJS(setShowScrollTop)(shouldShow);
+      }
     },
   });
 
@@ -1380,6 +1418,7 @@ export default function DiscoverScreen() {
 
             {/* === FEED === */}
             <Animated.ScrollView
+              ref={feedRef}
               showsVerticalScrollIndicator={false}
               onScroll={onScroll}
               onMomentumScrollEnd={handleScrollEnd}
@@ -2106,6 +2145,26 @@ export default function DiscoverScreen() {
 
               <View style={{ height: 140 }} />
             </Animated.ScrollView>
+
+            {/* Bouton flottant « remonter en haut » — apparaît après un long
+                scroll (pattern YouTube/LinkedIn). Complète le re-tap d'onglet. */}
+            {showScrollTop && (
+              <Animated.View
+                entering={FadeIn.duration(180)}
+                exiting={FadeOut.duration(150)}
+                style={styles.scrollTopFab}
+                pointerEvents="box-none"
+              >
+                <TouchableOpacity
+                  onPress={scrollToTop}
+                  activeOpacity={0.85}
+                  accessibilityLabel={t('discover.scrollToTop')}
+                  style={[styles.scrollTopBtn, { backgroundColor: colors.primary }]}
+                >
+                  <Ionicons name="chevron-up" size={22} color="#FFFFFF" />
+                </TouchableOpacity>
+              </Animated.View>
+            )}
           </View>
         )}
       </View>
@@ -2118,6 +2177,20 @@ export default function DiscoverScreen() {
 const styles = StyleSheet.create({
   rootContainer: { flex: 1 },
   safeArea: { flex: 1 },
+  // Bouton flottant « remonter en haut ».
+  scrollTopFab: {
+    position: 'absolute',
+    right: Spacing.lg,
+    bottom: Spacing.xl + 8,
+  },
+  scrollTopBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.dramatic,
+  },
   scrollContent: { paddingBottom: Spacing.xl },
   // Plafonne la colonne de contenu sur grand écran (iPad) sans étirer le layout.
   pageInner: { ...centeredContent(WIDE_MAX) },

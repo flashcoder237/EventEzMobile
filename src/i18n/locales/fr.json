@@ -503,6 +503,7 @@
     "viewAction": "Voir",
     "viewEvent": "Voir l'événement",
     "share": "Partager",
+    "scrollToTop": "Remonter en haut",
     "freeEyebrow": "ZÉRO FRANC",
     "freeTitle": "Gratuit, sans condition",
     "freeBadge": "GRATUIT",
@@ -1243,7 +1244,14 @@
     "myPaymentsFallbackTitle": "Paiement",
     "myPaymentsFilterCompleted": "Complétés",
     "myPaymentsFilterPending": "Attente",
-    "myPaymentsFilterFailed": "Échoués"
+    "myPaymentsFilterFailed": "Échoués",
+    "finalizeEndedTitle": "Cet événement est terminé",
+    "finalizeEndedBody": "Vous ne pouvez plus finaliser votre inscription : l'événement est déjà passé. Aucun montant ne vous a été débité.",
+    "finalizeClosedTitle": "Inscriptions closes",
+    "finalizeClosedBody": "La période d'inscription pour cet événement est terminée.",
+    "finalizeSoldOutTitle": "Billets épuisés",
+    "finalizeSoldOutBody": "Les billets que vous aviez réservés ne sont plus disponibles. Votre réservation a expiré. Aucun montant ne vous a été débité.",
+    "finalizeBackToEvent": "Retour à l'événement"
   },
   "memories": {
     "title": "Mes souvenirs",
