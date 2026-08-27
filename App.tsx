@@ -78,6 +78,7 @@ import RootNavigator from './src/navigation/RootNavigator';
 import VerificationGuardModal from './src/components/auth/VerificationGuardModal';
 import LockGate from './src/components/auth/LockGate';
 import { DEEP_LINK_SCHEME, WEB_BASE_URL, stripLocalePrefix } from './src/constants/urls';
+import { captureReferralFromPath } from './src/lib/referral';
 import { RootStackParamList } from './src/types';
 
 // Services
@@ -131,7 +132,14 @@ const linking: LinkingOptions<RootStackParamList> = {
   // jamais recevoir `/en/...` — mais si ça arrive (lien EN partagé, future
   // entrée AASA `/en/*`), on retire la locale avant de router pour retomber sur
   // les patterns de `config.screens`. Cf. stripLocalePrefix (constants/urls.ts).
-  getStateFromPath: (path, options) => getStateFromPath(stripLocalePrefix(path), options),
+  getStateFromPath: (path, options) => {
+    // Capte le code de parrainage AVANT le routage. Un lien `?ref=CODE` qui
+    // ouvre l'app court-circuitait tout le suivi : la capture n'existait que
+    // côté web (ReferralCapture), donc un destinataire ayant l'app installée
+    // n'était jamais attribué à son parrain.
+    captureReferralFromPath(path);
+    return getStateFromPath(stripLocalePrefix(path), options);
+  },
   config: {
     screens: {
       EventDetails: 'events/:eventId',

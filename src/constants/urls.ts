@@ -37,9 +37,16 @@ export function getEventInviteUrl(
  * mieux qu'un renvoi vers l'accueil.
  */
 export function getReferralUrl(code: string, eventIdOrSlug?: string | null): string {
+  // Cible `/register` (et non la racine) pour DEUX raisons :
+  //  1. `/register/` est déjà un chemin deep-link déclaré (app.json +
+  //     AASA) : le lien ouvre donc l'app si elle est installée. Déclarer la
+  //     racine `/` capturerait TOUT le site dans l'app, tableau de bord web
+  //     compris — inacceptable.
+  //  2. L'intention d'un parrainage est l'inscription : autant y mener
+  //     directement plutôt que sur l'accueil.
   const base = eventIdOrSlug
     ? `${WEB_BASE_URL}/events/${eventIdOrSlug}`
-    : WEB_BASE_URL;
+    : `${WEB_BASE_URL}/register/`;
   return `${base}?ref=${encodeURIComponent(code)}`;
 }
 
