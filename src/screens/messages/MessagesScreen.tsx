@@ -36,6 +36,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useMutedConversations } from '../../hooks/useMutedConversations';
 import { useMessagingWebSocket } from '../../hooks/useMessagingWebSocket';
 import { useTheme } from '../../contexts/ThemeContext';
+import { PrimaryFab, ScrollTopFab } from '../../components/common/FloatingActionButton';
 import { Conversation, Message, RootStackParamList, User } from '../../types';
 import {
   FontFamily,
@@ -587,6 +588,17 @@ export default function MessagesScreen() {
   pageRef.current = page;
   hasMoreRef.current = hasMore;
   loadingMoreRef.current = loadingMore;
+
+  // Scroll-to-top : ref FlatList + visibilité du FAB « remonter ».
+  const listRef = useRef<FlatList<any>>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const scrollListToTop = useCallback(() => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, []);
+  const onListScroll = useCallback((e: any) => {
+    const y = e.nativeEvent.contentOffset.y;
+    setShowScrollTop((prev) => (y > 600 !== prev ? y > 600 : prev));
+  }, []);
 
   // Recherche globale dans les messages (en plus du filtre conversations)
   const [messageSearchResults, setMessageSearchResults] = useState<Message[]>([]);
@@ -1641,15 +1653,8 @@ export default function MessagesScreen() {
           >
             <Ionicons name={searchOpen ? 'close' : 'search'} size={18} color={colors.text} />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleOpenNewModal}
-            style={[styles.composeBtn, { backgroundColor: colors.primary }, Shadows.md]}
-            activeOpacity={0.85}
-            accessibilityLabel={t('messages.newMessage')}
-            accessibilityRole="button"
-          >
-            <Ionicons name="create-outline" size={18} color="#FFFFFF" />
-          </TouchableOpacity>
+          {/* « Nouveau message » déplacé vers un FAB flottant (pattern WhatsApp)
+              pour désencombrer le header — voir en bas de l'écran. */}
         </View>
 
         {/* Search bar — only when open */}
@@ -1842,9 +1847,12 @@ export default function MessagesScreen() {
 
       {/* List */}
       <FlatList
+        ref={listRef}
         data={filteredConversations}
         renderItem={renderConversation}
         keyExtractor={(item) => String(item.id)}
+        onScroll={onListScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={[
           styles.listContent,
           listMaxWidth ? centeredContent(listMaxWidth) : null,
@@ -2027,6 +2035,22 @@ export default function MessagesScreen() {
             onPress: () => setSortKey(opt.key),
           })),
         }]}
+      />
+
+      {/* FAB « nouveau message » (pattern WhatsApp) + « remonter en haut ».
+          Le SafeAreaView applique déjà le safe-area bottom → safeAreaHandled. */}
+      <PrimaryFab
+        icon="create-outline"
+        onPress={handleOpenNewModal}
+        accessibilityLabel={t('messages.newMessage')}
+        safeAreaHandled
+      />
+      <ScrollTopFab
+        visible={showScrollTop}
+        onPress={scrollListToTop}
+        accessibilityLabel={t('discover.scrollToTop')}
+        safeAreaHandled
+        extraBottom={68}
       />
     </SafeAreaView>
   );

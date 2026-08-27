@@ -22,11 +22,16 @@ import Animated, {
   useSharedValue,
   useAnimatedScrollHandler,
   useAnimatedStyle,
+  useAnimatedRef,
+  scrollTo,
+  runOnUI,
+  runOnJS,
   withTiming,
   interpolate,
   Extrapolation,
   Easing,
 } from 'react-native-reanimated';
+import { ScrollTopFab } from '../../components/common/FloatingActionButton';
 
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { eventsAPI, categoriesAPI } from '../../api';
@@ -336,6 +341,15 @@ export default function EventSearchScreen() {
   // === Compact mode on scroll direction (only search bar stays) ===
   const [headerH, setHeaderH] = useState(220);
   const lastY = useSharedValue(0);
+  // Scroll-to-top : ref animée du feed + visibilité du FAB « remonter ».
+  const listAnimRef = useAnimatedRef<any>();
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const scrollListToTop = useCallback(() => {
+    runOnUI(() => {
+      'worklet';
+      scrollTo(listAnimRef, 0, 0, true);
+    })();
+  }, [listAnimRef]);
   const progress = useSharedValue(0); // 0 = expanded, 1 = collapsed
   const SHOW_AT_TOP = 20;
   const HIDE_TRIGGER = 6;
@@ -354,6 +368,8 @@ export default function EventSearchScreen() {
         progress.value = withTiming(0, ANIM_CONFIG);
       }
       lastY.value = current;
+      // FAB « remonter » au-delà d'un long scroll (~1.5 écran).
+      runOnJS(setShowScrollTop)(current > 600);
     },
   });
 
@@ -1014,6 +1030,7 @@ export default function EventSearchScreen() {
           </View>
         ) : (
           <Animated.FlatList
+            ref={listAnimRef}
             data={state.results}
             keyExtractor={(item) => String(item.id)}
             renderItem={renderEvent}
@@ -1376,6 +1393,14 @@ export default function EventSearchScreen() {
             </View>
           </View>
         </Modal>
+
+        {/* FAB « remonter en haut » — écran poussé (pas de tab bar). */}
+        <ScrollTopFab
+          visible={showScrollTop}
+          onPress={scrollListToTop}
+          accessibilityLabel={t('discover.scrollToTop')}
+          hasTabBar={false}
+        />
       </View>
     </EditorialCanvas>
   );
