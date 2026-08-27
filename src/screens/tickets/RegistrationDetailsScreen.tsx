@@ -1008,8 +1008,14 @@ export default function RegistrationDetailsScreen() {
                   style={[styles.sessionItem, { backgroundColor: colors.gray50, borderColor: colors.border }]}
                   activeOpacity={0.85}
                   onPress={() => {
-                    const eventId = (typeof registration.event === 'string' ? registration.event : event?.id);
-                    if (eventId) navigation.navigate('EventDetails', { eventId });
+                    // Ouvrir la SESSION pointée (pas la fiche event) : c'est ce
+                    // que l'utilisateur attend en tapant une session précise.
+                    if (session.id) {
+                      navigation.navigate('SessionDetails', { sessionId: String(session.id) });
+                    } else {
+                      const eventId = (typeof registration.event === 'string' ? registration.event : event?.id);
+                      if (eventId) navigation.navigate('EventDetails', { eventId });
+                    }
                   }}
                   accessibilityRole="button"
                   accessibilityLabel={t('registrationDetails.sessionA11y', { title: session.title, status: statusLabel })}
