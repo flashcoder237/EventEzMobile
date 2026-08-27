@@ -701,7 +701,10 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   badgeCol: {
-    flex: 1 / 3,
+    // flex:1 (pas 1/3) : avec numColumns=3 + columnWrapper gap, chaque colonne
+    // prend une part ÉGALE de l'espace restant APRÈS le gap. Mettre 1/3 faisait
+    // déborder (3×1/3 + 2×gap > 100%) → cartes compressées/hors écran.
+    flex: 1,
     alignItems: 'center',
     gap: 4,
   },
