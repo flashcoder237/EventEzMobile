@@ -701,6 +701,13 @@ export default function MyTicketsScreen() {
     const isArchived = variant === 'archived';
     const statusConfig = getStatusConfig(item.status);
     const isPending = item.status === 'pending' || item.status === 'pending_approval';
+    // Inscription pending « expirée » : event terminé ou deadline passée → plus
+    // finalisable (cf. garde backend). On masque le bouton Payer et on l'indique.
+    const now = Date.now();
+    const isExpiredPending = isPending && !!event && (
+      (!!(event as any).end_date && new Date((event as any).end_date).getTime() < now)
+      || (!!(event as any).registration_deadline && new Date((event as any).registration_deadline).getTime() < now)
+    );
 
     // Overlap behavior — first active card de chaque MOIS sits full, next ones
     // overlap slightly. Sans `isFirstInMonth`, le 1er ticket d'un mois suivant
@@ -871,25 +878,32 @@ export default function MyTicketsScreen() {
                 )}
                 {isPendingStack && (
                   <View style={styles.pendingRow}>
-                    <View style={[styles.pendingIcon, { backgroundColor: colors.warningLight }]}>
-                      <Ionicons name="alert-circle" size={14} color={colors.warning} />
+                    <View style={[styles.pendingIcon, { backgroundColor: isExpiredPending ? colors.gray100 : colors.warningLight }]}>
+                      <Ionicons
+                        name={isExpiredPending ? 'calendar-outline' : 'alert-circle'}
+                        size={14}
+                        color={isExpiredPending ? colors.gray500 : colors.warning}
+                      />
                     </View>
                     <Text style={[styles.pendingText, { color: colors.gray600 }]}>
-                      Attente paiement
+                      {isExpiredPending ? t('tickets.pendingExpired') : t('tickets.pendingPayment')}
                     </Text>
-                    <TouchableOpacity
-                      style={[styles.payInlineBtn, { backgroundColor: colors.warning }]}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        navigation.navigate('Payment', { registrationId: item.id });
-                      }}
-                      activeOpacity={0.85}
-                      accessibilityRole="button"
-                      accessibilityLabel={t('eventDetails.finalizePayment')}
-                    >
-                      <Ionicons name="card-outline" size={11} color="#fff" />
-                      <Text style={styles.payInlineBtnText}>{t('tickets.payInline')}</Text>
-                    </TouchableOpacity>
+                    {/* Bouton Payer masqué si l'event est terminé/clos (non finalisable). */}
+                    {!isExpiredPending && (
+                      <TouchableOpacity
+                        style={[styles.payInlineBtn, { backgroundColor: colors.warning }]}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          navigation.navigate('Payment', { registrationId: item.id });
+                        }}
+                        activeOpacity={0.85}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('eventDetails.finalizePayment')}
+                      >
+                        <Ionicons name="card-outline" size={11} color="#fff" />
+                        <Text style={styles.payInlineBtnText}>{t('tickets.payInline')}</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
                 {event?.location_city && !isPendingStack && (
@@ -1016,11 +1030,11 @@ export default function MyTicketsScreen() {
                 </View>
               )}
 
-              {/* Status pill at bottom */}
+              {/* Status pill at bottom — « Expiré » (neutre) si pending non finalisable. */}
               {!isArchived && (
                 <ShimmerBand
-                  label={statusConfig.label}
-                  bgColor={statusConfig.bg}
+                  label={isExpiredPending ? t('tickets.statusExpired') : statusConfig.label}
+                  bgColor={isExpiredPending ? colors.gray400 : statusConfig.bg}
                   textColor={Colors.white}
                   delay={index * 220}
                 />

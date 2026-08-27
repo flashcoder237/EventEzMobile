@@ -58,6 +58,7 @@ import {
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import GradientButton from '../../components/ui/GradientButton';
+import EmptyState from '../../components/ui/EmptyState';
 import CountryBadgeSelector, {
   SUPPORTED_COUNTRIES,
   INTL_CODE,
@@ -659,6 +660,32 @@ export default function PaymentScreen() {
     || (typeof registration?.event === 'object' ? registration?.event : null);
   const eventCountryCode = (eventObj as any)?.location_country_code || (eventObj as any)?.location_country || 'CM';
 
+  // GARDE FINALISATION (miroir UX du backend Registration.check_finalizable) :
+  // event terminé / inscriptions closes / stock épuisé → on ne peut plus payer.
+  const finalizeBlock: 'ended' | 'closed' | 'soldout' | null = (() => {
+    const ev = eventObj as any;
+    if (!ev || !registration) return null;
+    const now = Date.now();
+    if (ev.end_date && new Date(ev.end_date).getTime() < now) return 'ended';
+    if (ev.registration_deadline && new Date(ev.registration_deadline).getTime() < now) return 'closed';
+    const unpaid = Array.isArray((registration as any).tickets)
+      ? (registration as any).tickets.filter((tp: any) => tp.is_paid === false)
+      : [];
+    for (const tp of unpaid) {
+      const tt = tp.ticket_type_details || tp.ticket_type;
+      if (tt && typeof tt === 'object') {
+        const total = Number(tt.quantity_total);
+        const sold = Number(tt.quantity_sold);
+        if (Number.isFinite(total) && Number.isFinite(sold)) {
+          if (Number(tp.quantity || 1) > Math.max(0, total - sold)) return 'soldout';
+        } else if (tt.is_sold_out === true) {
+          return 'soldout';
+        }
+      }
+    }
+    return null;
+  })();
+
   // Strategie "Event mono-devise" (docs/CURRENCY_STRATEGY.md) :
   // la devise d'affichage vient de l'evenement, PAS du pays du payeur.
   const eventCurrencyCode = ((eventObj as any)?.currency || 'XAF').toUpperCase();
@@ -1021,6 +1048,21 @@ export default function PaymentScreen() {
       setProcessing(false);
       if (__DEV__) console.error('[Payment] Error:', error.response?.data || error);
 
+      // GARDE FINALISATION : le backend refuse (event terminé/clos/épuisé) avec
+      // un code + message explicite → on affiche SON message clair, pas le
+      // fallback générique.
+      const finCode = error?.response?.data?.code;
+      const finMsg = error?.response?.data?.error || error?.response?.data?.message;
+      if (
+        (finCode === 'event_ended' || finCode === 'registration_closed' || finCode === 'tickets_unavailable')
+        && typeof finMsg === 'string'
+      ) {
+        showError(t('payment.paymentErrorTitle'), finMsg);
+        // Recharger l'inscription : l'écran basculera sur l'état bloquant.
+        fetchRegistration();
+        return;
+      }
+
       // Message rassurant : jamais de brut au payeur. Réseau/timeout pendant
       // l'initiation → message double-débit dédié (aucun montant débité si
       // l'initiation n'a pas abouti). Sinon fallback paymentFailed.
@@ -1161,6 +1203,29 @@ export default function PaymentScreen() {
   if (loading) {
     return (
       <LoadingSpinner />
+    );
+  }
+
+  // GARDE FINALISATION : event fini / clos / épuisé → écran clair, pas de form.
+  if (finalizeBlock) {
+    const cfg = {
+      ended: { icon: 'calendar-outline' as const, title: 'finalizeEndedTitle', body: 'finalizeEndedBody' },
+      closed: { icon: 'lock-closed-outline' as const, title: 'finalizeClosedTitle', body: 'finalizeClosedBody' },
+      soldout: { icon: 'ticket-outline' as const, title: 'finalizeSoldOutTitle', body: 'finalizeSoldOutBody' },
+    }[finalizeBlock];
+    return (
+      <EditorialCanvas edges={['top']}>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <EmptyState
+            icon={cfg.icon}
+            iconColor={colors.error}
+            title={t(`payment.${cfg.title}`)}
+            description={t(`payment.${cfg.body}`)}
+            actionLabel={t('payment.finalizeBackToEvent')}
+            onAction={() => navigation.goBack()}
+          />
+        </View>
+      </EditorialCanvas>
     );
   }
 

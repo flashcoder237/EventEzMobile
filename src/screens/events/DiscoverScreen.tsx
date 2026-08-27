@@ -12,6 +12,7 @@ import {
   Share,
 } from 'react-native';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -227,6 +228,10 @@ function NetworkStatusPill({ isOffline, isSlow }: { isOffline: boolean; isSlow: 
 
 export default function DiscoverScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const insets = useSafeAreaInsets();
+  // Hauteur occupée par le dock custom (MainTabNavigator) : DOCK_HEIGHT 64 +
+  // safe-area + padding interne. Le FAB « remonter » doit flotter AU-DESSUS.
+  const dockClearance = 64 + Math.max(insets.bottom, 12) + 20;
   const route = useRoute<RouteProp<MainTabParamList, 'Discover'>>();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
@@ -2152,7 +2157,8 @@ export default function DiscoverScreen() {
               <Animated.View
                 entering={FadeIn.duration(180)}
                 exiting={FadeOut.duration(150)}
-                style={styles.scrollTopFab}
+                // bottom dynamique : au-dessus du dock (menu) + safe area.
+                style={[styles.scrollTopFab, { bottom: dockClearance + 8 }]}
                 pointerEvents="box-none"
               >
                 <TouchableOpacity
@@ -2177,11 +2183,11 @@ export default function DiscoverScreen() {
 const styles = StyleSheet.create({
   rootContainer: { flex: 1 },
   safeArea: { flex: 1 },
-  // Bouton flottant « remonter en haut ».
+  // Bouton flottant « remonter en haut » (bottom appliqué inline, calé au-dessus
+  // du dock/menu + safe area).
   scrollTopFab: {
     position: 'absolute',
     right: Spacing.lg,
-    bottom: Spacing.xl + 8,
   },
   scrollTopBtn: {
     width: 46,

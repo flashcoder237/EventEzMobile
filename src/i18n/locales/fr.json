@@ -956,7 +956,10 @@
     "monthNovember": "NOVEMBRE",
     "monthDecember": "DÉCEMBRE",
     "tapToShowQR": "Toucher pour voir le QR code",
-    "searchTitleRefVenue": "Titre, réf, lieu..."
+    "searchTitleRefVenue": "Titre, réf, lieu...",
+    "pendingPayment": "Attente paiement",
+    "pendingExpired": "Événement terminé",
+    "statusExpired": "Expiré"
   },
   "payment": {
     "title": "Paiement",
@@ -7120,5 +7123,11 @@
     "cta": "Réserve ta place →",
     "errorTitle": "Partage",
     "errorMessage": "Impossible de générer la carte pour le moment."
+  },
+  "badges": {
+    "verified": "Vérifié",
+    "pioneer": "Pionnier",
+    "verifiedHint": "Identité de l'organisateur vérifiée par EventEz",
+    "pioneerHint": "Membre fondateur : a testé EventEz avant son lancement"
   }
 }

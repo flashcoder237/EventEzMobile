@@ -956,7 +956,10 @@
     "monthNovember": "NOVEMBER",
     "monthDecember": "DECEMBER",
     "tapToShowQR": "Tap to view QR code",
-    "searchTitleRefVenue": "Title, ref, venue..."
+    "searchTitleRefVenue": "Title, ref, venue...",
+    "pendingPayment": "Payment pending",
+    "pendingExpired": "Event ended",
+    "statusExpired": "Expired"
   },
   "payment": {
     "title": "Payment",
@@ -7120,5 +7123,11 @@
     "cta": "Book your spot →",
     "errorTitle": "Share",
     "errorMessage": "Could not generate the card right now."
+  },
+  "badges": {
+    "verified": "Verified",
+    "pioneer": "Pioneer",
+    "verifiedHint": "Organizer identity verified by EventEz",
+    "pioneerHint": "Founding member: tested EventEz before launch"
   }
 }

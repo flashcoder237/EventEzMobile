@@ -27,6 +27,7 @@ import { ProfileSkeleton } from '../../components/ui/Skeleton';
 import FollowUserButton from '../../components/common/FollowUserButton';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import UserBadges from '../../components/common/UserBadges';
 import { findExistingDirectConversation } from '../../lib/utils/messagingHelpers';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList, User, Event } from '../../types';
@@ -284,10 +285,12 @@ export default function OrganizerProfileScreen() {
                   <Text style={[styles.heroName, { color: colors.gray900 }]} numberOfLines={2}>
                     {displayName}
                   </Text>
-                  {isVerified && (
-                    <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
-                  )}
                 </View>
+                {/* Badges : « Vérifié » (KYC) et « Pionnier » sont deux signaux
+                    DIFFÉRENTS — l'un atteste de l'identité, l'autre de
+                    l'ancienneté. Une simple coche sans libellé ne disait ni
+                    lequel, ni pourquoi. */}
+                <UserBadges user={organizer} size="md" style={{ marginTop: 4 }} />
                 {organizer.company_name && organizer.company_name !== displayName && (
                   <Text style={[styles.heroSubtitle, { color: colors.gray500 }]} numberOfLines={1}>
                     {organizer.company_name}
