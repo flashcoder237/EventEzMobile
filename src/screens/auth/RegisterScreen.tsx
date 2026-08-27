@@ -35,6 +35,7 @@ import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
 import { centeredContent, FORM_MAX } from '../../constants/layout';
+import { getPendingReferral, clearPendingReferral } from '../../lib/referral';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
 type RouteProps = RouteProp<RootStackParamList, 'Register'>;
@@ -179,6 +180,11 @@ export default function RegisterScreen() {
       // - confirm_password : le backend exige le champ mais le toggle "afficher
       //   le mot de passe" rend la double saisie inutile → on renvoie la même
       //   valeur, la vérification d'égalité backend passe trivialement.
+      // Code de parrainage capté à l'ouverture d'un deep link `?ref=`.
+      // L'app parle en JWT sans cookie : elle ne peut pas alimenter la session
+      // Django comme le fait le web, d'où l'envoi explicite dans le corps.
+      const pendingReferral = await getPendingReferral();
+
       const response = await authAPI.register({
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
@@ -186,7 +192,12 @@ export default function RegisterScreen() {
         phone_number: formData.phone_number.trim() || undefined,
         password: formData.password,
         confirm_password: formData.password,
+        referral_code: pendingReferral || undefined,
       });
+
+      // Purge après usage : sans ça, le même code resterait attaché à toutes
+      // les inscriptions ultérieures faites depuis cet appareil.
+      if (pendingReferral) void clearPendingReferral();
       setIsSubmitting(false);
       const targetEmail = response.data?.email ?? formData.email.trim().toLowerCase();
 

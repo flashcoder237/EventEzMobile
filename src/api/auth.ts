@@ -22,6 +22,8 @@ export const authAPI = {
     first_name: string;
     last_name: string;
     phone_number?: string;
+    /** Code de parrainage capté depuis un deep link `?ref=`. */
+    referral_code?: string;
   }) => api.post('/register/', data),
 
   registerOrganizer: (data: any) =>
