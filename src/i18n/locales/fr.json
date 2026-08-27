@@ -3573,7 +3573,9 @@
       "previous": "Precedent",
       "next": "Suivant",
       "selectDatePlaceholder": "Selectionner une date",
-      "selectTimePlaceholder": "Selectionner une heure"
+      "selectTimePlaceholder": "Selectionner une heure",
+      "selectPlaceholder": "Selectionner...",
+      "searchPlaceholder": "Rechercher..."
     }
   },
   "followingEvents": {

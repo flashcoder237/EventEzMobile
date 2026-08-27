@@ -15,6 +15,11 @@ import { useTranslation } from 'react-i18next';
 import { FormField } from '../../types';
 import DatePickerField from '../ui/DatePickerField';
 import TimePickerField from '../ui/TimePickerField';
+import SearchableSelectModal from '../common/SearchableSelectModal';
+
+// Au-delà de ce nombre d'options, un select/radio n'est plus rendu à plat
+// (liste de boutons qui remplit l'écran) mais via un bouton + modal recherchable.
+const LONG_LIST_THRESHOLD = 6;
 import {
   Colors,
   FontSizes,
@@ -45,6 +50,8 @@ export default function DynamicFormFields({
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const [currentStep, setCurrentStep] = useState(1);
+  // Label du champ dont la modale de sélection (longue liste) est ouverte.
+  const [openPickerLabel, setOpenPickerLabel] = useState<string | null>(null);
 
   // Group fields by step
   const stepGroups = useMemo(() => {
@@ -145,8 +152,43 @@ export default function DynamicFormFields({
           />
         )}
 
-        {/* Select */}
-        {field.field_type === 'select' && (
+        {/* Select — longue liste : bouton + modal recherchable (évite de
+            remplir l'écran de dizaines d'options). Liste courte : à plat. */}
+        {field.field_type === 'select' && options.length > LONG_LIST_THRESHOLD && (
+          <>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[
+                styles.selectTrigger,
+                { backgroundColor: colors.card, borderColor: value ? colors.primary : colors.gray200 },
+              ]}
+              onPress={() => setOpenPickerLabel(field.label)}
+            >
+              <Text
+                style={[
+                  styles.selectTriggerText,
+                  { color: value ? colors.gray900 : colors.gray400 },
+                ]}
+                numberOfLines={1}
+              >
+                {value || field.placeholder || t('componentsForms.dynamicFields.selectPlaceholder')}
+              </Text>
+              <Ionicons name="chevron-down" size={18} color={colors.gray500} />
+            </TouchableOpacity>
+            <SearchableSelectModal<string>
+              visible={openPickerLabel === field.label}
+              onClose={() => setOpenPickerLabel(null)}
+              title={field.label}
+              items={options}
+              getKey={(o) => o}
+              getLabel={(o) => o}
+              selectedKey={value || null}
+              onSelect={(o) => onFieldChange(field.label, o)}
+              searchPlaceholder={t('componentsForms.dynamicFields.searchPlaceholder')}
+            />
+          </>
+        )}
+        {field.field_type === 'select' && options.length <= LONG_LIST_THRESHOLD && (
           <View style={styles.selectContainer}>
             {options.map((option: string, optIndex: number) => (
               <TouchableOpacity
@@ -177,8 +219,39 @@ export default function DynamicFormFields({
           </View>
         )}
 
-        {/* Radio */}
-        {field.field_type === 'radio' && (
+        {/* Radio — longue liste : bouton + modal recherchable ; courte : à plat. */}
+        {field.field_type === 'radio' && options.length > LONG_LIST_THRESHOLD && (
+          <>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[
+                styles.selectTrigger,
+                { backgroundColor: colors.card, borderColor: value ? colors.primary : colors.gray200 },
+              ]}
+              onPress={() => setOpenPickerLabel(field.label)}
+            >
+              <Text
+                style={[styles.selectTriggerText, { color: value ? colors.gray900 : colors.gray400 }]}
+                numberOfLines={1}
+              >
+                {value || field.placeholder || t('componentsForms.dynamicFields.selectPlaceholder')}
+              </Text>
+              <Ionicons name="chevron-down" size={18} color={colors.gray500} />
+            </TouchableOpacity>
+            <SearchableSelectModal<string>
+              visible={openPickerLabel === field.label}
+              onClose={() => setOpenPickerLabel(null)}
+              title={field.label}
+              items={options}
+              getKey={(o) => o}
+              getLabel={(o) => o}
+              selectedKey={value || null}
+              onSelect={(o) => onFieldChange(field.label, o)}
+              searchPlaceholder={t('componentsForms.dynamicFields.searchPlaceholder')}
+            />
+          </>
+        )}
+        {field.field_type === 'radio' && options.length <= LONG_LIST_THRESHOLD && (
           <View style={styles.radioContainer}>
             {options.map((option: string, optIndex: number) => (
               <TouchableOpacity
@@ -410,6 +483,22 @@ const styles = StyleSheet.create({
   },
   selectContainer: {
     gap: Spacing.xs,
+  },
+  // Bouton déclencheur du picker modal (longues listes).
+  selectTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1.5,
+    borderRadius: BorderRadius.xl,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm + 4,
+  },
+  selectTriggerText: {
+    flex: 1,
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
+    marginRight: Spacing.sm,
   },
   selectOption: {
     flexDirection: 'row',
