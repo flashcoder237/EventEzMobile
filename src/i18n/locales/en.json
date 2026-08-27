@@ -640,6 +640,7 @@
     "onlineEvent": "Online event",
     "meetingId": "Meeting ID:",
     "meetingPasscode": "Passcode:",
+    "liveEngagement": "Live Q&A and polls",
     "joinEvent": "Join event",
     "joinOnline": "Join online",
     "registered": "Registered",
@@ -701,7 +702,9 @@
     "loginRequiredTitle": "Sign-in required",
     "loginRequiredReview": "Sign in to leave a review",
     "reviewSubmitError": "Could not submit your review",
-    "loginRequiredWaitlist": "Sign in to join the waitlist"
+    "loginRequiredWaitlist": "Sign in to join the waitlist",
+    "invitationGateDesc": "This event is reserved for invited guests. If you received an invitation, please accept it to gain access.",
+    "codeGateDesc": "Enter the code to see the full details"
   },
   "events": {
     "videoBadge": "Video",

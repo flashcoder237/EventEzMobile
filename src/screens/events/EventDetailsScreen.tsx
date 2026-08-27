@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -88,7 +88,7 @@ const { width } = Dimensions.get('window');
 
 export default function EventDetailsScreen() {
   const route = useRoute<RouteProps>();
-  const { eventId, imageUrl: routeImageUrl, previewEvent } = route.params;
+  const { eventId, imageUrl: routeImageUrl, previewEvent, initialTab } = route.params;
   const { colors, isDark, gradients } = useTheme();
   const { requireAuth } = useAuthGuard();
   const { t } = useTranslation();
@@ -190,6 +190,31 @@ export default function EventDetailsScreen() {
       setJoiningVisio(false);
     }
   }, [eventId, event?.title, navigation, showAlert, showError, t]);
+
+  // Deep-link « rejoindre la visio » (initialTab='virtual', depuis une notif
+  // event_live) : on scrolle jusqu'à la section en ligne dès que sa position
+  // est connue, pour que l'utilisateur tombe directement sur le bouton
+  // « Rejoindre ». `onLayout` sur la section renseigne onlineSectionY.
+  const [onlineSectionY, setOnlineSectionY] = useState<number | null>(null);
+  const didScrollToVisio = useRef(false);
+  useEffect(() => {
+    if (
+      initialTab === 'virtual'
+      && onlineSectionY != null
+      && !didScrollToVisio.current
+      && (scrollViewRef as any)?.current
+    ) {
+      didScrollToVisio.current = true;
+      // léger délai : laisse le layout se stabiliser après le fetch.
+      setTimeout(() => {
+        try {
+          (scrollViewRef as any).current?.scrollTo({ y: Math.max(0, onlineSectionY - 80), animated: true });
+        } catch {
+          /* scroll best-effort */
+        }
+      }, 350);
+    }
+  }, [initialTab, onlineSectionY, scrollViewRef]);
 
   // Toutes les images : banner en premier, puis gallery_images
   const allImages = useMemo(() => {
@@ -321,8 +346,7 @@ export default function EventDetailsScreen() {
           </View>
           <Text style={[visibilityStyles.gateTitle, { color: colors.gray900 }]}>{t('eventDetails.invitationGate')}</Text>
           <Text style={[visibilityStyles.gateDesc, { color: colors.gray500 }]}>
-            Cet événement est réservé aux personnes invitées.
-            Si vous avez reçu une invitation, veuillez l'accepter pour y accéder.
+            {t('eventDetails.invitationGateDesc')}
           </Text>
           <View style={{ marginTop: 16, flexDirection: 'row', alignSelf: 'stretch' }}>
             <EditorialPillCTA
@@ -383,7 +407,7 @@ export default function EventDetailsScreen() {
             <Ionicons name="key-outline" size={28} color={colors.warning} />
             <Text style={[visibilityStyles.codeTitle, { color: colors.gray900 }]}>{t('eventDetails.codeRequired')}</Text>
             <Text style={[visibilityStyles.codeDesc, { color: colors.gray500 }]}>
-              Entrez le code pour voir les détails complets
+              {t('eventDetails.codeGateDesc')}
             </Text>
             <TextInput
               style={[visibilityStyles.codeInput, { borderColor: colors.gray200, color: colors.gray900, backgroundColor: colors.gray50 }]}
@@ -758,7 +782,10 @@ export default function EventDetailsScreen() {
 
           {/* Location Card */}
           {event.location_type === 'online' ? (
-            <View style={[styles.onlineEventCard, { backgroundColor: colors.card, borderColor: colors.infoLight }]}>
+            <View
+              style={[styles.onlineEventCard, { backgroundColor: colors.card, borderColor: colors.infoLight }]}
+              onLayout={(e) => setOnlineSectionY(e.nativeEvent.layout.y)}
+            >
               <View style={styles.onlineEventHeader}>
                 <View style={[styles.infoIconContainer, { backgroundColor: colors.infoLight }]}>
                   <Ionicons name="videocam" size={22} color={colors.info} />
@@ -812,6 +839,18 @@ export default function EventDetailsScreen() {
                     )}
                     <Text style={styles.joinOnlineButtonText}>{t('eventDetails.joinEvent')}</Text>
                   </TouchableOpacity>
+                  {/* Accès Q&A / sondages en direct (apps/live) — parité avec
+                      l'onglet Live du web. Réservé aux inscrits. */}
+                  {userRegistration && (
+                    <TouchableOpacity
+                      style={[styles.joinOnlineButton, { marginTop: Spacing.sm, backgroundColor: colors.infoBg }]}
+                      onPress={() => navigation.navigate('LiveEvent', { eventId })}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="chatbubbles-outline" size={18} color={colors.info} />
+                      <Text style={[styles.joinOnlineButtonText, { color: colors.info }]}>{t('eventDetails.liveEngagement')}</Text>
+                    </TouchableOpacity>
+                  )}
                 </>
               ) : (
                 <View style={[styles.onlineLockedInfo, { backgroundColor: colors.gray50 }]}>
@@ -823,7 +862,10 @@ export default function EventDetailsScreen() {
               )}
             </View>
           ) : event.location_type === 'hybrid' ? (
-            <View style={styles.hybridEventCard}>
+            <View
+              style={styles.hybridEventCard}
+              onLayout={(e) => setOnlineSectionY(e.nativeEvent.layout.y)}
+            >
               {/* Physical location */}
               <TouchableOpacity style={[styles.infoCard, { backgroundColor: colors.gray50 }]} activeOpacity={0.7}>
                 <View style={[styles.infoIconContainer, { backgroundColor: colors.primaryBg }]}>

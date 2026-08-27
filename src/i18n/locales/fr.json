@@ -640,6 +640,7 @@
     "onlineEvent": "Évenement en ligne",
     "meetingId": "ID de réunion :",
     "meetingPasscode": "Code d'accès :",
+    "liveEngagement": "Questions & sondages en direct",
     "joinEvent": "Rejoindre l'évenement",
     "joinOnline": "Rejoindre en ligne",
     "registered": "Inscrits",
@@ -701,7 +702,9 @@
     "loginRequiredTitle": "Connexion requise",
     "loginRequiredReview": "Connectez-vous pour laisser un avis",
     "reviewSubmitError": "Impossible de soumettre votre avis",
-    "loginRequiredWaitlist": "Connectez-vous pour rejoindre la liste d'attente"
+    "loginRequiredWaitlist": "Connectez-vous pour rejoindre la liste d'attente",
+    "invitationGateDesc": "Cet événement est réservé aux personnes invitées. Si vous avez reçu une invitation, veuillez l'accepter pour y accéder.",
+    "codeGateDesc": "Entrez le code pour voir les détails complets"
   },
   "events": {
     "videoBadge": "Vidéo",
