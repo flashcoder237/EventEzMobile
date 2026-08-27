@@ -60,6 +60,28 @@ interface FloorArea { id: string; name: string; area_type: string; }
 
 const t2 = (n: number | string) => String(n);
 
+// Message d'erreur ACTIONNABLE pour les formulaires de création : on privilégie
+// le message backend spécifique (detail / non_field_errors / 1er champ en
+// erreur, ex. « event: Pas un UUID valide ») au lieu du « certaines informations
+// sont invalides » générique qui laissait l'organisateur sans piste.
+function specificApiError(error: any, t: (k: string, o?: any) => string): string {
+  const data = error?.response?.data;
+  if (data && typeof data === 'object') {
+    if (typeof data.detail === 'string') return data.detail;
+    if (Array.isArray(data.non_field_errors) && data.non_field_errors[0]) return data.non_field_errors[0];
+    // Premier champ en erreur : "<champ> : <message>".
+    for (const [key, val] of Object.entries(data)) {
+      if (key === 'code') continue;
+      const msg = Array.isArray(val) ? val[0] : (typeof val === 'string' ? val : null);
+      if (msg) return `${key} : ${msg}`;
+    }
+  }
+  return getApiErrorMessage(error, t, {
+    fallbackKey: 'organizer.booths.createError',
+    fallbackValues: { defaultValue: 'Échec.' },
+  }).message;
+}
+
 export default function BoothManagementScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
@@ -78,6 +100,10 @@ export default function BoothManagementScreen() {
   // Devise de l'event (regle mono-devise : Event.currency = devise du wallet
   // organisateur, verrouillee). On l'affiche telle quelle, jamais 'XAF' en dur.
   const [currency, setCurrency] = useState<string>(DEFAULT_CURRENCY);
+  // UUID réel de l'event. `eventId` (route param) peut être le SLUG → les POST
+  // (createCategory/createBooth) exigent l'UUID strict (FK PrimaryKey backend),
+  // sinon "certaines informations sont invalides". Résolu au chargement.
+  const [resolvedEventId, setResolvedEventId] = useState<string>(eventId);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -110,6 +136,8 @@ export default function BoothManagementScreen() {
         const evRes = await eventsAPI.getEvent(eventId);
         const ev = evRes.data;
         if (ev?.currency) setCurrency(ev.currency);
+        // Mémorise l'UUID réel pour les créations (POST exigent l'UUID).
+        if (ev?.id) setResolvedEventId(String(ev.id));
       } catch { /* garde le fallback */ }
       // Zones « booth » du plan (pour le placement simple). Best-effort.
       try {
@@ -147,12 +175,12 @@ export default function BoothManagementScreen() {
     }
     setBusy(true);
     try {
-      const res = await exhibitorsAPI.createCategory({ event: eventId, name: catName.trim(), base_price: catPrice.trim() });
+      const res = await exhibitorsAPI.createCategory({ event: resolvedEventId, name: catName.trim(), base_price: catPrice.trim() });
       setCategories((prev) => [...prev, res.data]);
       setCatOpen(false); setCatName(''); setCatPrice('');
       showSuccess(t('organizer.booths.categoryCreated', { defaultValue: 'Catégorie créée' }), '');
     } catch (error: any) {
-      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'organizer.booths.createError', fallbackValues: { defaultValue: 'Échec.' } }).message);
+      showError(t('common.error'), specificApiError(error, t));
     } finally { setBusy(false); }
   };
 
@@ -164,12 +192,12 @@ export default function BoothManagementScreen() {
     }
     setBusy(true);
     try {
-      const res = await exhibitorsAPI.createBooth({ event: eventId, code: boothCode.trim(), category: boothCat, status: 'available' });
+      const res = await exhibitorsAPI.createBooth({ event: resolvedEventId, code: boothCode.trim(), category: boothCat, status: 'available' });
       setBooths((prev) => [...prev, res.data]);
       setBoothOpen(false); setBoothCode(''); setBoothCat('');
       showSuccess(t('organizer.booths.boothCreated', { defaultValue: 'Stand créé' }), '');
     } catch (error: any) {
-      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'organizer.booths.createError', fallbackValues: { defaultValue: 'Échec.' } }).message);
+      showError(t('common.error'), specificApiError(error, t));
     } finally { setBusy(false); }
   };
 
