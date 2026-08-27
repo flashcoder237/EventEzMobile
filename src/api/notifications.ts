@@ -13,6 +13,10 @@ export const notificationsAPI = {
   getNotifications: (params?: any) =>
     api.get('/notifications/', { params }),
 
+  // Feed d'activité du réseau (nouveaux abonnés, activité des follows/connexions).
+  getSocialFeed: (params?: any) =>
+    api.get('/notifications/social_feed/', { params }),
+
   getNotification: (id: string) =>
     api.get(`/notifications/${id}/`),
 
