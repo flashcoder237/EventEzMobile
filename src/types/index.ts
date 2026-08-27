@@ -1685,6 +1685,11 @@ export type RootStackParamList = {
      * (follow, register, share, contact organizer).
      */
     previewEvent?: Partial<Event>;
+    /**
+     * Section à mettre en avant à l'ouverture (deep-link). 'virtual' vient
+     * d'une notif event_live → on scrolle/ouvre la section « Rejoindre la visio ».
+     */
+    initialTab?: 'virtual';
   };
   EventReviews: { eventId: string; eventTitle?: string };
   EventSearch: { query?: string; category?: number; city?: string; price?: 'free' | 'paid' } | undefined;

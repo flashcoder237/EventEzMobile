@@ -64,8 +64,10 @@ import { useEventDetails } from '../../hooks/useEventDetails';
 import { useFeedback } from '../../contexts/FeedbackContext';
 import { useAuthGuard } from '../../hooks/useAuthGuard';
 import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
-import { eventsAPI, getMediaUrl } from '../../api';
+import { eventsAPI, getMediaUrl, virtualRoomsAPI } from '../../api';
+import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import UserBadges from '../../components/common/UserBadges';
 import { Badge } from '../../components/ui/Badge';
 import ConvertedPrice from '../../components/common/ConvertedPrice';
 import { EditorialCanvas, WatermarkNumeral, EditorialPillCTA, EditorialColors } from '../../components/ui/editorial';
@@ -137,6 +139,57 @@ export default function EventDetailsScreen() {
     showError,
   } = useEventDetails(eventId, previewEvent);
   const { toastError } = useFeedback();
+  const { showAlert } = useAlert();
+  const [joiningVisio, setJoiningVisio] = useState(false);
+
+  // Rejoindre la visio via le flux GATÉ (event_join) — même chemin sécurisé
+  // que VirtualTab. Ne JAMAIS ouvrir event.online_url en brut : ça
+  // court-circuitait le gating (inscription/paiement/fenêtre) et le token JWT
+  // à durée bornée. event_join vérifie l'accès côté serveur puis renvoie une
+  // URL + JWT ; on ouvre dans la WebView interne (Browser), jamais le
+  // navigateur externe. Couvre aussi eventez_visio (pas d'online_url).
+  const handleJoinVisio = useCallback(async () => {
+    setJoiningVisio(true);
+    try {
+      const res = await virtualRoomsAPI.eventJoin(eventId);
+      const data = res.data || {};
+      if (!data.url) {
+        showError(t('common.error'), t('componentsEvents.virtualUrlError'));
+        return;
+      }
+      let finalUrl: string = data.url;
+      if (data.provider === 'jaas' && data.token) {
+        finalUrl = `${data.url}?jwt=${data.token}`;
+      }
+      if (data.provider === 'jitsi_public' && data.password) {
+        showAlert(
+          t('componentsEvents.virtualPasswordTitle'),
+          t('componentsEvents.virtualPasswordMessage', { password: data.password }),
+          [
+            { text: t('common.cancel'), style: 'cancel' },
+            {
+              text: t('componentsEvents.virtualJoinAction'),
+              onPress: () => navigation.navigate('Browser', { url: finalUrl, title: event?.title }),
+            },
+          ],
+          'info',
+        );
+      } else {
+        navigation.navigate('Browser', { url: finalUrl, title: event?.title });
+      }
+    } catch (error: any) {
+      const minsRemaining = error?.response?.data?.minutes_remaining;
+      const msg = error?.response?.data?.error || t('componentsEvents.virtualGenericError');
+      showError(
+        t('componentsEvents.virtualAccessDenied'),
+        minsRemaining
+          ? t('componentsEvents.virtualAccessLater', { minutes: minsRemaining })
+          : msg,
+      );
+    } finally {
+      setJoiningVisio(false);
+    }
+  }, [eventId, event?.title, navigation, showAlert, showError, t]);
 
   // Toutes les images : banner en premier, puis gallery_images
   const allImages = useMemo(() => {
@@ -645,6 +698,9 @@ export default function EventDetailsScreen() {
               <Text style={[styles.organizerName, { color: colors.gray900 }]} numberOfLines={1}>
                 {event.organizer?.first_name} {event.organizer?.last_name}
               </Text>
+              {/* Point de décision d'achat : c'est ICI que la vérification KYC
+                  a le plus de valeur. Elle n'y était pas affichée du tout. */}
+              <UserBadges user={event.organizer as any} style={{ marginTop: 3 }} />
             </View>
             {event.organizer?.id && (
               <View style={styles.organizerActions}>
@@ -739,31 +795,23 @@ export default function EventDetailsScreen() {
                       )}
                     </View>
                   )}
-                  {event.online_url ? (
-                    <TouchableOpacity
-                      style={styles.joinOnlineButton}
-                      onPress={() => {
-                        navigation.navigate('Browser', { url: event.online_url!, title: event.title });
-                      }}
-                    >
+                  {/* Bouton « Rejoindre » unifié : passe TOUJOURS par le flux
+                      gaté event_join (vérif accès + JWT borné + WebView interne),
+                      jamais par event.online_url en brut. Couvre la visio interne
+                      (eventez_visio, sans online_url) ET externe (Zoom/Meet). */}
+                  <TouchableOpacity
+                    style={styles.joinOnlineButton}
+                    onPress={handleJoinVisio}
+                    disabled={joiningVisio}
+                    activeOpacity={0.8}
+                  >
+                    {joiningVisio ? (
+                      <ActivityIndicator size="small" color={colors.white} />
+                    ) : (
                       <Ionicons name="videocam" size={18} color={colors.white} />
-                      <Text style={styles.joinOnlineButtonText}>{t('eventDetails.joinEvent')}</Text>
-                    </TouchableOpacity>
-                  ) : event.online_platform?.toLowerCase().includes('eventez') ? (
-                    <View style={[styles.eventezVisioNotice, { backgroundColor: colors.infoBg }]}>
-                      <Ionicons name="information-circle" size={18} color={colors.info} />
-                      <Text style={[styles.eventezVisioNoticeText, { color: colors.gray600 }]}>
-                        La visioconference EventEz sera disponible le jour de l'evenement
-                      </Text>
-                    </View>
-                  ) : !event.online_meeting_id && !event.online_passcode ? (
-                    <View style={[styles.eventezVisioNotice, { backgroundColor: colors.infoBg }]}>
-                      <Ionicons name="time-outline" size={18} color={colors.gray500} />
-                      <Text style={[styles.eventezVisioNoticeText, { color: colors.gray600 }]}>
-                        Les informations de connexion seront communiquees avant l'evenement
-                      </Text>
-                    </View>
-                  ) : null}
+                    )}
+                    <Text style={styles.joinOnlineButtonText}>{t('eventDetails.joinEvent')}</Text>
+                  </TouchableOpacity>
                 </>
               ) : (
                 <View style={[styles.onlineLockedInfo, { backgroundColor: colors.gray50 }]}>
@@ -796,17 +844,22 @@ export default function EventDetailsScreen() {
                   Egalement disponible en ligne via {event.online_platform || 'visioconference'}
                 </Text>
               </View>
-              {/* Show meeting info if registered */}
-              {userRegistration && event.online_url && (
+              {/* Rejoindre la partie en ligne — via le flux gaté event_join
+                  (jamais Linking.openURL brut, qui ouvrait le navigateur externe
+                  sans gating ni token). Affiché aux inscrits ; l'accès est
+                  revérifié côté serveur au join. */}
+              {userRegistration && (
                 <TouchableOpacity
                   style={[styles.joinOnlineButton, { marginTop: Spacing.sm }]}
-                  onPress={() => {
-                    Linking.openURL(event.online_url!).catch(() => {
-                      toastError(t('eventDetails.openLinkError'));
-                    });
-                  }}
+                  onPress={handleJoinVisio}
+                  disabled={joiningVisio}
+                  activeOpacity={0.8}
                 >
-                  <Ionicons name="videocam" size={18} color={colors.white} />
+                  {joiningVisio ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <Ionicons name="videocam" size={18} color={colors.white} />
+                  )}
                   <Text style={styles.joinOnlineButtonText}>{t('eventDetails.joinOnline')}</Text>
                 </TouchableOpacity>
               )}

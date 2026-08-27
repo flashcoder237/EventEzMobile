@@ -41,9 +41,14 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
     case 'event_update':
     case 'event_cancelled':
     case 'event_today':
-    // « L'événement est en cours » → page détail (le bouton Rejoindre visio y est).
-    case 'event_live':
       return eventId ? { screen: 'EventDetails', params: { eventId: eventNav } } : null;
+    // « L'événement est en cours » → page détail en ouvrant DIRECTEMENT la
+    // section visio (initialTab), pour que l'utilisateur tombe sur le bouton
+    // « Rejoindre » sans le chercher.
+    case 'event_live':
+      return eventId
+        ? { screen: 'EventDetails', params: { eventId: eventNav, initialTab: 'virtual' } }
+        : null;
     // new_registration = notif ORGANISATEUR (« nouvel inscrit ») → gestion des inscrits.
     case 'new_registration':
       return eventId ? { screen: 'EventRegistrations', params: { eventId } } : null;
