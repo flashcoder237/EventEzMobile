@@ -3650,8 +3650,8 @@
     "eyebrow": "PARRAINAGE • REWARDS",
     "title": "Invite & gagne",
     "shareTitle": "Parrainage EventEz",
-    "shareMessageWithEvent": "Rejoins-moi sur EventEz pour \"{{event}}\" ! Utilise mon code de parrainage : {{code}}",
-    "shareMessageGeneric": "Rejoins EventEz avec mon code de parrainage : {{code}}",
+    "shareMessageWithEvent": "Rejoins-moi sur EventEz pour « {{event}} » ! {{url}}",
+    "shareMessageGeneric": "Rejoins EventEz avec mon lien de parrainage : {{url}}",
     "copy": "Copier",
     "copied": "Copié",
     "share": "Partager",
@@ -3679,7 +3679,8 @@
     "generateCta": "Générer mon code",
     "generating": "Génération…",
     "generateSuccess": "Code de parrainage créé !",
-    "generateError": "Impossible de générer le code. Réessaie."
+    "generateError": "Impossible de générer le code. Réessaie.",
+    "copySuccess": "Lien de parrainage copié"
   },
   "teamManagement": {
     "eyebrow": "EQUIPE",

@@ -3313,8 +3313,8 @@
     "eyebrow": "REFERRAL • REWARDS",
     "title": "Invite & earn",
     "shareTitle": "EventEz Referral",
-    "shareMessageWithEvent": "Join me on EventEz for \"{{event}}\"! Use my referral code: {{code}}",
-    "shareMessageGeneric": "Join EventEz with my referral code: {{code}}",
+    "shareMessageWithEvent": "Join me on EventEz for \"{{event}}\"! {{url}}",
+    "shareMessageGeneric": "Join EventEz with my referral link: {{url}}",
     "copy": "Copy",
     "copied": "Copied",
     "share": "Share",
@@ -3342,7 +3342,8 @@
     "generateCta": "Generate my code",
     "generating": "Generating…",
     "generateSuccess": "Referral code created!",
-    "generateError": "Couldn't generate the code. Please try again."
+    "generateError": "Couldn't generate the code. Please try again.",
+    "copySuccess": "Referral link copied"
   },
   "teamManagement": {
     "eyebrow": "TEAM",

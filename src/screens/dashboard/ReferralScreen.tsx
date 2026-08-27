@@ -26,6 +26,7 @@ import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { StaggeredItem } from '../../components/ui/Animations';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
+import { getReferralUrl } from '../../constants/urls';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -129,7 +130,9 @@ export default function ReferralScreen() {
 
   const handleCopy = async (code: string, id: string) => {
     try {
-      await Clipboard.setStringAsync(code);
+      // On copie le LIEN, pas le code nu : un code seul n'indique pas où le
+      // saisir et ne déclenche AUCUN suivi de parrainage.
+      await Clipboard.setStringAsync(getReferralUrl(code));
       setCopiedId(id);
       setTimeout(() => setCopiedId(null), 2000);
     } catch (error) {
@@ -140,12 +143,16 @@ export default function ReferralScreen() {
 
   const handleShare = async (code: string, eventName?: string) => {
     try {
+      const url = getReferralUrl(code);
       const message = eventName
-        ? t('referralForm.shareMessageWithEvent', { event: eventName, code })
-        : t('referralForm.shareMessageGeneric', { code });
+        ? t('referralForm.shareMessageWithEvent', { event: eventName, code, url })
+        : t('referralForm.shareMessageGeneric', { code, url });
 
       await Share.share({
         message,
+        // `url` séparé : iOS l'expose comme lien riche dans la feuille de
+        // partage. Android ignore le champ, d'où le lien AUSSI dans le message.
+        url,
         title: t('referralForm.shareTitle'),
       });
     } catch (error) {

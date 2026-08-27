@@ -25,6 +25,24 @@ export function getEventInviteUrl(
   return `${getEventUrl(eventIdOrSlug)}${ref}`;
 }
 
+/**
+ * Lien de parrainage partageable.
+ *
+ * Le `?ref=CODE` est ce que le front web capte à l'arrivée du visiteur pour
+ * poser le code en session (cf. `ReferralCapture`). Partager le CODE SEUL,
+ * comme le faisait l'écran de parrainage, ne déclenche aucun suivi : le
+ * destinataire ne sait pas où le saisir, et aucune conversion n'est attribuée.
+ *
+ * `eventIdOrSlug` optionnel : un lien vers l'événement dont on parle convertit
+ * mieux qu'un renvoi vers l'accueil.
+ */
+export function getReferralUrl(code: string, eventIdOrSlug?: string | null): string {
+  const base = eventIdOrSlug
+    ? `${WEB_BASE_URL}/events/${eventIdOrSlug}`
+    : WEB_BASE_URL;
+  return `${base}?ref=${encodeURIComponent(code)}`;
+}
+
 export function getOrganizerUrl(organizerId: string): string {
   return `${WEB_BASE_URL}/organizers/${organizerId}`;
 }
