@@ -20,7 +20,7 @@ import QRCode from 'react-native-qrcode-svg';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
-import { registrationsAPI, ticketTransfersAPI, paymentsAPI } from '../../api';
+import { registrationsAPI, ticketTransfersAPI, paymentsAPI, virtualRoomsAPI } from '../../api';
 import { getVerificationUrl, getEventInviteUrl, WEB_BASE_URL } from '../../constants/urls';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useTicketDisplayGuard } from '../../hooks/useTicketDisplayGuard';
@@ -80,6 +80,10 @@ export default function RegistrationDetailsScreen() {
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
+  // Visio EventEz : état du bouton « Rejoindre » (spinner) + note d'indispo
+  // seulement si le backend renvoie 503 (visio pas encore activée côté serveur).
+  const [joiningVisio, setJoiningVisio] = useState(false);
+  const [visioUnavailable, setVisioUnavailable] = useState(false);
 
   // Ref vers le QR affiché : `toDataURL()` en fournit le PNG base64 à embarquer
   // dans le PDF, sans dépendre d'un générateur de QR distant.
@@ -219,6 +223,61 @@ export default function RegistrationDetailsScreen() {
       );
     } finally {
       setVerifyingPayment(false);
+    }
+  };
+
+  // Rejoindre la visioconférence EventEz depuis le reçu d'inscription.
+  // Même flux gaté que VirtualTab : on appelle `eventJoin` (backend), qui
+  // vérifie inscription/paiement/quota/fenêtre + prêt-ou-non de l'infra visio.
+  // Le bouton reste affiché tant qu'on n'a pas eu de 503 explicite : dès que tu
+  // as configuré Jitsi/JaaS côté serveur, ça marche sans MAJ de l'app.
+  const handleJoinVisio = async () => {
+    if (!registration) return;
+    const ev = registration.event_detail || (typeof registration.event === 'object' ? registration.event : null);
+    const eventUuid = ev?.id || (typeof registration.event === 'string' ? registration.event : registration.event_id);
+    if (!eventUuid) {
+      showError(t('common.error'), t('registrationDetails.openLinkError'));
+      return;
+    }
+    setJoiningVisio(true);
+    try {
+      const res = await virtualRoomsAPI.eventJoin(String(eventUuid));
+      const data = res.data;
+      if (!data?.url) {
+        showError(t('common.error'), t('componentsEvents.virtualUrlError'));
+        return;
+      }
+      let finalUrl = data.url;
+      if (data.provider === 'jaas' && data.token) {
+        finalUrl = `${data.url}?jwt=${data.token}`;
+      }
+      // jitsi_jwt : l'URL contient déjà ?jwt=… ; jitsi_public : URL directe.
+      if (data.provider === 'jitsi_public' && data.password) {
+        showConfirm(
+          t('componentsEvents.virtualPasswordTitle'),
+          t('componentsEvents.virtualPasswordMessage', { password: data.password }),
+          () => navigation.navigate('Browser', { url: finalUrl }),
+        );
+      } else {
+        navigation.navigate('Browser', { url: finalUrl });
+      }
+    } catch (error: any) {
+      const code = error?.response?.status;
+      const apiMsg = error?.response?.data?.error;
+      const minsRemaining = error?.response?.data?.minutes_remaining;
+      if (code === 503) {
+        // Visio pas encore activée côté serveur → on bascule sur la note d'indispo.
+        setVisioUnavailable(true);
+      } else {
+        showError(
+          t('componentsEvents.virtualAccessDenied'),
+          minsRemaining
+            ? t('componentsEvents.virtualAccessLater', { minutes: minsRemaining })
+            : (apiMsg || t('componentsEvents.virtualGenericError')),
+        );
+      }
+    } finally {
+      setJoiningVisio(false);
     }
   };
 
@@ -687,12 +746,30 @@ export default function RegistrationDetailsScreen() {
                     />
                   </View>
                 ) : event.online_platform?.toLowerCase() === 'eventez_visio' || event.online_platform?.toLowerCase() === 'eventez visio' ? (
-                  <View style={[styles.editorialNote, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}>
-                    <Ionicons name="time-outline" size={14} color="#92400E" />
-                    <Text style={[styles.editorialNoteText, { color: '#78350F' }]}>
-                      {t('registrationDetails.visioUnavailableNote')}
-                    </Text>
-                  </View>
+                  visioUnavailable ? (
+                    // Note d'indispo affichée UNIQUEMENT après un 503 backend
+                    // (visio pas encore activée côté serveur). Sinon on propose
+                    // le vrai bouton « Rejoindre » ci-dessous.
+                    <View style={[styles.editorialNote, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}>
+                      <Ionicons name="time-outline" size={14} color="#92400E" />
+                      <Text style={[styles.editorialNoteText, { color: '#78350F' }]}>
+                        {t('registrationDetails.visioUnavailableNote')}
+                      </Text>
+                    </View>
+                  ) : (
+                    // EventEz Visio : pas d'URL statique — le lien est généré à la
+                    // volée par le backend (token JWT selon le provider). On appelle
+                    // eventJoin qui gère l'accès (inscription/paiement/fenêtre/quota).
+                    <View style={{ marginTop: Spacing.md }}>
+                      <EditorialPillCTA
+                        eyebrow={t('registrationDetails.openCta')}
+                        label={joiningVisio ? t('componentsEvents.virtualConnecting') : t('registrationDetails.joinNow')}
+                        onPress={joiningVisio ? () => {} : handleJoinVisio}
+                        tone="primary"
+                        icon="videocam"
+                      />
+                    </View>
+                  )
                 ) : !event.online_meeting_id && !event.online_passcode ? (
                   <View style={[styles.editorialNote, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
                     <Ionicons name="time-outline" size={14} color={colors.gray500} />
