@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { feedbacksAPI } from '../../api';
+import { feedbacksAPI, eventsAPI } from '../../api';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -175,6 +175,22 @@ export default function EventReviewsScreen() {
   const insets = useSafeAreaInsets();
   const [state, dispatch] = useReducer(reducer, initialState);
   const listRef = useRef<FlatList<Feedback>>(null);
+  // Titre + UUID de l'event : quand l'écran est ouvert depuis une notif (deep
+  // link event_feedback), seuls l'id (parfois un SLUG) est passé, sans titre →
+  // écran « sans contexte ». On résout les deux via getEvent si besoin.
+  const [resolvedTitle, setResolvedTitle] = useState<string | undefined>(eventTitle);
+  const [resolvedEventId, setResolvedEventId] = useState<string>(eventId);
+  useEffect(() => {
+    if (eventTitle && eventId) return; // déjà tout ce qu'il faut
+    let active = true;
+    eventsAPI.getEvent(eventId).then((res) => {
+      if (!active) return;
+      const ev: any = res?.data;
+      if (ev?.title) setResolvedTitle(ev.title);
+      if (ev?.id) setResolvedEventId(String(ev.id));
+    }).catch(() => { /* garde les valeurs de param */ });
+    return () => { active = false; };
+  }, [eventId, eventTitle]);
 
   // Ouvre le formulaire d'avis ET remonte en haut de la liste (le form est dans
   // l'en-tête). Sans ça, si l'utilisateur avait beaucoup scrollé dans les avis,
@@ -281,7 +297,8 @@ export default function EventReviewsScreen() {
     dispatch({ type: 'SUBMIT_START' });
     try {
       const response = await feedbacksAPI.createFeedback({
-        event: eventId,
+        // UUID (POST FK strict — le param peut être un slug via deep-link).
+        event: resolvedEventId,
         rating: state.formRating,
         comment: state.formComment.trim(),
       });
@@ -507,9 +524,9 @@ export default function EventReviewsScreen() {
           <Text style={[styles.topBarTitle, { color: colors.gray900 }]} numberOfLines={1}>
             {t('eventReviews.title')}
           </Text>
-          {eventTitle && (
+          {resolvedTitle && (
             <Text style={[styles.topBarSubtitle, { color: colors.gray500 }]} numberOfLines={1}>
-              {eventTitle}
+              {resolvedTitle}
             </Text>
           )}
         </View>
@@ -526,9 +543,15 @@ export default function EventReviewsScreen() {
           data={state.feedbacks}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
-          ListHeaderComponent={renderHeader}
+          // ⚠️ Passer l'ÉLÉMENT (renderHeader()) et NON la fonction : avec une
+          // fonction, chaque render (donc chaque frappe dans le TextInput du
+          // formulaire) crée un nouveau TYPE de composant → React démonte/
+          // remonte le header → le TextInput perd le focus → le clavier se
+          // ferme à chaque lettre. En passant l'élément, React réconcilie.
+          ListHeaderComponent={renderHeader()}
           ListFooterComponent={ListFooter}
           ListEmptyComponent={ListEmpty}
+          keyboardShouldPersistTaps="handled"
           onEndReached={loadMore}
           onEndReachedThreshold={0.3}
           refreshControl={
@@ -775,10 +798,10 @@ const styles = StyleSheet.create({
   // FAB (bottom positionne dynamiquement avec insets.bottom)
   fab: {
     position: 'absolute',
-    // Recentré sur la colonne de contenu plafonnée (620) sur grand écran :
-    // le bord droit de la colonne est à 50% + 310px, on décale le FAB dedans.
-    right: '50%',
-    marginRight: -310 + Spacing.lg,
+    // Ancré au bord droit de l'écran (comportement FAB standard). L'ancien
+    // calcul `right:'50%' + marginRight:-310` (pensé pour la colonne iPad 620px)
+    // poussait le FAB HORS écran sur téléphone (< 620px) → bouton coupé.
+    right: Spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
