@@ -68,10 +68,11 @@ export default function TimePickerField({
       display="spinner"
       onChange={handleChange}
       locale="fr-FR"
-      // iOS : la modale a un fond CLAIR → forcer le picker en thème clair +
-      // texte sombre, sinon en mode sombre système le spinner est invisible.
-      themeVariant="light"
-      textColor="#111111"
+      // iOS : suivre le THÈME DE L'APP (la modale a pour fond colors.card qui
+      // s'adapte), sinon le picker hérite du thème SYSTÈME iPhone → spinner
+      // invisible (texte blanc sur modale claire, ou l'inverse en dark).
+      themeVariant={isDark ? 'dark' : 'light'}
+      textColor={colors.gray900}
     />
   );
 

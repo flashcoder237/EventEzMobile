@@ -41,12 +41,16 @@ import { StaggeredItem, SectionEntrance } from '../../components/ui/Animations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type FilterType = 'all' | 'unread' | 'read';
+// Source des notifs : 'all' = tout ; 'network' = feed d'activité du réseau
+// (nouveaux abonnés, activité des follows/connexions) via /notifications/social_feed/.
+type TabType = 'all' | 'network';
 
 interface NotificationsState {
   notifications: Notification[];
   loading: boolean;
   refreshing: boolean;
   filter: FilterType;
+  tab: TabType;
   selectedNotification: Notification | null;
   showDetailModal: boolean;
   page: number;
@@ -59,6 +63,7 @@ type NotificationsAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_REFRESHING'; payload: boolean }
   | { type: 'SET_FILTER'; payload: FilterType }
+  | { type: 'SET_TAB'; payload: TabType }
   | { type: 'MARK_AS_READ'; payload: string }
   | { type: 'MARK_ALL_AS_READ' }
   | { type: 'DELETE_NOTIFICATION'; payload: string }
@@ -75,6 +80,7 @@ const initialState: NotificationsState = {
   loading: true,
   refreshing: false,
   filter: 'all',
+  tab: 'all',
   selectedNotification: null,
   showDetailModal: false,
   page: 1,
@@ -92,6 +98,10 @@ function notificationsReducer(state: NotificationsState, action: NotificationsAc
       return { ...state, refreshing: action.payload };
     case 'SET_FILTER':
       return { ...state, filter: action.payload };
+    case 'SET_TAB':
+      // Changer d'onglet remet le filtre lu/non-lu à zéro et vide la liste
+      // (le fetch de la nouvelle source repartira de la page 1).
+      return { ...state, tab: action.payload, filter: 'all', notifications: [], loading: true, page: 1, hasMore: false };
     case 'MARK_AS_READ':
       return {
         ...state,
@@ -172,6 +182,10 @@ export default function NotificationsScreen() {
     event_low_stock: { icon: 'hourglass', color: '#F59E0B', label: t('notifications.typeLowStock'), eyebrow: 'URGENT' },
     event_today: { icon: 'today', color: '#FF6B6B', label: t('notifications.typeToday'), eyebrow: "AUJOURD'HUI" },
     winback: { icon: 'heart', color: '#4F46E5', label: t('notifications.typeWinback'), eyebrow: 'NOUVEAUTÉS' },
+    new_follower: { icon: 'person-add', color: '#D946EF', label: t('notifications.typeNewFollower'), eyebrow: t('notifications.eyebrowNetwork') },
+    followed_organizer_new_event: { icon: 'calendar', color: '#A855F7', label: t('notifications.typeFollowedOrganizerNewEvent'), eyebrow: t('notifications.eyebrowNetwork') },
+    follow_registered: { icon: 'person', color: '#10B981', label: t('notifications.typeFollowRegistered'), eyebrow: t('notifications.eyebrowNetwork') },
+    connections_at_event: { icon: 'people', color: '#6366F1', label: t('notifications.typeConnectionsAtEvent'), eyebrow: t('notifications.eyebrowNetwork') },
     default: { icon: 'notifications', color: '#6B7280', label: t('notifications.typeDefault'), eyebrow: 'INFO' },
   };
 
@@ -185,20 +199,37 @@ export default function NotificationsScreen() {
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [state, dispatch] = useReducer(notificationsReducer, initialState);
-  const { notifications, loading, refreshing, filter, selectedNotification, showDetailModal, page, hasMore, loadingMore } = state;
+  const { notifications, loading, refreshing, filter, tab, selectedNotification, showDetailModal, page, hasMore, loadingMore } = state;
 
   // Refs miroirs pour éviter les stale closures dans loadMore (appelé par
   // SectionList.onEndReached qui capture la première référence).
   const pageRef = useRef(page);
   const hasMoreRef = useRef(hasMore);
   const loadingMoreRef = useRef(loadingMore);
+  const tabRef = useRef(tab);
   pageRef.current = page;
   hasMoreRef.current = hasMore;
   loadingMoreRef.current = loadingMore;
+  tabRef.current = tab;
+
+  // Sélectionne l'endpoint selon l'onglet actif.
+  const fetchSource = (params: any) =>
+    tabRef.current === 'network'
+      ? notificationsAPI.getSocialFeed(params)
+      : notificationsAPI.getNotifications(params);
 
   useEffect(() => {
     fetchNotifications();
   }, []);
+
+  // Re-fetch au changement d'onglet.
+  const handleTabChange = (next: TabType) => {
+    if (next === tab) return;
+    dispatch({ type: 'SET_TAB', payload: next });
+    // tabRef est mis à jour au prochain render ; on force la source ici.
+    tabRef.current = next;
+    fetchNotifications(true);
+  };
 
   const fetchNotifications = async (bypassCache = false) => {
     // Garde-fou : NotificationsScreen est censée n'être visible qu'authentifié
@@ -208,7 +239,7 @@ export default function NotificationsScreen() {
       dispatch({ type: 'SET_LOADING', payload: false });
       return;
     }
-    const cacheKey = `notifs:${user.id}`;
+    const cacheKey = `notifs:${user.id}:${tabRef.current}`;
     try {
       if (!bypassCache) {
         const cached = await CacheService.get<Notification[]>(cacheKey);
@@ -218,7 +249,7 @@ export default function NotificationsScreen() {
           if (!cached.isStale) return;
         }
       }
-      const response = await notificationsAPI.getNotifications({ page: 1, page_size: PAGE_SIZE });
+      const response = await fetchSource({ page: 1, page_size: PAGE_SIZE });
       const results = response.data?.results || response.data || [];
       const next = response.data?.next;
       const hasMoreFlag = next != null
@@ -241,7 +272,7 @@ export default function NotificationsScreen() {
     dispatch({ type: 'SET_LOADING_MORE', payload: true });
     const nextPage = pageRef.current + 1;
     try {
-      const response = await notificationsAPI.getNotifications({ page: nextPage, page_size: PAGE_SIZE });
+      const response = await fetchSource({ page: nextPage, page_size: PAGE_SIZE });
       const results = response.data?.results || response.data || [];
       const next = response.data?.next;
       const hasMoreFlag = next != null
@@ -554,6 +585,43 @@ export default function NotificationsScreen() {
               <Text style={[styles.statNumber, { color: colors.text }]}>{stats.today}</Text>
               <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>{t('notifications.statToday')}</Text>
             </View>
+          </View>
+
+          {/* === TAB SWITCHER (Tout / Réseau) === */}
+          <View style={[styles.tabSwitcher, { backgroundColor: colors.gray100 }]}>
+            {([
+              { key: 'all' as TabType, label: t('notifications.tabAll'), icon: 'notifications' as const },
+              { key: 'network' as TabType, label: t('notifications.tabNetwork'), icon: 'people' as const },
+            ]).map((tb) => {
+              const active = tab === tb.key;
+              return (
+                <TouchableOpacity
+                  key={tb.key}
+                  style={[
+                    styles.tabItem,
+                    active && { backgroundColor: colors.card, ...Shadows.card },
+                  ]}
+                  onPress={() => handleTabChange(tb.key)}
+                  activeOpacity={0.8}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Ionicons
+                    name={tb.icon}
+                    size={16}
+                    color={active ? colors.primary : colors.gray500}
+                  />
+                  <Text
+                    style={[
+                      styles.tabItemText,
+                      { color: active ? colors.primary : colors.gray600 },
+                    ]}
+                  >
+                    {tb.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
           {/* === FILTER CHIPS === */}
@@ -873,6 +941,26 @@ const styles = StyleSheet.create({
   },
 
   // === CHIPS ===
+  tabSwitcher: {
+    flexDirection: 'row',
+    gap: 4,
+    padding: 4,
+    borderRadius: 14,
+    marginBottom: 12,
+  },
+  tabItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 10,
+  },
+  tabItemText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   chipsRow: {
     flexDirection: 'row',
     gap: 8,
