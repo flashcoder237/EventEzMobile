@@ -269,16 +269,20 @@ export default function TourOverlay() {
         {/* Voile sombre avec trou (spotlight) — cutout via masque SVG */}
         {measurement ? (
           <>
-            {/* Tap EN DEHORS du cadre de présentation (la bulle) = arrêter le tour
-                sur cet écran. La bulle est rendue au-dessus de ce Pressable, donc
-                un tap dessus (ou sur ses boutons) ne déclenche PAS `skip`. Tout le
-                reste — voile sombre ET cible mise en avant — ferme le tour. */}
-            <Pressable style={StyleSheet.absoluteFill} onPress={skip} />
-
-            {/* Cutout via masque SVG = VRAI trou de la bonne forme. L'ancien
-                backdrop en 4 rectangles ne pouvait produire qu'un trou
-                rectangulaire (coins non assombris autour d'une cible ronde
-                comme un avatar). blanc = zone sombre, noir = trou. */}
+            {/* Tap EN DEHORS de la bulle = arrêter le tour. Le Pressable ENGLOBE
+                le SVG du voile (au lieu d'être un frère séparé) : sur iOS, un
+                Pressable frère sous un SVG en absoluteFill ne recevait pas
+                toujours les touches → le tap ne fermait pas le tour. La bulle,
+                rendue APRÈS ce bloc, reste au-dessus donc un tap dessus ne skip
+                pas. */}
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={skip}
+              accessibilityRole="button"
+              accessibilityLabel={t('componentsTour.skip')}
+            >
+            {/* Cutout via masque SVG = VRAI trou de la bonne forme. blanc = zone
+                sombre, noir = trou. */}
             <Svg
               width={SCREEN_WIDTH}
               height={SCREEN_HEIGHT}
@@ -336,6 +340,7 @@ export default function TourOverlay() {
                 pulseStyle,
               ]}
             />
+            </Pressable>
           </>
         ) : (
           /* Fallback pendant la mesure : voile plein — tap hors bulle = arrêt du tour */
