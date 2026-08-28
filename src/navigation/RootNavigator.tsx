@@ -31,73 +31,86 @@ import MainTabNavigator from './MainTabNavigator';
 // Auth Screens (accessible from anywhere)
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
-import RegisterOrganizerScreen from '../screens/auth/RegisterOrganizerScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
-import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 import VerifyEmailScreen from '../screens/auth/VerifyEmailScreen';
-import CompleteProfileScreen from '../screens/auth/CompleteProfileScreen';
-import VerifyEmailTokenScreen from '../screens/auth/VerifyEmailTokenScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
 
 // Event Screens
 import EventDetailsScreen from '../screens/events/EventDetailsScreen';
-import EventReviewsScreen from '../screens/events/EventReviewsScreen';
-import EventSearchScreen from '../screens/events/EventSearchScreen';
-import CitiesIndexScreen from '../screens/events/CitiesIndexScreen';
-import MapScreen from '../screens/events/MapScreen';
-import SessionDetailsScreen from '../screens/events/SessionDetailsScreen';
-import SpeakerDetailsScreen from '../screens/events/SpeakerDetailsScreen';
-import OrganizerProfileScreen from '../screens/events/OrganizerProfileScreen';
 
 // Payment Screens
-import PaymentScreen from '../screens/payment/PaymentScreen';
-import PaymentSuccessScreen from '../screens/payment/PaymentSuccessScreen';
-import PaymentFailedScreen from '../screens/payment/PaymentFailedScreen';
 
 // Ticket Screens
-import QRCodeScreen from '../screens/tickets/QRCodeScreen';
-import AttendeeInfoScreen from '../screens/tickets/AttendeeInfoScreen';
-import TicketPurchaseScreen from '../screens/tickets/TicketPurchaseScreen';
-import RegistrationDetailsScreen from '../screens/tickets/RegistrationDetailsScreen';
-import PendingTransfersScreen from '../screens/tickets/PendingTransfersScreen';
-import OfflineTicketsScreen from '../screens/tickets/OfflineTicketsScreen';
-import TransferAcceptScreen from '../screens/tickets/TransferAcceptScreen';
 
 // Dashboard & Profile Screens
-import NotificationsScreen from '../screens/dashboard/NotificationsScreen';
-import DashboardScreen from '../screens/dashboard/DashboardScreen';
-import SettingsScreen from '../screens/profile/SettingsScreen';
-import BlockedUsersScreen from '../screens/profile/BlockedUsersScreen';
-import EditProfileScreen from '../screens/profile/EditProfileScreen';
-import TermsScreen from '../screens/profile/TermsScreen';
-import PrivacyScreen from '../screens/profile/PrivacyScreen';
-import BecomeOrganizerScreen from '../screens/profile/BecomeOrganizerScreen';
-import VerificationScreen from '../screens/profile/VerificationScreen';
-import FollowingUsersScreen from '../screens/profile/FollowingUsersScreen';
 
 // Messages Screens
-import MessagesScreen from '../screens/messages/MessagesScreen';
-import ConversationScreen from '../screens/messages/ConversationScreen';
-import MessageRequestsScreen from '../screens/messages/MessageRequestsScreen';
-import ConnectionsScreen from '../screens/messages/ConnectionsScreen';
-import ConnectionScannerScreen from '../screens/messages/ConnectionScannerScreen';
 
 // Scan Screen
-import ScanScreen from '../screens/scan/ScanScreen';
 
 // Organizer Screens — frequently used (kept static)
-import EventCreateScreen from '../screens/organizer/EventCreateScreen';
-import DraftsListScreen from '../screens/organizer/DraftsListScreen';
-import WalletScreen from '../screens/organizer/WalletScreen';
-import MyEventsScreen from '../screens/organizer/MyEventsScreen';
-import QRScannerScreen from '../screens/organizer/QRScannerScreen';
-import LiveOpsScreen from '../screens/organizer/LiveOpsScreen';
-import MemoriesScreen from '../screens/profile/MemoriesScreen';
-import EventAttendeesScreen from '../screens/events/EventAttendeesScreen';
-import EventPricingTiersScreen from '../screens/organizer/EventPricingTiersScreen';
-import EventRegistrationsScreen from '../screens/organizer/EventRegistrationsScreen';
 
 // Organizer Screens — rare / power-user features (lazy-loaded for TTI gain)
+// Écrans LOURDS hors chemin de démarrage : le cold start ouvre Discover
+// (MainTabNavigator), jamais ceux-ci. Les charger en dur faisait parser
+// ~9 400 lignes avant le premier rendu — d'où l'alerte « vitesse » de
+// Play Console. Chargés à la première navigation.
+const ConversationScreen = withSuspense(lazy(() => import('../screens/messages/ConversationScreen')));
+const MessagesScreen = withSuspense(lazy(() => import('../screens/messages/MessagesScreen')));
+const MessageRequestsScreen = withSuspense(lazy(() => import('../screens/messages/MessageRequestsScreen')));
+const ConnectionsScreen = withSuspense(lazy(() => import('../screens/messages/ConnectionsScreen')));
+const ConnectionScannerScreen = withSuspense(lazy(() => import('../screens/messages/ConnectionScannerScreen')));
+const WalletScreen = withSuspense(lazy(() => import('../screens/organizer/WalletScreen')));
+const MyEventsScreen = withSuspense(lazy(() => import('../screens/organizer/MyEventsScreen')));
+const QRScannerScreen = withSuspense(lazy(() => import('../screens/organizer/QRScannerScreen')));
+const LiveOpsScreen = withSuspense(lazy(() => import('../screens/organizer/LiveOpsScreen')));
+const EventCreateScreen = withSuspense(lazy(() => import('../screens/organizer/EventCreateScreen')));
+const DraftsListScreen = withSuspense(lazy(() => import('../screens/organizer/DraftsListScreen')));
+const EventPricingTiersScreen = withSuspense(lazy(() => import('../screens/organizer/EventPricingTiersScreen')));
+const EventRegistrationsScreen = withSuspense(lazy(() => import('../screens/organizer/EventRegistrationsScreen')));
+const ScanScreen = withSuspense(lazy(() => import('../screens/scan/ScanScreen')));
+const SettingsScreen = withSuspense(lazy(() => import('../screens/profile/SettingsScreen')));
+const BecomeOrganizerScreen = withSuspense(lazy(() => import('../screens/profile/BecomeOrganizerScreen')));
+const VerificationScreen = withSuspense(lazy(() => import('../screens/profile/VerificationScreen')));
+const BlockedUsersScreen = withSuspense(lazy(() => import('../screens/profile/BlockedUsersScreen')));
+const EditProfileScreen = withSuspense(lazy(() => import('../screens/profile/EditProfileScreen')));
+const FollowingUsersScreen = withSuspense(lazy(() => import('../screens/profile/FollowingUsersScreen')));
+const MemoriesScreen = withSuspense(lazy(() => import('../screens/profile/MemoriesScreen')));
+const TermsScreen = withSuspense(lazy(() => import('../screens/profile/TermsScreen')));
+const PrivacyScreen = withSuspense(lazy(() => import('../screens/profile/PrivacyScreen')));
+const NotificationsScreen = withSuspense(lazy(() => import('../screens/dashboard/NotificationsScreen')));
+const EventAttendeesScreen = withSuspense(lazy(() => import('../screens/events/EventAttendeesScreen')));
+const PendingTransfersScreen = withSuspense(lazy(() => import('../screens/tickets/PendingTransfersScreen')));
+const OfflineTicketsScreen = withSuspense(lazy(() => import('../screens/tickets/OfflineTicketsScreen')));
+const TransferAcceptScreen = withSuspense(lazy(() => import('../screens/tickets/TransferAcceptScreen')));
+const DashboardScreen = withSuspense(lazy(() => import('../screens/dashboard/DashboardScreen')));
+const MyPaymentsScreen = withSuspense(lazy(() => import('../screens/payment/MyPaymentsScreen')));
+const RefundRequestScreen = withSuspense(lazy(() => import('../screens/payment/RefundRequestScreen')));
+const RefundsListScreen = withSuspense(lazy(() => import('../screens/payment/RefundsListScreen')));
+const InvitationsScreen = withSuspense(lazy(() => import('../screens/dashboard/InvitationsScreen')));
+const ReferralScreen = withSuspense(lazy(() => import('../screens/dashboard/ReferralScreen')));
+const HelpScreen = withSuspense(lazy(() => import('../screens/profile/HelpScreen')));
+const IncidentDetailsScreen = withSuspense(lazy(() => import('../screens/status/IncidentDetailsScreen')));
+const WebViewScreen = withSuspense(lazy(() => import('../screens/common/WebViewScreen')));
+const MapScreen = withSuspense(lazy(() => import('../screens/events/MapScreen')));
+const EventReviewsScreen = withSuspense(lazy(() => import('../screens/events/EventReviewsScreen')));
+const EventSearchScreen = withSuspense(lazy(() => import('../screens/events/EventSearchScreen')));
+const CitiesIndexScreen = withSuspense(lazy(() => import('../screens/events/CitiesIndexScreen')));
+const SessionDetailsScreen = withSuspense(lazy(() => import('../screens/events/SessionDetailsScreen')));
+const SpeakerDetailsScreen = withSuspense(lazy(() => import('../screens/events/SpeakerDetailsScreen')));
+const OrganizerProfileScreen = withSuspense(lazy(() => import('../screens/events/OrganizerProfileScreen')));
+const PaymentScreen = withSuspense(lazy(() => import('../screens/payment/PaymentScreen')));
+const PaymentSuccessScreen = withSuspense(lazy(() => import('../screens/payment/PaymentSuccessScreen')));
+const PaymentFailedScreen = withSuspense(lazy(() => import('../screens/payment/PaymentFailedScreen')));
+const QRCodeScreen = withSuspense(lazy(() => import('../screens/tickets/QRCodeScreen')));
+const AttendeeInfoScreen = withSuspense(lazy(() => import('../screens/tickets/AttendeeInfoScreen')));
+const TicketPurchaseScreen = withSuspense(lazy(() => import('../screens/tickets/TicketPurchaseScreen')));
+const RegistrationDetailsScreen = withSuspense(lazy(() => import('../screens/tickets/RegistrationDetailsScreen')));
+const RegisterOrganizerScreen = withSuspense(lazy(() => import('../screens/auth/RegisterOrganizerScreen')));
+const ResetPasswordScreen = withSuspense(lazy(() => import('../screens/auth/ResetPasswordScreen')));
+const VerifyEmailTokenScreen = withSuspense(lazy(() => import('../screens/auth/VerifyEmailTokenScreen')));
+const CompleteProfileScreen = withSuspense(lazy(() => import('../screens/auth/CompleteProfileScreen')));
+
 const EventAnalyticsScreen = withSuspense(lazy(() => import('../screens/organizer/EventAnalyticsScreen')));
 const DiscountManagementScreen = withSuspense(lazy(() => import('../screens/organizer/DiscountManagementScreen')));
 const DiscountFormScreen = withSuspense(lazy(() => import('../screens/organizer/DiscountFormScreen')));
@@ -117,14 +130,9 @@ const MyBoothScreen = withSuspense(lazy(() => import('../screens/exhibitor/MyBoo
 const ModerationScreen = withSuspense(lazy(() => import('../screens/moderation/ModerationScreen')));
 
 // Payment Management Screens
-import MyPaymentsScreen from '../screens/payment/MyPaymentsScreen';
-import RefundRequestScreen from '../screens/payment/RefundRequestScreen';
-import RefundsListScreen from '../screens/payment/RefundsListScreen';
 
 // New Feature Screens — frequent (kept static)
 import GamificationScreen from '../screens/profile/GamificationScreen';
-import InvitationsScreen from '../screens/dashboard/InvitationsScreen';
-import ReferralScreen from '../screens/dashboard/ReferralScreen';
 
 // New Feature Screens — rare (lazy)
 const LiveEventScreen = withSuspense(lazy(() => import('../screens/events/LiveEventScreen')));
@@ -137,7 +145,6 @@ const MyTeamEventsScreen = withSuspense(lazy(() => import('../screens/dashboard/
 const SubscriptionScreen = withSuspense(lazy(() => import('../screens/dashboard/SubscriptionScreen')));
 
 // Help Screen
-import HelpScreen from '../screens/profile/HelpScreen';
 
 // Analytics Screens (lazy — power users)
 const AnalyticsDashboardScreen = withSuspense(lazy(() => import('../screens/organizer/AnalyticsDashboardScreen')));
@@ -168,10 +175,8 @@ const TreasuryReportsScreen = withSuspense(lazy(() => import('../screens/admin/t
 // System Status Screens
 import MaintenanceScreen from '../screens/status/MaintenanceScreen';
 import StatusScreen from '../screens/status/StatusScreen';
-import IncidentDetailsScreen from '../screens/status/IncidentDetailsScreen';
 
 // Common Screens
-import WebViewScreen from '../screens/common/WebViewScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
