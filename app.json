@@ -98,6 +98,26 @@
               "scheme": "https",
               "host": "eventez.online",
               "pathPrefix": "/register/"
+            },
+            {
+              "scheme": "https",
+              "host": "eventez.online",
+              "path": "/dashboard/tickets"
+            },
+            {
+              "scheme": "https",
+              "host": "eventez.online",
+              "path": "/dashboard/registrations"
+            },
+            {
+              "scheme": "https",
+              "host": "eventez.online",
+              "path": "/dashboard/events"
+            },
+            {
+              "scheme": "https",
+              "host": "eventez.online",
+              "path": "/dashboard/payments"
             }
           ],
           "category": [

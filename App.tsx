@@ -121,6 +121,31 @@ try {
 // Keep native splash visible while we load fonts
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+// Réécrit les chemins web `/dashboard/*` (envoyés dans les emails backend)
+// vers les routes mobiles équivalentes. Les liens email pointent vers l'espace
+// web (/dashboard/tickets, /dashboard/registrations…) ; sur mobile ces sections
+// vivent sous d'autres noms d'écran. Sans cette réécriture, un lien email
+// ouvrait le navigateur au lieu de l'app même quand l'universal link est capté.
+// Cf. backend apps/notifications/*, email_automation.py (FRONTEND_URL/dashboard/*).
+const DASHBOARD_REWRITES: Array<[RegExp, string]> = [
+  [/^\/dashboard\/tickets\/?$/, '/tickets'],
+  // Les inscriptions sont regroupées avec les billets côté mobile (MyTickets).
+  [/^\/dashboard\/registrations\/?$/, '/tickets'],
+  [/^\/dashboard\/events\/?$/, '/my-events'],
+  [/^\/dashboard\/payments\/?$/, '/my-payments'],
+];
+
+function rewriteDashboardPath(path: string): string {
+  // On ne réécrit que le pathname ; on préserve la query string (ex: ?event=…).
+  const [pathname, query] = path.split('?');
+  for (const [pattern, replacement] of DASHBOARD_REWRITES) {
+    if (pattern.test(pathname)) {
+      return query ? `${replacement}?${query}` : replacement;
+    }
+  }
+  return path;
+}
+
 const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [
     Linking.createURL('/'),
@@ -138,7 +163,10 @@ const linking: LinkingOptions<RootStackParamList> = {
     // côté web (ReferralCapture), donc un destinataire ayant l'app installée
     // n'était jamais attribué à son parrain.
     captureReferralFromPath(path);
-    return getStateFromPath(stripLocalePrefix(path), options);
+    return getStateFromPath(
+      rewriteDashboardPath(stripLocalePrefix(path)),
+      options,
+    );
   },
   config: {
     screens: {
@@ -194,11 +222,20 @@ const linking: LinkingOptions<RootStackParamList> = {
       // ce qui ramene l'utilisateur ici. openAuthSessionAsync intercepte le
       // redirect et ferme automatiquement le navigateur in-app.
       Subscription: 'subscription',
+      // Cibles des liens email /dashboard/* (réécrits par rewriteDashboardPath).
+      // MyEvents/MyPayments sont des écrans du RootNavigator (organisateur).
+      MyEvents: 'my-events',
+      MyPayments: 'my-payments',
       Main: {
         screens: {
           Discover: 'discover',
           Saved: 'saved',
-          Tickets: 'tickets',
+          MessagesTab: 'messages',
+          // ⚠️ Le nom d'écran doit correspondre EXACTEMENT au Tab.Screen du
+          // MainTabNavigator (name="MyTickets"). C'était 'Tickets' → ne routait
+          // nulle part. Les liens email /dashboard/tickets sont réécrits vers
+          // ce chemin par getStateFromPath (cf. stripLocalePrefix + alias).
+          MyTickets: 'tickets',
           Profile: 'profile',
         },
       },
