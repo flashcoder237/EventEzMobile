@@ -17,7 +17,7 @@ import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { volunteersAPI } from '../../api';
+import { volunteersAPI, eventsAPI } from '../../api';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { getVolunteerSignupUrl } from '../../constants/urls';
 import { RootStackParamList } from '../../types';
@@ -75,6 +75,9 @@ export default function VolunteerScreen() {
   // rôle n'était pas peuplé tout le monde tombait sur la vue bénévole.
   const isOrganizerView = !!eventId && route.params?.manage === true;
 
+  // UUID réel de l'event : `eventId` (route param) peut être un SLUG, or
+  // createRole POST exige l'UUID strict (FK backend). Résolu au chargement.
+  const [resolvedEventId, setResolvedEventId] = useState<string | undefined>(eventId);
   const [roles, setRoles] = useState<VolunteerRole[]>([]);
   const [applications, setApplications] = useState<VolunteerApplication[]>([]);
   // Candidatures recues sur les events que je gere (vue organizer uniquement).
@@ -121,10 +124,15 @@ export default function VolunteerScreen() {
       showError(t('organizer.volunteer.capacityInvalidTitle'), t('organizer.volunteer.capacityInvalidMessage'));
       return;
     }
+    const eventUuid = resolvedEventId;
+    if (!eventUuid) {
+      showError(t('common.error'), t('organizer.volunteer.createRoleError', { defaultValue: 'Événement introuvable.' }));
+      return;
+    }
     setCreateLoading(true);
     try {
       const res = await volunteersAPI.createRole({
-        event: eventId,
+        event: eventUuid,
         title,
         description: createDescription.trim() || undefined,
         requirements: createRequirements.trim() || undefined,
@@ -171,10 +179,24 @@ export default function VolunteerScreen() {
         // uniquement si l'utilisateur a au moins une candidature acceptée.
         volunteersAPI.getMyTasks().catch(() => ({ data: [] })),
       ]);
-      setRoles(rolesRes.data.results || rolesRes.data || []);
+      const rolesList = rolesRes.data.results || rolesRes.data || [];
+      setRoles(rolesList);
       setApplications(appsRes.data.results || appsRes.data || []);
       setReceivedApps(receivedRes.data?.results || receivedRes.data || []);
       setTasks(tasksRes.data?.results || tasksRes.data || []);
+      // Résolution de l'UUID event : depuis un rôle existant (gratuit) sinon
+      // via getEvent (cas grille vide, ex. premier rôle).
+      if (eventId) {
+        const fromRole = rolesList.find((r: any) => r.event)?.event;
+        if (fromRole) {
+          setResolvedEventId(String(fromRole));
+        } else if (isOrganizerView) {
+          try {
+            const ev = await eventsAPI.getEvent(eventId);
+            if (ev?.data?.id) setResolvedEventId(String(ev.data.id));
+          } catch { /* garde le param brut */ }
+        }
+      }
     } catch (error) {
       if (__DEV__) console.error('Erreur volunteers:', error);
     } finally {

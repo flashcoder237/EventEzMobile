@@ -15,7 +15,7 @@ import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { liveAPI } from '../../api';
+import { liveAPI, eventsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useFeedback } from '../../contexts/FeedbackContext';
@@ -64,6 +64,9 @@ export default function LiveEventScreen() {
   const { toastError } = useFeedback();
   const { eventId } = route.params;
 
+  // UUID réel de l'event : `eventId` (route param) peut être un SLUG, or
+  // createQuestion POST exige l'UUID strict (FK backend). Résolu au chargement.
+  const [resolvedEventId, setResolvedEventId] = useState<string>(eventId);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,8 +87,21 @@ export default function LiveEventScreen() {
         liveAPI.getQuestionsByEvent(eventId),
         liveAPI.getPollsByEvent(eventId),
       ]);
-      setQuestions(questionsRes.data.results || questionsRes.data || []);
-      setPolls(pollsRes.data.results || pollsRes.data || []);
+      const qList = questionsRes.data.results || questionsRes.data || [];
+      const pList = pollsRes.data.results || pollsRes.data || [];
+      setQuestions(qList);
+      setPolls(pList);
+      // Résout l'UUID event depuis une question/poll existante, sinon getEvent.
+      const fromItem = (qList.find((q: any) => q.event) as any)?.event
+        || (pList.find((p: any) => p.event) as any)?.event;
+      if (fromItem) {
+        setResolvedEventId(String(fromItem));
+      } else {
+        try {
+          const ev = await eventsAPI.getEvent(eventId);
+          if (ev?.data?.id) setResolvedEventId(String(ev.data.id));
+        } catch { /* garde le param brut */ }
+      }
     } catch (error) {
       if (__DEV__) console.error('Erreur live event:', error);
     } finally {
@@ -106,7 +122,7 @@ export default function LiveEventScreen() {
     setSubmitting(true);
     try {
       await liveAPI.createQuestion({
-        event: eventId,
+        event: resolvedEventId,
         content: trimmed,
         is_anonymous: isAnonymous,
       });

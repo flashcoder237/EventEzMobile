@@ -450,7 +450,7 @@ export default function BoothManagementScreen() {
             // existe. Le plan se crée côté seating ("Plans de placement").
             tab === 'booths' && floorPlanId ? (
               <TouchableOpacity
-                onPress={() => navigation.navigate('BoothPlanEditor', { floorPlanId, eventId })}
+                onPress={() => navigation.navigate('BoothPlanEditor', { floorPlanId, eventId: resolvedEventId })}
                 style={[styles.planBtn, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}30` }]}
               >
                 <Ionicons name="map-outline" size={18} color={colors.primary} />

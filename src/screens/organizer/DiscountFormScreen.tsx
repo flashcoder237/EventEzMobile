@@ -57,6 +57,9 @@ export default function DiscountFormScreen() {
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   // Strategie "Event mono-devise" : la devise du code promo = devise de l'evenement
   const [eventCurrency, setEventCurrency] = useState<string>('XAF');
+  // UUID réel de l'event : `eventId` (route param) peut être un SLUG, or le
+  // POST/PATCH exige l'UUID strict (FK backend). Résolu via getEvent au load.
+  const [resolvedEventId, setResolvedEventId] = useState<string>(eventId);
   const platformCurrency = displayCurrency(eventCurrency);
 
   const [code, setCode] = useState('');
@@ -81,6 +84,7 @@ export default function DiscountFormScreen() {
       setTicketTypes(ticketTypesRes.data?.results || ticketTypesRes.data || []);
       const ev: any = eventRes?.data;
       if (ev?.currency) setEventCurrency(String(ev.currency).toUpperCase());
+      if (ev?.id) setResolvedEventId(String(ev.id));
 
       if (isEditing && discountId) {
         const discountRes = await discountsAPI.getDiscount(String(discountId));
@@ -151,7 +155,7 @@ export default function DiscountFormScreen() {
     setLoading(true);
     try {
       const payload = {
-        event: eventId,
+        event: resolvedEventId,
         code: code.toUpperCase().trim(),
         discount_type: discountType,
         value: parseFloat(value),

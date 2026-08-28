@@ -31,7 +31,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useFeedback } from '../../contexts/FeedbackContext';
-import { seatingAPI } from '../../api';
+import { seatingAPI, eventsAPI } from '../../api';
 import type { SeatingPlan, RootStackParamList } from '../../types';
 import {
   Colors,
@@ -58,6 +58,9 @@ export default function SeatingPlansScreen() {
   const { toastSuccess } = useFeedback();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
+  // UUID réel de l'event : `eventId` (route param) peut être un SLUG, or
+  // createPlan POST exige l'UUID strict (FK backend). Résolu au chargement.
+  const [resolvedEventId, setResolvedEventId] = useState<string>(eventId);
   const [plans, setPlans] = useState<SeatingPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -77,6 +80,16 @@ export default function SeatingPlansScreen() {
       const res = await seatingAPI.getPlans({ event: eventId });
       const data: SeatingPlan[] = res.data?.results || res.data || [];
       setPlans(Array.isArray(data) ? data : []);
+      // Résout l'UUID event depuis un plan existant, sinon via getEvent.
+      const fromPlan = (data.find((p: any) => p.event) as any)?.event;
+      if (fromPlan) {
+        setResolvedEventId(String(fromPlan));
+      } else {
+        try {
+          const ev = await eventsAPI.getEvent(eventId);
+          if (ev?.data?.id) setResolvedEventId(String(ev.data.id));
+        } catch { /* garde le param brut */ }
+      }
     } catch {
       // Plus de modale : la liste affiche son propre état d'erreur avec Réessayer.
       setLoadFailed(true);
@@ -113,7 +126,7 @@ export default function SeatingPlansScreen() {
     setCreating(true);
     try {
       const res = await seatingAPI.createPlan({
-        event: eventId,
+        event: resolvedEventId,
         name,
         description: createDescription.trim() || undefined,
         total_seats: 0,

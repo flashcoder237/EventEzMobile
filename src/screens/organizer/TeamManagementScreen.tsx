@@ -27,7 +27,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
-import { eventTeamAPI, EventStaffMember, EventStaffRole } from '../../api';
+import { eventTeamAPI, eventsAPI, EventStaffMember, EventStaffRole } from '../../api';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
@@ -80,6 +80,9 @@ export default function TeamManagementScreen() {
 
   const [members, setMembers] = useState<EventStaffMember[]>([]);
   const [rolesCatalog, setRolesCatalog] = useState<RoleCatalogEntry[]>([]);
+  // UUID réel de l'event : `eventId` (route param) peut être un SLUG, or invite
+  // POST exige l'UUID strict (FK backend). Résolu au chargement.
+  const [resolvedEventId, setResolvedEventId] = useState<string>(eventId);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -101,6 +104,16 @@ export default function TeamManagementScreen() {
       const membersData = membersRes.data?.results || membersRes.data || [];
       setMembers(membersData);
       setRolesCatalog(catalogRes.data || []);
+      // Résout l'UUID event depuis un membre existant, sinon via getEvent.
+      const fromMember = membersData.find((m: any) => m.event)?.event;
+      if (fromMember) {
+        setResolvedEventId(String(fromMember));
+      } else {
+        try {
+          const ev = await eventsAPI.getEvent(eventId);
+          if (ev?.data?.id) setResolvedEventId(String(ev.data.id));
+        } catch { /* garde le param brut */ }
+      }
     } catch (err) {
       if (__DEV__) console.error('Erreur chargement equipe:', err);
     } finally {
@@ -131,7 +144,7 @@ export default function TeamManagementScreen() {
     setInviteSubmitting(true);
     try {
       await eventTeamAPI.invite({
-        event: eventId,
+        event: resolvedEventId,
         role: inviteRole,
         invited_email: inviteEmail.trim() || undefined,
         invited_phone: invitePhone.trim() || undefined,
