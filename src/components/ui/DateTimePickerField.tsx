@@ -186,6 +186,11 @@ export default function DateTimePickerField({
                   maximumDate={maximumDate}
                   onChange={handleDateChange}
                   locale="fr-FR"
+                  // iOS : la modale a un fond CLAIR (colors.card) → forcer le
+                  // picker en thème clair + texte sombre, sinon en mode sombre
+                  // système le spinner rend un texte blanc INVISIBLE sur blanc.
+                  themeVariant="light"
+                  textColor="#111111"
                 />
               )}
               {pickerStep === 'time' && (
@@ -195,6 +200,8 @@ export default function DateTimePickerField({
                   display="spinner"
                   onChange={handleTimeChange}
                   locale="fr-FR"
+                  themeVariant="light"
+                  textColor="#111111"
                 />
               )}
             </View>
