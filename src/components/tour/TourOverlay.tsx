@@ -82,18 +82,36 @@ export default function TourOverlay() {
   // Get target ref from context
   const tourCtx = useTour();
 
+  // Applique une mesure valide (dedup pour éviter les re-renders inutiles).
+  const applyMeasurement = useCallback(
+    (x: number, y: number, width: number, height: number) => {
+      if (width === 0 && height === 0) return;
+      hasMeasuredRef.current = true;
+      setMeasureError(false);
+      setMeasurement((prev) =>
+        prev &&
+        prev.x === x &&
+        prev.y === y &&
+        prev.width === width &&
+        prev.height === height
+          ? prev
+          : { x, y, width, height },
+      );
+    },
+    [],
+  );
+
   const measureTarget = useCallback(() => {
     if (!step) return;
     const ref = tourCtx.__getRef(step.id);
     // Cible pas encore montée (montage tardif, navigation, composant lazy) →
     // le polling ci-dessous réessaiera au prochain tick.
     if (!ref || !ref.current) return;
+    const node: any = ref.current;
 
-    // Utiliser `measure` (PAS measureInWindow) car son `pageX/pageY` est
-    // relatif au RN root view — meme coordinate system que notre overlay
-    // absolute. measureInWindow renvoie des coordonnees window qui peuvent
-    // differer du root view sur Android (status bar offset).
-    (ref.current as any).measure(
+    // `measure` en premier : son `pageX/pageY` est relatif au RN root view —
+    // meme coordinate system que notre overlay absolute (pas de Modal ici).
+    node.measure(
       (
         _x: number,
         _y: number,
@@ -102,24 +120,22 @@ export default function TourOverlay() {
         pageX: number,
         pageY: number,
       ) => {
-        // Layout pas encore posé (0x0) → on réessaiera au prochain tick.
-        if (width === 0 && height === 0) return;
-        hasMeasuredRef.current = true;
-        setMeasureError(false);
-        // Bail-out si rien n'a bougé : évite un re-render inutile à chaque
-        // tick de polling quand la cible est statique.
-        setMeasurement((prev) =>
-          prev &&
-          prev.x === pageX &&
-          prev.y === pageY &&
-          prev.width === width &&
-          prev.height === height
-            ? prev
-            : { x: pageX, y: pageY, width, height },
-        );
+        if (width === 0 && height === 0) {
+          // iOS : une cible enfant d'un BlurView (UIVisualEffectView) renvoie
+          // souvent 0×0 via `measure` car l'effet natif fausse le shadow tree.
+          // Fallback `measureInWindow` : coordonnées window = coordonnées root
+          // sur iOS (overlay non-Modal, pas de status bar offset comme Android).
+          if (typeof node.measureInWindow === 'function') {
+            node.measureInWindow((wx: number, wy: number, ww: number, wh: number) => {
+              applyMeasurement(wx, wy, ww, wh);
+            });
+          }
+          return;
+        }
+        applyMeasurement(pageX, pageY, width, height);
       },
     );
-  }, [step, tourCtx]);
+  }, [step, tourCtx, applyMeasurement]);
 
   // Mesure en POLLING tant que le step est affiché. Résout :
   //  (#1) cible pas encore montée au lancement → on attend qu'elle apparaisse ;
