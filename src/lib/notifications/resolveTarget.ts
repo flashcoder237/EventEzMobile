@@ -93,6 +93,11 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
       return { screen: 'RefundsList' };
     case 'ticket_transfer':
       return { tab: 'MyTickets' };
+
+    // ─── Invitation à un événement (participant) → écran Invitations (onglet
+    // reçues) pour accepter/décliner. ───
+    case 'event_invitation':
+      return { screen: 'Invitations' };
     case 'waitlist_position':
     case 'connections_at_event':
     case 'followed_organizer_new_event':

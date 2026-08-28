@@ -1272,15 +1272,21 @@ export default function EventDetailsScreen() {
         </View>
       ) : null}
 
-      {!loading && event && !isPreview ? <BlurView
+      {!loading && event && !isPreview ? (
+      /* TourTarget porte le positionnement de la barre (position:absolute bottom).
+         Il enveloppe le BlurView AU LIEU d'un enfant interne : sur iOS, mesurer
+         une vue ENFANT d'un BlurView (UIVisualEffectView) renvoie 0×0 → le
+         spotlight du tour ne se dessinait pas. Le TourTarget, hors du BlurView,
+         est dans un coordinate system normal et se mesure correctement. */
+      <TourTarget id="event-details-cta" style={styles.bottomBar}>
+      <BlurView
         intensity={Platform.OS === 'ios' ? 80 : 0}
         tint={isDark ? 'dark' : 'light'}
-        style={styles.bottomBar}
+        style={styles.bottomBarBlur}
       >
         {Platform.OS === 'android' && (
           <View style={[styles.bottomBarAndroidBg, { backgroundColor: `${colors.card}F2` }]} />
         )}
-      <TourTarget id="event-details-cta" style={{ flex: 1 }}>
       <View style={[styles.bottomBarContent, { borderTopColor: colors.gray100, paddingBottom: insets.bottom + Spacing.md }]}>
         <View style={styles.priceContainer}>
           {userRegistration ? (
@@ -1437,8 +1443,9 @@ export default function EventDetailsScreen() {
           </TouchableOpacity>
         )}
       </View>
+      </BlurView>
       </TourTarget>
-      </BlurView> : null}
+      ) : null}
 
       {/* Image Viewer — pinch-to-zoom + swipe-to-close natifs via react-native-image-viewing */}
       <ImageView
@@ -1848,6 +1855,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+  },
+  // Le BlurView vit à l'intérieur du TourTarget (styles.bottomBar). overflow
+  // hidden reste ici pour clipper le blur natif iOS aux bords de la barre.
+  bottomBarBlur: {
     overflow: 'hidden',
   },
   // ===== PREVIEW BOTTOM BAR =====

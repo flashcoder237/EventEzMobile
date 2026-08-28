@@ -202,8 +202,22 @@ export function useEventDetails(
         viewedEventsThisSession.add(uuid);
         trackEventInteraction(uuid, 'view');
       }
-    } catch (error) {
-      if (__DEV__) console.error('Erreur chargement evenement:', error);
+    } catch (error: any) {
+      // ACCÈS RESTREINT : un event « sur invitation » sans invitation renvoie
+      // 403 (code stable 'invite_only_required'). Sans ce traitement, `event`
+      // restait null → écran 404 générique au lieu du gate « sur invitation ».
+      // On pose un event minimal pour déclencher le bon gate côté écran.
+      const status = error?.response?.status;
+      const data = error?.response?.data;
+      if (status === 403 && data?.code === 'invite_only_required') {
+        setEvent({
+          id: eventId,
+          visibility: 'invite_only',
+          user_has_access: false,
+        } as unknown as Event);
+      } else if (__DEV__) {
+        console.error('Erreur chargement evenement:', error);
+      }
     } finally {
       setLoading(false);
     }

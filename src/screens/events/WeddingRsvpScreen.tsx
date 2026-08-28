@@ -128,8 +128,11 @@ export default function WeddingRsvpScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* En-tête */}
         <View style={styles.header}>
+          {/* Icône neutre : cet écran sert TOUTE invitation « sur invitation »
+              (pro, communautaire, mariage…), pas seulement les mariages. Le
+              cœur donnait un ton mariage à des invitations professionnelles. */}
           <View style={[styles.heartBadge, { backgroundColor: colors.primary + '18' }]}>
-            <Ionicons name="heart" size={28} color={colors.primary} />
+            <Ionicons name="mail-open-outline" size={28} color={colors.primary} />
           </View>
           <Text style={[styles.title, { color: colors.text }]}>{t('wedding.rsvpTitle', { defaultValue: 'Confirmez votre présence' })}</Text>
           {!!eventTitle && (

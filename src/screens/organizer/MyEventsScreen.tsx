@@ -23,7 +23,7 @@ import { useFeedback } from '../../contexts/FeedbackContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Events as EventsIllustration, AnimatedIllustration } from '../../components/illustrations';
-import { eventsAPI, getMediaUrl } from '../../api';
+import { eventsAPI, getMediaUrl, invitationsAPI } from '../../api';
 import CacheService from '../../services/CacheService';
 import { Event, RootStackParamList } from '../../types';
 import {
@@ -184,6 +184,66 @@ export default function MyEventsScreen() {
     setBroadcastTarget(null);
     setBroadcastContent('');
     setBroadcastMode('announcement');
+  };
+
+  // ─── Inviter des invités (par email) ───
+  // L'organisateur saisit des emails (séparés par virgule/retour ligne/espace)
+  // + un message optionnel. Chaque invité reçoit un email d'invitation (lien
+  // d'acceptation) et, s'il a déjà un compte, une notif in-app/push.
+  const [inviteTarget, setInviteTarget] = useState<Event | null>(null);
+  const [inviteEmails, setInviteEmails] = useState('');
+  const [inviteMessage, setInviteMessage] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+
+  const closeInvite = () => {
+    if (inviteLoading) return;
+    setInviteTarget(null);
+    setInviteEmails('');
+    setInviteMessage('');
+  };
+
+  const submitInvite = async () => {
+    if (!inviteTarget) return;
+    // Découpe sur virgule / retour ligne / espace, filtre le vide + doublons.
+    const emails = Array.from(new Set(
+      inviteEmails
+        .split(/[\s,;]+/)
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean),
+    ));
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const invalid = emails.filter((e) => !EMAIL_RE.test(e));
+    if (emails.length === 0) {
+      showError(t('organizer.myEvents.inviteEmptyTitle'), t('organizer.myEvents.inviteEmptyMessage'));
+      return;
+    }
+    if (invalid.length > 0) {
+      showError(
+        t('organizer.myEvents.inviteInvalidTitle'),
+        t('organizer.myEvents.inviteInvalidMessage', { emails: invalid.join(', ') }),
+      );
+      return;
+    }
+    setInviteLoading(true);
+    try {
+      const res = await invitationsAPI.bulkInvite({
+        event: inviteTarget.id,
+        invitees: emails.map((email) => ({ email })),
+        message: inviteMessage.trim() || undefined,
+      });
+      showSuccess(
+        t('organizer.myEvents.inviteSentTitle'),
+        t('organizer.myEvents.inviteSentMessage', { count: res.data?.count ?? emails.length }),
+      );
+      closeInvite();
+    } catch (error: any) {
+      showError(
+        t('common.error'),
+        getApiErrorMessage(error, t, { fallbackKey: 'organizer.myEvents.inviteError' }).message,
+      );
+    } finally {
+      setInviteLoading(false);
+    }
   };
 
   const submitBroadcast = async () => {
@@ -603,6 +663,16 @@ export default function MyEventsScreen() {
             eventTitle: event.title,
           }),
       });
+      // Inviter des invités par email — surtout utile pour un event « sur
+      // invitation » (seul moyen d'y donner accès), mais valable pour tout event.
+      configActions.push({
+        label: t('organizer.myEvents.actions.invite', { defaultValue: 'Inviter des invités' }),
+        icon: 'mail-outline',
+        description: event.visibility === 'invite_only'
+          ? t('organizer.myEvents.actions.inviteDescInviteOnly', { defaultValue: '' }) || undefined
+          : undefined,
+        onPress: () => setInviteTarget(event),
+      });
     }
     if (event.status === 'validated') {
       configActions.push(
@@ -669,7 +739,18 @@ export default function MyEventsScreen() {
 
     // ─── Actions sur l'event ───
     const eventActions: EventAction[] = [];
-    if (event.status === 'draft' || event.status === 'rejected' || event.status === 'changes_requested') {
+    // Édition libre : brouillon / rejeté / modifs demandées / EN ATTENTE DE
+    // VALIDATION (submitted). Un event soumis reste modifiable (corriger une
+    // date, une faute…) — le backend l'autorise (EventViewSet.update sans
+    // verrou de statut), il repart simplement dans la file de modération. Le
+    // 'submitted' était oublié ici → aucun bouton Modifier n'apparaissait,
+    // incohérent avec le web qui l'autorise déjà.
+    if (
+      event.status === 'draft'
+      || event.status === 'rejected'
+      || event.status === 'changes_requested'
+      || event.status === 'submitted'
+    ) {
       eventActions.push({
         label: t('common.edit'),
         icon: 'create-outline',
@@ -1005,7 +1086,7 @@ export default function MyEventsScreen() {
               </TouchableOpacity>
             )}
 
-            {(item.status === 'draft' || item.status === 'rejected' || item.status === 'changes_requested') && (
+            {(item.status === 'draft' || item.status === 'rejected' || item.status === 'changes_requested' || item.status === 'submitted') && (
               <TouchableOpacity
                 style={[styles.actionChipE, { backgroundColor: colors.gray100 }]}
                 onPress={() => navigation.navigate('EventEdit', { eventId: item.slug || item.id })}
@@ -1577,6 +1658,86 @@ export default function MyEventsScreen() {
                 ) : (
                   <Text style={[styles.cancelModalBtnText, { color: '#fff' }]}>
                     {t('organizer.myEvents.broadcastSendBtn')}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modale « Inviter des invités » — emails + message, envoie une invitation
+          (email + notif in-app si compte existant) à chaque adresse. */}
+      <Modal
+        visible={!!inviteTarget}
+        transparent
+        animationType="fade"
+        onRequestClose={closeInvite}
+      >
+        <View style={styles.cancelModalBackdrop}>
+          <View style={[styles.cancelModalCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.cancelModalEyebrow, { color: colors.accent }]}>
+              {t('organizer.myEvents.inviteEyebrow')}
+            </Text>
+            <Text style={[styles.cancelModalTitle, { color: colors.text }]}>
+              {t('organizer.myEvents.inviteTitle', { title: inviteTarget?.title || '' })}
+            </Text>
+            <Text style={[styles.cancelModalBody, { color: colors.gray500 }]}>
+              {t('organizer.myEvents.inviteBody')}
+            </Text>
+
+            <TextInput
+              style={[
+                styles.cancelModalInput,
+                { backgroundColor: inputBg, borderColor: hairline, color: colors.text, minHeight: 80 },
+              ]}
+              value={inviteEmails}
+              onChangeText={setInviteEmails}
+              placeholder={t('organizer.myEvents.inviteEmailsPlaceholder')}
+              placeholderTextColor={colors.gray400}
+              multiline
+              autoCapitalize="none"
+              keyboardType="email-address"
+              textAlignVertical="top"
+              editable={!inviteLoading}
+            />
+
+            <TextInput
+              style={[
+                styles.cancelModalInput,
+                { backgroundColor: inputBg, borderColor: hairline, color: colors.text, minHeight: 70, marginTop: Spacing.sm },
+              ]}
+              value={inviteMessage}
+              onChangeText={setInviteMessage}
+              placeholder={t('organizer.myEvents.inviteMessagePlaceholder')}
+              placeholderTextColor={colors.gray400}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+              maxLength={1000}
+              editable={!inviteLoading}
+            />
+
+            <View style={styles.cancelModalActions}>
+              <TouchableOpacity
+                style={[styles.cancelModalBtn, { backgroundColor: colors.gray100 }]}
+                onPress={closeInvite}
+                disabled={inviteLoading}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.cancelModalBtnText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.cancelModalBtn, { backgroundColor: colors.primary }, inviteLoading && { opacity: 0.6 }]}
+                onPress={submitInvite}
+                disabled={inviteLoading}
+                activeOpacity={0.85}
+              >
+                {inviteLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={[styles.cancelModalBtnText, { color: '#fff' }]}>
+                    {t('organizer.myEvents.inviteSendBtn')}
                   </Text>
                 )}
               </TouchableOpacity>
