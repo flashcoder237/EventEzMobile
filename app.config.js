@@ -91,6 +91,11 @@ module.exports = ({ config }) => {
     // Rend les icônes alternatives adaptatives sur Android (sinon marges du
     // traitement legacy). DOIT rester après expo-dynamic-app-icon.
     './plugins/withAdaptiveAlternateIcons',
+    // Propage les intent-filters de deep link (https eventez.online) sur les
+    // activity-alias d'icônes alternatives. Sans ça, choisir une icône
+    // alternative désactive MainActivity (porteuse des filtres) et casse tous
+    // les universal links. DOIT tourner après expo-dynamic-app-icon.
+    './plugins/withAlternateIconDeepLinks',
     // iOS : désactive la signature des resource bundles (Xcode 14+ l'exige
     // sinon, ce qui casse le build EAS sur des pods comme GoogleMaps).
     './plugins/withIosResourceBundleSigning',
