@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -38,6 +39,18 @@ interface Question {
   created_at: string;
 }
 
+// L'API live renvoie `upvote_count` / `is_upvoted` (singulier). On mappe vers
+// les noms internes et on GARANTIT un nombre pour éviter tout NaN dans le badge
+// et l'arithmétique d'upvote optimiste.
+function normalizeQuestion(raw: any): Question {
+  const count = raw?.upvotes_count ?? raw?.upvote_count ?? 0;
+  return {
+    ...raw,
+    upvotes_count: Number.isFinite(Number(count)) ? Number(count) : 0,
+    has_upvoted: raw?.has_upvoted ?? raw?.is_upvoted ?? false,
+  };
+}
+
 interface PollOption {
   id: string;
   text: string;
@@ -62,6 +75,7 @@ export default function LiveEventScreen() {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const { toastError } = useFeedback();
+  const insets = useSafeAreaInsets();
   const { eventId } = route.params;
 
   // UUID réel de l'event : `eventId` (route param) peut être un SLUG, or
@@ -87,8 +101,12 @@ export default function LiveEventScreen() {
         liveAPI.getQuestionsByEvent(eventId),
         liveAPI.getPollsByEvent(eventId),
       ]);
-      const qList = questionsRes.data.results || questionsRes.data || [];
+      const rawQList = questionsRes.data.results || questionsRes.data || [];
       const pList = pollsRes.data.results || pollsRes.data || [];
+      // Normalise les champs de vote : l'API renvoie `upvote_count` / `is_upvoted`
+      // (singulier), le composant travaille en `upvotes_count` / `has_upvoted`.
+      // Sans ça, l'arithmétique d'upvote portait sur `undefined` → NaN affiché.
+      const qList = rawQList.map(normalizeQuestion);
       setQuestions(qList);
       setPolls(pList);
       // Résout l'UUID event depuis une question/poll existante, sinon getEvent.
@@ -146,7 +164,10 @@ export default function LiveEventScreen() {
             ? {
                 ...q,
                 has_upvoted: !q.has_upvoted,
-                upvotes_count: q.has_upvoted ? q.upvotes_count - 1 : q.upvotes_count + 1,
+                // `?? 0` : filet anti-NaN si un champ non normalisé remonte.
+                upvotes_count: q.has_upvoted
+                  ? Math.max(0, (q.upvotes_count ?? 0) - 1)
+                  : (q.upvotes_count ?? 0) + 1,
               }
             : q
         )
@@ -191,7 +212,7 @@ export default function LiveEventScreen() {
           color={item.has_upvoted ? colors.primary : colors.textLight}
         />
         <Text style={[styles.upvoteCount, { color: colors.textLight }, item.has_upvoted && { color: colors.primary }]}>
-          {item.upvotes_count}
+          {item.upvotes_count ?? 0}
         </Text>
       </TouchableOpacity>
       <View style={styles.questionContent}>
@@ -372,7 +393,15 @@ export default function LiveEventScreen() {
           />
 
           {/* Question Input */}
-          <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.card }]}>
+          <View
+            style={[
+              styles.inputContainer,
+              { borderTopColor: colors.border, backgroundColor: colors.card },
+              // Respecte la home-bar / gesture bar : sans ce padding, la barre
+              // de saisie chevauchait la barre de navigation système.
+              { paddingBottom: Spacing.sm + insets.bottom },
+            ]}
+          >
             <TouchableOpacity
               style={[styles.anonymousToggle, { backgroundColor: colors.gray100 }, isAnonymous && { backgroundColor: colors.primaryBg }]}
               onPress={() => setIsAnonymous(!isAnonymous)}
@@ -412,7 +441,7 @@ export default function LiveEventScreen() {
       ) : (
         <FlatList
           data={polls}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: Spacing.lg + insets.bottom }]}
           keyExtractor={(item) => item.id}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
