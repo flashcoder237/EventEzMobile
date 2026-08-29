@@ -1,8 +1,8 @@
 /**
  * Expo Config Plugin — Aligne le jvmTarget Kotlin sur Java 17 pour TOUS les modules.
  *
- * Problème : certaines dépendances (ex: `expo-dynamic-app-icon`) compilent leur
- * Kotlin en jvmTarget 11 alors que le projet compile son Java en 17. Les
+ * Problème : certaines dépendances Kotlin compilent leur code en jvmTarget 11
+ * alors que le projet compile son Java en 17. Les
  * versions récentes d'AGP / Kotlin Gradle refusent ce mismatch :
  *
  *   ❌ Inconsistent JVM-target compatibility detected for tasks

@@ -3546,11 +3546,6 @@ expo-document-picker@~14.0.8:
   resolved "https://registry.npmjs.org/expo-document-picker/-/expo-document-picker-14.0.8.tgz"
   integrity sha512-3tyQKpPqWWFlI8p9RiMX1+T1Zge5mEKeBuXWp1h8PEItFMUDSiOJbQ112sfdC6Hxt8wSxreV9bCRl/NgBdt+fA==
 
-expo-dynamic-app-icon@^1.2.0:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/expo-dynamic-app-icon/-/expo-dynamic-app-icon-1.2.0.tgz#86ec9fe191bc71224fc5a271a628c0ec2e7f2594"
-  integrity sha512-l8qNUVl9lhADtdgyL6hf6xWFOaDayFCXdXnqDGzh1H3P58n380WkzibjVxbL/w0Nbu4FUUGVqMLAY1BETTzo9g==
-
 expo-file-system@~19.0.23:
   version "19.0.23"
   resolved "https://registry.yarnpkg.com/expo-file-system/-/expo-file-system-19.0.23.tgz#ad2c88ed039ba0fd5a739338818f42304171eddd"
