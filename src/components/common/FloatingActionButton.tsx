@@ -30,11 +30,19 @@ const DOCK_HEIGHT = 64;
  */
 function useBottomOffset(hasTabBar: boolean, safeAreaHandled: boolean, extra: number) {
   const insets = useSafeAreaInsets();
-  const safe = safeAreaHandled ? 0 : Math.max(insets.bottom, 12);
   if (hasTabBar) {
-    // Au-dessus du dock : dock + (safe area) + marges internes du dock.
-    return DOCK_HEIGHT + safe + 20 + extra;
+    // Le dock est en `position: absolute` sur la fenêtre : sa hauteur totale
+    // vaut DOCK_HEIGHT + max(insets.bottom, 12) + 8 (cf. MainTabNavigator
+    // `dockOuter.paddingBottom`). Elle ne dépend donc PAS du conteneur de
+    // l'écran — `safeAreaHandled` ne doit surtout pas l'annuler ici, sinon le
+    // FAB passe SOUS le dock dès que l'inset dépasse 12 (gestes Android,
+    // encoches iOS). C'était le cas sur l'écran Messages.
+    const dockTotal = DOCK_HEIGHT + Math.max(insets.bottom, 12) + 8;
+    return dockTotal + Spacing.md + extra;
   }
+  // Sans dock, en revanche, le safe-area PEUT déjà être appliqué par le
+  // conteneur (SafeAreaView edges=['bottom']) → ne pas le compter deux fois.
+  const safe = safeAreaHandled ? 0 : Math.max(insets.bottom, 12);
   return safe + Spacing.lg + extra;
 }
 
