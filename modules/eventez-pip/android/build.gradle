@@ -9,5 +9,11 @@ android {
   namespace = 'net.overbrand.eventez.pip'
   defaultConfig {
     minSdkVersion 24
+    // Requis par les versions récentes d'AGP / expo-module-gradle-plugin :
+    // sans ces deux champs, le build EAS échoue avec
+    // « 'android.defaultConfig.versionName' is not defined » lors de la
+    // configuration du projet :eventez-pip.
+    versionCode 1
+    versionName "1.0.0"
   }
 }
