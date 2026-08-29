@@ -27,6 +27,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatTimeAgo } from '../../lib/utils/dateFormatters';
 import { registrationsAPI } from '../../api';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import {
   FontSizes,
   FontFamily,
@@ -47,7 +49,7 @@ export default function OfflineTicketsScreen() {
   useTicketDisplayGuard();
   const { t, i18n } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
-  const { showSuccess, showConfirm } = useAlert();
+  const { showSuccess, showConfirm, showError } = useAlert();
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
   const {
@@ -203,6 +205,64 @@ export default function OfflineTicketsScreen() {
     };
   };
 
+  // Télécharger / imprimer un billet HORS LIGNE : on construit le PDF à partir
+  // des données déjà en cache (QR base64 inclus) → aucune requête réseau.
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const escapeHtml = (s: string) =>
+    (s || '').replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c));
+
+  const handleDownloadOffline = useCallback(async (ticket: CachedTicket) => {
+    if (downloadingId) return;
+    setDownloadingId(ticket.ticketId);
+    try {
+      const rows = [
+        [t('offlineTickets.pdfReference', { defaultValue: 'Référence' }), ticket.referenceCode],
+        [t('offlineTickets.pdfType', { defaultValue: 'Type de billet' }), ticket.ticketType],
+        [t('offlineTickets.pdfQuantity', { defaultValue: 'Quantité' }), String(ticket.quantity)],
+        [t('offlineTickets.pdfDate', { defaultValue: 'Date' }),
+         ticket.eventDate ? new Date(ticket.eventDate).toLocaleString() : ''],
+      ];
+      const rowsHtml = rows
+        .filter(([, v]) => !!v)
+        .map(([k, v]) => `<div class="row"><span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(v)}</span></div>`)
+        .join('');
+      const html = `
+        <html><head><meta charset="utf-8" /><style>
+          body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color:#111827; padding:40px; }
+          .eyebrow { color:#FF6B6B; letter-spacing:3px; font-size:11px; font-weight:700; }
+          h1 { font-size:26px; margin:6px 0 24px; letter-spacing:-0.5px; }
+          .row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #E5E7EB; }
+          .k { color:#6B7280; font-size:12px; text-transform:uppercase; letter-spacing:1px; }
+          .v { font-weight:600; font-size:13px; text-align:right; }
+          .qr { text-align:center; margin-top:28px; }
+          .qr img { width:200px; height:200px; }
+          .footer { margin-top:32px; color:#9CA3AF; font-size:10px; text-align:center; }
+        </style></head><body>
+          <div class="eyebrow">${escapeHtml(t('offlineTickets.pdfEyebrow', { defaultValue: 'BILLET' }))}</div>
+          <h1>${escapeHtml(ticket.eventTitle)}</h1>
+          ${rowsHtml}
+          ${ticket.qrCodeBase64 ? `<div class="qr"><img src="${ticket.qrCodeBase64}" /></div>` : ''}
+          <div class="footer">EventEz</div>
+        </body></html>`;
+      const { uri } = await Print.printToFileAsync({ html });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: t('offlineTickets.pdfShareDialog', { defaultValue: 'Enregistrer / partager le billet' }),
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        showError(t('common.error'), t('offlineTickets.pdfError', { defaultValue: "Impossible de générer le PDF." }));
+      }
+    } catch (e) {
+      if (__DEV__) console.error('[OfflineTickets] PDF export failed:', e);
+      showError(t('common.error'), t('offlineTickets.pdfError', { defaultValue: "Impossible de générer le PDF." }));
+    } finally {
+      setDownloadingId(null);
+    }
+  }, [downloadingId, t, showError]);
+
   const renderTicketItem = ({ item }: { item: CachedTicket }) => {
     const isExpanded = expandedTicket === item.ticketId;
     const eventDate = item.eventDate ? new Date(item.eventDate) : null;
@@ -331,6 +391,26 @@ export default function OfflineTicketsScreen() {
                 <View style={[styles.qrCorner, styles.qrCornerBR, { borderColor: colors.primary }]} />
               </View>
               <Text style={[styles.qrHint, { color: colors.gray500 }]}>{t('offlineTickets.qrHint')}</Text>
+
+              {/* Télécharger / imprimer le billet — fonctionne HORS LIGNE
+                  (PDF construit depuis le cache local, QR inclus). */}
+              <TouchableOpacity
+                style={[styles.downloadBtn, { borderColor: colors.gray200, backgroundColor: colors.gray50 }]}
+                onPress={() => handleDownloadOffline(item)}
+                disabled={downloadingId === item.ticketId}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={t('offlineTickets.download', { defaultValue: 'Télécharger le billet' })}
+              >
+                {downloadingId === item.ticketId ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Ionicons name="download-outline" size={16} color={colors.primary} />
+                )}
+                <Text style={[styles.downloadBtnText, { color: colors.primary }]}>
+                  {t('offlineTickets.download', { defaultValue: 'Télécharger le billet' })}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -754,6 +834,22 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     paddingHorizontal: Spacing.md,
     letterSpacing: -0.1,
+  },
+  downloadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    alignSelf: 'center',
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  downloadBtnText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
   },
 
   // Card bottom action bar

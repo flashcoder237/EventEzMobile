@@ -1428,7 +1428,7 @@
     "termsMenu": "Conditions d'utilisation",
     "logoutLabel": "Déconnexion",
     "logoutInProgress": "Déconnexion en cours...",
-    "appVersion": "EventEz v1.0.0",
+    "appVersion": "EventEz v{{version}}",
     "myQRTitle": "Mon QR Code"
   },
   "editProfile": {
@@ -4600,7 +4600,15 @@
     "removeMessage": "Voulez-vous supprimer ce billet du cache hors-ligne ?",
     "showQR": "Afficher le QR",
     "hideQR": "Masquer le QR",
-    "pastBadge": "Passé"
+    "pastBadge": "Passé",
+    "download": "Télécharger le billet",
+    "pdfEyebrow": "BILLET",
+    "pdfReference": "Référence",
+    "pdfType": "Type de billet",
+    "pdfQuantity": "Quantité",
+    "pdfDate": "Date",
+    "pdfShareDialog": "Enregistrer / partager le billet",
+    "pdfError": "Impossible de générer le PDF."
   },
   "pendingTransfers": {
     "headerTitle": "Transferts",
@@ -5014,7 +5022,8 @@
     "followPrefsNewEventsSubtitle": "Quand cet organisateur publie un nouvel event",
     "followPrefsSave": "Enregistrer les préférences",
     "followPrefsSaveA11y": "Enregistrer les préférences",
-    "inAppToastA11y": "{{title}}. {{body}}. Touchez pour ouvrir."
+    "inAppToastA11y": "{{title}}. {{body}}. Touchez pour ouvrir.",
+    "webviewVisioTitle": "Visioconférence"
   },
   "messageRequests": {
     "eyebrow": "ANTI-SPAM",

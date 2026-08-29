@@ -238,6 +238,11 @@ export default function EventDetailsScreen() {
     setShowImageViewer(true);
   };
 
+  // Événement TERMINÉ : end_date passée. On désactive les CTA d'action (acheter/
+  // s'inscrire) — comme le statut 'completed', mais un event peut être passé en
+  // gardant status='validated' si le batch de complétion n'est pas passé.
+  const isEventPast = !!event?.end_date && new Date(event.end_date).getTime() < Date.now();
+
   // All hooks must be called before any early returns
   const scrollY = useSharedValue(0);
   // Lazy-load heavy below-the-fold sections (Reviews, Sponsors, Agenda, Location).
@@ -1387,7 +1392,7 @@ export default function EventDetailsScreen() {
             <Ionicons name="close-circle-outline" size={18} color={colors.white} />
             <Text style={styles.ctaButtonText}>{t('eventDetails.ctaCancelled')}</Text>
           </View>
-        ) : event.status === 'completed' ? (
+        ) : (event.status === 'completed' || isEventPast) ? (
           <View style={[styles.ctaButton, { backgroundColor: colors.gray400 || '#9CA3AF' }]}>
             <Ionicons name="checkmark-done-outline" size={18} color={colors.white} />
             <Text style={styles.ctaButtonText}>{t('eventDetails.ctaEnded')}</Text>

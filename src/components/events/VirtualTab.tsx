@@ -17,6 +17,7 @@ import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 import { formatCount } from '../../lib/utils/numberFormatters';
+import { withJwt } from '../../lib/utils/visioUrl';
 import { useLiveStatus } from '../../hooks/useLiveStatus';
 
 interface VirtualRoom {
@@ -49,7 +50,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
   const { colors, isDark } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { t } = useTranslation();
-  const { showAlert, showError } = useFeedback();
+  const { showError } = useFeedback();
   const [rooms, setRooms] = useState<VirtualRoom[]>([]);
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,33 +107,15 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
         return;
       }
 
-      let finalUrl = data.url;
+      // L'accès est TOUJOURS par JWT (jitsi_jwt : url a déjà ?jwt= ; jaas : on
+      // ajoute le token). withJwt place le param AVANT tout fragment #config… —
+      // une concaténation naïve `?jwt=` casserait l'URL si une query/fragment
+      // existe déjà (le JWT serait ignoré → prejoin/accès refusé).
+      const finalUrl = data.provider === 'jaas' && data.token
+        ? withJwt(data.url, data.token)
+        : data.url;
 
-      if (data.provider === 'jaas' && data.token) {
-        finalUrl = `${data.url}?jwt=${data.token}`;
-      }
-      // jitsi_jwt : URL contient déjà ?jwt=token
-      // jitsi_public : URL directe, afficher mot de passe si présent
-
-      if (data.provider === 'jitsi_public' && data.password) {
-        // Modale bloquante volontaire : l'utilisateur doit LIRE et retenir ce
-        // mot de passe avant d'entrer dans la salle. Jamais un toast.
-        showAlert(
-          t('componentsEvents.virtualPasswordTitle'),
-          t('componentsEvents.virtualPasswordMessage', { password: data.password }),
-          [
-            { text: t('common.cancel'), style: 'cancel' },
-            {
-              text: t('componentsEvents.virtualJoinAction'),
-              onPress: () => navigation.navigate('Browser', { url: finalUrl }),
-            },
-          ],
-          'info'
-        );
-      } else {
-        navigation.navigate('Browser', { url: finalUrl });
-      }
-
+      navigation.navigate('Browser', { url: finalUrl });
       fetchVirtualData();
     } catch (error: any) {
       const msg = error?.response?.data?.error || t('componentsEvents.virtualGenericError');

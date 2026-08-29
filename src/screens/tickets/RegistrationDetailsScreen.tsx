@@ -26,6 +26,7 @@ import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useTicketDisplayGuard } from '../../hooks/useTicketDisplayGuard';
 import { Registration, RootStackParamList } from '../../types';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
+import { withJwt } from '../../lib/utils/visioUrl';
 import { TransferTicketModal } from '../../components/tickets';
 import { useOfflineTickets, useEventReminders } from '../../hooks';
 import { isPaymentSuccess, isPaymentFailed } from '../../hooks/usePaymentVerification';
@@ -247,20 +248,12 @@ export default function RegistrationDetailsScreen() {
         showError(t('common.error'), t('componentsEvents.virtualUrlError'));
         return;
       }
-      let finalUrl = data.url;
-      if (data.provider === 'jaas' && data.token) {
-        finalUrl = `${data.url}?jwt=${data.token}`;
-      }
-      // jitsi_jwt : l'URL contient déjà ?jwt=… ; jitsi_public : URL directe.
-      if (data.provider === 'jitsi_public' && data.password) {
-        showConfirm(
-          t('componentsEvents.virtualPasswordTitle'),
-          t('componentsEvents.virtualPasswordMessage', { password: data.password }),
-          () => navigation.navigate('Browser', { url: finalUrl }),
-        );
-      } else {
-        navigation.navigate('Browser', { url: finalUrl });
-      }
+      // Accès TOUJOURS par JWT. withJwt insère le token dans la query, avant tout
+      // fragment #config… (une concat naïve casserait l'URL → JWT ignoré).
+      const finalUrl = data.provider === 'jaas' && data.token
+        ? withJwt(data.url, data.token)
+        : data.url;
+      navigation.navigate('Browser', { url: finalUrl });
     } catch (error: any) {
       const code = error?.response?.status;
       const apiMsg = error?.response?.data?.error;

@@ -1428,7 +1428,7 @@
     "termsMenu": "Terms of service",
     "logoutLabel": "Sign out",
     "logoutInProgress": "Signing out...",
-    "appVersion": "EventEz v1.0.0",
+    "appVersion": "EventEz v{{version}}",
     "myQRTitle": "My QR Code"
   },
   "editProfile": {
@@ -4600,7 +4600,15 @@
     "removeMessage": "Do you want to remove this ticket from the offline cache?",
     "showQR": "Show QR",
     "hideQR": "Hide QR",
-    "pastBadge": "Past"
+    "pastBadge": "Past",
+    "download": "Download ticket",
+    "pdfEyebrow": "TICKET",
+    "pdfReference": "Reference",
+    "pdfType": "Ticket type",
+    "pdfQuantity": "Quantity",
+    "pdfDate": "Date",
+    "pdfShareDialog": "Save / share ticket",
+    "pdfError": "Could not generate the PDF."
   },
   "pendingTransfers": {
     "headerTitle": "Transfers",
@@ -5014,7 +5022,8 @@
     "followPrefsNewEventsSubtitle": "When this organizer publishes a new event",
     "followPrefsSave": "Save preferences",
     "followPrefsSaveA11y": "Save preferences",
-    "inAppToastA11y": "{{title}}. {{body}}. Tap to open."
+    "inAppToastA11y": "{{title}}. {{body}}. Tap to open.",
+    "webviewVisioTitle": "Video call"
   },
   "messageRequests": {
     "eyebrow": "ANTI-SPAM",
