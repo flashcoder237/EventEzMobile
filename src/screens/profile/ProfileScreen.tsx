@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -603,8 +604,10 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* App Version */}
-        <Text style={[styles.version, { color: colors.gray400 }]}>{t('profile.appVersion')}</Text>
+        {/* App Version — lue dynamiquement pour ne plus dériver du numéro réel */}
+        <Text style={[styles.version, { color: colors.gray400 }]}>
+          {t('profile.appVersion', { version: Constants.expoConfig?.version ?? '' })}
+        </Text>
 
         <View style={{ height: 130 }} />
         </View>
