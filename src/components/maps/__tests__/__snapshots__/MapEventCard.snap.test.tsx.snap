@@ -313,18 +313,61 @@ exports[`MapEventCard snapshots renders paid event with image 1`] = `
       }
     }
   >
-    <Image
-      cachePolicy="memory-disk"
-      contentFit="cover"
-      source="https://test.local/media/events/forum.jpg"
+    <View
       style={
-        {
-          "height": "100%",
-          "width": "100%",
-        }
+        [
+          {
+            "backgroundColor": "transparent",
+            "overflow": "hidden",
+          },
+          {
+            "height": "100%",
+            "width": "100%",
+          },
+        ]
       }
-      transition={200}
-    />
+    >
+      <Image
+        accessibilityElementsHidden={true}
+        blurRadius={25}
+        cachePolicy="memory-disk"
+        contentFit="cover"
+        importantForAccessibility="no"
+        source={
+          {
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+      />
+      <Image
+        cachePolicy="memory-disk"
+        contentFit="contain"
+        source={
+          {
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+        transition={200}
+      />
+    </View>
   </View>
   <View
     style={
@@ -553,18 +596,61 @@ exports[`MapEventCard snapshots renders with userLocation + distance 1`] = `
       }
     }
   >
-    <Image
-      cachePolicy="memory-disk"
-      contentFit="cover"
-      source="https://test.local/media/events/forum.jpg"
+    <View
       style={
-        {
-          "height": "100%",
-          "width": "100%",
-        }
+        [
+          {
+            "backgroundColor": "transparent",
+            "overflow": "hidden",
+          },
+          {
+            "height": "100%",
+            "width": "100%",
+          },
+        ]
       }
-      transition={200}
-    />
+    >
+      <Image
+        accessibilityElementsHidden={true}
+        blurRadius={25}
+        cachePolicy="memory-disk"
+        contentFit="cover"
+        importantForAccessibility="no"
+        source={
+          {
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+      />
+      <Image
+        cachePolicy="memory-disk"
+        contentFit="contain"
+        source={
+          {
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+        transition={200}
+      />
+    </View>
   </View>
   <View
     style={
@@ -809,18 +895,61 @@ exports[`MapEventCard snapshots renders without category 1`] = `
       }
     }
   >
-    <Image
-      cachePolicy="memory-disk"
-      contentFit="cover"
-      source="https://test.local/media/events/forum.jpg"
+    <View
       style={
-        {
-          "height": "100%",
-          "width": "100%",
-        }
+        [
+          {
+            "backgroundColor": "transparent",
+            "overflow": "hidden",
+          },
+          {
+            "height": "100%",
+            "width": "100%",
+          },
+        ]
       }
-      transition={200}
-    />
+    >
+      <Image
+        accessibilityElementsHidden={true}
+        blurRadius={25}
+        cachePolicy="memory-disk"
+        contentFit="cover"
+        importantForAccessibility="no"
+        source={
+          {
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+      />
+      <Image
+        cachePolicy="memory-disk"
+        contentFit="contain"
+        source={
+          {
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+        transition={200}
+      />
+    </View>
   </View>
   <View
     style={

@@ -60,50 +60,80 @@ exports[`EventCard snapshots renders compact variant 1`] = `
       }
     }
   >
-    <Image
-      contentFit="cover"
-      source={
-        {
-          "uri": "data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==",
-        }
-      }
+    <View
       style={
         [
+          {
+            "backgroundColor": "transparent",
+            "overflow": "hidden",
+          },
           {
             "height": "100%",
             "width": "100%",
           },
+        ]
+      }
+    >
+      <Image
+        accessibilityElementsHidden={true}
+        contentFit="cover"
+        importantForAccessibility="no"
+        source={
+          {
+            "uri": "data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==",
+          }
+        }
+        style={
           {
             "bottom": 0,
             "left": 0,
             "position": "absolute",
             "right": 0,
             "top": 0,
-          },
-        ]
-      }
-    />
-    <Image
-      cachePolicy="memory-disk"
-      contentFit="cover"
-      source={
-        {
-          "uri": "https://test.local/media/events/forum.jpg",
+          }
         }
-      }
-      style={
-        [
+      />
+      <Image
+        accessibilityElementsHidden={true}
+        blurRadius={25}
+        cachePolicy="memory-disk"
+        contentFit="cover"
+        importantForAccessibility="no"
+        source={
           {
-            "height": "100%",
-            "width": "100%",
-          },
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
           {
-            "backgroundColor": "transparent",
-          },
-        ]
-      }
-      transition={300}
-    />
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+      />
+      <Image
+        cachePolicy="memory-disk"
+        contentFit="contain"
+        source={
+          {
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+        transition={300}
+      />
+    </View>
     <View
       style={
         [
@@ -302,50 +332,80 @@ exports[`EventCard snapshots renders default variant 1`] = `
       }
     }
   >
-    <Image
-      contentFit="cover"
-      source={
-        {
-          "uri": "data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==",
-        }
-      }
+    <View
       style={
         [
+          {
+            "backgroundColor": "transparent",
+            "overflow": "hidden",
+          },
           {
             "height": "100%",
             "width": "100%",
           },
+        ]
+      }
+    >
+      <Image
+        accessibilityElementsHidden={true}
+        contentFit="cover"
+        importantForAccessibility="no"
+        source={
+          {
+            "uri": "data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==",
+          }
+        }
+        style={
           {
             "bottom": 0,
             "left": 0,
             "position": "absolute",
             "right": 0,
             "top": 0,
-          },
-        ]
-      }
-    />
-    <Image
-      cachePolicy="memory-disk"
-      contentFit="cover"
-      source={
-        {
-          "uri": "https://test.local/media/events/forum.jpg",
+          }
         }
-      }
-      style={
-        [
+      />
+      <Image
+        accessibilityElementsHidden={true}
+        blurRadius={25}
+        cachePolicy="memory-disk"
+        contentFit="cover"
+        importantForAccessibility="no"
+        source={
           {
-            "height": "100%",
-            "width": "100%",
-          },
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
           {
-            "backgroundColor": "transparent",
-          },
-        ]
-      }
-      transition={300}
-    />
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+      />
+      <Image
+        cachePolicy="memory-disk"
+        contentFit="contain"
+        source={
+          {
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+        transition={300}
+      />
+    </View>
     <View
       colors={
         [
@@ -699,50 +759,80 @@ exports[`EventCard snapshots renders default variant with free event + soon (J-2
       }
     }
   >
-    <Image
-      contentFit="cover"
-      source={
-        {
-          "uri": "data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==",
-        }
-      }
+    <View
       style={
         [
+          {
+            "backgroundColor": "transparent",
+            "overflow": "hidden",
+          },
           {
             "height": "100%",
             "width": "100%",
           },
+        ]
+      }
+    >
+      <Image
+        accessibilityElementsHidden={true}
+        contentFit="cover"
+        importantForAccessibility="no"
+        source={
+          {
+            "uri": "data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==",
+          }
+        }
+        style={
           {
             "bottom": 0,
             "left": 0,
             "position": "absolute",
             "right": 0,
             "top": 0,
-          },
-        ]
-      }
-    />
-    <Image
-      cachePolicy="memory-disk"
-      contentFit="cover"
-      source={
-        {
-          "uri": "https://test.local/media/events/forum.jpg",
+          }
         }
-      }
-      style={
-        [
+      />
+      <Image
+        accessibilityElementsHidden={true}
+        blurRadius={25}
+        cachePolicy="memory-disk"
+        contentFit="cover"
+        importantForAccessibility="no"
+        source={
           {
-            "height": "100%",
-            "width": "100%",
-          },
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
           {
-            "backgroundColor": "transparent",
-          },
-        ]
-      }
-      transition={300}
-    />
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+      />
+      <Image
+        cachePolicy="memory-disk"
+        contentFit="contain"
+        source={
+          {
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+        transition={300}
+      />
+    </View>
     <View
       colors={
         [
@@ -1139,50 +1229,80 @@ exports[`EventCard snapshots renders default variant with isFeatured + isLiked 1
       }
     }
   >
-    <Image
-      contentFit="cover"
-      source={
-        {
-          "uri": "data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==",
-        }
-      }
+    <View
       style={
         [
+          {
+            "backgroundColor": "transparent",
+            "overflow": "hidden",
+          },
           {
             "height": "100%",
             "width": "100%",
           },
+        ]
+      }
+    >
+      <Image
+        accessibilityElementsHidden={true}
+        contentFit="cover"
+        importantForAccessibility="no"
+        source={
+          {
+            "uri": "data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==",
+          }
+        }
+        style={
           {
             "bottom": 0,
             "left": 0,
             "position": "absolute",
             "right": 0,
             "top": 0,
-          },
-        ]
-      }
-    />
-    <Image
-      cachePolicy="memory-disk"
-      contentFit="cover"
-      source={
-        {
-          "uri": "https://test.local/media/events/forum.jpg",
+          }
         }
-      }
-      style={
-        [
+      />
+      <Image
+        accessibilityElementsHidden={true}
+        blurRadius={25}
+        cachePolicy="memory-disk"
+        contentFit="cover"
+        importantForAccessibility="no"
+        source={
           {
-            "height": "100%",
-            "width": "100%",
-          },
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
           {
-            "backgroundColor": "transparent",
-          },
-        ]
-      }
-      transition={300}
-    />
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+      />
+      <Image
+        cachePolicy="memory-disk"
+        contentFit="contain"
+        source={
+          {
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+        transition={300}
+      />
+    </View>
     <View
       colors={
         [
@@ -1540,50 +1660,80 @@ exports[`EventCard snapshots renders featured variant 1`] = `
       }
     }
   >
-    <Image
-      contentFit="cover"
-      source={
-        {
-          "uri": "data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==",
-        }
-      }
+    <View
       style={
         [
+          {
+            "backgroundColor": "transparent",
+            "overflow": "hidden",
+          },
           {
             "height": "100%",
             "width": "100%",
           },
+        ]
+      }
+    >
+      <Image
+        accessibilityElementsHidden={true}
+        contentFit="cover"
+        importantForAccessibility="no"
+        source={
+          {
+            "uri": "data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==",
+          }
+        }
+        style={
           {
             "bottom": 0,
             "left": 0,
             "position": "absolute",
             "right": 0,
             "top": 0,
-          },
-        ]
-      }
-    />
-    <Image
-      cachePolicy="memory-disk"
-      contentFit="cover"
-      source={
-        {
-          "uri": "https://test.local/media/events/forum.jpg",
+          }
         }
-      }
-      style={
-        [
+      />
+      <Image
+        accessibilityElementsHidden={true}
+        blurRadius={25}
+        cachePolicy="memory-disk"
+        contentFit="cover"
+        importantForAccessibility="no"
+        source={
           {
-            "height": "100%",
-            "width": "100%",
-          },
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
           {
-            "backgroundColor": "transparent",
-          },
-        ]
-      }
-      transition={300}
-    />
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+      />
+      <Image
+        cachePolicy="memory-disk"
+        contentFit="contain"
+        source={
+          {
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+        transition={300}
+      />
+    </View>
     <View
       colors={
         [
@@ -1999,50 +2149,80 @@ exports[`EventCard snapshots renders grid variant with online location 1`] = `
       }
     }
   >
-    <Image
-      contentFit="cover"
-      source={
-        {
-          "uri": "data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==",
-        }
-      }
+    <View
       style={
         [
+          {
+            "backgroundColor": "transparent",
+            "overflow": "hidden",
+          },
           {
             "height": "100%",
             "width": "100%",
           },
+        ]
+      }
+    >
+      <Image
+        accessibilityElementsHidden={true}
+        contentFit="cover"
+        importantForAccessibility="no"
+        source={
+          {
+            "uri": "data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==",
+          }
+        }
+        style={
           {
             "bottom": 0,
             "left": 0,
             "position": "absolute",
             "right": 0,
             "top": 0,
-          },
-        ]
-      }
-    />
-    <Image
-      cachePolicy="memory-disk"
-      contentFit="cover"
-      source={
-        {
-          "uri": "https://test.local/media/events/forum.jpg",
+          }
         }
-      }
-      style={
-        [
+      />
+      <Image
+        accessibilityElementsHidden={true}
+        blurRadius={25}
+        cachePolicy="memory-disk"
+        contentFit="cover"
+        importantForAccessibility="no"
+        source={
           {
-            "height": "100%",
-            "width": "100%",
-          },
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
           {
-            "backgroundColor": "transparent",
-          },
-        ]
-      }
-      transition={300}
-    />
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+      />
+      <Image
+        cachePolicy="memory-disk"
+        contentFit="contain"
+        source={
+          {
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+        transition={300}
+      />
+    </View>
     <View
       colors={
         [
@@ -2358,50 +2538,80 @@ exports[`EventCard snapshots renders horizontal variant 1`] = `
       }
     }
   >
-    <Image
-      contentFit="cover"
-      source={
-        {
-          "uri": "data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==",
-        }
-      }
+    <View
       style={
         [
+          {
+            "backgroundColor": "transparent",
+            "overflow": "hidden",
+          },
           {
             "height": "100%",
             "width": "100%",
           },
+        ]
+      }
+    >
+      <Image
+        accessibilityElementsHidden={true}
+        contentFit="cover"
+        importantForAccessibility="no"
+        source={
+          {
+            "uri": "data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==",
+          }
+        }
+        style={
           {
             "bottom": 0,
             "left": 0,
             "position": "absolute",
             "right": 0,
             "top": 0,
-          },
-        ]
-      }
-    />
-    <Image
-      cachePolicy="memory-disk"
-      contentFit="cover"
-      source={
-        {
-          "uri": "https://test.local/media/events/forum.jpg",
+          }
         }
-      }
-      style={
-        [
+      />
+      <Image
+        accessibilityElementsHidden={true}
+        blurRadius={25}
+        cachePolicy="memory-disk"
+        contentFit="cover"
+        importantForAccessibility="no"
+        source={
           {
-            "height": "100%",
-            "width": "100%",
-          },
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
           {
-            "backgroundColor": "transparent",
-          },
-        ]
-      }
-      transition={300}
-    />
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+      />
+      <Image
+        cachePolicy="memory-disk"
+        contentFit="contain"
+        source={
+          {
+            "uri": "https://test.local/media/events/forum.jpg",
+          }
+        }
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+        transition={300}
+      />
+    </View>
     <View
       colors={
         [

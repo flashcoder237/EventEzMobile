@@ -7,6 +7,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { LoadingSpinner } from '../components/ui/LoadingOverlay';
 import BrandedSplash from '../components/ui/BrandedSplash';
 import { getLocales } from 'expo-localization';
+import * as Linking from 'expo-linking';
 import { ONBOARDING_COMPLETE_KEY } from '../screens/auth/OnboardingScreen';
 import { LANGUAGE_STORAGE_KEY, changeLanguage } from '../i18n';
 import { navigate } from './navigationRef';
@@ -221,6 +222,16 @@ export default function RootNavigator() {
     let cancelled = false;
     (async () => {
       try {
+        // Un deeplink d'ouverture est une intention EXPLICITE : il doit primer
+        // sur l'écran d'onboarding. Sinon `showOnboarding` remplaçait tout le
+        // Stack au boot → la cible du lien n'était jamais montée et le lien
+        // était "avalé" (cause principale des deeplinks qui n'ouvraient rien,
+        // iOS ET Android, même pour un utilisateur qui n'a jamais vu l'app).
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl && !cancelled) {
+          setShowOnboarding(false);
+          return;
+        }
         const completed = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
         if (!cancelled) setShowOnboarding(completed !== 'true');
       } catch (error) {

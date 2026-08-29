@@ -29,6 +29,7 @@ import {
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatCount } from '../../lib/utils/numberFormatters';
+import EventImage from './EventImage';
 
 // Largeur de référence plafonnée : sur grand écran (iPad en mode compat iPhone),
 // on borne à une largeur type iPhone pour que les cartes (peek 0.82/0.88 et
@@ -225,19 +226,11 @@ function EventCardComponent({
           {/* Placeholder LQIP rendu comme source de fond (workaround
               expo-image v3 : placeholderContentFit ignoré sur petits data
               URIs en natif → l'image apparaissait minuscule). */}
-          {blurPlaceholder && (
-            <ExpoImage
-              source={{ uri: blurPlaceholder }}
-              contentFit="cover"
-              style={[styles.horizontalImage, StyleSheet.absoluteFillObject]}
-            />
-          )}
-          <ExpoImage
-            source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
-            contentFit="cover"
-            transition={300}
-            cachePolicy="memory-disk"
-            style={[styles.horizontalImage, { backgroundColor: 'transparent' }]}
+          <EventImage
+            uri={resolvedImageUrl}
+            fallbackSource={DEFAULT_EVENT_IMAGE}
+            placeholder={blurPlaceholder}
+            style={styles.horizontalImage}
           />
           <VideoOverlay />
           <LinearGradient
@@ -323,19 +316,11 @@ function EventCardComponent({
         accessibilityHint={eventAccessibilityHint}
       >
         <View style={styles.compactImageWrap}>
-          {blurPlaceholder && (
-            <ExpoImage
-              source={{ uri: blurPlaceholder }}
-              contentFit="cover"
-              style={[styles.compactImage, StyleSheet.absoluteFillObject]}
-            />
-          )}
-          <ExpoImage
-            source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
-            contentFit="cover"
-            transition={300}
-            cachePolicy="memory-disk"
-            style={[styles.compactImage, { backgroundColor: 'transparent' }]}
+          <EventImage
+            uri={resolvedImageUrl}
+            fallbackSource={DEFAULT_EVENT_IMAGE}
+            placeholder={blurPlaceholder}
+            style={styles.compactImage}
           />
           <VideoOverlay />
           <View style={[styles.dateTileFloatSmall, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
@@ -386,19 +371,11 @@ function EventCardComponent({
         accessibilityHint={eventAccessibilityHint}
       >
         <View style={styles.featuredImageContainer}>
-          {blurPlaceholder && (
-            <ExpoImage
-              source={{ uri: blurPlaceholder }}
-              contentFit="cover"
-              style={[styles.featuredImage, StyleSheet.absoluteFillObject]}
-            />
-          )}
-          <ExpoImage
-            source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
-            contentFit="cover"
-            transition={300}
-            cachePolicy="memory-disk"
-            style={[styles.featuredImage, { backgroundColor: 'transparent' }]}
+          <EventImage
+            uri={resolvedImageUrl}
+            fallbackSource={DEFAULT_EVENT_IMAGE}
+            placeholder={blurPlaceholder}
+            style={styles.featuredImage}
           />
           <VideoOverlay />
           <LinearGradient
@@ -506,19 +483,11 @@ function EventCardComponent({
         accessibilityHint={eventAccessibilityHint}
       >
         <View style={styles.gridImageWrap}>
-          {blurPlaceholder && (
-            <ExpoImage
-              source={{ uri: blurPlaceholder }}
-              contentFit="cover"
-              style={[styles.gridImage, StyleSheet.absoluteFillObject]}
-            />
-          )}
-          <ExpoImage
-            source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
-            contentFit="cover"
-            transition={300}
-            cachePolicy="memory-disk"
-            style={[styles.gridImage, { backgroundColor: 'transparent' }]}
+          <EventImage
+            uri={resolvedImageUrl}
+            fallbackSource={DEFAULT_EVENT_IMAGE}
+            placeholder={blurPlaceholder}
+            style={styles.gridImage}
           />
           <VideoOverlay />
           <LinearGradient
@@ -593,19 +562,11 @@ function EventCardComponent({
       accessibilityHint={eventAccessibilityHint}
     >
       <View style={styles.defaultImageWrap}>
-        {blurPlaceholder && (
-          <ExpoImage
-            source={{ uri: blurPlaceholder }}
-            contentFit="cover"
-            style={[styles.defaultImage, StyleSheet.absoluteFillObject]}
-          />
-        )}
-        <ExpoImage
-          source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
-          contentFit="cover"
-          transition={300}
-          cachePolicy="memory-disk"
-          style={[styles.defaultImage, { backgroundColor: 'transparent' }]}
+        <EventImage
+          uri={resolvedImageUrl}
+          fallbackSource={DEFAULT_EVENT_IMAGE}
+          placeholder={blurPlaceholder}
+          style={styles.defaultImage}
         />
         <VideoOverlay />
         <LinearGradient

@@ -44,6 +44,7 @@ import {
 import { FollowingEventCardSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem, ContentTransition } from '../../components/ui/Animations';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import EventImage from '../../components/events/EventImage';
 
 
 // Warm editorial canvas (light) / dark background
@@ -201,22 +202,11 @@ function HeroCardComponent({
     >
       {/* Workaround LQIP : placeholder rendu comme `source` de fond
           (placeholderContentFit non honoré sur petits data URIs en natif). */}
-      {(event.banner_placeholder || event.category?.default_event_image_placeholder) && (
-        <Image
-          source={{ uri: event.banner_placeholder || event.category?.default_event_image_placeholder || '' }}
-          contentFit="cover"
-          style={StyleSheet.absoluteFillObject}
-        />
-      )}
-      <Image
-        source={
-          getMediaUrl(event.banner_image || event.category?.default_event_image) ||
-          require('../../../assets/defaults/default-event.png')
-        }
+      <EventImage
+        uri={getMediaUrl(event.banner_image || event.category?.default_event_image)}
+        fallbackSource={require('../../../assets/defaults/default-event.png')}
+        placeholder={event.banner_placeholder || event.category?.default_event_image_placeholder || undefined}
         style={StyleSheet.absoluteFillObject}
-        contentFit="cover"
-        cachePolicy="memory-disk"
-        transition={300}
       />
       {/* Dark gradient overlay */}
       <LinearGradient
@@ -324,22 +314,11 @@ function MasonryCardComponent({
       {hasImage && (
         <View style={[styles.masonryImageWrap, { height: imageHeight }]}>
           {/* Workaround LQIP : placeholder en source de fond. */}
-          {(event.banner_placeholder || event.category?.default_event_image_placeholder) && (
-            <Image
-              source={{ uri: event.banner_placeholder || event.category?.default_event_image_placeholder || '' }}
-              contentFit="cover"
-              style={StyleSheet.absoluteFillObject}
-            />
-          )}
-          <Image
-            source={
-              getMediaUrl(event.banner_image || event.category?.default_event_image) ||
-              require('../../../assets/defaults/default-event.png')
-            }
+          <EventImage
+            uri={getMediaUrl(event.banner_image || event.category?.default_event_image)}
+            fallbackSource={require('../../../assets/defaults/default-event.png')}
+            placeholder={event.banner_placeholder || event.category?.default_event_image_placeholder || undefined}
             style={StyleSheet.absoluteFillObject}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            transition={300}
           />
           <TouchableOpacity
             style={[

@@ -15,6 +15,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import EventImage from '../events/EventImage';
 
 interface MapEventCardProps {
   marker: MapMarker;
@@ -57,7 +58,7 @@ function MapEventCardComponent({
       {/* Image */}
       <View style={styles.imageContainer}>
         {imageUrl ? (
-          <Image source={imageUrl} style={styles.image} contentFit="cover" cachePolicy="memory-disk" transition={200} />
+          <EventImage uri={typeof imageUrl === 'string' ? imageUrl : (imageUrl as any)?.uri} style={styles.image} transition={200} />
         ) : (
           <View style={[styles.imagePlaceholder, { backgroundColor: colors.gray200 }]}>
             <Ionicons name="calendar-outline" size={28} color={colors.gray400} />

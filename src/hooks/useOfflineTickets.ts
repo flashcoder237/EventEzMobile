@@ -3,14 +3,45 @@
  * Permet de mettre en cache les QR codes pour un accès sans connexion
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import * as FileSystem from 'expo-file-system/legacy';
+import { AuthContext } from '../contexts/AuthContext';
 
-const CACHE_KEY_PREFIX = 'eventez_ticket_';
-const CACHE_INDEX_KEY = 'eventez_cached_tickets_index';
+// SÉCURITÉ (fuite inter-comptes) : les billets hors-ligne étaient stockés sous
+// des clés GLOBALES et n'étaient PAS purgés au logout → l'utilisateur suivant
+// (même téléphone) voyait les billets du précédent. Deux défenses :
+//  1) clés SCOPÉES par userId (isolation naturelle entre comptes) ;
+//  2) purge TOTALE au logout via clearAllOfflineTickets().
+const CACHE_ROOT = 'eventez_ticket_';           // préfixe commun (purge globale)
+const CACHE_INDEX_ROOT = 'eventez_cached_tickets_index';
 const CACHE_EXPIRY_DAYS = 7; // Les données en cache expirent après 7 jours
+
+// Utilisateur courant (posé par le hook au montage). '' = anonyme.
+let _currentUserId = '';
+export function setOfflineTicketsUser(userId: string | number | null | undefined) {
+  _currentUserId = userId != null ? String(userId) : '';
+}
+const keyPrefix = () => `${CACHE_ROOT}${_currentUserId}_`;
+const indexKey = () => `${CACHE_INDEX_ROOT}_${_currentUserId}`;
+
+/**
+ * Purge TOUS les billets hors-ligne de TOUS les comptes présents sur l'appareil.
+ * À appeler au logout (AuthContext) : garantit qu'aucun billet ne survit au
+ * changement de compte, même si le scoping par user échouait.
+ */
+export async function clearAllOfflineTickets(): Promise<void> {
+  try {
+    const allKeys = await AsyncStorage.getAllKeys();
+    const toRemove = allKeys.filter(
+      (k) => k.startsWith(CACHE_ROOT) || k.startsWith(CACHE_INDEX_ROOT),
+    );
+    if (toRemove.length) await AsyncStorage.multiRemove(toRemove);
+  } catch (e) {
+    if (__DEV__) console.warn('[OfflineTickets] clearAllOfflineTickets failed:', e);
+  }
+}
 
 interface CachedTicket {
   ticketId: string;
@@ -35,26 +66,36 @@ interface CachedTicketIndex {
 }
 
 export function useOfflineTickets() {
+  // Accès NON-throwing (testable hors AuthProvider) : sans provider → undefined.
+  const user = useContext(AuthContext)?.user;
   const [isOnline, setIsOnline] = useState(true);
   const [cachedTickets, setCachedTickets] = useState<CachedTicketIndex>({});
   const [loading, setLoading] = useState(true);
+
+  // Scoper le cache sur l'utilisateur courant AVANT toute lecture/écriture.
+  // Sans ça, deux comptes sur le même téléphone partageraient l'index.
+  setOfflineTicketsUser(user?.id);
 
   // Surveiller la connectivité
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsOnline(state.isConnected ?? true);
     });
-
-    // Charger l'index des tickets en cache
-    loadCacheIndex();
-
     return () => unsubscribe();
   }, []);
+
+  // (Re)charger l'index quand l'utilisateur change (login/switch de compte).
+  useEffect(() => {
+    setOfflineTicketsUser(user?.id);
+    setCachedTickets({});
+    loadCacheIndex();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // Charger l'index des tickets en cache
   const loadCacheIndex = async () => {
     try {
-      const indexJson = await AsyncStorage.getItem(CACHE_INDEX_KEY);
+      const indexJson = await AsyncStorage.getItem(indexKey());
       if (indexJson) {
         const index: CachedTicketIndex = JSON.parse(indexJson);
         // Nettoyer les tickets expirés
@@ -67,12 +108,12 @@ export function useOfflineTickets() {
             cleanedIndex[ticketId] = data;
           } else {
             // Supprimer le ticket expiré
-            await AsyncStorage.removeItem(`${CACHE_KEY_PREFIX}${ticketId}`);
+            await AsyncStorage.removeItem(`${keyPrefix()}${ticketId}`);
           }
         }
 
         setCachedTickets(cleanedIndex);
-        await AsyncStorage.setItem(CACHE_INDEX_KEY, JSON.stringify(cleanedIndex));
+        await AsyncStorage.setItem(indexKey(), JSON.stringify(cleanedIndex));
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement cache tickets:', error);
@@ -112,7 +153,7 @@ export function useOfflineTickets() {
     // d'appels enchaînés (cacheMultipleTickets).
     if (!options?.force) {
       try {
-        const indexJson = await AsyncStorage.getItem(CACHE_INDEX_KEY);
+        const indexJson = await AsyncStorage.getItem(indexKey());
         const freshIndex: CachedTicketIndex = indexJson ? JSON.parse(indexJson) : {};
         if (ticket.id in freshIndex) {
           if (__DEV__) console.log(`[OfflineTickets] ${ticket.id} déjà caché — skip download`);
@@ -169,7 +210,7 @@ export function useOfflineTickets() {
 
       // Sauvegarder le ticket
       await AsyncStorage.setItem(
-        `${CACHE_KEY_PREFIX}${ticket.id}`,
+        `${keyPrefix()}${ticket.id}`,
         JSON.stringify(cachedTicket)
       );
 
@@ -177,7 +218,7 @@ export function useOfflineTickets() {
       // d'utiliser `cachedTickets` du closure, sinon en cas d'appels
       // parallèles (Promise.all dans cacheMultipleTickets) chaque appel
       // écrase l'index des autres.
-      const currentIndexJson = await AsyncStorage.getItem(CACHE_INDEX_KEY);
+      const currentIndexJson = await AsyncStorage.getItem(indexKey());
       const currentIndex: CachedTicketIndex = currentIndexJson
         ? JSON.parse(currentIndexJson)
         : {};
@@ -191,7 +232,7 @@ export function useOfflineTickets() {
         },
       };
 
-      await AsyncStorage.setItem(CACHE_INDEX_KEY, JSON.stringify(newIndex));
+      await AsyncStorage.setItem(indexKey(), JSON.stringify(newIndex));
       setCachedTickets(newIndex);
 
       if (__DEV__) console.log(`Ticket ${ticket.id} mis en cache avec succès`);
@@ -205,7 +246,7 @@ export function useOfflineTickets() {
   // Récupérer un ticket depuis le cache
   const getCachedTicket = useCallback(async (ticketId: string): Promise<CachedTicket | null> => {
     try {
-      const ticketJson = await AsyncStorage.getItem(`${CACHE_KEY_PREFIX}${ticketId}`);
+      const ticketJson = await AsyncStorage.getItem(`${keyPrefix()}${ticketId}`);
       if (ticketJson) {
         return JSON.parse(ticketJson);
       }
@@ -221,7 +262,7 @@ export function useOfflineTickets() {
   // appelé juste avant loadTickets dans OfflineTicketsScreen).
   const getAllCachedTickets = useCallback(async (): Promise<CachedTicket[]> => {
     try {
-      const indexJson = await AsyncStorage.getItem(CACHE_INDEX_KEY);
+      const indexJson = await AsyncStorage.getItem(indexKey());
       const index: CachedTicketIndex = indexJson ? JSON.parse(indexJson) : {};
       const tickets: CachedTicket[] = [];
 
@@ -246,14 +287,14 @@ export function useOfflineTickets() {
   // closures stales.
   const removeCachedTicket = useCallback(async (ticketId: string): Promise<boolean> => {
     try {
-      await AsyncStorage.removeItem(`${CACHE_KEY_PREFIX}${ticketId}`);
+      await AsyncStorage.removeItem(`${keyPrefix()}${ticketId}`);
 
-      const indexJson = await AsyncStorage.getItem(CACHE_INDEX_KEY);
+      const indexJson = await AsyncStorage.getItem(indexKey());
       const currentIndex: CachedTicketIndex = indexJson ? JSON.parse(indexJson) : {};
       const newIndex = { ...currentIndex };
       delete newIndex[ticketId];
 
-      await AsyncStorage.setItem(CACHE_INDEX_KEY, JSON.stringify(newIndex));
+      await AsyncStorage.setItem(indexKey(), JSON.stringify(newIndex));
       setCachedTickets(newIndex);
 
       return true;
@@ -267,14 +308,14 @@ export function useOfflineTickets() {
   // toutes les entrées (y compris celles ajoutées hors-React state).
   const clearCache = useCallback(async (): Promise<boolean> => {
     try {
-      const indexJson = await AsyncStorage.getItem(CACHE_INDEX_KEY);
+      const indexJson = await AsyncStorage.getItem(indexKey());
       const currentIndex: CachedTicketIndex = indexJson ? JSON.parse(indexJson) : {};
 
       for (const ticketId of Object.keys(currentIndex)) {
-        await AsyncStorage.removeItem(`${CACHE_KEY_PREFIX}${ticketId}`);
+        await AsyncStorage.removeItem(`${keyPrefix()}${ticketId}`);
       }
 
-      await AsyncStorage.removeItem(CACHE_INDEX_KEY);
+      await AsyncStorage.removeItem(indexKey());
       setCachedTickets({});
 
       return true;

@@ -52,6 +52,7 @@ import { useTabletLayout } from '../../hooks/useTabletLayout';
 import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
+import EventImage from '../../components/events/EventImage';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -739,6 +740,10 @@ export default function MyEventsScreen() {
 
     // ─── Actions sur l'event ───
     const eventActions: EventAction[] = [];
+    // Un événement TERMINÉ (end_date passée) n'est plus modifiable — le backend
+    // le refuse aussi (EventViewSet.update, code 'event_ended'). On masque donc
+    // « Modifier » sur un event passé, tout en gardant « Dupliquer ».
+    const isPastEvent = !!event.end_date && new Date(event.end_date).getTime() < Date.now();
     // Édition libre : brouillon / rejeté / modifs demandées / EN ATTENTE DE
     // VALIDATION (submitted). Un event soumis reste modifiable (corriger une
     // date, une faute…) — le backend l'autorise (EventViewSet.update sans
@@ -746,10 +751,12 @@ export default function MyEventsScreen() {
     // 'submitted' était oublié ici → aucun bouton Modifier n'apparaissait,
     // incohérent avec le web qui l'autorise déjà.
     if (
-      event.status === 'draft'
-      || event.status === 'rejected'
-      || event.status === 'changes_requested'
-      || event.status === 'submitted'
+      !isPastEvent && (
+        event.status === 'draft'
+        || event.status === 'rejected'
+        || event.status === 'changes_requested'
+        || event.status === 'submitted'
+      )
     ) {
       eventActions.push({
         label: t('common.edit'),
@@ -757,11 +764,11 @@ export default function MyEventsScreen() {
         onPress: () => navigation.navigate('EventEdit', { eventId: event.slug || event.id }),
       });
     }
-    // Sur un event validé, on autorise l'édition mais avec un warning : si
-    // l'organizer touche un champ critique (titre/dates/lieu/type/capacité), le
-    // backend repasse l'event en 'submitted' (cf. EventViewSet.update). Le
-    // modal d'avertissement permet d'éviter la mauvaise surprise.
-    if (event.status === 'validated') {
+    // Sur un event validé (ET pas encore passé), on autorise l'édition mais avec
+    // un warning : si l'organizer touche un champ critique (titre/dates/lieu/
+    // type/capacité), le backend repasse l'event en 'submitted' (cf.
+    // EventViewSet.update). Le modal d'avertissement évite la mauvaise surprise.
+    if (event.status === 'validated' && !isPastEvent) {
       eventActions.push({
         label: t('organizer.myEvents.actionEditValidated'),
         icon: 'create-outline',
@@ -855,23 +862,11 @@ export default function MyEventsScreen() {
         >
           {/* === BANNER WITH OVERLAY === */}
           <View style={styles.imageWrap}>
-            {/* Workaround LQIP : placeholder en source de fond. */}
-            {(item.banner_placeholder || item.category?.default_event_image_placeholder || item.display_placeholder) && (
-              <Image
-                source={{ uri: item.banner_placeholder || item.category?.default_event_image_placeholder || item.display_placeholder || '' }}
-                contentFit="cover"
-                style={[styles.eventImage, StyleSheet.absoluteFillObject]}
-              />
-            )}
-            <Image
-              source={
-                getMediaUrl(item.banner_image || item.category?.default_event_image || item.display_image)
-                  || require('../../../assets/defaults/default-event.png')
-              }
-              contentFit="cover"
-              style={[styles.eventImage, { backgroundColor: 'transparent' }]}
-              cachePolicy="memory-disk"
-              transition={300}
+            <EventImage
+              uri={getMediaUrl(item.banner_image || item.category?.default_event_image || item.display_image)}
+              fallbackSource={require('../../../assets/defaults/default-event.png')}
+              placeholder={item.banner_placeholder || item.category?.default_event_image_placeholder || item.display_placeholder || undefined}
+              style={styles.eventImage}
             />
             <LinearGradient
               colors={['transparent', 'rgba(0,0,0,0.5)']}
@@ -1086,7 +1081,8 @@ export default function MyEventsScreen() {
               </TouchableOpacity>
             )}
 
-            {(item.status === 'draft' || item.status === 'rejected' || item.status === 'changes_requested' || item.status === 'submitted') && (
+            {!(item.end_date && new Date(item.end_date).getTime() < Date.now())
+              && (item.status === 'draft' || item.status === 'rejected' || item.status === 'changes_requested' || item.status === 'submitted') && (
               <TouchableOpacity
                 style={[styles.actionChipE, { backgroundColor: colors.gray100 }]}
                 onPress={() => navigation.navigate('EventEdit', { eventId: item.slug || item.id })}

@@ -5,6 +5,7 @@ import { Video, ResizeMode } from 'expo-av';
 import { WebView } from 'react-native-webview';
 import { Event } from '../../types';
 import { getMediaUrl } from '../../api/config';
+import EventImage from './EventImage';
 
 interface EventCoverMediaProps {
   event: Pick<Event, 'id' | 'title' | 'banner_image' | 'banner_placeholder' | 'cover_video' | 'cover_video_embed' | 'category'> & Record<string, any>;
@@ -148,24 +149,12 @@ function EventCoverMediaImpl({
   return (
     <View style={[styles.container, style]} testID={testID}>
       {imageUri ? (
-        <>
-          {/* Voir commentaire plus haut sur le workaround LQIP. */}
-          {placeholder && (
-            <Image
-              source={{ uri: placeholder }}
-              contentFit="cover"
-              cachePolicy="memory-disk"
-              style={[StyleSheet.absoluteFill, imageStyle]}
-            />
-          )}
-          <Image
-            source={{ uri: imageUri }}
-            contentFit="cover"
-            transition={400}
-            cachePolicy="memory-disk"
-            style={[StyleSheet.absoluteFill, imageStyle]}
-          />
-        </>
+        <EventImage
+          uri={imageUri}
+          placeholder={placeholder}
+          transition={400}
+          style={StyleSheet.absoluteFill}
+        />
       ) : (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: '#E2E8F0' }]} />
       )}

@@ -23,6 +23,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import EventImage from './EventImage';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -55,12 +56,10 @@ const SimilarEventCard = memo(function SimilarEventCard({
       accessibilityRole="button"
       accessibilityLabel={t('componentsEvents.similarEventA11y', { title: event.title })}
     >
-      <Image
-        source={banner || require('../../../assets/defaults/default-event.png')}
+      <EventImage
+        uri={banner}
+        fallbackSource={require('../../../assets/defaults/default-event.png')}
         style={styles.cardImage}
-        contentFit="cover"
-        cachePolicy="memory-disk"
-        transition={150}
       />
       <View style={styles.cardBody}>
         <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>

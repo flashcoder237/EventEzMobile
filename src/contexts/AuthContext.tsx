@@ -55,7 +55,10 @@ interface AuthContextType extends AuthState {
   syncUser: (user: User) => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Exporté pour un accès NON-throwing depuis des hooks utilitaires (ex.
+// useOfflineTickets, testable hors provider) : `useContext(AuthContext)` renvoie
+// undefined sans provider au lieu de lever comme `useAuth()`.
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
  * Si la préférence backend (`user.language`) diffère de la langue active i18n,
@@ -386,6 +389,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await CacheService.clearAll();
     } catch (cacheError) {
       if (__DEV__) console.warn('Cache clearAll on logout failed:', cacheError);
+    }
+    // SÉCURITÉ : purge les BILLETS HORS-LIGNE (clés eventez_ticket_*). Elles ne
+    // portaient PAS le préfixe de CacheService → clearAll() ne les touchait pas,
+    // donc l'utilisateur suivant sur le même téléphone voyait les billets du
+    // précédent. On les efface explicitement, tous comptes confondus.
+    try {
+      const { clearAllOfflineTickets } = await import('../hooks/useOfflineTickets');
+      await clearAllOfflineTickets();
+    } catch (offlineErr) {
+      if (__DEV__) console.warn('clearAllOfflineTickets on logout failed:', offlineErr);
     }
     // Purge le cache fichier des voice messages — eviter qu'un autre user
     // sur le meme device puisse acceder aux .m4a en lisant cacheDirectory.

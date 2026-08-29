@@ -23,8 +23,10 @@ jest.mock('expo-file-system/legacy', () => ({
 
 import { useOfflineTickets } from '../useOfflineTickets';
 
-const INDEX_KEY = 'eventez_cached_tickets_index';
-const PREFIX = 'eventez_ticket_';
+// Clés SCOPÉES par utilisateur (cf. useOfflineTickets). Hors AuthProvider,
+// l'utilisateur est undefined → segment vide ('').
+const INDEX_KEY = 'eventez_cached_tickets_index_';
+const PREFIX = 'eventez_ticket__';
 
 function makeTicket(id: string, overrides: any = {}) {
   return {
@@ -214,5 +216,26 @@ describe('expiration 7 jours', () => {
     expect(result.current.isTicketCached('old')).toBe(false);
     // Le ticket expiré a été retiré du storage.
     expect(await AsyncStorage.getItem(`${PREFIX}old`)).toBeNull();
+  });
+});
+
+describe('clearAllOfflineTickets (sécurité logout)', () => {
+  it('purge TOUS les billets offline de TOUS les comptes', async () => {
+    const { clearAllOfflineTickets } = require('../useOfflineTickets');
+    // Simule des billets de 2 comptes différents + l'index de chacun.
+    await AsyncStorage.setItem('eventez_ticket_42_t1', JSON.stringify({ ticketId: 't1' }));
+    await AsyncStorage.setItem('eventez_ticket_99_t2', JSON.stringify({ ticketId: 't2' }));
+    await AsyncStorage.setItem('eventez_cached_tickets_index_42', '{}');
+    await AsyncStorage.setItem('eventez_cached_tickets_index_99', '{}');
+    // Une clé non liée aux billets ne doit PAS être touchée.
+    await AsyncStorage.setItem('autre_cle', 'garde-moi');
+
+    await clearAllOfflineTickets();
+
+    expect(await AsyncStorage.getItem('eventez_ticket_42_t1')).toBeNull();
+    expect(await AsyncStorage.getItem('eventez_ticket_99_t2')).toBeNull();
+    expect(await AsyncStorage.getItem('eventez_cached_tickets_index_42')).toBeNull();
+    expect(await AsyncStorage.getItem('eventez_cached_tickets_index_99')).toBeNull();
+    expect(await AsyncStorage.getItem('autre_cle')).toBe('garde-moi');
   });
 });
