@@ -4938,7 +4938,9 @@
     "virtualLiveNow": "En direct",
     "virtualLiveParticipants": "{{count}} en ligne",
     "virtualJoinLive": "Rejoindre le direct",
-    "virtualStartsInMinutes": "Commence dans {{count}} min"
+    "virtualStartsInMinutes": "Commence dans {{count}} min",
+    "virtualUnavailableTitle": "Visio indisponible",
+    "virtualUnavailableNote": "EventEz Visio n'est pas encore activé pour cet événement. L'organisateur communiquera le lien de connexion."
   },
   "componentsCommon": {
     "exportTitle": "Choisir le format",

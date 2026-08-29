@@ -4938,7 +4938,9 @@
     "virtualLiveNow": "Live now",
     "virtualLiveParticipants": "{{count}} online",
     "virtualJoinLive": "Join live",
-    "virtualStartsInMinutes": "Starts in {{count}} min"
+    "virtualStartsInMinutes": "Starts in {{count}} min",
+    "virtualUnavailableTitle": "Video call unavailable",
+    "virtualUnavailableNote": "EventEz Video is not active yet for this event. The organizer will share the join link."
   },
   "componentsCommon": {
     "exportTitle": "Choose format",

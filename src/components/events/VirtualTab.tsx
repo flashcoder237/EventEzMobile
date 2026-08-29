@@ -118,14 +118,24 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
       navigation.navigate('Browser', { url: finalUrl });
       fetchVirtualData();
     } catch (error: any) {
-      const msg = error?.response?.data?.error || t('componentsEvents.virtualGenericError');
+      // Aligné sur RegistrationDetailsScreen : on distingue 503 (visio pas encore
+      // activée côté serveur — pas la faute de l'utilisateur) du reste.
+      const code = error?.response?.status;
+      const apiMsg = error?.response?.data?.error;
       const minsRemaining = error?.response?.data?.minutes_remaining;
-      showError(
-        t('componentsEvents.virtualAccessDenied'),
-        minsRemaining
-          ? t('componentsEvents.virtualAccessLater', { minutes: minsRemaining })
-          : msg
-      );
+      if (code === 503) {
+        showError(
+          t('componentsEvents.virtualUnavailableTitle'),
+          t('componentsEvents.virtualUnavailableNote'),
+        );
+      } else {
+        showError(
+          t('componentsEvents.virtualAccessDenied'),
+          minsRemaining
+            ? t('componentsEvents.virtualAccessLater', { minutes: minsRemaining })
+            : (apiMsg || t('componentsEvents.virtualGenericError')),
+        );
+      }
     } finally {
       setJoiningRoomId(null);
     }
