@@ -128,6 +128,27 @@ const MOBILE_MONEY_METHODS = new Set([
   'moov_money', 'free_money', 'yas',
 ]);
 
+// Libellé + couleurs du badge provider affiché sur chaque méthode. Couvre les 6
+// passerelles : avant, tout provider != cinetpay/stripe retombait sur « NotchPay »
+// → CamPay/pawaPay/Flutterwave s'affichaient à tort NotchPay.
+const PROVIDER_BADGE_LABEL: Record<string, string> = {
+  notchpay: 'NotchPay',
+  cinetpay: 'CinetPay',
+  stripe: 'Stripe',
+  campay: 'CamPay',
+  pawapay: 'pawaPay',
+  flutterwave: 'Flutterwave',
+};
+const PROVIDER_BADGE_STYLE: Record<string, { bg: string; fg: string }> = {
+  notchpay: { bg: '#D1FAE5', fg: '#047857' },
+  cinetpay: { bg: '#EDE9FE', fg: '#6D28D9' },
+  stripe: { bg: '#E0E7FF', fg: '#4338CA' },
+  campay: { bg: '#FEF3C7', fg: '#B45309' },
+  pawapay: { bg: '#FCE7F3', fg: '#BE185D' },
+  flutterwave: { bg: '#FFEDD5', fg: '#C2410C' },
+  default: { bg: '#E5E7EB', fg: '#374151' },
+};
+
 // Methodes qui utilisent une redirection navigateur (pas de saisie telephone) :
 // - NotchPay : credit_card + paypal (page hebergee)
 // - CinetPay : credit_card + cinetpay_wallet (page hebergee)
@@ -1710,38 +1731,19 @@ export default function PaymentScreen() {
                         {/* Badge passerelle : transparence sur quelle plateforme
                             traite la transaction. 3 couleurs alignees avec
                             l'admin (emerald/violet/indigo). */}
-                        {method.provider && (
-                          <View
-                            style={[
-                              styles.providerBadgeE,
-                              method.provider === 'cinetpay'
-                                ? { backgroundColor: '#EDE9FE' }
-                                : method.provider === 'stripe'
-                                  ? { backgroundColor: '#E0E7FF' }
-                                  : { backgroundColor: '#D1FAE5' },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.providerBadgeTextE,
-                                {
-                                  color:
-                                    method.provider === 'cinetpay'
-                                      ? '#6D28D9'
-                                      : method.provider === 'stripe'
-                                        ? '#4338CA'
-                                        : '#047857',
-                                },
-                              ]}
-                            >
-                              {method.provider === 'cinetpay'
-                                ? 'CinetPay'
-                                : method.provider === 'stripe'
-                                  ? 'Stripe'
-                                  : 'NotchPay'}
-                            </Text>
-                          </View>
-                        )}
+                        {method.provider && (() => {
+                          // Badge par provider. IMPORTANT : ne PAS retomber sur
+                          // « NotchPay » pour tout provider inconnu — campay/
+                          // pawapay/flutterwave s'affichaient à tort NotchPay.
+                          const style = PROVIDER_BADGE_STYLE[method.provider] || PROVIDER_BADGE_STYLE.default;
+                          return (
+                            <View style={[styles.providerBadgeE, { backgroundColor: style.bg }]}>
+                              <Text style={[styles.providerBadgeTextE, { color: style.fg }]}>
+                                {PROVIDER_BADGE_LABEL[method.provider] || method.provider}
+                              </Text>
+                            </View>
+                          );
+                        })()}
                       </View>
                       {overLimit ? (
                         <Text style={[styles.methodDescriptionE, { color: '#B45309' }]} numberOfLines={2}>
