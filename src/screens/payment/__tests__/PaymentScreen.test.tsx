@@ -505,4 +505,34 @@ describe('PaymentScreen', () => {
     okBtn?.onPress?.();
     expect(mockStartVerification).toHaveBeenCalledWith('pay-campay-1');
   });
+
+  // ── Validation opérateur pilotée par l'API (phone_patterns) ───────────────
+  // Régression : avant, la regex opérateur était codée en dur CM. Désormais on
+  // consomme phone_patterns[method] renvoyé par le backend (aligné doc PSP).
+  it('rejette un numéro Orange saisi pour MTN via phone_patterns de l\'API', async () => {
+    mockGetPaymentMethods.mockResolvedValue({
+      data: {
+        country_code: 'CM', phone_prefix: '+237', phone_digits: 9,
+        methods: [
+          { id: 'mtn_money', name: 'MTN Mobile Money', type: 'mobile_money', selected_provider: 'campay' },
+        ],
+        phone_patterns: { mtn_money: '^(67|68[0-4]|65[0-4])', orange_money: '^(65[5-9]|68[5-9]|69)' },
+      },
+    });
+
+    const { findByText, findByLabelText, findByTestId, findByPlaceholderText } = render(<PaymentScreen />);
+    fireEvent.press(await findByText('MTN Mobile Money'));
+
+    // Saisit un numéro ORANGE (690…) alors que MTN est sélectionné.
+    const phoneField = await findByPlaceholderText('X'.repeat(9));
+    fireEvent.changeText(phoneField, '690123456');
+
+    fireEvent.press(await findByTestId('terms-checkbox'));
+    fireEvent.press(await findByLabelText('Confirmer le paiement'));
+
+    // Rejeté sur l'opérateur → showError, aucun appel réseau d'init.
+    await waitFor(() => expect(mockShowError).toHaveBeenCalled());
+    expect(mockInitiate).not.toHaveBeenCalled();
+    expect(mockCreatePayment).not.toHaveBeenCalled();
+  });
 });

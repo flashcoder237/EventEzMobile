@@ -747,7 +747,9 @@ export default function PaymentScreen() {
     if (REDIRECT_METHODS.has(method)) return { valid: true };
     if (!MOBILE_MONEY_METHODS.has(method)) return { valid: true };
 
-    const cleanNumber = phoneNumber.replace(/[\s\-\.\(\)]/g, '');
+    const cleanNumber = phoneNumber.replace(/[\s\-.()]/g, '');
+    // Longueur + préfixe pilotés par l'API (phone_digits/phone_prefix du pays
+    // payeur). Défaut Cameroun uniquement si la config n'est pas encore chargée.
     const expectedDigits = countryConfig?.phone_digits || 9;
     const prefixDigits = (countryConfig?.phone_prefix || '+237').replace('+', '');
 
@@ -761,27 +763,29 @@ export default function PaymentScreen() {
       return { valid: false };
     }
 
-    // Validation stricte seulement pour le Cameroun (on a les patterns connus)
-    if (countryConfig?.country_code === 'CM' || !countryConfig) {
-      if (method === 'mtn_money') {
-        // CM : MTN = 67x, 680-684, 650-654 (685-689 appartient a Orange).
-        if (!numberWithoutPrefix.match(/^(67\d|68[0-4]|65[0-4])\d{6}$/)) {
-          showError(
-            t('payment.paymentInvalidMTN'),
-            t('payment.paymentMTNValidationHint')
-          );
-          return { valid: false };
-        }
+    // Validation OPÉRATEUR pilotée par l'API : `phone_patterns[method]` est une
+    // regex de PRÉFIXE (ex CM MTN `^(67|68[0-4]|65[0-4])`) fournie par le
+    // backend, aligné sur la doc opérateurs. Si le pays n'en fournit pas (objet
+    // vide, cas SN/CI/KE/UG), on ne valide QUE la longueur — pas de regex codée
+    // en dur côté mobile qui divergerait de la doc.
+    const patterns = countryConfig?.phone_patterns || {};
+    const prefixPattern = patterns[method];
+    if (prefixPattern) {
+      let ok = false;
+      try {
+        ok = new RegExp(prefixPattern).test(numberWithoutPrefix);
+      } catch {
+        // Regex serveur invalide → on ne bloque pas sur l'opérateur (fail-open,
+        // le PSP re-validera). La longueur a déjà été vérifiée.
+        ok = true;
       }
-      if (method === 'orange_money') {
-        // CM : Orange = 69x, 685-689, 655-659.
-        if (!numberWithoutPrefix.match(/^(65[5-9]|68[5-9]|69\d)\d{6}$/)) {
-          showError(
-            t('payment.paymentInvalidOrange'),
-            t('payment.paymentOrangeValidationHint')
-          );
-          return { valid: false };
-        }
+      if (!ok) {
+        const isMtn = method === 'mtn_money';
+        showError(
+          isMtn ? t('payment.paymentInvalidMTN') : t('payment.paymentInvalidOrange'),
+          isMtn ? t('payment.paymentMTNValidationHint') : t('payment.paymentOrangeValidationHint'),
+        );
+        return { valid: false };
       }
     }
 

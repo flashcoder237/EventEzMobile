@@ -108,6 +108,51 @@ export function getCountryByCode(code: string): SupportedCountry | undefined {
   return SUPPORTED_COUNTRIES.find((c) => c.code === code.toUpperCase());
 }
 
+// Emoji drapeau depuis un code ISO-2 (offset regional indicator). Pour les
+// nouveaux pays renvoyés par l'API et absents de la liste statique.
+function flagFromCode(code: string): string {
+  if (!/^[A-Z]{2}$/.test(code)) return '🌍';
+  const A = 0x1f1e6;
+  return String.fromCodePoint(A + code.charCodeAt(0) - 65, A + code.charCodeAt(1) - 65);
+}
+
+let _countriesSynced = false;
+/**
+ * Complète SUPPORTED_COUNTRIES avec les pays réellement activés côté backend
+ * (GET /payments/supported-countries/). NON destructif : on ne fait qu'AJOUTER
+ * les pays manquants (les entrées statiques gardent leurs drapeaux + i18n).
+ * Idempotent (une seule synchro par session). Échec réseau → liste statique
+ * inchangée (aucune régression). Aligné sur la source de vérité backend, donc
+ * cohérent avec la doc des PSP.
+ */
+export async function syncSupportedCountries(): Promise<void> {
+  if (_countriesSynced) return;
+  _countriesSynced = true;
+  try {
+    const { paymentsAPI } = await import('../../api');
+    const res = await paymentsAPI.supportedCountries();
+    const list: Array<{ code: string; name?: string; currency?: string }> =
+      res?.data?.countries || res?.data || [];
+    const known = new Set(SUPPORTED_COUNTRIES.map((c) => c.code));
+    // Insère les nouveaux pays AVANT l'entrée INTL (qui doit rester en dernier).
+    const intlIdx = SUPPORTED_COUNTRIES.findIndex((c) => c.code === INTL_CODE);
+    for (const c of list) {
+      const code = (c.code || '').toUpperCase();
+      if (!code || code === INTL_CODE || known.has(code)) continue;
+      const entry: SupportedCountry = {
+        code, name: c.name || code, currency: (c.currency || '').toUpperCase(),
+        flag: flagFromCode(code),
+      };
+      if (intlIdx >= 0) SUPPORTED_COUNTRIES.splice(intlIdx, 0, entry);
+      else SUPPORTED_COUNTRIES.push(entry);
+      known.add(code);
+    }
+  } catch {
+    // Réseau indisponible → on garde la liste statique. Réessai possible :
+    _countriesSynced = false;
+  }
+}
+
 /**
  * Resolveur de nom localise pour un pays. Lit la traduction `country.${code}`
  * et fallback sur le `name` historique si la cle manque dans la locale.
@@ -158,7 +203,17 @@ export default function CountryBadgeSelector({
   // Mode liste complete : false par defaut, l'user voit 2 cards rapides
   // (son pays + Autre pays). Au tap sur Autre pays → expand vers la liste.
   const [showFullList, setShowFullList] = useState(false);
+  // Bump pour re-render quand la liste des pays est synchronisée avec le backend.
+  const [, setCountriesVersion] = useState(0);
   const { modalOpen, sheetAnim, backdropAnim } = useBottomSheetAnim(visible);
+
+  // Synchronise la liste avec les pays réellement activés côté backend (non
+  // destructif : n'ajoute que les manquants). Une fois, au montage.
+  useEffect(() => {
+    let alive = true;
+    syncSupportedCountries().then(() => { if (alive) setCountriesVersion((v) => v + 1); });
+    return () => { alive = false; };
+  }, []);
 
   const current = getCountryByCode(countryCode) || SUPPORTED_COUNTRIES[0];
   // Pays "home" : prop fournie, sinon fallback sur le code actuel. Si ce

@@ -21,33 +21,33 @@ export function stripCountryPrefix(phone: string, countryPrefix: string = '237')
 }
 
 /**
- * Formate un numero de telephone pour l'affichage (XXX XXX XXX)
- * Fonctionne avec des numeros bruts ou deja partiellement formates
- * @param phone - Le numero de telephone (ex: '670123456', '670 123 456', '237670123456')
- * @returns Le numero formate (ex: '670 123 456')
+ * Découpe une suite de chiffres en groupes de 3 séparés par un espace.
+ * Générique : fonctionne pour 9 chiffres (CM/SN/KE/GH…) comme 10 (CI/…) ou +.
+ * Avant, un regex figé à 9 chiffres renvoyait le numéro brut au-delà.
  */
-export function formatPhoneForDisplay(phone: string): string {
-  const cleaned = cleanPhoneNumber(phone);
-  const match = cleaned.match(/^(\d{0,3})(\d{0,3})(\d{0,3})$/);
-  if (match) {
-    return [match[1], match[2], match[3]].filter(Boolean).join(' ');
-  }
-  return phone;
+function groupDigits(digits: string): string {
+  return digits.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
 }
 
 /**
- * Formate un texte saisi en temps reel pour un champ de telephone
- * Nettoie les caracteres non numeriques puis formate en groupes
+ * Formate un numero de telephone pour l'affichage (XXX XXX XXX[ XX])
+ * Fonctionne avec des numeros bruts ou deja partiellement formates, quel que
+ * soit le nombre de chiffres du pays.
+ * @param phone - Le numero de telephone (ex: '670123456', '0700112233')
+ * @returns Le numero formate en groupes de 3
+ */
+export function formatPhoneForDisplay(phone: string): string {
+  return groupDigits(cleanPhoneNumber(phone));
+}
+
+/**
+ * Formate un texte saisi en temps reel pour un champ de telephone.
+ * Nettoie les caracteres non numeriques puis groupe par 3 (toute longueur).
  * @param text - Le texte saisi par l'utilisateur
  * @returns Le numero formate pour l'affichage
  */
 export function formatPhoneInput(text: string): string {
-  const cleaned = cleanPhoneNumber(text);
-  const match = cleaned.match(/^(\d{0,3})(\d{0,3})(\d{0,3})$/);
-  if (match) {
-    return [match[1], match[2], match[3]].filter(Boolean).join(' ');
-  }
-  return text;
+  return groupDigits(cleanPhoneNumber(text));
 }
 
 /**

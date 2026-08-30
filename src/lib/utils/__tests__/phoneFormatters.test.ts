@@ -48,8 +48,10 @@ describe('formatPhoneForDisplay', () => {
     expect(formatPhoneForDisplay('670123')).toBe('670 123');
   });
 
-  it('returns raw input for >9 digits (no match)', () => {
-    expect(formatPhoneForDisplay('6701234567890')).toBe('6701234567890');
+  it('formats 10-digit numbers (ex: Côte d\'Ivoire) in groups of 3', () => {
+    // Avant : figé à 9 chiffres → numéro brut non formaté. Désormais générique.
+    expect(formatPhoneForDisplay('0700112233')).toBe('070 011 223 3');
+    expect(formatPhoneForDisplay('6701234567890')).toBe('670 123 456 789 0');
   });
 
   it('cleans non-digits before formatting', () => {
