@@ -14,11 +14,21 @@
  *                             APIs scopees a la place.
  *
  *  - READ_EXTERNAL_STORAGE  : meme histoire, ne fait plus rien en targetSdk 33+.
- *                             Remplacee par READ_MEDIA_IMAGES si necessaire
- *                             (ajoutee automatiquement par les modules concernes).
+ *
+ *  - READ_MEDIA_IMAGES / READ_MEDIA_VIDEO : permissions LARGES de lecture de la
+ *      galerie (Android 13+). Google Play a REJETE l'app (version code 15) parce
+ *      qu'elle les demandait alors qu'elle n'a qu'un usage ponctuel des medias
+ *      -> la politique impose le photo picker systeme dans ce cas.
+ *      expo-image-picker utilise deja le photo picker (aucune permission) et
+ *      expo-media-library ne sert qu'a saveToLibraryAsync en writeOnly.
+ *      ⚠️ NE PAS declarer expo-media-library comme plugin dans app.json : son
+ *      config plugin RE-AJOUTE ces deux permissions (+ READ_MEDIA_AUDIO +
+ *      requestLegacyExternalStorage) via granularPermissions par defaut. On les
+ *      retire ici avec tools:node="remove" (le manifest merger gagne meme si un
+ *      module les redeclare dans son propre AndroidManifest.xml).
  *
  * Sans ce plugin, ces permissions remontent quand meme dans le manifest
- * fusionne et Play Console les flag dans le formulaire Data Safety.
+ * fusionne et Play Console les flag / rejette.
  */
 const { withAndroidManifest } = require('@expo/config-plugins');
 
@@ -26,6 +36,10 @@ const PERMISSIONS_TO_REMOVE = [
   'android.permission.SYSTEM_ALERT_WINDOW',
   'android.permission.WRITE_EXTERNAL_STORAGE',
   'android.permission.READ_EXTERNAL_STORAGE',
+  // Conformite Play (rejet version code 15) : usage ponctuel = photo picker,
+  // pas de permission de lecture large. cf. blockedPermissions dans app.json.
+  'android.permission.READ_MEDIA_IMAGES',
+  'android.permission.READ_MEDIA_VIDEO',
 ];
 
 function withRemoveProblematicPermissions(config) {
