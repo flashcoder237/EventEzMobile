@@ -64,8 +64,36 @@ export const exhibitorsAPI = {
   waitlistApplication: (id: string, reviewNotes?: string) =>
     api.post(`/booth-applications/${id}/waitlist/`, { review_notes: reviewNotes || '' }),
 
+  // ── PARCOURS EXPOSANT : fiche société + candidature ───────────────────────
+  // Fiche(s) exposant de l'utilisateur (mine=true → seulement les siennes).
+  getExhibitors: (params?: { mine?: string }) =>
+    api.get('/exhibitors/', { params }),
+  createExhibitor: (data: {
+    company_name: string; category?: string; website?: string;
+    description?: string; contact_name?: string; contact_email?: string;
+    contact_phone?: string;
+  }) => api.post('/exhibitors/', data),
+  // Mise à jour par SLUG (lookup_field côté backend).
+  updateExhibitor: (slug: string, data: {
+    company_name?: string; category?: string; website?: string;
+    description?: string; contact_name?: string; contact_email?: string;
+    contact_phone?: string;
+  }) => api.patch(`/exhibitors/${slug}/`, data),
+  // Candidature à un stand d'un salon (requested_booth optionnel).
+  createApplication: (data: {
+    event: string; exhibitor: string; requested_booth?: string; pitch?: string;
+  }) => api.post('/booth-applications/', data),
+
   // ── ESPACE EXPOSANT : mes réservations de stand ──────────────────────────
   getMyBookings: () => api.get('/booth-bookings/'),
+  // Options de paiement recommandées (intégral / acompte / solde) pour un stand.
+  getBookingPaymentOptions: (bookingId: string) =>
+    api.get(`/booth-bookings/${bookingId}/payment-options/`),
+  // Initie un paiement de stand ; retourne une payment_url à ouvrir en WebView.
+  payBooking: (bookingId: string, data: {
+    payment_method: string; kind?: 'full' | 'deposit' | 'balance';
+    idempotency_key?: string; billing?: Record<string, any>;
+  }) => api.post(`/booth-bookings/${bookingId}/pay/`, data),
 
   // ── Vente déléguée : contrats de l'exposant ──────────────────────────────
   getSalesContracts: (params?: { event?: string }) =>

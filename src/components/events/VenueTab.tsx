@@ -16,6 +16,7 @@ import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 import ExhibitorsSection from './ExhibitorsSection';
+import ExhibitorApplyCTA from './ExhibitorApplyCTA';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 interface SeatingZone {
@@ -133,6 +134,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
           <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>{t('componentsEvents.venueEmpty')}</Text>
         </View>
         {/* Les exposants peuvent exister même sans plan de salle. */}
+        <ExhibitorApplyCTA eventId={eventId} />
         <ExhibitorsSection eventId={eventId} />
       </View>
     );
@@ -313,7 +315,8 @@ export default function VenueTab({ eventId }: VenueTabProps) {
         </>
       )}
 
-      {/* Annuaire des exposants (ne s'affiche que s'il y en a) */}
+      {/* Devenir exposant (salon uniquement) + annuaire des exposants */}
+      <ExhibitorApplyCTA eventId={eventId} />
       <ExhibitorsSection eventId={eventId} />
     </View>
   );
