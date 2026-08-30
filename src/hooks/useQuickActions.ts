@@ -19,6 +19,26 @@ const IDS = {
   scan: 'qa_scan',
 } as const;
 
+/**
+ * Icônes des raccourcis.
+ *
+ * Sans `icon`, Android affiche un CARRÉ VIDE à gauche de chaque libellé —
+ * c'était le cas jusqu'ici.
+ *
+ * Android : le nom doit correspondre à une clé `androidIcons` du plugin
+ * `expo-quick-actions` (cf. app.json), qui génère la ressource drawable au
+ * build. Les PNG sources sont blancs sur fond transparent, dessinés dans le
+ * cercle sûr de 66/108 dp — hors de cette zone, le masque adaptatif rogne.
+ *
+ * iOS : accepte en plus les symboles système (`symbol:magnifyingglass`). On
+ * garde les mêmes assets pour que les deux plateformes soient cohérentes.
+ */
+const ICONS = {
+  discover: 'shortcut_discover',
+  tickets: 'shortcut_tickets',
+  scan: 'shortcut_scan',
+} as const;
+
 function routeForAction(id: string): void {
   if (!navigationRef.isReady()) return;
   // Navigation imbriquée (tab) → cast car `Main` n'est pas typé
@@ -44,13 +64,18 @@ export function useQuickActions(): void {
   // (Re)définit la liste des raccourcis selon l'état d'auth / le rôle.
   useEffect(() => {
     const items: QuickActions.Action[] = [
-      { id: IDS.discover, title: 'Découvrir', subtitle: 'Événements près de vous' },
+      {
+        id: IDS.discover,
+        title: 'Découvrir',
+        subtitle: 'Événements près de vous',
+        icon: ICONS.discover,
+      },
     ];
     if (isAuthenticated) {
-      items.push({ id: IDS.tickets, title: 'Mes billets' });
+      items.push({ id: IDS.tickets, title: 'Mes billets', icon: ICONS.tickets });
       const role = user?.role;
       if (role === 'organizer' || role === 'admin' || role === 'moderator') {
-        items.push({ id: IDS.scan, title: 'Scanner un billet' });
+        items.push({ id: IDS.scan, title: 'Scanner un billet', icon: ICONS.scan });
       }
     }
     QuickActions.setItems(items).catch(() => {

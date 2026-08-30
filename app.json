@@ -162,7 +162,16 @@
       "expo-localization",
       "@react-native-community/datetimepicker",
       "expo-font",
-      "expo-quick-actions"
+      [
+        "expo-quick-actions",
+        {
+          "androidIcons": {
+            "shortcut_discover": "./assets/icons/shortcut-discover.png",
+            "shortcut_tickets": "./assets/icons/shortcut-tickets.png",
+            "shortcut_scan": "./assets/icons/shortcut-scan.png"
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {
