@@ -1638,7 +1638,7 @@
     "rowHelpCenter": "Help center",
     "rowTermsOfUse": "Terms of service",
     "rowPrivacyPolicy": "Privacy policy",
-    "rowAppVersion": "EventEz 1.0.0",
+    "rowAppVersion": "EventEz {{version}}",
     "rowLogout": "Sign out",
     "rowDeleteAccount": "Delete my account",
     "languageActivated": "Language activated",

@@ -11,6 +11,7 @@ import {
   Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -1495,7 +1496,7 @@ export default function SettingsScreen() {
           <OptionCard
             icon="information-outline"
             eyebrow={t('eyebrow.version')}
-            title={t('settings.rowAppVersion')}
+            title={t('settings.rowAppVersion', { version: Constants.expoConfig?.version ?? '' })}
             right={
               <View style={[styles.versionPill, { backgroundColor: colors.gray100 }]}>
                 <Text style={[styles.versionPillText, { color: colors.gray600 }]}>{t('settings.buildBadge')}</Text>
