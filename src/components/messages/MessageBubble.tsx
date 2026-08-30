@@ -614,7 +614,10 @@ function MessageBubble({
       catch { MediaLibrary = null; }
 
       if (MediaLibrary?.saveToLibraryAsync) {
-        const perm = await MediaLibrary.requestPermissionsAsync();
+        // writeOnly: true → ne demande QUE l'accès en écriture (ajout à la
+        // galerie), pas READ_MEDIA_IMAGES/VIDEO. Ces permissions de lecture
+        // sont bloquées (conformité Play : usage ponctuel = photo picker).
+        const perm = await MediaLibrary.requestPermissionsAsync(true);
         if (!perm.granted) {
           showError(
             t('componentsMessages.attachmentMenuPermissionDenied'),
