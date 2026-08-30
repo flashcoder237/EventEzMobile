@@ -34,3 +34,41 @@ describe('badgeIcon', () => {
     expect(badgeIcon('rocket')).toBe('rocket');
   });
 });
+
+/**
+ * Couleur propre au badge : `Badge.color` est saisi en admin et exposé par
+ * l'API, mais l'écran l'ignorait au profit d'un violet uniforme — toute la
+ * collection se ressemblait.
+ */
+import { badgeAccent, shadeColor } from '../GamificationScreen';
+
+// Valeurs réellement en base.
+const BACKEND_COLORS = [
+  '#EAB308', '#A855F7', '#F59E0B', '#8B5CF6', '#3B82F6', '#10B981',
+  '#06B6D4', '#14B8A6', '#EC4899', '#7C3AED', '#D946EF', '#F97316', '#EF4444',
+];
+
+describe('badgeAccent', () => {
+  it.each(BACKEND_COLORS)('accepte la couleur « %s »', (c) => {
+    expect(badgeAccent(c, '#4F46E5')).toBe(c);
+  });
+
+  it('retombe sur la couleur par défaut si la valeur est inexploitable', () => {
+    // Un `color` vide ou malformé produirait un dégradé cassé : `NaN` dans
+    // LinearGradient fige le rendu natif.
+    for (const bad of ['', '  ', 'rouge', '#GGG', '#12345', null, undefined]) {
+      expect(badgeAccent(bad as any, '#4F46E5')).toBe('#4F46E5');
+    }
+  });
+});
+
+describe('shadeColor', () => {
+  it.each(BACKEND_COLORS)('produit un hex valide depuis « %s »', (c) => {
+    expect(shadeColor(c, -28)).toMatch(/^#[0-9a-f]{6}$/i);
+  });
+
+  it('assombrit et éclaircit sans déborder', () => {
+    expect(shadeColor('#000000', -50)).toBe('#000000'); // pas de valeur négative
+    expect(shadeColor('#ffffff', 50)).toBe('#ffffff');  // pas au-delà de 255
+  });
+});

@@ -54,6 +54,32 @@ const BADGE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 /** Icône Ionicons d'un badge, avec repli sur `ribbon` si le nom est inconnu. */
+/**
+ * Couleur d'accent d'un badge, validée.
+ *
+ * `Badge.color` est saisi en admin : une valeur vide ou malformée ne doit pas
+ * produire un dégradé cassé (`NaN` dans LinearGradient fige le rendu natif).
+ */
+export function badgeAccent(color: string | null | undefined, fallback: string): string {
+  return typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color.trim())
+    ? color.trim()
+    : fallback;
+}
+
+/**
+ * Éclaircit (`amount > 0`) ou assombrit (`amount < 0`) une couleur hex, pour
+ * dériver le second ton du dégradé depuis la couleur propre au badge — plutôt
+ * que d'imposer une seconde couleur fixe qui jurerait avec les 14 teintes.
+ */
+export function shadeColor(hex: string, amount: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const clamp = (v: number) => Math.max(0, Math.min(255, v));
+  const r = clamp(((n >> 16) & 0xff) + amount);
+  const g = clamp(((n >> 8) & 0xff) + amount);
+  const b = clamp((n & 0xff) + amount);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
+
 export function badgeIcon(name?: string | null): keyof typeof Ionicons.glyphMap {
   if (!name) return 'ribbon';
   const mapped = BADGE_ICONS[name];
@@ -152,6 +178,10 @@ export default function GamificationScreen() {
   // === BADGE CARD ===
   const renderBadge = ({ item, index }: { item: any; index: number }) => {
     const earned = !!item.earned_at;
+    // Chaque badge porte SA couleur en base (`Badge.color`), déjà exposée par
+    // l'API — elle était ignorée au profit d'un violet uniforme, ce qui rendait
+    // la collection indifférenciée. Repli sur `colors.primary` si absente.
+    const accent = badgeAccent(item.color, colors.primary);
     return (
       <StaggeredItem index={index} staggerDelay={50}>
         <View style={styles.badgeCol}>
@@ -160,23 +190,41 @@ export default function GamificationScreen() {
               styles.badgeCard,
               {
                 backgroundColor: colors.card,
-                borderColor: earned ? colors.primary : hairline,
+                borderColor: earned ? accent : hairline,
               },
               earned ? Shadows.sm : { opacity: 0.55 },
             ]}
           >
+            {/* Halo teinté : donne du relief au médaillon sans masquer la
+                lisibilité du nom en dessous. Uniquement si obtenu — un badge
+                verrouillé doit rester visiblement éteint. */}
+            {earned && (
+              <View
+                pointerEvents="none"
+                style={[styles.badgeGlow, { backgroundColor: `${accent}14` }]}
+              />
+            )}
             {earned && (
               <View style={[styles.badgeRibbon, { backgroundColor: '#10B981' }]}>
                 <Ionicons name="checkmark" size={8} color="#FFFFFF" />
               </View>
             )}
-            <View style={[styles.badgeIconBoxE, { backgroundColor: `${colors.primary}15` }]}>
-              <Ionicons
-                name={badgeIcon(item.icon)}
-                size={28}
-                color={earned ? colors.primary : colors.gray400}
-              />
-            </View>
+            {earned ? (
+              // Médaillon en dégradé : le badge obtenu se distingue au premier
+              // coup d'œil d'un badge encore verrouillé.
+              <LinearGradient
+                colors={[accent, shadeColor(accent, -28)]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.badgeIconBoxE}
+              >
+                <Ionicons name={badgeIcon(item.icon)} size={28} color="#FFFFFF" />
+              </LinearGradient>
+            ) : (
+              <View style={[styles.badgeIconBoxE, { backgroundColor: colors.gray100 }]}>
+                <Ionicons name={badgeIcon(item.icon)} size={28} color={colors.gray400} />
+              </View>
+            )}
           </View>
           <Text style={[styles.badgeNameE, { color: colors.text }]} numberOfLines={2}>
             {item.badge_name || item.name}
@@ -777,6 +825,16 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  // Halo derrière le médaillon — `absoluteFill` pour ne pas influer sur le
+  // layout de la carte (qui reste carrée via aspectRatio).
+  badgeGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   badgeNameE: {
     fontFamily: FontFamily.displayBold,
