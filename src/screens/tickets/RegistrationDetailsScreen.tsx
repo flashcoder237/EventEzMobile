@@ -486,6 +486,16 @@ export default function RegistrationDetailsScreen() {
   const event = registration.event_detail || (typeof registration.event === 'object' ? registration.event : null);
   const statusConfig = getStatusConfig(registration.status, registration.approval_status);
   const isActive = registration.status !== 'cancelled' && registration.status !== 'rejected';
+
+  // Événement TERMINÉ : la prestation a eu lieu, l'inscription ne s'annule plus
+  // (garde miroir du backend). On se base sur `end_date` et non `start_date` :
+  // pendant l'événement, l'annulation reste légitime.
+  const eventEnded = (() => {
+    const ev = registration.event_detail
+      || (typeof registration.event === 'object' ? registration.event : null);
+    const end = (ev as any)?.end_date;
+    return !!end && new Date(end).getTime() < Date.now();
+  })();
   const isBilletterie = registration.tickets && registration.tickets.length > 0;
   const totalTicketQuantity = isBilletterie
     ? registration.tickets!.reduce((sum: number, ticketItem: any) => sum + (ticketItem.quantity || 1), 0)
@@ -1201,13 +1211,15 @@ export default function RegistrationDetailsScreen() {
               />
             )}
 
-            <EditorialPillCTA
-              eyebrow={t('registrationDetails.renounceEyebrow')}
-              label={t('registrationDetails.cancelMyRegistration')}
-              onPress={handleCancelRegistration}
-              tone="accent"
-              icon="close-circle"
-            />
+            {!eventEnded && (
+              <EditorialPillCTA
+                eyebrow={t('registrationDetails.renounceEyebrow')}
+                label={t('registrationDetails.cancelMyRegistration')}
+                onPress={handleCancelRegistration}
+                tone="accent"
+                icon="close-circle"
+              />
+            )}
           </View>
         )}
 

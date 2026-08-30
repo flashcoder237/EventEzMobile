@@ -517,7 +517,12 @@ export default function MyTicketsScreen() {
       const now = new Date();
       return registrations.filter((reg) => {
         const event = getEventData(reg);
-        const eventDate = event?.start_date ? new Date(event.start_date) : null;
+        // Bascule « À venir » / « Passés » sur la date de FIN, pas de début :
+        // un événement qui a commencé ce matin et se termine à 16 h est encore
+        // EN COURS — il basculait dans « Passés » dès son démarrage.
+        // Repli sur `start_date` si `end_date` est absente.
+        const eventEnd = (event as any)?.end_date || event?.start_date;
+        const eventDate = eventEnd ? new Date(eventEnd) : null;
         const isCancelled = reg.status === 'cancelled' || reg.status === 'rejected';
         const isPendingApproval =
           reg.approval_status === 'pending' || reg.status === 'pending_approval';

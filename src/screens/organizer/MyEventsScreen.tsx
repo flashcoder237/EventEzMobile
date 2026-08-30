@@ -78,6 +78,20 @@ const statusColorIcon: Record<string, { color: string; icon: keyof typeof Ionico
   cancelled: { color: '#6B7280', icon: 'ban-outline' },
 };
 
+/**
+ * Vrai si l'événement est TERMINÉ (date de fin dépassée).
+ *
+ * On se base sur `end_date` et non `start_date` : pendant l'événement, toutes
+ * les actions (scan, statistiques, diffusion) restent pertinentes. Repli sur
+ * `start_date` quand la date de fin est absente.
+ */
+function isEventEnded(event: any): boolean {
+  const end = event?.end_date || event?.start_date;
+  if (!end) return false;
+  const t = new Date(end).getTime();
+  return Number.isFinite(t) && t < Date.now();
+}
+
 export default function MyEventsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
@@ -598,6 +612,41 @@ export default function MyEventsScreen() {
     if (!event) return [];
 
     const sections: EventActionSection[] = [];
+
+    // ─── Événement TERMINÉ : jeu d'actions réduit ───
+    // Une fois la date de fin passée, la plupart des actions n'ont plus de sens
+    // — scanner un billet, envoyer une invitation, programmer une récurrence ou
+    // soumettre à validation sur un événement déjà joué. Pire, « Annuler
+    // l'événement » laissait croire qu'on peut défaire ce qui a eu lieu.
+    // On ne garde donc que : voir, dupliquer (pour réutiliser la configuration)
+    // et supprimer.
+    const ended = isEventEnded(event);
+    if (ended) {
+      sections.push({
+        title: t('organizer.myEvents.sectionActions'),
+        actions: [
+          {
+            label: t('organizer.myEvents.actions.view'),
+            icon: 'eye-outline',
+            onPress: () => navigation.navigate('EventDetails', { eventId: event.slug || event.id }),
+          },
+          {
+            label: t('organizer.myEvents.actions.duplicate'),
+            icon: 'copy-outline',
+            description: t('organizer.myEvents.actions.duplicatePastDesc'),
+            onPress: () => handleDuplicateEvent(event),
+          },
+          {
+            label: t('common.delete'),
+            icon: 'trash-outline',
+            style: 'destructive',
+            description: t('organizer.myEvents.actions.deleteDesc'),
+            onPress: () => handleDeleteEvent(event.id),
+          },
+        ],
+      });
+      return sections;
+    }
 
     // ─── Suivi : visible sur tous les events ───
     const trackingActions: EventAction[] = [
