@@ -59,6 +59,7 @@ import { useMutedConversations } from '../../hooks/useMutedConversations';
 import ImageView from 'react-native-image-viewing';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import { downloadThenSaveToGallery } from '../../lib/media/mediaActions';
 import { useMessageState, AttachedFile } from '../../hooks/useMessageState';
 import { useOfflineQueue } from '../../hooks/useOfflineQueue';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
@@ -1973,11 +1974,24 @@ export default function ConversationScreen() {
   }, [t, showError]);
 
   const saveImageAttachmentToGallery = useCallback(async (att: any) => {
-    // Pour la galerie photo native, on a besoin de expo-media-library qui
-    // n'est peut-etre pas installe. Fallback : share, qui propose "Save
-    // image" parmi les options.
-    return downloadAndOpenAttachment(att);
-  }, [downloadAndOpenAttachment]);
+    // Sauvegarde RÉELLE dans la galerie (writeOnly), unifié avec MessageBubble.
+    // Avant, cet écran faisait juste un partage → le bouton « Enregistrer dans
+    // la galerie » ne sauvegardait pas vraiment selon le chemin de code.
+    if (typeof att?.file !== 'string') return;
+    const filename = (att.file_name as string) || att.file.split('/').pop()?.split('?')[0] || 'image.jpg';
+    const res = await downloadThenSaveToGallery(att.file, filename);
+    if (res.ok) {
+      toastSuccess(t('media.savedToGallery'));
+      return;
+    }
+    if (res.reason === 'permission_denied') {
+      showError(t('media.permissionDeniedTitle'), t('media.permissionDeniedMessage'));
+      return;
+    }
+    // Natif media-library absent ou erreur → fallback partage (l'utilisateur
+    // peut choisir « Enregistrer l'image » dans la share sheet).
+    await downloadAndOpenAttachment(att);
+  }, [downloadAndOpenAttachment, toastSuccess, showError, t]);
 
   const handleBlockUserById = (targetUserId: string, targetName: string) => {
     showConfirm(

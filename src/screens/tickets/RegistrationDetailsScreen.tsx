@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import QRCode from 'react-native-qrcode-svg';
 import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import { useSaveOrShareSheet } from '../../hooks/useSaveOrShareSheet';
 
 import { registrationsAPI, ticketTransfersAPI, paymentsAPI, virtualRoomsAPI } from '../../api';
 import { getVerificationUrl, getEventInviteUrl, WEB_BASE_URL } from '../../constants/urls';
@@ -65,6 +65,7 @@ export default function RegistrationDetailsScreen() {
   const route = useRoute<RegistrationDetailsRouteProp>();
   const { registrationId } = route.params;
   const { showError, showSuccess, showConfirm } = useAlert();
+  const { open: openSaveOrShare, sheet: saveOrShareSheet } = useSaveOrShareSheet();
   const { toastSuccess, toastError } = useFeedback();
   const { colors, isDark } = useTheme();
 
@@ -361,15 +362,13 @@ export default function RegistrationDetailsScreen() {
       const qrDataUrl = await getQrDataUrl();
       const html = buildRecapHTML(qrDataUrl || '');
       const { uri } = await Print.printToFileAsync({ html });
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: t('registrationDetails.pdfShareDialog'),
-          UTI: 'com.adobe.pdf',
-        });
-      } else {
-        showError(t('common.error'), t('registrationDetails.pdfError'));
-      }
+      openSaveOrShare({
+        uri,
+        kind: 'pdf',
+        mimeType: 'application/pdf',
+        UTI: 'com.adobe.pdf',
+        title: (registration as any)?.event_title || t('registrationDetails.pdfShareDialog'),
+      });
     } catch (error) {
       if (__DEV__) console.error('[RegistrationDetails] PDF export failed:', error);
       showError(t('common.error'), t('registrationDetails.pdfError'));
@@ -1241,6 +1240,7 @@ export default function RegistrationDetailsScreen() {
         }}
       />
       </View>
+      {saveOrShareSheet}
     </EditorialCanvas>
   );
 }

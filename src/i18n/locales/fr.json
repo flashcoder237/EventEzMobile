@@ -5076,6 +5076,17 @@
     "permissionSubtitle": "Pour scanner un QR, EventEz a besoin d'accéder à la caméra.",
     "permissionGrant": "Autoriser la caméra"
   },
+  "media": {
+    "sheetTitle": "Que souhaitez-vous faire ?",
+    "saveToGallery": "Enregistrer dans la galerie",
+    "share": "Partager",
+    "savedToGallery": "Enregistré dans la galerie",
+    "permissionDeniedTitle": "Autorisation refusée",
+    "permissionDeniedMessage": "Active l'accès aux photos dans les Paramètres pour enregistrer.",
+    "sharingUnavailable": "Le partage n'est pas disponible sur cet appareil.",
+    "downloadFailed": "Le téléchargement a échoué. Réessaie.",
+    "genericError": "Une erreur est survenue. Réessaie."
+  },
   "componentsMessages": {
     "inputJoinFile": "Joindre un fichier",
     "inputJoinFileHint": "Images max 5 Mo, fichiers max 10 Mo",

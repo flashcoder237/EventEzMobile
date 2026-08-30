@@ -28,7 +28,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { formatTimeAgo } from '../../lib/utils/dateFormatters';
 import { registrationsAPI } from '../../api';
 import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import { useSaveOrShareSheet } from '../../hooks/useSaveOrShareSheet';
 import {
   FontSizes,
   FontFamily,
@@ -50,6 +50,7 @@ export default function OfflineTicketsScreen() {
   const { t, i18n } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { showSuccess, showConfirm, showError } = useAlert();
+  const { open: openSaveOrShare, sheet: saveOrShareSheet } = useSaveOrShareSheet();
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
   const {
@@ -246,15 +247,15 @@ export default function OfflineTicketsScreen() {
           <div class="footer">EventEz</div>
         </body></html>`;
       const { uri } = await Print.printToFileAsync({ html });
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: t('offlineTickets.pdfShareDialog', { defaultValue: 'Enregistrer / partager le billet' }),
-          UTI: 'com.adobe.pdf',
-        });
-      } else {
-        showError(t('common.error'), t('offlineTickets.pdfError', { defaultValue: "Impossible de générer le PDF." }));
-      }
+      // Propose « Enregistrer / Partager » via le sheet (la share sheet native
+      // inclut déjà « Enregistrer dans Fichiers »).
+      openSaveOrShare({
+        uri,
+        kind: 'pdf',
+        mimeType: 'application/pdf',
+        UTI: 'com.adobe.pdf',
+        title: ticket.eventTitle,
+      });
     } catch (e) {
       if (__DEV__) console.error('[OfflineTickets] PDF export failed:', e);
       showError(t('common.error'), t('offlineTickets.pdfError', { defaultValue: "Impossible de générer le PDF." }));
@@ -566,6 +567,7 @@ export default function OfflineTicketsScreen() {
           />
         )}
       </View>
+      {saveOrShareSheet}
     </EditorialCanvas>
   );
 }

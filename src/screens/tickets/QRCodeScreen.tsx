@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import { useSaveOrShareSheet } from '../../hooks/useSaveOrShareSheet';
 import QRCode from 'react-native-qrcode-svg';
 
 import { useAlert } from '../../contexts/AlertContext';
@@ -63,6 +63,7 @@ export default function QRCodeScreen() {
   const route = useRoute<QRCodeRouteProp>();
   const { ticketId } = route.params;
   const { showError } = useAlert();
+  const { open: openSaveOrShare, sheet: saveOrShareSheet } = useSaveOrShareSheet();
   const { toastError } = useFeedback();
   const { colors, isDark } = useTheme();
 
@@ -130,8 +131,11 @@ export default function QRCodeScreen() {
 
   const generateTicketHTML = (qrImageUrl: string): string => {
     const eventTitle = event?.title || (ticket as any)?.event_title || t('qrCode.eventFallback');
-    const qrUrl = qrImageUrl
-      || `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(verificationUrl)}&size=200x200&format=png&qzone=1&margin=0&bgcolor=FFFFFF&color=5B21B6`;
+    // QR généré LOCALEMENT (qrcode-svg → base64). Pas de fallback vers un
+    // service tiers (api.qrserver.com) : cela envoyait l'URL de vérification du
+    // billet chez un tiers (fuite de données) et dépendait de sa disponibilité.
+    // Si la génération locale échoue, le PDF garde la référence texte du billet.
+    const qrUrl = qrImageUrl || '';
     const ticketTypeName = ticketType?.name || (ticket as any)?.ticket_type_name || t('qrCode.ticketTypeFallback');
     const reference = String(ticketId).slice(0, 8).toUpperCase();
     const statusLabel = getStatusConfig(ticket?.status).label;
@@ -181,10 +185,8 @@ export default function QRCodeScreen() {
             ${event?.location_name || event?.location_city ? `<div class="meta-item"><span class="meta-icon">📍</span> ${event.location_name || event.location_city}</div>` : ''}
           </div>
           <div class="qr-section">
-            <div class="qr-container">
-              <img src="${qrUrl}" alt="QR Code" />
-            </div>
-            <p class="qr-hint">${t('qrCode.pdfQrHint')}</p>
+            ${qrUrl ? `<div class="qr-container"><img src="${qrUrl}" alt="QR Code" /></div>` : ''}
+            <p class="qr-hint">${qrUrl ? t('qrCode.pdfQrHint') : t('qrCode.eventFallback')}</p>
           </div>
           <div class="details-section">
             <div class="detail-row">
@@ -238,16 +240,13 @@ export default function QRCodeScreen() {
       const qrDataUrl = await getQrDataUrl();
       const html = generateTicketHTML(qrDataUrl || '');
       const { uri } = await Print.printToFileAsync({ html });
-      const sharingAvailable = await Sharing.isAvailableAsync();
-      if (sharingAvailable) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: t('qrCode.pdfShareDialog'),
-          UTI: 'com.adobe.pdf',
-        });
-      } else {
-        showError(t('qrCode.shareUnavailableTitle'), t('qrCode.shareUnavailableMsg'));
-      }
+      openSaveOrShare({
+        uri,
+        kind: 'pdf',
+        mimeType: 'application/pdf',
+        UTI: 'com.adobe.pdf',
+        title: event?.title || (ticket as any)?.event_title || t('qrCode.pdfShareDialog'),
+      });
     } catch (error) {
       if (__DEV__) console.error('Error generating PDF:', error);
       showError(t('common.error'), t('qrCode.pdfError'));
@@ -818,6 +817,7 @@ export default function QRCodeScreen() {
           <View style={{ height: insets.bottom + Spacing.xl }} />
         </ScrollView>
       </View>
+      {saveOrShareSheet}
     </EditorialCanvas>
   );
 }
