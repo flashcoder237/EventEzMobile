@@ -76,8 +76,42 @@ Contenu réel du build 1.2.0.
 - Exposants : parcours candidature + paiement de stand.
 - Billet hors-ligne téléchargeable.
 
+**Deep links (Android + iOS)**
+- Suppression des icônes alternatives (`expo-dynamic-app-icon`) : les
+  activity-alias qu'elles créaient désactivaient MainActivity (porteuse des
+  intent-filters https) → dès qu'un utilisateur changeait d'icône, TOUS les
+  universal links ouvraient le navigateur au lieu de l'app. Diagnostiqué via
+  `adb dumpsys package`. Feature retirée entièrement.
+- Correction du nom d'app (`net.overbrand.eventez` → « EventEz ») dans les
+  écrans système, effet de bord des mêmes activity-alias.
+- Liens email `/dashboard/*` réécrits vers les écrans mobiles (rewriteDashboardPath)
+  + intent-filters/AASA correspondants ; bug d'écran cible « MyTickets ».
+- SHA-256 de la clé Play Store (`60:DF:95…`) ajouté à `assetlinks.json` : la
+  vérification autoVerify échouait sinon (aucune empreinte ne correspondait).
+- Deep link ouvert au premier lancement : bypass de l'onboarding (sinon l'écran
+  de bienvenue « avalait » la cible du lien).
+
+**Écran Live (visio)**
+- Badge de votes qui affichait « NaN » (champ `upvote_count`/`is_upvoted` mal mappé).
+- Barre de saisie qui chevauchait la barre de navigation système (safe-area bas).
+
+**Version affichée**
+- Numéro de version du profil rendu dynamique (lu depuis `Constants.expoConfig.version`,
+  était figé à « v1.0.0 »).
+
+**Backend livré en parallèle (nécessite redéploiement)**
+- Inscriptions JAMAIS confirmées (piège PK UUID sur `not self.pk` dans
+  `Registration.save()`) → events gratuits/visio : aucune notif de confirmation
+  ni lien visio, et purge auto à 30 min. Corrigé + email/in-app/push.
+- Même piège corrigé sur `PlatformWallet` (garde de singleton inopérante).
+- Tâches Celery `session_tasks` non enregistrées → `KeyError` worker.
+- Carte « Mes Events » affichait 0 vue (`view_count` absent du serializer liste).
+- Build EAS Android : module `eventez-pip` sans `versionName` → échec de config.
+
 **Rappel avant publication**
 - Appliquer les migrations backend : `accounts/0027`, `notifications/0025`.
 - Vérifier que `apple-app-site-association` déployé contient bien le Team ID
   `9T6HK8G8B5` (le placeholder cassait les Universal Links iOS).
-- Les icônes de raccourcis exigent un build natif (pas une mise à jour OTA).
+- Redéployer le backend (`deploy.sh update`) + redémarrer worker/beat pour les
+  correctifs inscriptions/Celery/vues.
+- Ce build ne contient PLUS les icônes alternatives → rebuild natif obligatoire.
