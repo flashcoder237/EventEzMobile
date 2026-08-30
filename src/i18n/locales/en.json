@@ -1257,7 +1257,9 @@
     "finalizeClosedBody": "The registration period for this event has ended.",
     "finalizeSoldOutTitle": "Tickets sold out",
     "finalizeSoldOutBody": "The tickets you had reserved are no longer available. Your reservation expired. You were not charged.",
-    "finalizeBackToEvent": "Back to event"
+    "finalizeBackToEvent": "Back to event",
+    "paymentPushSentTitle": "Confirm on your phone",
+    "paymentPushSentMessage": "A payment request was sent to your phone. Approve it (Mobile Money PIN) to complete."
   },
   "memories": {
     "title": "My memories",

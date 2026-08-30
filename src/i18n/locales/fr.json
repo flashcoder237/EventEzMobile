@@ -1257,7 +1257,9 @@
     "finalizeClosedBody": "La période d'inscription pour cet événement est terminée.",
     "finalizeSoldOutTitle": "Billets épuisés",
     "finalizeSoldOutBody": "Les billets que vous aviez réservés ne sont plus disponibles. Votre réservation a expiré. Aucun montant ne vous a été débité.",
-    "finalizeBackToEvent": "Retour à l'événement"
+    "finalizeBackToEvent": "Retour à l'événement",
+    "paymentPushSentTitle": "Confirme sur ton téléphone",
+    "paymentPushSentMessage": "Une demande de paiement a été envoyée sur ton téléphone. Valide-la (code PIN Mobile Money) pour finaliser."
   },
   "memories": {
     "title": "Mes souvenirs",

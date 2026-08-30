@@ -153,6 +153,8 @@ const mockGetPaymentMethods = jest.fn();
 const mockCreatePayment = jest.fn();
 const mockProcessMobileMoney = jest.fn();
 const mockInitializePayment = jest.fn();
+const mockInitiate = jest.fn();
+const mockCinetpayReturn = jest.fn();
 const mockCancelPayment = jest.fn();
 jest.mock('../../../api', () => ({
   __esModule: true,
@@ -164,6 +166,8 @@ jest.mock('../../../api', () => ({
     createPayment: (...args: any[]) => mockCreatePayment(...args),
     processMobileMoney: (...args: any[]) => mockProcessMobileMoney(...args),
     initializePayment: (...args: any[]) => mockInitializePayment(...args),
+    initiate: (...args: any[]) => mockInitiate(...args),
+    cinetpayReturn: (...args: any[]) => mockCinetpayReturn(...args),
     cancelPayment: (...args: any[]) => mockCancelPayment(...args),
   },
 }));
@@ -455,5 +459,50 @@ describe('PaymentScreen', () => {
     // Titre rassurant + message "aucun montant débité" (fallback paymentFailed traduit).
     expect(concat).toContain('Erreur de paiement');
     expect(concat).toContain('Aucun montant');
+  });
+
+  // ── CamPay (push USSD) : route via /initiate/, PAS de payment_url ──────────
+  // Régression : le flow unifié exigeait payment_url et jetait une erreur pour
+  // CamPay/pawaPay (push USSD) → paiement pourtant lancé, mais UI en échec.
+  it('CamPay MTN → appelle initiate (pas processMobileMoney) et poll sur push USSD', async () => {
+    mockGetPaymentMethods.mockResolvedValue({
+      data: {
+        country_code: 'CM', phone_prefix: '+237', phone_digits: 9,
+        methods: [
+          { id: 'mtn_money', name: 'MTN Mobile Money', type: 'mobile_money', selected_provider: 'campay' },
+        ],
+      },
+    });
+    // Init CamPay : succès SANS payment_url (push USSD envoyé au téléphone).
+    mockInitiate.mockResolvedValueOnce({
+      data: { success: true, provider: 'campay', payment_id: 'pay-campay-1', transaction_id: 'CB-1', payment_url: null },
+    });
+
+    const { findByText, findByLabelText, findByTestId } = render(<PaymentScreen />);
+    fireEvent.press(await findByText('MTN Mobile Money'));
+    const payBtn = await findByLabelText('Confirmer le paiement');
+    fireEvent.press(await findByTestId('terms-checkbox'));
+    fireEvent.press(payBtn);
+
+    // La confirmation biométrique passe (comme le test MTN legacy).
+    await waitFor(() => expect(mockBiometricConfirm).toHaveBeenCalled());
+    // Route bien vers le flow unifié /initiate/ …
+    await waitFor(() => expect(mockInitiate).toHaveBeenCalled());
+    const initPayload = mockInitiate.mock.calls[0][0];
+    expect(initPayload).toMatchObject({ registration_id: 'reg-1', payment_method: 'mtn_money' });
+
+    // … et NON vers le flow legacy NotchPay.
+    expect(mockProcessMobileMoney).not.toHaveBeenCalled();
+    expect(mockCreatePayment).not.toHaveBeenCalled();
+
+    // Pas de payment_url → PAS de WebBrowser ; on informe + on polle.
+    await waitFor(() => expect(mockShowAlert).toHaveBeenCalled());
+    expect(mockOpenBrowserAsync).not.toHaveBeenCalled();
+
+    // Le bouton OK de l'alerte déclenche la vérification (polling du statut).
+    const alertButtons = mockShowAlert.mock.calls[mockShowAlert.mock.calls.length - 1][2];
+    const okBtn = Array.isArray(alertButtons) ? alertButtons.find((b: any) => b.onPress) : null;
+    okBtn?.onPress?.();
+    expect(mockStartVerification).toHaveBeenCalledWith('pay-campay-1');
   });
 });

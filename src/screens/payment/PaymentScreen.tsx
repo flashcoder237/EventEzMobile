@@ -814,8 +814,13 @@ export default function PaymentScreen() {
     // page hebergee, donc on saute la validation locale (sinon on bloquerait
     // l'utilisateur qui n'a pas tape son numero dans notre form).
     const earlyMethodConfig = dynamicMethods.find((m) => m.id === selectedMethod);
+    // `provider` (mappé depuis selected_provider) — pas `selected_provider` qui
+    // n'existe pas sur dynamicMethods (bug : le skip CinetPay ne marchait que
+    // via CINETPAY_ONLY_METHODS).
+    const earlyProvider = (earlyMethodConfig as any)?.provider
+      ?? (earlyMethodConfig as any)?.selected_provider;
     const earlyIsCinetPay =
-      (earlyMethodConfig as any)?.selected_provider === 'cinetpay'
+      earlyProvider === 'cinetpay'
       || CINETPAY_ONLY_METHODS.has(selectedMethod);
 
     // Validation du numero de telephone pour Mobile Money via NotchPay uniquement
@@ -856,7 +861,12 @@ export default function PaymentScreen() {
       // tombaient sur le flow NotchPay legacy qui rejetait avec 400
       // "notchpay_unsupported". Cf. log payeur DE/EUR.
       const methodConfig = dynamicMethods.find((m) => m.id === selectedMethod);
-      const selectedProvider = (methodConfig as any)?.selected_provider;
+      // ⚠️ dynamicMethods stocke le provider sous `provider` (mappé depuis
+      // `selected_provider` de l'API, cf. plus haut). Lire `selected_provider`
+      // ici renvoyait TOUJOURS undefined → campay/pawapay/stripe tombaient sur
+      // le flow legacy NotchPay au lieu de /initiate/. On lit donc `provider`.
+      const selectedProvider = (methodConfig as any)?.provider
+        ?? (methodConfig as any)?.selected_provider;
 
       // Devise event = source de verite. Si elle n'est PAS dans l'allowlist
       // NotchPay, le flow NotchPay legacy plantera systematiquement avec 400.
@@ -865,14 +875,14 @@ export default function PaymentScreen() {
       const NOTCHPAY_CURRENCIES = new Set(['XAF', 'XOF', 'KES', 'GHS', 'UGX', 'NGN']);
       const eventCurrencyNotInNotchpay = !NOTCHPAY_CURRENCIES.has(eventCurrencyCode);
 
-      // Tout provider NON-NotchPay doit passer par le flow unifié (/initiate/,
-      // qui route via PaymentProviderFactory côté backend). Le flow legacy est
-      // spécifique NotchPay → un paiement routé cinetpay/stripe/campay/pawapay/
-      // flutterwave y planterait. On liste donc l'ensemble des providers unifiés
-      // plutôt que seulement cinetpay/stripe (sinon campay/pawapay = 400).
-      const UNIFIED_PROVIDERS = new Set(['cinetpay', 'stripe', 'flutterwave', 'campay', 'pawapay']);
+      // Seul NotchPay garde le flow legacy (createPayment + processMobileMoney/
+      // initialize). TOUT autre provider passe par le flow unifié /initiate/ qui
+      // route via PaymentProviderFactory côté backend. DENYLIST volontaire
+      // (provider !== 'notchpay') plutôt qu'allowlist : un futur provider ajouté
+      // côté backend est ainsi géré sans oublier de le lister ici (une allowlist
+      // le ferait planter en 400 sur le legacy NotchPay).
       const useUnifiedInitiate =
-        (selectedProvider && UNIFIED_PROVIDERS.has(selectedProvider))
+        (!!selectedProvider && selectedProvider !== 'notchpay')
         || CINETPAY_ONLY_METHODS.has(selectedMethod)
         // Fallback safety : si la devise event n'est pas dans NotchPay, le
         // legacy flow est garanti de planter → on bascule sur /initiate/.
@@ -890,10 +900,29 @@ export default function PaymentScreen() {
           payer_country: payerCountry,
         });
         const payload = initiateResponse.data;
-        if (!payload?.success || !payload?.payment_url) {
+        if (!payload?.success) {
           // Ne jamais propager payload.message brut au payeur — le catch
           // affichera un message rassurant (aucun montant débité).
           throw new Error(t('payment.paymentURLNotReceived'));
+        }
+
+        // PUSH USSD (CamPay, pawaPay) : init réussie SANS URL de redirection — le
+        // backend a déclenché la demande de confirmation sur le téléphone du
+        // payeur. Exiger payment_url ferait échouer un paiement pourtant lancé.
+        // On traite l'ABSENCE d'URL sur un `success:true` comme un push USSD
+        // (robuste pour tout futur provider USSD) : on informe puis on POLLE.
+        if (!payload.payment_url) {
+          const ussdPaymentId = payload.payment_id as string;
+          setPaymentId(ussdPaymentId);
+          showAlert(
+            t('payment.paymentPushSentTitle', { defaultValue: 'Confirme sur ton téléphone' }),
+            t('payment.paymentPushSentMessage', {
+              defaultValue: 'Une demande de paiement a été envoyée sur ton téléphone. Valide-la (code PIN Mobile Money) pour finaliser.',
+            }),
+            [{ text: t('common.ok', { defaultValue: 'OK' }), onPress: () => startVerification(ussdPaymentId) }],
+            'info',
+          );
+          return;
         }
         const cinetpayPaymentId = payload.payment_id as string;
         // transaction_id EventEz envoye a CinetPay = str(payment.id). On le
