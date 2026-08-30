@@ -214,7 +214,7 @@ function PlatformSettingsContent() {
     {
       title: t('admin.platformSettings.payments'),
       rows: [
-        { key: 'gateway', icon: 'card-outline', title: t('admin.platformSettings.rows.gatewayTitle'), subtitle: t('admin.platformSettings.rows.gatewaySubtitle'), value: 'NotchPay', color: '#10B981' },
+        { key: 'gateway', icon: 'card-outline', title: t('admin.platformSettings.rows.gatewayTitle'), subtitle: t('admin.platformSettings.rows.gatewaySubtitle'), value: t('admin.platformSettings.rows.gatewayValue', { defaultValue: 'Multi-passerelles' }), color: '#10B981' },
         { key: 'currency', icon: 'cash-outline', title: t('admin.platformSettings.rows.currencyTitle'), subtitle: t('admin.platformSettings.rows.currencySubtitle'), value: 'XAF (FCFA)', color: '#10B981' },
         { key: 'commission', icon: 'calculator-outline', title: t('admin.platformSettings.rows.commissionTitle'), subtitle: t('admin.platformSettings.rows.commissionSubtitle'), value: t('admin.platformSettings.rows.commissionValue'), color: '#10B981' },
       ],

@@ -535,4 +535,37 @@ describe('PaymentScreen', () => {
     expect(mockInitiate).not.toHaveBeenCalled();
     expect(mockCreatePayment).not.toHaveBeenCalled();
   });
+
+  // ── Garde anti-régression : le mobile ne FORCE jamais un provider ─────────
+  // Le routing (quel agrégateur) est 100% serveur. Le body d'init ne doit
+  // JAMAIS contenir de champ provider/gateway/selected_provider.
+  it('n\'envoie jamais de provider dans le body d\'initiate (routing serveur)', async () => {
+    mockGetPaymentMethods.mockResolvedValue({
+      data: {
+        country_code: 'CM', phone_prefix: '+237', phone_digits: 9,
+        methods: [
+          { id: 'mtn_money', name: 'MTN Mobile Money', type: 'mobile_money', selected_provider: 'pawapay' },
+        ],
+      },
+    });
+    mockInitiate.mockResolvedValueOnce({
+      data: { success: true, provider: 'pawapay', payment_id: 'pay-pp-1', payment_url: null },
+    });
+
+    const { findByText, findByLabelText, findByTestId } = render(<PaymentScreen />);
+    fireEvent.press(await findByText('MTN Mobile Money'));
+    fireEvent.press(await findByTestId('terms-checkbox'));
+    fireEvent.press(await findByLabelText('Confirmer le paiement'));
+
+    // pawaPay (≠ notchpay) → flow unifié /initiate/ (denylist).
+    await waitFor(() => expect(mockInitiate).toHaveBeenCalled());
+    const body = mockInitiate.mock.calls[0][0];
+    // Le body ne pilote PAS le routing : pas de provider/gateway forcé.
+    expect(body).not.toHaveProperty('provider');
+    expect(body).not.toHaveProperty('gateway');
+    expect(body).not.toHaveProperty('selected_provider');
+    // Push USSD (pas d'URL) → alerte + polling, pas de WebBrowser.
+    await waitFor(() => expect(mockShowAlert).toHaveBeenCalled());
+    expect(mockOpenBrowserAsync).not.toHaveBeenCalled();
+  });
 });
