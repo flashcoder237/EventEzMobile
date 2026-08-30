@@ -27,6 +27,46 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 type TierConfig = { points: number; name: string; eyebrow: string; color: string; icon: keyof typeof Ionicons.glyphMap };
 
+/**
+ * Correspondance nom de badge backend → Ionicons.
+ *
+ * Le backend stocke des noms au format Lucide/Feather (`message-circle`,
+ * `check-circle`, `zap`, `crown`…), qu'Ionicons ne connaît PAS : chaque badge
+ * s'affichait avec un « ? ». On traduit ici plutôt que côté serveur — les
+ * noms stockés restent agnostiques de la bibliothèque d'icônes du client, et
+ * le web peut faire sa propre correspondance.
+ */
+const BADGE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  'award': 'ribbon',
+  'calendar': 'calendar',
+  'check-circle': 'checkmark-circle',
+  'crown': 'diamond',
+  'flag': 'flag',
+  'heart': 'heart',
+  'message-circle': 'chatbubble-ellipses',
+  'rocket': 'rocket',
+  'star': 'star',
+  'thumbs-up': 'thumbs-up',
+  'trending-up': 'trending-up',
+  'trophy': 'trophy',
+  'users': 'people',
+  'zap': 'flash',
+};
+
+/** Icône Ionicons d'un badge, avec repli sur `ribbon` si le nom est inconnu. */
+export function badgeIcon(name?: string | null): keyof typeof Ionicons.glyphMap {
+  if (!name) return 'ribbon';
+  const mapped = BADGE_ICONS[name];
+  if (mapped) return mapped;
+  // Nom déjà au format Ionicons (badge créé en admin) : on l'accepte tel quel.
+  // `glyphMap` est optionnel : absent sous certains mocks de test, et une
+  // future version de la lib pourrait le retirer — on ne doit pas planter
+  // l'écran des badges pour autant.
+  const glyphs = (Ionicons as any)?.glyphMap;
+  if (glyphs && name in glyphs) return name as keyof typeof Ionicons.glyphMap;
+  return 'ribbon';
+}
+
 const TIER_BASE: { points: number; eyebrow: string; color: string; icon: keyof typeof Ionicons.glyphMap; nameKey: string }[] = [
   { points: 0, eyebrow: 'TIER 01', color: '#CD7F32', icon: 'shield-outline', nameKey: 'tier1Name' },
   { points: 500, eyebrow: 'TIER 02', color: '#9CA3AF', icon: 'shield-half', nameKey: 'tier2Name' },
@@ -132,7 +172,7 @@ export default function GamificationScreen() {
             )}
             <View style={[styles.badgeIconBoxE, { backgroundColor: `${colors.primary}15` }]}>
               <Ionicons
-                name={(item.icon || 'ribbon') as any}
+                name={badgeIcon(item.icon)}
                 size={28}
                 color={earned ? colors.primary : colors.gray400}
               />
@@ -701,10 +741,13 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   badgeCol: {
-    // flex:1 (pas 1/3) : avec numColumns=3 + columnWrapper gap, chaque colonne
-    // prend une part ÉGALE de l'espace restant APRÈS le gap. Mettre 1/3 faisait
-    // déborder (3×1/3 + 2×gap > 100%) → cartes compressées/hors écran.
+    // `maxWidth: 33.33%` EN PLUS de flex:1 — sans lui, une rangée incomplète
+    // (2 badges sur 3 colonnes, cas d'un compte récent) étire les cartes sur
+    // toute la largeur : une seule carte géante à l'écran, la suivante hors
+    // champ. `flex:1` seul répartit l'espace sur le nombre RÉEL d'items de la
+    // rangée, pas sur `numColumns`.
     flex: 1,
+    maxWidth: '33.33%',
     alignItems: 'center',
     gap: 4,
   },
