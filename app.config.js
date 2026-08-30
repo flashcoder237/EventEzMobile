@@ -88,6 +88,10 @@ module.exports = ({ config }) => {
     // Force jvmTarget=17 sur tous les modules Kotlin (évite les mismatch
     // Java 17 / Kotlin au build Android).
     './plugins/withAndroidKotlinJvmTarget',
+    // Pose android:label=@string/app_name sur la MainActivity : sinon l'écran
+    // « Ouverture des liens » (et certains launchers) affichent le package
+    // « net.overbrand.eventez » au lieu de « EventEz ».
+    './plugins/withAndroidMainActivityLabel',
     // iOS : désactive la signature des resource bundles (Xcode 14+ l'exige
     // sinon, ce qui casse le build EAS sur des pods comme GoogleMaps).
     './plugins/withIosResourceBundleSigning',
