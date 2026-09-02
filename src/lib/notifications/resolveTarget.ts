@@ -97,7 +97,20 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
     // ─── Invitation à un événement (participant) → écran Invitations (onglet
     // reçues) pour accepter/décliner. ───
     case 'event_invitation':
-      return { screen: 'Invitations' };
+      // Si le token est dispo (posé dans extra_data à l'émission), on ouvre
+      // DIRECTEMENT le RSVP — parité avec le web. Sinon la liste des invitations.
+      return meta.invitation_token
+        ? { screen: 'WeddingRsvp', params: { token: String(meta.invitation_token) } }
+        : { screen: 'Invitations' };
+
+    // ─── Récompenses / programme. Ces 3 types partaient en push SANS cible →
+    // taper la notif ne faisait RIEN. Les écrans existent. ───
+    case 'referral_conversion':
+      return { screen: 'Referrals' };
+    case 'gamification_reward':
+      return { screen: 'Gamification' };
+    case 'pioneer_granted':
+      return { screen: 'Subscription' };
     case 'waitlist_position':
     case 'connections_at_event':
     case 'followed_organizer_new_event':

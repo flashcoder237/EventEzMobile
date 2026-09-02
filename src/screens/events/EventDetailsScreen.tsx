@@ -142,6 +142,15 @@ export default function EventDetailsScreen() {
   const { showAlert } = useAlert();
   const [joiningVisio, setJoiningVisio] = useState(false);
 
+  // L'ORGANISATEUR doit pouvoir rejoindre SA visio : il n'a pas d'inscription à
+  // son propre événement, donc les conditions basées sur `userRegistration`
+  // l'excluaient — il n'avait AUCUN moyen d'accéder à sa salle (ni mobile ni
+  // web). Le backend l'autorise déjà (is_owner) ; c'était un blocage UI.
+  const isOrganizer = !!(
+    user?.id && event?.organizer?.id && String(user.id) === String(event.organizer.id)
+  );
+  const canAccessVisio = !!userRegistration || isOrganizer;
+
   // Rejoindre la visio via le flux GATÉ (event_join) — même chemin sécurisé
   // que VirtualTab. Ne JAMAIS ouvrir event.online_url en brut : ça
   // court-circuitait le gating (inscription/paiement/fenêtre) et le token JWT
@@ -803,8 +812,9 @@ export default function EventDetailsScreen() {
                 </View>
               </View>
 
-              {/* Show meeting info only if user is registered */}
-              {userRegistration ? (
+              {/* Infos de connexion : inscrits ET organisateur (qui n'a pas
+                  d'inscription à son propre événement). */}
+              {canAccessVisio ? (
                 <>
                   {event.online_instructions && (
                     <Text style={[styles.onlineInstructions, { color: colors.gray600, borderTopColor: colors.gray100 }]}>
@@ -895,7 +905,7 @@ export default function EventDetailsScreen() {
                   (jamais Linking.openURL brut, qui ouvrait le navigateur externe
                   sans gating ni token). Affiché aux inscrits ; l'accès est
                   revérifié côté serveur au join. */}
-              {userRegistration && (
+              {canAccessVisio && (
                 <TouchableOpacity
                   style={[styles.joinOnlineButton, { marginTop: Spacing.sm }]}
                   onPress={handleJoinVisio}

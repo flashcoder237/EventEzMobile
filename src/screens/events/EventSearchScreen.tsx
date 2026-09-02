@@ -162,10 +162,15 @@ function reducer(state: State, action: Action): State {
         hasTickets: false,
       };
     case 'RESET':
+      // BUG (corrigé) : cette action vidait `query`/`debouncedQuery`. Or elle est
+      // dispatchée par doSearch dès qu'il n'y a AUCUN filtre actif — ce qui est
+      // le cas quand l'utilisateur vient de taper 1 seule lettre (le seuil de
+      // recherche est à 2 caractères). Résultat : taper une lettre puis marquer
+      // une pause de 300 ms effaçait la saisie sous les doigts de l'utilisateur.
+      // RESET ne doit vider que les RÉSULTATS, jamais la saisie en cours.
+      // (Le bouton « croix » vide explicitement via SET_QUERY/SET_DEBOUNCED.)
       return {
         ...state,
-        query: '',
-        debouncedQuery: '',
         results: [],
         total: 0,
         page: 1,
@@ -927,6 +932,9 @@ export default function EventSearchScreen() {
                 keyExtractor={(item) => item}
                 onScroll={onScroll}
                 scrollEventThrottle={16}
+                // Sans ça, tout contact avec la liste ferme le clavier pendant
+                // la frappe (défaut 'never') → saisie interrompue.
+                keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingTop: headerH }}
                 renderItem={({ item }) => (
                   <View style={[styles.historyRow, { borderBottomColor: hairline }]}>
@@ -992,6 +1000,7 @@ export default function EventSearchScreen() {
               <Animated.ScrollView
                 onScroll={onScroll}
                 scrollEventThrottle={16}
+                keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingTop: headerH + Spacing.xl }}
               >
                 <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{t('eventSearch.suggestionsEyebrow')}</Text>
@@ -1034,6 +1043,7 @@ export default function EventSearchScreen() {
             data={state.results}
             keyExtractor={(item) => String(item.id)}
             renderItem={renderEvent}
+            keyboardShouldPersistTaps="handled"
             numColumns={columns > 1 ? columns : 1}
             key={`list-${columns}`}
             onEndReached={loadMore}
