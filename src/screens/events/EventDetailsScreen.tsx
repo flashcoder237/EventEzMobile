@@ -61,6 +61,7 @@ const SponsorsTab = React.lazy(() => import('../../components/events/SponsorsTab
 // Si tu as besoin d'eux, les ajouter en lazy comme les heavy tabs ci-dessus.
 import SimilarEventsSection from '../../components/events/SimilarEventsSection';
 import { useEventDetails } from '../../hooks/useEventDetails';
+import { useUTMTracking } from '../../hooks/useUTMTracking';
 import { useFeedback } from '../../contexts/FeedbackContext';
 import { useAuthGuard } from '../../hooks/useAuthGuard';
 import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
@@ -138,6 +139,11 @@ export default function EventDetailsScreen() {
     user,
     showError,
   } = useEventDetails(eventId, previewEvent);
+  // Attribution : sans cet appel, tout le trafic issu de l'application
+  // etait absent du tableau de bord UTM (le client existait mais n'etait
+  // branche nulle part), et l'organisateur en concluait que son
+  // application ne convertissait pas.
+  useUTMTracking(eventId);
   const { toastError } = useFeedback();
   const { showAlert } = useAlert();
   const [joiningVisio, setJoiningVisio] = useState(false);
