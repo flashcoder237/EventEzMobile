@@ -10,14 +10,23 @@ Ton : sobre / professionnel. À coller tel quel dans le champ dédié, par langu
 
 ---
 
+## Texte promotionnel (App Store — accroche marketing, ≤170 car., modifiable sans build)
+
+**🇫🇷** Trouvez, réservez et vivez vos événements — ou créez les vôtres. Billetterie, inscriptions et paiements, en ligne comme sur place.
+
+**🇬🇧** Find, book and experience events — or create your own. Ticketing, registrations and payments, online and on-site.
+
+---
+
 ## 🇫🇷 Français
 
 Nouveautés de cette version :
 
-• Les visuels de vos événements s'affichent désormais en entier, quel que soit leur format.
-• Badges repensés : chaque badge a ses propres couleurs.
 • Application nettement plus rapide au démarrage.
-• Les organisateurs vérifiés sont maintenant identifiés par un badge.
+• Les visuels de vos événements s'affichent désormais en entier.
+• Enregistrez ou partagez vos billets en un geste.
+• Paiements plus fiables (Mobile Money et cartes).
+• Les organisateurs vérifiés sont identifiés par un badge.
 • Corrections de bugs et améliorations de performance.
 
 ---
@@ -26,9 +35,10 @@ Nouveautés de cette version :
 
 What's new in this version:
 
-• Event images now display in full, whatever their format.
-• Redesigned badges: each badge now has its own colours.
 • Noticeably faster app startup.
+• Event images now display in full.
+• Save or share your tickets in a single tap.
+• More reliable payments (Mobile Money and cards).
 • Verified organizers are now identified with a badge.
 • Bug fixes and performance improvements.
 
@@ -95,9 +105,45 @@ Contenu réel du build 1.2.0.
 - Badge de votes qui affichait « NaN » (champ `upvote_count`/`is_upvoted` mal mappé).
 - Barre de saisie qui chevauchait la barre de navigation système (safe-area bas).
 
+**Conformité Google Play (rejet version code 15 corrigé)**
+- Retrait des permissions `READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO` : l'app ne
+  fait qu'un usage ponctuel des médias → la politique Android 13+ impose le
+  photo picker système. La sélection d'images passe déjà par lui (aucune
+  permission) ; la sauvegarde galerie passe en writeOnly. Double garantie :
+  `blockedPermissions` (app.json) + `tools:node="remove"` (le manifest merger
+  gagne même si une dépendance les redéclare). Ne PAS déclarer
+  expo-media-library comme plugin — il les ré-ajouterait.
+
+**Médias : télécharger / partager / enregistrer**
+- Nouveau sheet unifié « Enregistrer dans la galerie / Partager » sur les
+  billets, récapitulatifs et QR (les boutons « Télécharger » ouvraient
+  directement le partage sans laisser le choix).
+- « Enregistrer dans la galerie » depuis une discussion sauvegarde désormais
+  RÉELLEMENT l'image (avant, selon l'écran, ça faisait juste un partage).
+- Retrait du repli QR distant (`api.qrserver.com`) qui envoyait l'URL de
+  vérification du billet chez un tiers ; génération QR 100 % locale.
+- Socle média centralisé (`lib/media/mediaActions.ts` + `useSaveOrShareSheet`).
+
+**Paiement multi-passerelles (mobile)**
+- Le badge affichait « NotchPay » pour des paiements CamPay / pawaPay :
+  provider réel désormais correct.
+- Routage CamPay / pawaPay câblé côté mobile + gestion du flux USSD.
+- Validation téléphone/pays pilotée par l'API (fin des hypothèses « Cameroun »
+  codées en dur).
+
+**Attribution & suivi**
+- Attribution UTM branchée (le client existait mais n'était jamais appelé).
+
+**Visio & divers (correctifs récents)**
+- Notification de sortie de salle visio + réparation d'un JWT visio perdu.
+- Join visio depuis le détail événement : message 503 dédié quand la visio est
+  désactivée, au lieu d'une erreur générique.
+- Recherche d'événements qui s'effaçait toute seule ; visio côté organisateur ;
+  notifications sans écran cible.
+
 **Version affichée**
 - Numéro de version du profil rendu dynamique (lu depuis `Constants.expoConfig.version`,
-  était figé à « v1.0.0 »).
+  était figé à « v1.0.0 »). Corrigé aux DEUX endroits (Profil + Réglages).
 
 **Backend livré en parallèle (nécessite redéploiement)**
 - Inscriptions JAMAIS confirmées (piège PK UUID sur `not self.pk` dans
@@ -109,9 +155,14 @@ Contenu réel du build 1.2.0.
 - Build EAS Android : module `eventez-pip` sans `versionName` → échec de config.
 
 **Rappel avant publication**
+- Rebuild natif OBLIGATOIRE (permissions média retirées, icônes alternatives
+  supprimées, module pip, deeplinks) : une mise à jour OTA ne suffit pas.
+- Après build Android : vérifier que le manifeste ne contient plus
+  `READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO`, puis re-soumettre via **Publishing
+  overview** (le rejet Play sera levé). Ne PAS remplir le formulaire de
+  déclaration photo picker.
 - Appliquer les migrations backend : `accounts/0027`, `notifications/0025`.
 - Vérifier que `apple-app-site-association` déployé contient bien le Team ID
   `9T6HK8G8B5` (le placeholder cassait les Universal Links iOS).
 - Redéployer le backend (`deploy.sh update`) + redémarrer worker/beat pour les
-  correctifs inscriptions/Celery/vues.
-- Ce build ne contient PLUS les icônes alternatives → rebuild natif obligatoire.
+  correctifs inscriptions/Celery/vues/paiement.
