@@ -4342,7 +4342,12 @@
     "ticketsAddedSuccess": "Tickets added successfully",
     "alreadyRegisteredConfirmTitle": "Already registered",
     "alreadyRegisteredConfirmMessage": "You are already registered for this event.",
-    "createRegistrationError": "Could not create the registration"
+    "createRegistrationError": "Could not create the registration",
+    "accessMode": {
+      "in_person": "In person only",
+      "online": "Online access",
+      "hybrid": "In person + online"
+    }
   },
   "registrationDetails": {
     "headerInscription": "My registration",

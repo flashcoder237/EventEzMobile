@@ -126,6 +126,11 @@ export default function TicketPurchaseScreen() {
   const tour = useTour();
 
   const [event, setEvent] = useState<Event | null>(null);
+  // Sur un event en ligne ou hybride, le mode d'acces du billet est decisif a
+  // l'achat. Sur un event purement presentiel, il n'y a pas de choix : afficher
+  // le badge serait du bruit.
+  const isOnlineEvent =
+    event?.location_type === 'online' || event?.location_type === 'hybrid';
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [selections, setSelections] = useState<Map<string, number>>(new Map());
@@ -1003,6 +1008,39 @@ export default function TicketPurchaseScreen() {
                       <Text style={[styles.bpDescription, { color: colors.gray500 }]} numberOfLines={2}>
                         {ticketType.description}
                       </Text>
+                    )}
+                    {/* Mode d'acces : STRICTEMENT applique au join visio (403
+                        backend si `in_person` sur un event en ligne). Il etait
+                        invisible dans tout le tunnel d'achat — un acheteur
+                        pouvait payer un billet presentiel puis se voir refuser
+                        l'entree le jour J. Masque quand il n'y a pas de choix
+                        a faire (event purement presentiel). */}
+                    {!!ticketType.access_mode && isOnlineEvent && (
+                      <View
+                        style={[
+                          styles.bpAccessBadge,
+                          {
+                            backgroundColor:
+                              ticketType.access_mode === 'in_person'
+                                ? `${colors.warning}1A`
+                                : `${colors.primary}1A`,
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name={ticketType.access_mode === 'in_person' ? 'location-outline' : 'videocam-outline'}
+                          size={12}
+                          color={ticketType.access_mode === 'in_person' ? colors.warning : colors.primary}
+                        />
+                        <Text
+                          style={[
+                            styles.bpAccessBadgeText,
+                            { color: ticketType.access_mode === 'in_person' ? colors.warning : colors.primary },
+                          ]}
+                        >
+                          {t(`ticketPurchase.accessMode.${ticketType.access_mode}`)}
+                        </Text>
+                      </View>
                     )}
                     <View style={styles.bpMetaRow}>
                       <Text style={[styles.bpPrice, { color: colors.text }]}>
@@ -2092,6 +2130,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
     marginTop: 3,
+  },
+  bpAccessBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 999,
+    marginTop: 5,
+  },
+  bpAccessBadgeText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10,
+    letterSpacing: 0.2,
   },
   bpMetaRow: {
     flexDirection: 'row',

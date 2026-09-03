@@ -4342,7 +4342,12 @@
     "ticketsAddedSuccess": "Billets ajoutés avec succès",
     "alreadyRegisteredConfirmTitle": "Déjà inscrit",
     "alreadyRegisteredConfirmMessage": "Tu es déjà inscrit·e à cet événement.",
-    "createRegistrationError": "Impossible de créer l'inscription"
+    "createRegistrationError": "Impossible de créer l'inscription",
+    "accessMode": {
+      "in_person": "Présentiel uniquement",
+      "online": "Accès en ligne",
+      "hybrid": "Présentiel + en ligne"
+    }
   },
   "registrationDetails": {
     "headerInscription": "Mon inscription",

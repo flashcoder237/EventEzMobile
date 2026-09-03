@@ -394,6 +394,13 @@ export interface TicketType {
   name: string;
   description?: string;
   price: number;
+  /**
+   * Ce que ce billet donne comme acces. STRICTEMENT applique au join visio
+   * (apps/virtual/views.py -> 403 si `in_person` sur un event en ligne). Doit
+   * donc etre visible AVANT l'achat, sans quoi l'acheteur decouvre le refus le
+   * jour J, apres paiement.
+   */
+  access_mode?: 'in_person' | 'online' | 'hybrid';
   // Quotas et disponibilite
   quantity_total: number;
   quantity_sold: number;
