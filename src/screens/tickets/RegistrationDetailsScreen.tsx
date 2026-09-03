@@ -254,7 +254,7 @@ export default function RegistrationDetailsScreen() {
       const finalUrl = data.provider === 'jaas' && data.token
         ? withJwt(data.url, data.token)
         : data.url;
-      navigation.navigate('Browser', { url: finalUrl });
+      navigation.navigate('Browser', { url: finalUrl, roomId: data.room_id });
     } catch (error: any) {
       const code = error?.response?.status;
       const apiMsg = error?.response?.data?.error;

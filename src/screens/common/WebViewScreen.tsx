@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList } from '../../types';
 import { FontFamily, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { usePictureInPicture } from '../../hooks/usePictureInPicture';
+import { virtualRoomsAPI } from '../../api/content';
 
 type BrowserRoute = RouteProp<RootStackParamList, 'Browser'>;
 
@@ -28,13 +29,29 @@ function isVisioUrl(u?: string): boolean {
 export default function WebViewScreen() {
   const navigation = useNavigation();
   const route = useRoute<BrowserRoute>();
-  const { url, title } = route.params;
+  const { url, title, roomId } = route.params;
   const { colors } = useTheme();
   // Picture-in-Picture (Android) : uniquement pour une visio en cours — si
   // l'utilisateur quitte l'app pendant l'appel, la vidéo se réduit en fenêtre
   // flottante au lieu de se figer. No-op ailleurs.
   const isVisio = isVisioUrl(url);
   usePictureInPicture(isVisio);
+
+  // Signale au serveur la sortie de salle. L'endpoint existait des deux côtés
+  // mais n'était appelé par AUCUNE interface : le participant restait compté
+  // présent jusqu'au rattrapage (max_duration + 30 min), faussant le compteur
+  // « en direct », la limite de places et surtout le quota FACTURABLE en
+  // participant-minutes.
+  // Le retour Android sort de cet écran → le démontage couvre tous les cas.
+  useEffect(() => {
+    if (!isVisio || !roomId) return;
+    return () => {
+      virtualRoomsAPI.leave(roomId).catch(() => {
+        // Silencieux : l'utilisateur est déjà parti. Le rattrapage serveur
+        // reste le filet de sécurité.
+      });
+    };
+  }, [isVisio, roomId]);
   const { t } = useTranslation();
   const webViewRef = useRef<WebView>(null);
   const [isLoading, setIsLoading] = useState(true);

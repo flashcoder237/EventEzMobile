@@ -1836,7 +1836,7 @@ export type RootStackParamList = {
   Maintenance: undefined;
   IncidentDetails: { incidentId: string };
   // In-app browser for external links (websites, virtual rooms, etc.)
-  Browser: { url: string; title?: string };
+  Browser: { url: string; title?: string; /** Salle visio : notifie la sortie au serveur. */ roomId?: string };
 };
 
 export type AuthStackParamList = {

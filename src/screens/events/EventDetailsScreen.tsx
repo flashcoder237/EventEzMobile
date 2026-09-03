@@ -82,6 +82,7 @@ import {
 import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
 import { centeredContent, WIDE_MAX } from '../../constants/layout';
+import { withJwt } from '../../lib/utils/visioUrl';
 
 type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
 
@@ -172,10 +173,11 @@ export default function EventDetailsScreen() {
         showError(t('common.error'), t('componentsEvents.virtualUrlError'));
         return;
       }
-      let finalUrl: string = data.url;
-      if (data.provider === 'jaas' && data.token) {
-        finalUrl = `${data.url}?jwt=${data.token}`;
-      }
+      // `withJwt` et NON une concaténation `?jwt=` : l'URL de join porte déjà
+      // un fragment `#config…` (flags Jitsi). Un `?` ajouté après le `#` fait
+      // partie du fragment — le JWT serait ignoré et l'accès refusé.
+      const finalUrl: string =
+        data.provider === 'jaas' && data.token ? withJwt(data.url, data.token) : data.url;
       if (data.provider === 'jitsi_public' && data.password) {
         showAlert(
           t('componentsEvents.virtualPasswordTitle'),
@@ -184,13 +186,13 @@ export default function EventDetailsScreen() {
             { text: t('common.cancel'), style: 'cancel' },
             {
               text: t('componentsEvents.virtualJoinAction'),
-              onPress: () => navigation.navigate('Browser', { url: finalUrl, title: event?.title }),
+              onPress: () => navigation.navigate('Browser', { url: finalUrl, title: event?.title, roomId: data.room_id }),
             },
           ],
           'info',
         );
       } else {
-        navigation.navigate('Browser', { url: finalUrl, title: event?.title });
+        navigation.navigate('Browser', { url: finalUrl, title: event?.title, roomId: data.room_id });
       }
     } catch (error: any) {
       const minsRemaining = error?.response?.data?.minutes_remaining;

@@ -115,7 +115,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
         ? withJwt(data.url, data.token)
         : data.url;
 
-      navigation.navigate('Browser', { url: finalUrl });
+      navigation.navigate('Browser', { url: finalUrl, roomId: data.room_id });
       fetchVirtualData();
     } catch (error: any) {
       // Aligné sur RegistrationDetailsScreen : on distingue 503 (visio pas encore
