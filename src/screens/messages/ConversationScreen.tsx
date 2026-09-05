@@ -111,6 +111,7 @@ import {
   getMessages as getLocalMessages,
   upsertMessages as upsertLocalMessages,
   reconcileSent as reconcileLocalSent,
+  insertPending as insertLocalPending,
 } from '../../db/messageRepository';
 import { syncConversation } from '../../db/messageSync';
 import { useVoicePrefetch, getCachedVoiceUri, registerSentVoice, getSentVoiceUri } from '../../hooks/useVoicePrefetch';
@@ -2516,6 +2517,10 @@ export default function ConversationScreen() {
       };
 
       actions.addMessage(tempMessage);
+      // Persiste l'optimiste en SQLite (état 'pending') → il survit au refresh
+      // et à la fermeture avant confirmation serveur. reconcileSent (WS) le
+      // remplacera par le message serveur ; markFailed le passera en échec.
+      insertLocalPending(conversationIdToUse, tempMessage).catch(() => {});
       actions.clearAttachedFiles();
       actions.cancelReply();
 
