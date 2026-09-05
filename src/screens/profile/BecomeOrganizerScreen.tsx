@@ -43,6 +43,9 @@ interface FormData {
   company_name: string;
   registration_number: string;
   phone: string;
+  // Profil public FACULTATIF.
+  website: string;
+  description: string;
 }
 
 interface FormErrors {
@@ -183,6 +186,8 @@ export default function BecomeOrganizerScreen() {
     company_name: '',
     registration_number: '',
     phone: existingUserPhone,
+    website: '',
+    description: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -269,6 +274,19 @@ export default function BecomeOrganizerScreen() {
       }
 
       await usersAPI.becomeOrganizer(data);
+
+      // Profil public FACULTATIF : n'envoyer que si l'utilisateur a rempli.
+      if (formData.website.trim() || formData.description.trim()) {
+        try {
+          const fd = new FormData();
+          fd.append('website', formData.website.trim());
+          fd.append('description', formData.description.trim());
+          await usersAPI.updateOrganizerProfile(fd);
+        } catch {
+          // Non bloquant : le profil organisateur est déjà créé ; l'utilisateur
+          // pourra compléter site/description depuis « Modifier le profil ».
+        }
+      }
 
       const userResponse = await usersAPI.getCurrentUser();
       // syncUser (et NON updateUser) : updateUser re-PATCH /users/me/ avec
@@ -475,6 +493,28 @@ export default function BecomeOrganizerScreen() {
             disabled={!!existingUserPhone}
           />
         </View>
+
+        {/* Profil public FACULTATIF — site web + description. */}
+        <FormField
+          label={t('becomeOrganizerForm.labelWebsite', { defaultValue: 'Site web (facultatif)' })}
+          iconName="globe-outline"
+          field="website"
+          value={formData.website}
+          placeholder="https://…"
+          onChange={updateField}
+          autoCapitalize="none"
+          keyboardType="url"
+          colors={colors}
+        />
+        <FormField
+          label={t('becomeOrganizerForm.labelDescription', { defaultValue: 'Description (facultatif)' })}
+          iconName="document-outline"
+          field="description"
+          value={formData.description}
+          placeholder={t('becomeOrganizerForm.placeholderDescription', { defaultValue: 'Présentez votre organisation…' })}
+          onChange={updateField}
+          colors={colors}
+        />
       </View>
     </View>
   );

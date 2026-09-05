@@ -134,6 +134,12 @@ export const usersAPI = {
   updateProfileImage: (formData: FormData) =>
     fetchUpload('PATCH', '/users/me/upload_profile_image/', formData),
 
+  // Profil ORGANISATEUR (website, description, logo + champs société). Endpoint
+  // dédié (nested organizer_profile est read-only sur /users/me/). Multipart
+  // pour permettre l'upload du logo. Parité avec le web (updateOrganizerProfile).
+  updateOrganizerProfile: (formData: FormData) =>
+    fetchUpload('PUT', '/users/update_organizer_profile/', formData),
+
   getUserSettings: () =>
     api.get('/users/me/settings/'),
 

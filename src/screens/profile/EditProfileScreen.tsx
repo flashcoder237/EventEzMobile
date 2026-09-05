@@ -115,6 +115,14 @@ export default function EditProfileScreen() {
   const [bio, setBio] = useState(user?.bio || '');
 
   const [companyName, setCompanyName] = useState(user?.company_name || '');
+  // Profil organisateur (website, description, logo) — parité web. Édité via
+  // l'endpoint dédié /users/update_organizer_profile/ (nested read-only sur /me/).
+  const orgProfile: any = (user as any)?.organizer_profile || {};
+  const [orgWebsite, setOrgWebsite] = useState(orgProfile.website || '');
+  const [orgDescription, setOrgDescription] = useState(orgProfile.description || '');
+  const [orgLogo, setOrgLogo] = useState<string | null>(orgProfile.logo || null);
+  // true quand orgLogo pointe vers un fichier local fraîchement choisi (à uploader).
+  const [orgLogoChanged, setOrgLogoChanged] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -137,7 +145,10 @@ export default function EditProfileScreen() {
     city !== (user?.city || '') ||
     country !== (user?.country || '') ||
     bio !== (user?.bio || '') ||
-    companyName !== (user?.company_name || '');
+    companyName !== (user?.company_name || '') ||
+    orgWebsite !== (orgProfile.website || '') ||
+    orgDescription !== (orgProfile.description || '') ||
+    orgLogoChanged;
 
   const hasPasswordChanges = currentPassword && newPassword && confirmPassword;
 
@@ -166,6 +177,30 @@ export default function EditProfileScreen() {
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur sélection image:', error);
+      showError(t('common.error'), t('editProfile.imagePickError'));
+    }
+  };
+
+  // Logo organisateur : on sélectionne un fichier local, envoyé au SAVE (pas
+  // d'upload immédiat — c'est le multipart de update_organizer_profile).
+  const handlePickOrgLogo = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        showError(t('editProfile.permissionRequired'),
+          "Veuillez autoriser l'accès à vos photos pour changer le logo.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true, aspect: [1, 1], quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        setOrgLogo(result.assets[0].uri);
+        setOrgLogoChanged(true);
+      }
+    } catch (error) {
+      if (__DEV__) console.error('Erreur sélection logo:', error);
       showError(t('common.error'), t('editProfile.imagePickError'));
     }
   };
@@ -242,13 +277,47 @@ export default function EditProfileScreen() {
       if (bio !== (user?.bio || '')) updateData.bio = bio;
       if (companyName !== (user?.company_name || '')) updateData.company_name = companyName;
 
-      const response = await usersAPI.updateCurrentUser(updateData);
+      // N'appeler /users/me/ que s'il y a des champs USER à mettre à jour
+      // (sinon un PATCH vide est inutile — l'orga peut ne changer que son site).
+      let response: any = null;
+      if (Object.keys(updateData).length > 0) {
+        response = await usersAPI.updateCurrentUser(updateData);
+      }
+
+      // Profil ORGANISATEUR (website/description/logo) — endpoint dédié multipart.
+      const orgChanged =
+        user?.role === 'organizer' && (
+          orgWebsite !== (orgProfile.website || '') ||
+          orgDescription !== (orgProfile.description || '') ||
+          orgLogoChanged
+        );
+      if (orgChanged) {
+        const fd = new FormData();
+        fd.append('website', orgWebsite);
+        fd.append('description', orgDescription);
+        if (orgLogoChanged && orgLogo) {
+          const ext = orgLogo.split('.').pop()?.split('?')[0] || 'jpg';
+          fd.append('logo', {
+            uri: orgLogo,
+            name: `logo.${ext}`,
+            type: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+          } as any);
+        }
+        const orgRes = await usersAPI.updateOrganizerProfile(fd);
+        // Le backend renvoie le USER complet (UserSerializer) avec le
+        // organizer_profile à jour → on resynchronise directement le contexte.
+        if (orgRes?.data) {
+          syncUser(orgRes.data);
+        }
+        setOrgLogoChanged(false);
+      }
+
       // ⚠️ NE PAS appeler updateUser(response.data) ici : updateUser fait un
       // PATCH /users/me/ avec le payload reçu, qui contient profile_picture
       // sous forme de string URL — le serializer rejette ça avec
       // "La donnée soumise n'est pas un fichier" (400). On utilise syncUser
       // pour sync l'état du contexte sans re-PATCH.
-      syncUser(response.data);
+      if (response?.data) syncUser(response.data);
 
       showSuccess(t('editProfile.successLabel'), t('editProfile.profileUpdated'));
     } catch (error: any) {
@@ -536,6 +605,56 @@ export default function EditProfileScreen() {
                 onChangeText={setCompanyName}
                 placeholder={t('editProfile.companyNamePlaceholder')}
                 placeholderTextColor={colors.gray400}
+              />
+            </View>
+
+            {/* Logo organisateur */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.orgLogoLabel', { defaultValue: 'Logo' })}</Text>
+              <TouchableOpacity
+                onPress={handlePickOrgLogo}
+                activeOpacity={0.85}
+                style={[styles.orgLogoRow, { borderColor: colors.gray200, backgroundColor: colors.gray50 }]}
+              >
+                {orgLogo ? (
+                  <Image source={orgLogo} style={styles.orgLogoImage} cachePolicy="memory-disk" transition={200} />
+                ) : (
+                  <View style={[styles.orgLogoPlaceholder, { backgroundColor: `${colors.primary}15` }]}>
+                    <Ionicons name="image-outline" size={22} color={colors.primary} />
+                  </View>
+                )}
+                <Text style={[styles.orgLogoHint, { color: colors.primary }]}>
+                  {orgLogo ? t('editProfile.orgLogoChange', { defaultValue: 'Changer le logo' }) : t('editProfile.orgLogoAdd', { defaultValue: 'Ajouter un logo' })}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Site web */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.orgWebsiteLabel', { defaultValue: 'Site web' })}</Text>
+              <TextInput
+                style={inputStyle}
+                value={orgWebsite}
+                onChangeText={setOrgWebsite}
+                placeholder="https://…"
+                placeholderTextColor={colors.gray400}
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+            </View>
+
+            {/* Description publique */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.orgDescriptionLabel', { defaultValue: 'Description publique' })}</Text>
+              <TextInput
+                style={[inputStyle, styles.orgDescriptionInput]}
+                value={orgDescription}
+                onChangeText={setOrgDescription}
+                placeholder={t('editProfile.orgDescriptionPlaceholder', { defaultValue: 'Présentez votre organisation…' })}
+                placeholderTextColor={colors.gray400}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
               />
             </View>
           </Section>
@@ -902,6 +1021,21 @@ const styles = StyleSheet.create({
   sectionContent: { padding: Spacing.md },
   inputRow: { flexDirection: 'row', gap: Spacing.sm },
   inputGroup: { marginBottom: Spacing.md },
+  orgLogoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    borderWidth: 1,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.sm,
+  },
+  orgLogoImage: { width: 48, height: 48, borderRadius: BorderRadius.md },
+  orgLogoPlaceholder: {
+    width: 48, height: 48, borderRadius: BorderRadius.md,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  orgLogoHint: { fontSize: FontSizes.sm, fontFamily: FontFamily.semiBold },
+  orgDescriptionInput: { minHeight: 96, paddingTop: Spacing.sm },
   inputHalf: { flex: 1 },
   selectTrigger: {
     flexDirection: 'row',
