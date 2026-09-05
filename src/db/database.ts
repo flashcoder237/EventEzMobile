@@ -13,7 +13,7 @@ const DB_NAME = 'eventez.db';
 
 // Version de schéma courante. Incrémenter à chaque changement de structure et
 // ajouter le bloc de migration correspondant dans `migrate()`.
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 let _db: SQLite.SQLiteDatabase | null = null;
 let _openPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -79,6 +79,26 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
         synced_at       TEXT
       );
     `);
+    await db.execAsync(`PRAGMA user_version = 1;`);
+  }
+
+  if (current < 2) {
+    await db.execAsync(`
+      -- Outbox d'envoi : un enregistrement par message en attente d'envoi
+      -- (offline ou en cours). Contient le texte ET les attachments locaux
+      -- (URI file://) pour pouvoir rejouer l'upload à la reconnexion.
+      CREATE TABLE IF NOT EXISTS outbox (
+        temp_id         TEXT PRIMARY KEY,         -- id optimiste (temp-xxx) = lien avec messages.id
+        conversation_id TEXT NOT NULL,
+        content         TEXT,
+        reply_to        TEXT,
+        attachments     TEXT,                     -- JSON [{uri,name,type}] — fichiers locaux
+        state           TEXT DEFAULT 'pending',   -- 'pending' | 'sending' | 'failed'
+        retry_count     INTEGER DEFAULT 0,
+        created_at      TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_outbox_conv ON outbox(conversation_id);
+    `);
     await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION};`);
   }
 }
@@ -104,5 +124,6 @@ export async function clearAllLocalData(): Promise<void> {
     DELETE FROM messages;
     DELETE FROM conversations;
     DELETE FROM sync_state;
+    DELETE FROM outbox;
   `);
 }

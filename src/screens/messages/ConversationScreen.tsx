@@ -114,6 +114,8 @@ import {
   insertPending as insertLocalPending,
 } from '../../db/messageRepository';
 import { syncConversation } from '../../db/messageSync';
+import { enqueueOutbox } from '../../db/outboxRepository';
+import { flushOutbox } from '../../db/outboxSync';
 import { useVoicePrefetch, getCachedVoiceUri, registerSentVoice, getSentVoiceUri } from '../../hooks/useVoicePrefetch';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -428,6 +430,23 @@ export default function ConversationScreen() {
       actions.setLoading(false);
     }
   }, [state.conversationId]);
+
+  // Rejeu de l'OUTBOX SQLite à la (re)connexion : les messages envoyés hors
+  // ligne — texte ET attachments — sont uploadés puis envoyés, et réconciliés
+  // en base. flushOutbox est idempotent (garde 'sending').
+  useEffect(() => {
+    if (isConnected) {
+      flushOutbox().then((sent) => {
+        if (sent > 0 && state.conversationId) {
+          // Rafraîchit l'affichage depuis le local après réconciliation.
+          getLocalMessages(state.conversationId, 30)
+            .then((msgs) => { if (msgs.length) actions.setMessages(msgs); })
+            .catch(() => {});
+        }
+      }).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected]);
 
   // Cleanup audio on unmount
   useEffect(() => {
@@ -2380,6 +2399,9 @@ export default function ConversationScreen() {
     // d'attachments — pas via setState round-trip + setTimeout (stale closure
     // garantie), on travaille avec une variable locale jusqu'a la fin du send.
     let effectiveFiles = state.attachedFiles || [];
+    // Déclaré au niveau fonction pour être accessible dans le catch offline
+    // (enqueueOutbox). Assigné à la création du message optimiste plus bas.
+    let tempMessageId = '';
     const pickedUpVoice = pendingVoiceUri && pendingVoiceDuration > 0;
     if (pickedUpVoice) {
       effectiveFiles = [
@@ -2488,7 +2510,7 @@ export default function ConversationScreen() {
       // uploadés. Chaque attachment temporaire reçoit un id `tmp:...` qu'on
       // ajoute à `uploadingIds` ; MessageBubble affiche un overlay loader
       // tant que l'id figure dans ce Set.
-      const tempMessageId = `temp-${Date.now()}`;
+      tempMessageId = `temp-${Date.now()}`;
       const tempAttachments = effectiveFiles.map((f, i) => ({
         id: `tmp:${tempMessageId}:${i}`,
         file: f.uri,
@@ -2839,20 +2861,21 @@ export default function ConversationScreen() {
         }
       }
 
-      // Si pas de connexion, on enqueue le message dans la queue offline
-      // persistante (AsyncStorage). Il sera rejoué dès que isConnected===true.
-      // Note : on ne peut pas enqueue les attachments (ils sont locaux uri),
-      // donc on enqueue le texte seul. Si l'utilisateur veut renvoyer les
-      // attachments, il devra les ré-attacher.
+      // Si pas de connexion, on enqueue le message dans l'OUTBOX SQLite
+      // persistante — TEXTE ET ATTACHMENTS (URI locaux). Rejoué intégralement
+      // à la reconnexion (flushOutbox), l'utilisateur n'a plus à ré-attacher.
       const conversationIdToUse = state.conversationId;
-      if (!isConnected && conversationIdToUse && messageContent) {
+      if (!isConnected && conversationIdToUse && (messageContent || effectiveFiles.length > 0)) {
         try {
-          await offlineQueue.enqueue(
-            String(conversationIdToUse),
-            messageContent,
-            state.replyToMessage?.id ? String(state.replyToMessage.id) : undefined,
-            [],
-          );
+          await enqueueOutbox({
+            tempId: tempMessageId,
+            conversationId: conversationIdToUse,
+            content: messageContent,
+            replyTo: state.replyToMessage?.id ? String(state.replyToMessage.id) : undefined,
+            attachments: effectiveFiles.map((f: any) => ({
+              uri: f.uri, name: f.name, type: f.type,
+            })),
+          });
           showSuccess(
             t('conversation.pendingMessageTitle'),
             t('conversation.pendingMessageMessage'),
