@@ -103,6 +103,29 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
   }
 }
 
+// ── Mutex d'écriture ────────────────────────────────────────────────────────
+// expo-sqlite ouvre une connexion unique (singleton) ; `withTransactionAsync`
+// n'est PAS ré-entrant ni concurrent (deux BEGIN en parallèle → "cannot start a
+// transaction within a transaction"). Comme le WS, la sync delta et l'outbox
+// écrivent de façon asynchrone et potentiellement simultanée, on sérialise
+// TOUTES les écritures transactionnelles via cette file de promesses.
+let _writeChain: Promise<unknown> = Promise.resolve();
+
+/**
+ * Exécute `task` en exclusion mutuelle avec les autres écritures. Garantit
+ * qu'aucune transaction ne démarre pendant qu'une autre tourne.
+ */
+export function runExclusive<T>(task: () => Promise<T>): Promise<T> {
+  const result = _writeChain.then(task, task);
+  // La chaîne ne doit jamais rester rejetée (sinon toutes les écritures
+  // suivantes seraient court-circuitées) → on neutralise le rejet du maillon.
+  _writeChain = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  return result;
+}
+
 /**
  * Ferme la base (tests / logout). La prochaine requête la rouvrira.
  */
@@ -120,10 +143,15 @@ export async function closeDatabase(): Promise<void> {
  */
 export async function clearAllLocalData(): Promise<void> {
   const db = await getDatabase();
-  await db.execAsync(`
-    DELETE FROM messages;
-    DELETE FROM conversations;
-    DELETE FROM sync_state;
-    DELETE FROM outbox;
-  `);
+  // Chaque DELETE isolé : si une table manque (base d'une version antérieure,
+  // migration partielle), l'échec de l'une ne doit PAS empêcher la purge des
+  // autres — sinon des messages du compte précédent survivraient au logout
+  // (fuite inter-comptes sur appareil partagé).
+  for (const table of ['messages', 'conversations', 'sync_state', 'outbox']) {
+    try {
+      await db.runAsync(`DELETE FROM ${table}`);
+    } catch {
+      /* table absente → rien à purger */
+    }
+  }
 }

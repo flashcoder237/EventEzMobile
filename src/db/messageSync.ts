@@ -40,15 +40,12 @@ export async function syncConversation(conversationId: string | number): Promise
       applied += results.length;
     }
 
-    // Avance le curseur même si 0 résultat (next_since = curseur normalisé).
-    const nowIso = new Date().toISOString();
+    // Avance le curseur. Le backend renvoie TOUJOURS next_since (curseur
+    // composite `updated_at|id`, opaque côté client) — y compris quand il n'y a
+    // rien de nouveau (il rend alors le curseur reçu).
     if (data.next_since) {
       cursor = data.next_since;
-      await setSyncCursor(conversationId, cursor, nowIso);
-    } else if (!cursor && results.length) {
-      // Première sync sans curseur préexistant : dérive-le du dernier message.
-      cursor = results[results.length - 1].updated_at ?? results[results.length - 1].created_at;
-      await setSyncCursor(conversationId, cursor, nowIso);
+      await setSyncCursor(conversationId, cursor, new Date().toISOString());
     }
 
     if (!data.has_more) break;

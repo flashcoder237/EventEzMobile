@@ -7,7 +7,7 @@
  * on applique localement les mises à jour temps réel (nouveau message, unread).
  */
 import type { Conversation } from '../types';
-import { getDatabase } from './database';
+import { getDatabase, runExclusive } from './database';
 
 interface ConversationRow {
   id: string;
@@ -28,7 +28,7 @@ function rowToConversation(row: ConversationRow): Conversation {
 export async function upsertConversations(conversations: Conversation[]): Promise<void> {
   if (!conversations.length) return;
   const db = await getDatabase();
-  await db.withTransactionAsync(async () => {
+  await runExclusive(() => db.withTransactionAsync(async () => {
     for (const c of conversations) {
       const lastMsgAt =
         (c as any).last_message_at ?? (c as any).last_message?.created_at ?? null;
@@ -47,7 +47,7 @@ export async function upsertConversations(conversations: Conversation[]): Promis
         (c as any).unread_count ?? 0,
       );
     }
-  });
+  }));
 }
 
 /** Lit l'inbox locale, triée par dernier message (comme l'API). */

@@ -6,7 +6,7 @@
  * `upsertMessages`, la file d'envoi via `insertPending` / `markSent`.
  */
 import type { Message } from '../types';
-import { getDatabase } from './database';
+import { getDatabase, runExclusive } from './database';
 
 export interface MessageRow {
   id: string;
@@ -41,29 +41,10 @@ export async function upsertMessages(
   const db = await getDatabase();
   const cid = convKey(conversationId);
 
-  await db.withTransactionAsync(async () => {
-    for (const m of messages) {
-      const id = String(m.id);
-      const serverId = typeof m.id === 'number' ? m.id : Number.isFinite(Number(m.id)) ? Number(m.id) : null;
-      await db.runAsync(
-        `INSERT INTO messages (id, conversation_id, server_id, payload, created_at, updated_at, is_deleted, send_state)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'sent')
-         ON CONFLICT(id) DO UPDATE SET
-           payload = excluded.payload,
-           server_id = excluded.server_id,
-           updated_at = excluded.updated_at,
-           is_deleted = excluded.is_deleted,
-           send_state = 'sent'`,
-        id,
-        cid,
-        serverId,
-        JSON.stringify(m),
-        m.created_at,
-        m.updated_at ?? m.created_at,
-        m.is_deleted ? 1 : 0,
-      );
-    }
-  });
+  // runExclusive : sérialise avec les autres écritures (WS, sync, outbox) pour
+  // éviter "cannot start a transaction within a transaction" sur la connexion
+  // unique d'expo-sqlite.
+  await runExclusive(() => db.withTransactionAsync(() => upsertMessagesTx(db, cid, messages)));
 }
 
 /**
@@ -159,10 +140,10 @@ export async function reconcileSent(
   serverMessage: Message,
 ): Promise<void> {
   const db = await getDatabase();
-  await db.withTransactionAsync(async () => {
+  await runExclusive(() => db.withTransactionAsync(async () => {
     await db.runAsync('DELETE FROM messages WHERE id = ?', tempId);
     await upsertMessagesTx(db, convKey(conversationId), [serverMessage]);
-  });
+  }));
 }
 
 /** Marque un message optimiste comme échoué (affichage bulle rouge). */
@@ -174,6 +155,31 @@ export async function markFailed(tempId: string): Promise<void> {
 export async function deleteLocalMessage(id: string): Promise<void> {
   const db = await getDatabase();
   await db.runAsync('DELETE FROM messages WHERE id = ?', id);
+}
+
+/**
+ * Applique un patch partiel (édition, suppression, réaction reçue par WS) à un
+ * message déjà en base. Sans ça, un message édité/supprimé en temps réel
+ * réaffichait son ancien état au prochain reload (avant la resync delta).
+ */
+export async function patchLocalMessage(
+  id: string | number,
+  patch: Partial<Message>,
+): Promise<void> {
+  const db = await getDatabase();
+  const key = String(id);
+  await runExclusive(async () => {
+    const row = await db.getFirstAsync<MessageRow>('SELECT * FROM messages WHERE id = ?', key);
+    if (!row) return;
+    const merged = { ...(JSON.parse(row.payload) as Message), ...patch };
+    await db.runAsync(
+      `UPDATE messages SET payload = ?, is_deleted = ?, updated_at = ? WHERE id = ?`,
+      JSON.stringify(merged),
+      merged.is_deleted ? 1 : 0,
+      merged.updated_at ?? row.updated_at ?? merged.created_at,
+      key,
+    );
+  });
 }
 
 // Helper interne : upsert dans une transaction déjà ouverte.

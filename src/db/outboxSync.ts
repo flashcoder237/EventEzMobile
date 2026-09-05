@@ -18,6 +18,12 @@ import {
 
 const MAX_RETRY = 3;
 
+// Verrou anti-concurrence : flushOutbox est déclenché à chaque bascule
+// isConnected=true et au mount de chaque écran. Sans ce garde, un flapping
+// réseau lançait deux flush en parallèle qui lisaient la même entrée 'pending'
+// avant que markSending ne l'exclue → DOUBLE ENVOI côté serveur.
+let _flushing = false;
+
 async function uploadOne(att: OutboxAttachment, conversationId: string): Promise<string | null> {
   const formData = new FormData();
   const field = att.type === 'voice' ? 'audio' : 'file';
@@ -43,6 +49,16 @@ async function uploadOne(att: OutboxAttachment, conversationId: string): Promise
  * Retourne le nombre d'entrées envoyées avec succès.
  */
 export async function flushOutbox(): Promise<number> {
+  if (_flushing) return 0;
+  _flushing = true;
+  try {
+    return await _flushOutboxInner();
+  } finally {
+    _flushing = false;
+  }
+}
+
+async function _flushOutboxInner(): Promise<number> {
   const entries = await getPendingOutbox(20);
   let sent = 0;
 

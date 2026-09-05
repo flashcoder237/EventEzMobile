@@ -112,6 +112,8 @@ import {
   upsertMessages as upsertLocalMessages,
   reconcileSent as reconcileLocalSent,
   insertPending as insertLocalPending,
+  patchLocalMessage,
+  deleteLocalMessage,
 } from '../../db/messageRepository';
 import { syncConversation } from '../../db/messageSync';
 import { enqueueOutbox } from '../../db/outboxRepository';
@@ -282,9 +284,20 @@ export default function ConversationScreen() {
         actions.addMessage(newMessage);
         // FlatList inversé affiche automatiquement les nouveaux messages en bas (index 0)
       }
-      // Persiste en SQLite : un message WS doit survivre au refresh/fermeture,
-      // pas seulement vivre dans le state React. Best-effort.
-      upsertLocalMessages(incomingConvId, [newMessage as any]).catch(() => {});
+      // Persiste en SQLite : un message WS doit survivre au refresh/fermeture.
+      // MAIS pas pour l'écho de MON PROPRE message : le backend broadcast aussi
+      // message.new à l'expéditeur, sans exclusion. Le persister ici créerait
+      // une ligne serveur À CÔTÉ de la ligne temp-xxx (que seul onMessageSent /
+      // reconcileSent nettoie) → doublon persistant si message.sent est perdu.
+      // La réconciliation optimiste est la seule voie pour mes propres messages.
+      const msgSenderId = (() => {
+        const s: any = (newMessage as any).sender;
+        if (s == null) return null;
+        return typeof s === 'object' && s.id != null ? Number(s.id) : Number(s);
+      })();
+      if (msgSenderId !== Number(user?.id)) {
+        upsertLocalMessages(incomingConvId, [newMessage as any]).catch(() => {});
+      }
     },
     onMessageSent: ({ clientTempId, message }) => {
       // Réconciliation optimiste : on remplace la bulle temp (client_temp_id)
@@ -323,18 +336,15 @@ export default function ConversationScreen() {
       actions.removeReaction(String(data.messageId), data.emoji, String(data.userId));
     },
     onMessageUpdated: (data) => {
-      actions.updateMessage(String(data.messageId), {
-        content: data.content,
-        is_edited: true,
-        edited_at: data.editedAt,
-      });
+      const patch = { content: data.content, is_edited: true, edited_at: data.editedAt };
+      actions.updateMessage(String(data.messageId), patch);
+      // Persiste l'édition en SQLite (sinon l'ancien contenu réapparaît au reload).
+      patchLocalMessage(String(data.messageId), patch as any).catch(() => {});
     },
     onMessageDeleted: (data) => {
-      actions.updateMessage(String(data.messageId), {
-        is_deleted: true,
-        content: '',
-        attachments: [],
-      });
+      const patch = { is_deleted: true, content: '', attachments: [] };
+      actions.updateMessage(String(data.messageId), patch);
+      patchLocalMessage(String(data.messageId), patch as any).catch(() => {});
     },
     onServerError: (code, message) => {
       if (code === 'rate_limited') {
@@ -2752,6 +2762,12 @@ export default function ConversationScreen() {
         });
 
         actions.updateMessage(String(tempMessage.id), response.data);
+        // Réconcilie AUSSI en SQLite (le chemin WS le fait via onMessageSent,
+        // pas le chemin REST). Sans ça, la ligne temp-xxx pending restait en
+        // base → bulle fantôme + doublon avec le message resync au reload.
+        if (response.data) {
+          reconcileLocalSent(conversationIdToUse, String(tempMessage.id), response.data).catch(() => {});
+        }
       }
 
       // Clear draft after successful send
@@ -2887,6 +2903,12 @@ export default function ConversationScreen() {
       } else {
         actions.setNewMessage(messageContent);
         showError(t('common.error'), t('conversation.sendError'));
+        // Échec alors qu'on est CONNECTÉ (pas d'enqueue outbox) : la bulle a été
+        // retirée du state (removeTempMessages), il faut aussi purger la ligne
+        // SQLite 'pending' — sinon elle réapparaît en fantôme au prochain reload.
+        if (tempMessageId) {
+          deleteLocalMessage(tempMessageId).catch(() => {});
+        }
       }
     } finally {
       actions.setSending(false);
