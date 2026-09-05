@@ -31,6 +31,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { messagesAPI, usersAPI, connectionsAPI, getMediaUrl } from '../../api';
 import CacheService from '../../services/CacheService';
+import {
+  getConversations as getLocalConversations,
+  upsertConversations as upsertLocalConversations,
+  bumpConversationOnNewMessage as bumpLocalConversation,
+  clearUnread as clearLocalUnread,
+} from '../../db/conversationRepository';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useMutedConversations } from '../../hooks/useMutedConversations';
@@ -836,6 +842,16 @@ export default function MessagesScreen() {
         }
         return next;
       });
+      // Persiste le bump en SQLite (remonte la conv + incrémente unread) SANS
+      // refetch réseau : c'est ce qui évitait un getConversations complet au
+      // prochain focus. Best-effort.
+      if (convFound) {
+        bumpLocalConversation(
+          incomingConvId,
+          msg.created_at,
+          senderId !== Number(user?.id),
+        ).catch(() => {});
+      }
       // Refetch si la conv n'a pas ete trouvee (DM d'un nouvel interlocuteur,
       // conv creee pendant qu'on etait hors-ligne, etc.). Hors du setState
       // callback pour eviter un setState pendant render.
@@ -860,6 +876,8 @@ export default function MessagesScreen() {
       setConversations(prev =>
         prev.map(c => (ids.has(String(c.id)) ? { ...c, unread_count: 0 } : c)),
       );
+      // Remet à zéro le non-lu en SQLite aussi (cohérence de l'inbox locale).
+      ids.forEach(id => clearLocalUnread(id).catch(() => {}));
       // Invalide le cache pour cohérence après reload
       CacheService.invalidate(`convos:${user?.id}`);
     },
@@ -883,10 +901,14 @@ export default function MessagesScreen() {
     },
   });
 
+  // Ref miroir de wsConnected : lue dans useFocusEffect (dépendances figées sur
+  // user?.id) sans provoquer de stale closure ni re-souscription du focus.
+  const wsConnectedRef = useRef(wsConnected);
+  wsConnectedRef.current = wsConnected;
+
   // Refresh quand l'ecran reprend le focus (retour depuis ConversationScreen,
   // changement d'onglet, etc.). Sans ca, l'inbox restait sur l'etat du dernier
-  // fetch — meme si la WS etait deconnectee entre temps. bypassCache=true
-  // pour ne pas servir du cache potentiellement stale au focus.
+  // fetch — meme si la WS etait deconnectee entre temps.
   useFocusEffect(
     useCallback(() => {
       // Skip le tout premier focus (le mount useEffect le fait deja).
@@ -894,7 +916,10 @@ export default function MessagesScreen() {
       let cancelled = false;
       const t = setTimeout(() => {
         if (!cancelled) {
-          fetchConversations(true).catch(() => {});
+          // WS connecté → le temps réel maintient déjà l'inbox à jour : on lit
+          // le local/cache (instantané) sans forcer un getConversations complet.
+          // WS déconnecté → bypass pour rattraper ce qu'on a pu manquer.
+          fetchConversations(!wsConnectedRef.current).catch(() => {});
           loadDrafts().catch(() => {});
           loadOfflineCounts().catch(() => {});
         }
@@ -1031,6 +1056,15 @@ export default function MessagesScreen() {
     const cacheKey = `convos:${user?.id}`;
     try {
       if (!bypassCache) {
+        // LOCAL D'ABORD (SQLite) — inbox instantanée, même hors ligne.
+        try {
+          const localConvos = await getLocalConversations(50);
+          if (localConvos.length > 0) {
+            setConversations(localConvos);
+            setLoading(false);
+          }
+        } catch { /* SQLite HS → fallback cache/réseau */ }
+
         const cached = await CacheService.get<Conversation[]>(cacheKey);
         if (cached) {
           setConversations(cached.data);
@@ -1054,6 +1088,9 @@ export default function MessagesScreen() {
       // absorber les double-fetch (focus + AppState + initial mount qui
       // peuvent se chevaucher en quelques ms).
       CacheService.set(cacheKey, results, 10 * 1000);
+      // Persiste l'inbox en SQLite pour l'affichage instantané des prochaines
+      // ouvertures. Best-effort, non bloquant.
+      upsertLocalConversations(results).catch(() => {});
     } catch (error: any) {
       if (__DEV__) console.error('Erreur chargement conversations:', error);
       // On ne surface l'erreur que si on n'a PAS de données déjà affichées
