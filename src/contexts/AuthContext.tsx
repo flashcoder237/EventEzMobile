@@ -390,6 +390,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (cacheError) {
       if (__DEV__) console.warn('Cache clearAll on logout failed:', cacheError);
     }
+    // SÉCURITÉ : purge la base SQLite locale (messages/conversations) — sinon
+    // l'utilisateur suivant sur le même appareil verrait la messagerie du
+    // précédent. Import dynamique pour ne pas charger SQLite au boot.
+    try {
+      const { clearAllLocalData } = await import('../db/database');
+      await clearAllLocalData();
+    } catch (dbError) {
+      if (__DEV__) console.warn('SQLite clear on logout failed:', dbError);
+    }
     // SÉCURITÉ : purge les BILLETS HORS-LIGNE (clés eventez_ticket_*). Elles ne
     // portaient PAS le préfixe de CacheService → clearAll() ne les touchait pas,
     // donc l'utilisateur suivant sur le même téléphone voyait les billets du

@@ -107,6 +107,12 @@ import EventActionsSheet, {
   EventAction,
 } from '../../components/organizer/EventActionsSheet';
 import CacheService from '../../services/CacheService';
+import {
+  getMessages as getLocalMessages,
+  upsertMessages as upsertLocalMessages,
+  reconcileSent as reconcileLocalSent,
+} from '../../db/messageRepository';
+import { syncConversation } from '../../db/messageSync';
 import { useVoicePrefetch, getCachedVoiceUri, registerSentVoice, getSentVoiceUri } from '../../hooks/useVoicePrefetch';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -273,17 +279,26 @@ export default function ConversationScreen() {
         actions.addMessage(newMessage);
         // FlatList inversé affiche automatiquement les nouveaux messages en bas (index 0)
       }
+      // Persiste en SQLite : un message WS doit survivre au refresh/fermeture,
+      // pas seulement vivre dans le state React. Best-effort.
+      upsertLocalMessages(incomingConvId, [newMessage as any]).catch(() => {});
     },
     onMessageSent: ({ clientTempId, message }) => {
       // Réconciliation optimiste : on remplace la bulle temp (client_temp_id)
       // par le message serveur, au lieu d'en afficher un doublon avec l'echo.
       if (clientTempId != null) {
         actions.updateMessage(String(clientTempId), message);
+        // Remplace la ligne optimiste (tempId) par le message serveur en base.
+        const cid = state.conversationId ?? (message as any).conversation_id ?? message.conversation;
+        if (cid != null) {
+          reconcileLocalSent(cid, String(clientTempId), message as any).catch(() => {});
+        }
       } else {
         const incomingConvId = String((message as any).conversation_id ?? message.conversation);
         if (incomingConvId === String(state.conversationId)) {
           actions.addMessage(message);
         }
+        upsertLocalMessages((message as any).conversation_id ?? message.conversation, [message as any]).catch(() => {});
       }
     },
     onTypingIndicator: (data) => {
@@ -602,10 +617,42 @@ export default function ConversationScreen() {
       if (!state.hasMore || state.loadingMore) return;
       actions.setLoadingMore(true);
     } else {
-      // Stale-while-revalidate sur le fetch initial : on sert le cache
-      // immediatement si dispo, puis on refresh en arriere-plan. Evite
-      // de re-charger 20 messages depuis le reseau a chaque retour sur
-      // la conv (typique : quitter pour repondre a une notif et revenir).
+      // 1. LOCAL D'ABORD (SQLite) — affichage instantané, même hors ligne.
+      //    La base locale est la source de vérité de l'affichage ; le réseau
+      //    ne bloque jamais l'UI. Cf. synchro delta façon Telegram.
+      let hasLocal = false;
+      try {
+        const localMessages = await getLocalMessages(state.conversationId, 30);
+        if (localMessages.length > 0) {
+          actions.setMessages(localMessages);
+          actions.setLoading(false);
+          setMessagesLoadError(null);
+          hasLocal = true;
+        }
+      } catch {
+        // SQLite indisponible → on retombe sur le cache/réseau ci-dessous.
+      }
+
+      // 2. SYNC DELTA en arrière-plan (ne récupère que les changements depuis
+      //    le dernier curseur, au lieu de repaginer). Puis re-lit le local.
+      try {
+        await syncConversation(state.conversationId);
+        const refreshed = await getLocalMessages(state.conversationId, 30);
+        if (refreshed.length > 0) {
+          actions.setMessages(refreshed);
+          actions.setLoading(false);
+          setMessagesLoadError(null);
+          // Le delta a suffi → on ne fait PAS le getMessages complet ci-dessous.
+          return;
+        }
+      } catch {
+        // Sync réseau HS → si on a du local, on reste dessus ; sinon on tombe
+        // sur le fetch réseau complet (première ouverture jamais synchronisée).
+        if (hasLocal) return;
+      }
+
+      // 3. Fallback : cache AsyncStorage historique (transition douce), puis
+      //    fetch réseau complet plus bas si rien en local.
       const cacheKey = messagesCacheKey(state.conversationId, user?.id);
       try {
         const cached = await CacheService.get<{
@@ -619,8 +666,6 @@ export default function ConversationScreen() {
           actions.setNextPageUrl(cached.data.nextPageUrl);
           actions.setLoading(false);
           setMessagesLoadError(null);
-          // Cache frais → on saute le fetch reseau, on s'appuie sur le
-          // WebSocket pour les diffs.
           if (!cached.isStale) return;
         }
       } catch {
@@ -665,6 +710,13 @@ export default function ConversationScreen() {
         } catch {
           // silent
         }
+      }
+      // Persiste en SQLite pour l'affichage instantané des prochaines ouvertures
+      // (source de vérité locale). Best-effort, ne bloque pas l'UI.
+      try {
+        await upsertLocalMessages(state.conversationId, newMessages);
+      } catch {
+        // SQLite HS → non bloquant
       }
 
       actions.setHasMore(!!data.next);
