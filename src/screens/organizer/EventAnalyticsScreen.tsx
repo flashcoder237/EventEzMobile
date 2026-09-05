@@ -273,6 +273,23 @@ export default function EventAnalyticsScreen() {
               <Text style={[styles.actionText, { color: colors.text }]}>{t('organizer.eventAnalytics.actionLiveOps')}</Text>
             </TouchableOpacity>
 
+            {/* Guichet : point d'entree PERMANENT, pas conditionne au jour J.
+                L'organisateur doit pouvoir ouvrir sa caisse et s'entrainer
+                AVANT la soiree — decouvrir un ecran sous la pression d une
+                file de quarante personnes est le pire moment. */}
+            <TouchableOpacity
+              style={[styles.actionCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
+              onPress={() => navigation.navigate('BoxOffice', { eventId })}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={t('organizer.eventAnalytics.actionBoxOffice')}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: 'rgba(79,70,229,0.12)' }]}>
+                <Ionicons name="cash-outline" size={20} color="#4F46E5" />
+              </View>
+              <Text style={[styles.actionText, { color: colors.text }]}>{t('organizer.eventAnalytics.actionBoxOffice')}</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={[styles.actionCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
               onPress={() => navigation.navigate('EventPricingTiers', { eventId, eventCurrency: eventCurrencyCode })}

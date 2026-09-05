@@ -1778,6 +1778,9 @@ export type RootStackParamList = {
   Subscription: undefined;
   QRScanner: { eventId: string };
   LiveOps: { eventId: string };
+  // Guichet : vente sur place et cloture de caisse.
+  BoxOffice: { eventId: string; eventTitle?: string };
+  CashDrawerClose: { drawerId: string; eventId?: string };
   Memories: undefined;
   EventAttendees: { eventId: string; registrationId: string };
   EventPricingTiers: { eventId: string; eventCurrency?: string };

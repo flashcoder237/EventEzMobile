@@ -1491,7 +1491,13 @@
     "sectionOrganization": "Organisation",
     "sectionSecurity": "Sécurité",
     "qrShareSubtitle": "Faites scanner ce code pour partager votre profil",
-    "countryPlaceholder": "Sélectionner un pays"
+    "countryPlaceholder": "Sélectionner un pays",
+    "orgLogoLabel": "Logo",
+    "orgLogoAdd": "Ajouter un logo",
+    "orgLogoChange": "Changer le logo",
+    "orgWebsiteLabel": "Site web",
+    "orgDescriptionLabel": "Description publique",
+    "orgDescriptionPlaceholder": "Présentez votre organisation…"
   },
   "settings": {
     "whoCanContactCurrent": "ANTI-SPAM",
@@ -2695,7 +2701,10 @@
     "successTitle": "Félicitations !",
     "successMessage": "Vous êtes maintenant organisateur. Créez votre premier événement !",
     "errorTitle": "Erreur",
-    "errorGeneric": "Une erreur est survenue"
+    "errorGeneric": "Une erreur est survenue",
+    "labelWebsite": "Site web (facultatif)",
+    "labelDescription": "Description (facultatif)",
+    "placeholderDescription": "Présentez votre organisation…"
   },
   "verificationForm": {
     "pdfOpenError": "Impossible d'ouvrir le document.",
@@ -6199,7 +6208,8 @@
       "insightViewsHas": "Votre événement a été vu {{count}} fois",
       "insightViewsNone": "Partagez votre événement pour obtenir plus de vues",
       "insightRegistered_one": "{{count}} personne inscrite",
-      "insightRegistered_other": "{{count}} personnes inscrites"
+      "insightRegistered_other": "{{count}} personnes inscrites",
+      "actionBoxOffice": "Guichet"
     },
     "sessionsLink": {
       "headerEyebrow": "ACCÈS • SESSIONS",
@@ -6469,6 +6479,58 @@
       "linkReportsSub": "Export CSV, PDF, dashboards",
       "linkMyEventsTitle": "Mes événements",
       "linkMyEventsSub": "Stats par événement"
+    },
+    "boxOffice": {
+      "openTitle": "Ouvrir la caisse",
+      "openingFloatHelp": "Combien de monnaie l'organisateur vous a-t-il remise pour rendre l'appoint ? Sans ce montant, vos comptes seront faux ce soir.",
+      "openDrawer": "Ouvrir la caisse",
+      "openError": "La caisse n'a pas pu être ouverte",
+      "openErrorDetail": "Vérifiez votre connexion et réessayez.",
+      "counter": "{{count}} ventes · {{amount}} {{currency}}",
+      "close": "Clôturer",
+      "cash": "Espèces",
+      "momo": "Mobile Money",
+      "giveBack": "À RENDRE",
+      "saleError": "La vente n'a pas été enregistrée",
+      "saleErrorDetail": "Ne refaites pas la vente : réessayez, l'argent ne sera pas encaissé deux fois.",
+      "a11y": {
+        "drawerOpened": "Caisse ouverte",
+        "openingFloatInput": "Montant du fond de caisse",
+        "openDrawer": "Ouvrir la caisse",
+        "counter": "{{count}} ventes, {{amount}} {{currency}} en caisse",
+        "closeDrawer": "Clôturer la caisse",
+        "tariff": "{{name}}, {{price}} {{currency}}",
+        "added": "{{name}} ajouté",
+        "remove": "Retirer {{name}}",
+        "given": "Client donne {{amount}} {{currency}}",
+        "payCash": "Encaisser {{amount}} {{currency}} en espèces",
+        "payMomo": "Encaisser en Mobile Money",
+        "saleDone": "Vente enregistrée, {{amount}} {{currency}}"
+      }
+    },
+    "cashDrawer": {
+      "expectedLabel": "À REMETTRE",
+      "cashOnlyHint": "Espèces uniquement — le Mobile Money n'est pas dans votre sacoche.",
+      "openingFloat": "Fond de caisse",
+      "salesCount": "Ventes",
+      "countedLabel": "J'ai compté",
+      "shortBy": "Il manque {{amount}} {{currency}}",
+      "overBy": "Excédent de {{amount}} {{currency}}",
+      "varianceHint": "Ce n'est pas bloquant. Expliquez simplement pourquoi ci-dessous.",
+      "reasonLabel": "Explication (facultatif)",
+      "reasonPlaceholder": "Ex. : j'ai rendu 500 de trop à un client",
+      "confirmClose": "Clôturer ma caisse",
+      "closedTitle": "Caisse clôturée",
+      "closedMessage": "{{amount}} {{currency}} remis.",
+      "closeError": "La clôture a échoué",
+      "closeErrorDetail": "Réessayez dans un instant.",
+      "a11y": {
+        "expected": "À remettre : {{amount}} {{currency}}",
+        "countedInput": "Montant compté",
+        "reasonInput": "Explication de l'écart",
+        "confirmClose": "Confirmer la clôture",
+        "closed": "Caisse clôturée"
+      }
     }
   },
   "moderation": {

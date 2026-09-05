@@ -1491,7 +1491,13 @@
     "sectionOrganization": "Organization",
     "sectionSecurity": "Security",
     "qrShareSubtitle": "Scan this code to share your profile",
-    "countryPlaceholder": "Select a country"
+    "countryPlaceholder": "Select a country",
+    "orgLogoLabel": "Logo",
+    "orgLogoAdd": "Add a logo",
+    "orgLogoChange": "Change logo",
+    "orgWebsiteLabel": "Website",
+    "orgDescriptionLabel": "Public description",
+    "orgDescriptionPlaceholder": "Introduce your organization…"
   },
   "settings": {
     "whoCanContactCurrent": "ANTI-SPAM",
@@ -2695,7 +2701,10 @@
     "successTitle": "Congratulations!",
     "successMessage": "You are now an organizer. Create your first event!",
     "errorTitle": "Error",
-    "errorGeneric": "An error occurred"
+    "errorGeneric": "An error occurred",
+    "labelWebsite": "Website (optional)",
+    "labelDescription": "Description (optional)",
+    "placeholderDescription": "Introduce your organization…"
   },
   "verificationForm": {
     "pdfOpenError": "Could not open the document.",
@@ -6199,7 +6208,8 @@
       "insightViewsHas": "Your event has been viewed {{count}} times",
       "insightViewsNone": "Share your event to get more views",
       "insightRegistered_one": "{{count}} person registered",
-      "insightRegistered_other": "{{count}} people registered"
+      "insightRegistered_other": "{{count}} people registered",
+      "actionBoxOffice": "Box office"
     },
     "sessionsLink": {
       "headerEyebrow": "ACCESS • SESSIONS",
@@ -6469,6 +6479,58 @@
       "linkReportsSub": "CSV, PDF export, dashboards",
       "linkMyEventsTitle": "My events",
       "linkMyEventsSub": "Stats per event"
+    },
+    "boxOffice": {
+      "openTitle": "Open the till",
+      "openingFloatHelp": "How much change did the organizer give you to start with? Without it, tonight's count will be wrong.",
+      "openDrawer": "Open the till",
+      "openError": "The till could not be opened",
+      "openErrorDetail": "Check your connection and try again.",
+      "counter": "{{count}} sales · {{amount}} {{currency}}",
+      "close": "Close",
+      "cash": "Cash",
+      "momo": "Mobile Money",
+      "giveBack": "GIVE BACK",
+      "saleError": "The sale was not recorded",
+      "saleErrorDetail": "Do not re-enter the sale: try again, it will not be charged twice.",
+      "a11y": {
+        "drawerOpened": "Till opened",
+        "openingFloatInput": "Opening float amount",
+        "openDrawer": "Open the till",
+        "counter": "{{count}} sales, {{amount}} {{currency}} in the till",
+        "closeDrawer": "Close the till",
+        "tariff": "{{name}}, {{price}} {{currency}}",
+        "added": "{{name}} added",
+        "remove": "Remove {{name}}",
+        "given": "Customer gives {{amount}} {{currency}}",
+        "payCash": "Take {{amount}} {{currency}} in cash",
+        "payMomo": "Take Mobile Money",
+        "saleDone": "Sale recorded, {{amount}} {{currency}}"
+      }
+    },
+    "cashDrawer": {
+      "expectedLabel": "TO HAND OVER",
+      "cashOnlyHint": "Cash only — Mobile Money is not in your bag.",
+      "openingFloat": "Opening float",
+      "salesCount": "Sales",
+      "countedLabel": "I counted",
+      "shortBy": "{{amount}} {{currency}} missing",
+      "overBy": "{{amount}} {{currency}} over",
+      "varianceHint": "This is not blocking. Just explain why below.",
+      "reasonLabel": "Explanation (optional)",
+      "reasonPlaceholder": "E.g. I gave 500 too much change",
+      "confirmClose": "Close my till",
+      "closedTitle": "Till closed",
+      "closedMessage": "{{amount}} {{currency}} handed over.",
+      "closeError": "Closing failed",
+      "closeErrorDetail": "Please try again shortly.",
+      "a11y": {
+        "expected": "To hand over: {{amount}} {{currency}}",
+        "countedInput": "Counted amount",
+        "reasonInput": "Variance explanation",
+        "confirmClose": "Confirm closing",
+        "closed": "Till closed"
+      }
     }
   },
   "moderation": {

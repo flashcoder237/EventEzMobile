@@ -65,6 +65,9 @@ const WalletScreen = withSuspense(lazy(() => import('../screens/organizer/Wallet
 const MyEventsScreen = withSuspense(lazy(() => import('../screens/organizer/MyEventsScreen')));
 const QRScannerScreen = withSuspense(lazy(() => import('../screens/organizer/QRScannerScreen')));
 const LiveOpsScreen = withSuspense(lazy(() => import('../screens/organizer/LiveOpsScreen')));
+// Guichet : vente sur place et cloture de caisse (organisateur/caissier).
+const BoxOfficeScreen = withSuspense(lazy(() => import('../screens/organizer/BoxOfficeScreen')));
+const CashDrawerCloseScreen = withSuspense(lazy(() => import('../screens/organizer/CashDrawerCloseScreen')));
 const EventCreateScreen = withSuspense(lazy(() => import('../screens/organizer/EventCreateScreen')));
 const DraftsListScreen = withSuspense(lazy(() => import('../screens/organizer/DraftsListScreen')));
 const EventPricingTiersScreen = withSuspense(lazy(() => import('../screens/organizer/EventPricingTiersScreen')));
@@ -433,6 +436,8 @@ export default function RootNavigator() {
       <Stack.Screen name="Drafts" component={DraftsListScreen} />
       <Stack.Screen name="QRScanner" component={QRScannerScreen} options={{ presentation: 'fullScreenModal' }} />
       <Stack.Screen name="LiveOps" component={LiveOpsScreen} />
+      <Stack.Screen name="BoxOffice" component={BoxOfficeScreen} />
+      <Stack.Screen name="CashDrawerClose" component={CashDrawerCloseScreen} />
       <Stack.Screen name="Memories" component={MemoriesScreen} />
       <Stack.Screen name="EventAttendees" component={EventAttendeesScreen} />
       <Stack.Screen name="EventPricingTiers" component={EventPricingTiersScreen} />
