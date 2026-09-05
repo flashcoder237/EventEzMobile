@@ -2865,7 +2865,9 @@
     "locHybrid": "Hybrid",
     "priceAny": "All",
     "priceFree": "Free",
-    "pricePaid": "Paid"
+    "pricePaid": "Paid",
+    "shareSearch": "Share this search",
+    "shareMessage": "Check out these events on EventEz"
   },
   "map": {
     "filtersTitle": "Filters",
@@ -6505,8 +6507,11 @@
         "given": "Customer gives {{amount}} {{currency}}",
         "payCash": "Take {{amount}} {{currency}} in cash",
         "payMomo": "Take Mobile Money",
-        "saleDone": "Sale recorded, {{amount}} {{currency}}"
-      }
+        "saleDone": "Sale recorded, {{amount}} {{currency}}",
+        "queuedOffline": "Sale saved offline, {{amount}} {{currency}}. It will sync when the network returns."
+      },
+      "pendingSales": "{{count}} sale(s) pending · {{amount}} {{currency}}",
+      "toSettle": "{{count}} sale(s) to settle — tap to view"
     },
     "cashDrawer": {
       "expectedLabel": "TO HAND OVER",

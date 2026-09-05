@@ -20,6 +20,7 @@ import { boxOfficeAPI, CashDrawerState } from '../../api/boxOffice';
 import { ticketTypesAPI } from '../../api';
 import { useAlert } from '../../contexts/AlertContext';
 import { haptics } from '../../utils/haptics';
+import { useBoxOfficeQueue } from '../../hooks/useBoxOfficeQueue';
 
 /**
  * GUICHET — écran d'encaissement sur place.
@@ -84,6 +85,18 @@ export default function BoxOfficeScreen() {
   // conservée jusqu'au succès. La régénérer sur un renvoi ferait
   // encaisser deux fois.
   const saleIdRef = useRef<string | null>(null);
+
+  // File hors ligne : le reseau tombe TOUJOURS pendant un evenement.
+  // La vente doit continuer exactement pareil, sans que la caissiere ait
+  // a cocher quoi que ce soit — si l'app la bloque, elle pose le
+  // telephone et revient au carnet a souches.
+  const {
+    pendingCount,
+    pendingAmount,
+    failedCount,
+    isOnline,
+    enqueue,
+  } = useBoxOfficeQueue(eventId);
 
   const currency = drawer?.currency || 'XAF';
 
@@ -167,13 +180,39 @@ export default function BoxOfficeScreen() {
       saleIdRef.current = Crypto.randomUUID();
     }
     setSelling(true);
+
+    const saleItems = cart.map((l) => ({
+      ticket_type: l.ticketType.id,
+      quantity: l.quantity,
+    }));
+
+    // HORS LIGNE : on enfile SANS demander confirmation et sans changer
+    // le geste. La vente est reelle — l'argent est dans la sacoche — elle
+    // partira au retour du reseau avec la meme cle d'idempotence.
+    if (!isOnline) {
+      await enqueue({
+        clientSaleId: saleIdRef.current,
+        drawerId: drawer.id,
+        eventId,
+        items: saleItems,
+        paymentMethod: method,
+        amount: total,
+      });
+      haptics.success();
+      AccessibilityInfo.announceForAccessibility(
+        t('organizer.boxOffice.a11y.queuedOffline', { amount: total, currency })
+      );
+      setCart([]);
+      saleIdRef.current = null;
+      setLastChange(null);
+      setSelling(false);
+      return;
+    }
+
     try {
       await boxOfficeAPI.sell({
         drawer: drawer.id,
-        items: cart.map((l) => ({
-          ticket_type: l.ticketType.id,
-          quantity: l.quantity,
-        })),
+        items: saleItems,
         paymentMethod: method,
         clientSaleId: saleIdRef.current,
       });
@@ -293,6 +332,35 @@ export default function BoxOfficeScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Etat reseau : un MOT et une icone, jamais la couleur seule —
+          la nuit, sous les reflets, et pour un daltonien. Le montant en
+          attente est affiche parce qu'il DOIT etre compte dans la caisse
+          du soir : l'argent est bien dans la sacoche. */}
+      {(!isOnline || pendingCount > 0 || failedCount > 0) && (
+        <View
+          style={[
+            styles.offlineBar,
+            failedCount > 0 ? styles.offlineBarAlert : null,
+          ]}
+          accessibilityLiveRegion="polite"
+        >
+          <Ionicons
+            name={failedCount > 0 ? 'alert-circle' : 'cloud-offline-outline'}
+            size={22}
+            color="#0F172A"
+          />
+          <Text style={styles.offlineText} allowFontScaling maxFontSizeMultiplier={1.4}>
+            {failedCount > 0
+              ? t('organizer.boxOffice.toSettle', { count: failedCount })
+              : t('organizer.boxOffice.pendingSales', {
+                  count: pendingCount,
+                  amount: pendingAmount.toLocaleString('fr-FR'),
+                  currency,
+                })}
+          </Text>
+        </View>
+      )}
 
       <ScrollView contentContainerStyle={styles.body}>
         {ticketTypes.map((tt) => (
@@ -460,6 +528,16 @@ const makeStyles = (colors: any) =>
     closeLink: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 8 },
     closeLinkText: { fontSize: 17, fontWeight: '700', color: colors.primary },
 
+    offlineBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      backgroundColor: '#FEF3C7',
+    },
+    offlineBarAlert: { backgroundColor: '#FEE2E2' },
+    offlineText: { flex: 1, fontSize: 18, fontWeight: '700', color: '#0F172A' },
     body: { padding: 16, gap: 12, paddingBottom: 40 },
     tariffTile: {
       minHeight: 88, // cible principale : volontairement énorme

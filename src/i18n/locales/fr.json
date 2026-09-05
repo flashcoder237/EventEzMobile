@@ -2865,7 +2865,9 @@
     "locHybrid": "Hybride",
     "priceAny": "Tous",
     "priceFree": "Gratuit",
-    "pricePaid": "Payant"
+    "pricePaid": "Payant",
+    "shareSearch": "Partager cette recherche",
+    "shareMessage": "Découvre ces événements sur EventEz"
   },
   "map": {
     "filtersTitle": "Filtres",
@@ -6505,8 +6507,11 @@
         "given": "Client donne {{amount}} {{currency}}",
         "payCash": "Encaisser {{amount}} {{currency}} en espèces",
         "payMomo": "Encaisser en Mobile Money",
-        "saleDone": "Vente enregistrée, {{amount}} {{currency}}"
-      }
+        "saleDone": "Vente enregistrée, {{amount}} {{currency}}",
+        "queuedOffline": "Vente enregistrée hors ligne, {{amount}} {{currency}}. Elle partira au retour du réseau."
+      },
+      "pendingSales": "{{count}} vente(s) en attente · {{amount}} {{currency}}",
+      "toSettle": "{{count}} vente(s) à régler — touchez pour voir"
     },
     "cashDrawer": {
       "expectedLabel": "À REMETTRE",
