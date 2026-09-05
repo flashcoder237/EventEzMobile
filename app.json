@@ -161,6 +161,7 @@
       "expo-web-browser",
       "expo-audio",
       "expo-asset",
+      "expo-sqlite",
       "expo-localization",
       "@react-native-community/datetimepicker",
       "expo-font",

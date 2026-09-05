@@ -59,6 +59,12 @@ export const messagesAPI = {
   getMessages: (params?: { conversation?: string; page?: string }) =>
     api.get('/messages/', { params }),
 
+  // Synchro incrémentale (delta) : ne récupère que les messages créés/modifiés
+  // depuis `since` (curseur updated_at). Cœur de la synchro locale/online.
+  // Réponse : { results: Message[], next_since: string, has_more: boolean }.
+  syncMessages: (params: { conversation: string | number; since?: string }) =>
+    api.get('/messages/sync/', { params }),
+
   sendMessage: (data: {
     content: string;
     conversation?: string;

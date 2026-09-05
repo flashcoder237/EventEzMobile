@@ -753,6 +753,12 @@ export interface Message {
   reactions?: MessageReaction[];
   created_at: string;
   /**
+   * Horodatage de dernière modification (backend `updated_at`, auto). Bouge à
+   * la création ET à toute modif (édition, soft-delete). Sert de CURSEUR à la
+   * synchro delta locale (GET /messages/sync/?since=updated_at).
+   */
+  updated_at?: string;
+  /**
    * Client-only — true quand un message offline n'a pas pu être envoyé après
    * MAX_RETRY_COUNT tentatives. La bulle s'affiche avec un état d'échec
    * (bordure rouge + actions Réessayer/Supprimer) au lieu de disparaître
