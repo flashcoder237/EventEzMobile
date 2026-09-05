@@ -64,6 +64,16 @@
             {
               "scheme": "https",
               "host": "eventez.online",
+              "path": "/events"
+            },
+            {
+              "scheme": "https",
+              "host": "eventez.online",
+              "pathPrefix": "/search"
+            },
+            {
+              "scheme": "https",
+              "host": "eventez.online",
               "pathPrefix": "/organizers/"
             },
             {

@@ -1705,7 +1705,17 @@ export type RootStackParamList = {
     initialTab?: 'virtual';
   };
   EventReviews: { eventId: string; eventTitle?: string };
-  EventSearch: { query?: string; category?: number; city?: string; price?: 'free' | 'paid' } | undefined;
+  // Recherche partageable : params alignés sur les query string web /events?…
+  // (query, category, city, price, date_preset, location_type). datePreset /
+  // locationType permettent d'ouvrir l'app avec une recherche complète pré-filtrée.
+  EventSearch: {
+    query?: string;
+    category?: number;
+    city?: string;
+    price?: 'free' | 'paid';
+    datePreset?: 'today' | 'tomorrow' | 'weekend' | 'week' | 'month';
+    locationType?: 'in_person' | 'online' | 'hybrid';
+  } | undefined;
   // Liste de toutes les villes ayant des events. Equivalent /events/in du web.
   CitiesIndex: undefined;
   TicketPurchase: {

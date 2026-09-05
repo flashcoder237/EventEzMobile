@@ -79,6 +79,7 @@ import VerificationGuardModal from './src/components/auth/VerificationGuardModal
 import LockGate from './src/components/auth/LockGate';
 import { DEEP_LINK_SCHEME, WEB_BASE_URL, stripLocalePrefix } from './src/constants/urls';
 import { captureReferralFromPath } from './src/lib/referral';
+import { buildSearchState } from './src/lib/deeplinks/searchDeepLink';
 import { RootStackParamList } from './src/types';
 
 // Services
@@ -163,10 +164,13 @@ const linking: LinkingOptions<RootStackParamList> = {
     // côté web (ReferralCapture), donc un destinataire ayant l'app installée
     // n'était jamais attribué à son parrain.
     captureReferralFromPath(path);
-    return getStateFromPath(
-      rewriteDashboardPath(stripLocalePrefix(path)),
-      options,
-    );
+    const normalized = rewriteDashboardPath(stripLocalePrefix(path));
+    // Recherche filtrée partageable (/events?… ou /search?…) → EventSearch
+    // pré-filtré. Traité AVANT config.screens car EventSearch n'a qu'un path
+    // positionnel (events/in/:city) qui ne transporte pas les query params.
+    const searchState = buildSearchState(normalized);
+    if (searchState) return searchState;
+    return getStateFromPath(normalized, options);
   },
   config: {
     screens: {

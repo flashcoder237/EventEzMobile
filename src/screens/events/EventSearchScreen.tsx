@@ -11,6 +11,7 @@ import {
   Modal,
   ScrollView,
   Platform,
+  Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -51,6 +52,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
+import { WEB_BASE_URL } from '../../constants/urls';
 import { getApiResults, extractPaginationMeta } from '../../lib/utils/apiHelpers';
 import { getEventPriceRange } from '../../lib/utils/priceFormatters';
 import EventCard from '../../components/events/EventCard';
@@ -306,6 +308,11 @@ export default function EventSearchScreen() {
   // Filtre prix passé en param (ex. « Voir tout » de la section gratuite de
   // l'accueil). Sans ça, le lien ouvrait la recherche sans le filtre gratuit.
   const initialPrice = route.params?.price ?? 'any';
+  // Recherche PARTAGEABLE : date + type de lieu passés par un deep link
+  // (parité web /events?date_preset=&location_type=). Ouvre l'app avec la
+  // recherche complète pré-filtrée.
+  const initialDatePreset = route.params?.datePreset ?? 'any';
+  const initialLocationType = route.params?.locationType ?? 'any';
 
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
@@ -327,6 +334,8 @@ export default function EventSearchScreen() {
     categoryId: initialCategory,
     city: initialCity,
     priceFilter: initialPrice,
+    datePreset: initialDatePreset,
+    locationType: initialLocationType,
   });
 
   const [showFilters, setShowFilters] = useState(false);
@@ -473,6 +482,30 @@ export default function EventSearchScreen() {
     if (state.hasTickets) n++;
     return n;
   }, [state.categoryId, state.city, state.datePreset, state.locationType, state.priceFilter, state.nearMe, state.hasTickets]);
+
+  // Recherche PARTAGEABLE : construit l'URL web /events?… depuis les filtres
+  // courants et ouvre la feuille de partage native. Le destinataire ayant l'app
+  // rouvre EventSearch pré-filtré (buildSearchState) ; sinon il voit la liste web.
+  const handleShareSearch = useCallback(async () => {
+    const qs = new URLSearchParams();
+    if (state.query.trim()) qs.set('search', state.query.trim());
+    if (state.categoryId !== null) qs.set('category', String(state.categoryId));
+    if (state.city) qs.set('city', state.city);
+    if (state.priceFilter !== 'any') qs.set('price', state.priceFilter);
+    if (state.datePreset !== 'any') qs.set('date_preset', state.datePreset);
+    if (state.locationType !== 'any') qs.set('location_type', state.locationType);
+    const q = qs.toString();
+    const url = `${WEB_BASE_URL}/events${q ? `?${q}` : ''}`;
+    try {
+      await Share.share(
+        Platform.OS === 'ios'
+          ? { url, message: t('eventSearch.shareMessage', { defaultValue: 'Découvre ces événements sur EventEz' }) }
+          : { message: `${t('eventSearch.shareMessage', { defaultValue: 'Découvre ces événements sur EventEz' })}\n${url}` },
+      );
+    } catch {
+      // partage annulé / indisponible → non bloquant.
+    }
+  }, [state.query, state.categoryId, state.city, state.priceFilter, state.datePreset, state.locationType, t]);
 
   useEffect(() => {
     if (!initialQuery && !initialCategory) {
@@ -787,8 +820,23 @@ export default function EventSearchScreen() {
           >
             {/* Title row (eyebrow + h1) — fully collapsible */}
             <Animated.View style={[styles.titleColWrap, titleColStyle]}>
-              <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('eventSearch.eyebrow')}</Text>
-              <Text style={[styles.headerTitle, { color: colors.text }]}>{t('eventSearch.title')}</Text>
+              <View style={styles.titleRowInline}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('eventSearch.eyebrow')}</Text>
+                  <Text style={[styles.headerTitle, { color: colors.text }]}>{t('eventSearch.title')}</Text>
+                </View>
+                {/* Partager cette recherche (URL /events?… avec les filtres). */}
+                <TouchableOpacity
+                  onPress={handleShareSearch}
+                  style={[styles.shareSearchBtn, { backgroundColor: colors.card, borderColor: hairline }]}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('eventSearch.shareSearch', { defaultValue: 'Partager cette recherche' })}
+                >
+                  <Ionicons name="share-social-outline" size={18} color={colors.gray600} />
+                </TouchableOpacity>
+              </View>
             </Animated.View>
 
             {/* Search row — ALWAYS visible (back + input + filter) */}
@@ -1442,6 +1490,19 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   titleColWrap: {
+    justifyContent: 'center',
+  },
+  titleRowInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  shareSearchBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   iconDisc: {
