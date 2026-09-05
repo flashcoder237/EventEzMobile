@@ -214,8 +214,18 @@ export default function OrganizerProfileScreen() {
   }
 
   const displayName = getDisplayName(organizer);
-  const profileImage = organizer.profile_picture || organizer.image || organizer.logo_url;
   const profile = organizer.organizer_profile;
+  // DEUX images distinctes : le LOGO de l'organisation (organizer_profile.logo)
+  // et la PHOTO du gérant (profile_picture). Avant, seule la photo était
+  // affichée → un logo téléversé n'apparaissait jamais. On montre les deux :
+  // logo = avatar principal (c'est un profil d'organisation), photo = médaillon.
+  const orgLogo = (profile as any)?.logo || null;
+  const managerPhoto = organizer.profile_picture || organizer.image || organizer.logo_url || null;
+  // Avatar principal = logo si présent, sinon la photo (fallback historique).
+  const primaryImage = orgLogo || managerPhoto;
+  // Médaillon = la photo du gérant, affichée seulement si DISTINCTE de l'avatar
+  // principal (inutile de la répéter quand il n'y a pas de logo).
+  const showManagerMedallion = !!orgLogo && !!managerPhoto;
   const description = profile?.description || profile?.company_description || organizer.bio;
   const isVerified = profile?.verified_status || profile?.verified || organizer.is_verified;
   // DRF sérialise les DecimalField en string par défaut → coerce en Number
@@ -271,15 +281,27 @@ export default function OrganizerProfileScreen() {
 
             {/* Hero row : avatar à gauche + nom display à droite */}
             <View style={styles.heroRow}>
-              {profileImage ? (
-                <Image source={profileImage} style={styles.heroAvatar} cachePolicy="memory-disk" transition={200} />
-              ) : (
-                <View style={[styles.heroAvatar, styles.heroAvatarPlaceholder, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.heroAvatarInitial}>
-                    {displayName[0]?.toUpperCase() || 'O'}
-                  </Text>
-                </View>
-              )}
+              {/* Avatar principal (logo de l'organisation, sinon photo/initiale)
+                  + médaillon photo du gérant en bas-droite quand les deux existent. */}
+              <View style={styles.heroAvatarWrap}>
+                {primaryImage ? (
+                  <Image source={primaryImage} style={styles.heroAvatar} cachePolicy="memory-disk" transition={200} />
+                ) : (
+                  <View style={[styles.heroAvatar, styles.heroAvatarPlaceholder, { backgroundColor: colors.primary }]}>
+                    <Text style={styles.heroAvatarInitial}>
+                      {displayName[0]?.toUpperCase() || 'O'}
+                    </Text>
+                  </View>
+                )}
+                {showManagerMedallion && (
+                  <Image
+                    source={managerPhoto}
+                    style={[styles.heroManagerMedallion, { borderColor: colors.card }]}
+                    cachePolicy="memory-disk"
+                    transition={200}
+                  />
+                )}
+              </View>
               <View style={{ flex: 1, paddingLeft: Spacing.md }}>
                 <View style={styles.nameRowInline}>
                   <Text style={[styles.heroName, { color: colors.gray900 }]} numberOfLines={2}>
@@ -639,6 +661,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
+  heroAvatarWrap: {
+    width: 72,
+    height: 72,
+  },
   heroAvatar: {
     width: 72,
     height: 72,
@@ -647,6 +673,16 @@ const styles = StyleSheet.create({
   heroAvatarPlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Photo du gérant en médaillon, bas-droite, quand un logo occupe l'avatar.
+  heroManagerMedallion: {
+    position: 'absolute',
+    right: -4,
+    bottom: -4,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
   },
   heroAvatarInitial: {
     color: '#FFFFFF',
