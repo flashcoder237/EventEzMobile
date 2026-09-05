@@ -5032,7 +5032,11 @@
     "followPrefsSave": "Enregistrer les préférences",
     "followPrefsSaveA11y": "Enregistrer les préférences",
     "inAppToastA11y": "{{title}}. {{body}}. Touchez pour ouvrir.",
-    "webviewVisioTitle": "Visioconférence"
+    "webviewVisioTitle": "Visioconférence",
+    "webviewOfflineTitle": "Vous êtes hors ligne",
+    "webviewOfflineBody": "Votre appareil n'est plus connecté. La visioconférence reprendra dès le retour du réseau.",
+    "webviewReconnectingIn": "Reconnexion dans {{seconds}}s…",
+    "webviewSlowNetwork": "Connexion lente détectée — la vidéo peut être dégradée et consommer vos données."
   },
   "messageRequests": {
     "eyebrow": "ANTI-SPAM",

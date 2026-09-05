@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { RootStackParamList } from '../../types';
 import { FontFamily, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { usePictureInPicture } from '../../hooks/usePictureInPicture';
 import { virtualRoomsAPI } from '../../api/content';
+import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
 
 type BrowserRoute = RouteProp<RootStackParamList, 'Browser'>;
 
@@ -56,13 +57,77 @@ export default function WebViewScreen() {
   const webViewRef = useRef<WebView>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [autoRetryIn, setAutoRetryIn] = useState<number | null>(null);
+
+  // `useNetworkSpeed` existait et était utilisé partout SAUF sur l'écran qui
+  // consomme réellement de la data. Il distingue « ton réseau est coupé » d'une
+  // panne serveur : sans ça, l'utilisateur accuse la plateforme d'un problème
+  // qui vient de sa connexion.
+  const { isOffline, isSlowCellular } = useNetworkSpeed();
+
+  // Au-delà, relancer en boucle use la batterie et le forfait sans résoudre
+  // une coupure durable — on rend la main à l'utilisateur.
+  const MAX_ATTEMPTS = 3;
+  const canRetry = attempt < MAX_ATTEMPTS;
   const [pageTitle, setPageTitle] = useState(title ?? '');
 
-  const retry = () => {
+  const retry = useCallback(() => {
+    setAutoRetryIn(null);
+    setAttempt((n) => n + 1);
     setHasError(false);
     setIsLoading(true);
     webViewRef.current?.reload();
-  };
+  }, []);
+
+  /**
+   * Reconnexion AUTOMATIQUE apres une coupure en visio.
+   *
+   * Exiger un tap suppose que l'utilisateur regarde l'ecran au moment de la
+   * rupture — or sur connexion instable, il est le plus souvent en train
+   * d'ECOUTER. Backoff exponentiel (4s, 8s, 16s) : laisser au reseau le temps
+   * de revenir sans marteler le serveur.
+   *
+   * Reserve a la visio : recharger une page web quelconque en boucle n'a pas
+   * le meme enjeu, et l'utilisateur y est devant son ecran.
+   *
+   * Inutile tant qu'on est HORS LIGNE : le retour du reseau declenche lui-meme
+   * une reconnexion immediate (effet suivant).
+   */
+  useEffect(() => {
+    if (!isVisio || !hasError || !canRetry || isOffline) {
+      setAutoRetryIn(null);
+      return;
+    }
+    const delay = 4 * Math.pow(2, attempt); // 4s, 8s, 16s
+    setAutoRetryIn(delay);
+    const tick = setInterval(() => {
+      setAutoRetryIn((n) => (n === null || n <= 1 ? null : n - 1));
+    }, 1000);
+    const timer = setTimeout(retry, delay * 1000);
+    return () => {
+      clearInterval(tick);
+      clearTimeout(timer);
+    };
+  }, [isVisio, hasError, canRetry, isOffline, attempt, retry]);
+
+  /**
+   * Retour du reseau : on retente TOUT DE SUITE plutot que d'attendre la fin
+   * d'un delai arbitraire. C'est le cas le plus frequent en mobilite (tunnel,
+   * ascenseur, changement de cellule).
+   */
+  const wasOffline = useRef(false);
+  useEffect(() => {
+    if (isOffline) {
+      wasOffline.current = true;
+      return;
+    }
+    if (wasOffline.current && isVisio && hasError) {
+      wasOffline.current = false;
+      retry();
+    }
+    wasOffline.current = false;
+  }, [isOffline, isVisio, hasError, retry]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -118,6 +183,18 @@ export default function WebViewScreen() {
         mediaCapturePermissionGrantType="grant"
       />
 
+      {/* Connexion lente detectee : prevenir AVANT que le forfait soit
+          consomme. `useNetworkSpeed` etait utilise partout sauf ici — l'ecran
+          qui consomme le plus de data. */}
+      {isVisio && isSlowCellular && !hasError && (
+        <View style={[styles.slowBanner, { backgroundColor: `${colors.warning}22` }]}>
+          <Ionicons name="cellular-outline" size={14} color={colors.warning} />
+          <Text style={[styles.slowBannerText, { color: colors.warning }]} numberOfLines={2}>
+            {t('componentsCommon.webviewSlowNetwork')}
+          </Text>
+        </View>
+      )}
+
       {isLoading && !hasError && (
         <View style={[styles.loadingOverlay, { backgroundColor: colors.background }]}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -128,11 +205,25 @@ export default function WebViewScreen() {
         <View style={[styles.loadingOverlay, styles.errorOverlay, { backgroundColor: colors.background }]}>
           <Ionicons name="cloud-offline-outline" size={48} color={colors.gray400} />
           <Text style={[styles.errorTitle, { color: colors.text }]}>
-            {t('componentsCommon.webviewErrorTitle')}
+            {isOffline
+              ? t('componentsCommon.webviewOfflineTitle')
+              : t('componentsCommon.webviewErrorTitle')}
           </Text>
           <Text style={[styles.errorBody, { color: colors.gray500 }]}>
-            {t('componentsCommon.webviewErrorBody')}
+            {isOffline
+              ? t('componentsCommon.webviewOfflineBody')
+              : t('componentsCommon.webviewErrorBody')}
           </Text>
+          {/* Compte a rebours : sans lui l'ecran parait fige et l'utilisateur
+              quitte juste avant que la reconnexion aboutisse. */}
+          {autoRetryIn !== null && !isOffline && (
+            <Text
+              style={[styles.errorBody, { color: colors.primary }]}
+              accessibilityLiveRegion="polite"
+            >
+              {t('componentsCommon.webviewReconnectingIn', { seconds: autoRetryIn })}
+            </Text>
+          )}
           <TouchableOpacity
             onPress={retry}
             style={[styles.retryBtn, { backgroundColor: colors.primary }]}
@@ -195,6 +286,23 @@ const styles = StyleSheet.create({
   errorOverlay: {
     paddingHorizontal: Spacing.xl,
     gap: Spacing.sm,
+  },
+  slowBanner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+  },
+  slowBannerText: {
+    flex: 1,
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
   },
   errorTitle: {
     fontFamily: FontFamily.semiBold,

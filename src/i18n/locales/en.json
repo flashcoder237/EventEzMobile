@@ -5032,7 +5032,11 @@
     "followPrefsSave": "Save preferences",
     "followPrefsSaveA11y": "Save preferences",
     "inAppToastA11y": "{{title}}. {{body}}. Tap to open.",
-    "webviewVisioTitle": "Video call"
+    "webviewVisioTitle": "Video call",
+    "webviewOfflineTitle": "You are offline",
+    "webviewOfflineBody": "Your device lost its connection. The call will resume as soon as the network is back.",
+    "webviewReconnectingIn": "Reconnecting in {{seconds}}s…",
+    "webviewSlowNetwork": "Slow connection detected — video may be degraded and use your data."
   },
   "messageRequests": {
     "eyebrow": "ANTI-SPAM",
