@@ -43,6 +43,7 @@ import {
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
 import EventActionsSheet, { EventAction } from '../organizer/EventActionsSheet';
 import {
   MESSAGE_AVATAR_SIZE,
@@ -447,6 +448,13 @@ function MessageBubble({
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const { showError, showSuccess } = useAlert();
+  const { isSlowCellular } = useNetworkSpeed();
+  // Data-saver 3G : sur connexion lente, les images ne se chargent pas d'office
+  // (data coûteuse) — on affiche le LQIP + « appuyer pour charger ». L'utilisateur
+  // déclenche le plein format au tap. Les vocaux étaient déjà protégés, pas les
+  // images (incohérence signalée à l'audit). Set des attachment ids chargés
+  // manuellement.
+  const [manuallyLoadedImages, setManuallyLoadedImages] = useState<Set<string>>(() => new Set());
   // Sheet d'actions sur une pièce jointe (Télécharger / Partager / Sauvegarder
   // dans la galerie / Forward / Copier le lien). Remplace l'Alert natif.
   const [attachSheetTarget, setAttachSheetTarget] = useState<any | null>(null);
@@ -867,24 +875,39 @@ function MessageBubble({
       // coins de la bulle parent. Si c'est la seule chose dans la bulle
       // (imageOnlyBubble cote parent), elle prend toute la place. Sinon
       // l'image garde des coins legerement arrondis et un petit margin.
+      // Data-saver : sur 3G/2G, on ne charge PAS le plein format tant que
+      // l'utilisateur n'a pas tapé « charger » (sauf image déjà en cache OU
+      // en cours d'upload = locale). On affiche le LQIP + overlay.
+      const attId = String(attachment.id || index);
+      const gateImage = isSlowCellular && !isUploading && !manuallyLoadedImages.has(attId);
       return (
         <TouchableOpacity
           key={attachment.id || index}
           style={styles.imageWrapWhatsApp}
           activeOpacity={0.85}
-          onPress={() => { if (!isUploading) openImageAt(imageIdx >= 0 ? imageIdx : 0); }}
-          // Long-press = menu d'actions message (reply / react / forward /
-          // delete / etc.) — pattern WhatsApp. Le sheet specifique
-          // "Save/Share" reste accessible depuis le visionneur fullscreen
-          // (footer du ImageView).
+          onPress={() => {
+            if (isUploading) return;
+            if (gateImage) {
+              // 1er tap en 3G = charger l'image (pas ouvrir le viewer).
+              setManuallyLoadedImages(prev => new Set(prev).add(attId));
+              return;
+            }
+            openImageAt(imageIdx >= 0 ? imageIdx : 0);
+          }}
           onLongPress={() => { if (!isUploading) onLongPress?.(message); }}
           delayLongPress={300}
           accessibilityRole="imagebutton"
-          accessibilityLabel={t('componentsMessages.imageAttachmentA11y')}
+          accessibilityLabel={
+            gateImage
+              ? t('conversation.tapToLoadImage', { defaultValue: 'Appuyer pour charger l’image' })
+              : t('componentsMessages.imageAttachmentA11y')
+          }
           accessibilityHint={t('componentsMessages.imageAttachmentHint')}
         >
           <Image
-            source={attachment.file}
+            // En mode gate, on ne fournit PAS `source` (plein format) → seul le
+            // placeholder LQIP s'affiche, aucune data consommée.
+            source={gateImage ? undefined : attachment.file}
             style={[styles.imageAttachmentWhatsApp, { backgroundColor: colors.gray100 }]}
             contentFit="cover"
             cachePolicy="memory-disk"
@@ -892,6 +915,14 @@ function MessageBubble({
             placeholder={attachment.image_placeholder || undefined}
             placeholderContentFit="cover"
           />
+          {gateImage && (
+            <View style={styles.uploadOverlay}>
+              <Ionicons name="cloud-download-outline" size={22} color={Colors.white} />
+              <Text style={styles.uploadSlowText}>
+                {t('conversation.tapToLoadImage', { defaultValue: 'Appuyer pour charger' })}
+              </Text>
+            </View>
+          )}
           {isUploading && (
             <View style={styles.uploadOverlay}>
               <ActivityIndicator size="small" color={Colors.white} />
@@ -1143,6 +1174,21 @@ function MessageBubble({
           onLongPress={handleLongPress}
           delayLongPress={300}
           activeOpacity={0.8}
+          // A11Y : le long-press (seule voie vers Répondre/Réagir/Menu) est
+          // INATTEIGNABLE au lecteur d'écran. On expose les actions via le rotor
+          // VoiceOver/TalkBack (accessibilityActions) — sinon un aveugle ne peut
+          // que LIRE les messages, sans jamais y répondre/réagir.
+          accessibilityActions={[
+            { name: 'reply', label: t('conversation.reply', { defaultValue: 'Répondre' }) },
+            { name: 'react', label: t('conversation.react', { defaultValue: 'Réagir' }) },
+            { name: 'more', label: t('common.more', { defaultValue: 'Plus d’actions' }) },
+          ]}
+          onAccessibilityAction={(e) => {
+            const a = e.nativeEvent.actionName;
+            if (a === 'reply') onSwipeReply?.(message);
+            else if (a === 'react') onQuickReact?.(message);
+            else handleLongPress();
+          }}
         >
       {/* Avatar (only for other user's messages, hidden when grouped) */}
       {!isMine && (

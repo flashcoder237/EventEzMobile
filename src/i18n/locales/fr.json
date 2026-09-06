@@ -4119,7 +4119,10 @@
     "retrySend": "Réessayer",
     "newMessagesBadge_one": "{{count}} nouveau message",
     "newMessagesBadge_other": "{{count}} nouveaux messages",
-    "scrollToBottom": "Aller en bas"
+    "scrollToBottom": "Aller en bas",
+    "tapToLoadImage": "Appuyer pour charger",
+    "reply": "Répondre",
+    "react": "Réagir"
   },
   "scanForm": {
     "loading": "Chargement...",

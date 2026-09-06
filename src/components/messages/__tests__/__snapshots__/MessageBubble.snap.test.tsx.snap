@@ -170,6 +170,22 @@ exports[`MessageBubble snapshots renders edited message with edited label 1`] = 
   style={{}}
 >
   <View
+    accessibilityActions={
+      [
+        {
+          "label": "Répondre",
+          "name": "reply",
+        },
+        {
+          "label": "Réagir",
+          "name": "react",
+        },
+        {
+          "label": "Plus",
+          "name": "more",
+        },
+      ]
+    }
     accessibilityState={
       {
         "busy": undefined,
@@ -190,6 +206,7 @@ exports[`MessageBubble snapshots renders edited message with edited label 1`] = 
     accessible={true}
     collapsable={false}
     focusable={false}
+    onAccessibilityAction={[Function]}
     onClick={[Function]}
     onResponderGrant={[Function]}
     onResponderMove={[Function]}
@@ -346,6 +363,22 @@ exports[`MessageBubble snapshots renders grouped message (avatar masque) 1`] = `
   style={{}}
 >
   <View
+    accessibilityActions={
+      [
+        {
+          "label": "Répondre",
+          "name": "reply",
+        },
+        {
+          "label": "Réagir",
+          "name": "react",
+        },
+        {
+          "label": "Plus",
+          "name": "more",
+        },
+      ]
+    }
     accessibilityState={
       {
         "busy": undefined,
@@ -366,6 +399,7 @@ exports[`MessageBubble snapshots renders grouped message (avatar masque) 1`] = `
     accessible={true}
     collapsable={false}
     focusable={false}
+    onAccessibilityAction={[Function]}
     onClick={[Function]}
     onResponderGrant={[Function]}
     onResponderMove={[Function]}
@@ -478,6 +512,22 @@ exports[`MessageBubble snapshots renders message with image attachment 1`] = `
   style={{}}
 >
   <View
+    accessibilityActions={
+      [
+        {
+          "label": "Répondre",
+          "name": "reply",
+        },
+        {
+          "label": "Réagir",
+          "name": "react",
+        },
+        {
+          "label": "Plus",
+          "name": "more",
+        },
+      ]
+    }
     accessibilityState={
       {
         "busy": undefined,
@@ -498,6 +548,7 @@ exports[`MessageBubble snapshots renders message with image attachment 1`] = `
     accessible={true}
     collapsable={false}
     focusable={false}
+    onAccessibilityAction={[Function]}
     onClick={[Function]}
     onResponderGrant={[Function]}
     onResponderMove={[Function]}
@@ -712,6 +763,22 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
   style={{}}
 >
   <View
+    accessibilityActions={
+      [
+        {
+          "label": "Répondre",
+          "name": "reply",
+        },
+        {
+          "label": "Réagir",
+          "name": "react",
+        },
+        {
+          "label": "Plus",
+          "name": "more",
+        },
+      ]
+    }
     accessibilityState={
       {
         "busy": undefined,
@@ -732,6 +799,7 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
     accessible={true}
     collapsable={false}
     focusable={false}
+    onAccessibilityAction={[Function]}
     onClick={[Function]}
     onResponderGrant={[Function]}
     onResponderMove={[Function]}
@@ -978,6 +1046,22 @@ exports[`MessageBubble snapshots renders message with reply preview 1`] = `
   style={{}}
 >
   <View
+    accessibilityActions={
+      [
+        {
+          "label": "Répondre",
+          "name": "reply",
+        },
+        {
+          "label": "Réagir",
+          "name": "react",
+        },
+        {
+          "label": "Plus",
+          "name": "more",
+        },
+      ]
+    }
     accessibilityState={
       {
         "busy": undefined,
@@ -998,6 +1082,7 @@ exports[`MessageBubble snapshots renders message with reply preview 1`] = `
     accessible={true}
     collapsable={false}
     focusable={false}
+    onAccessibilityAction={[Function]}
     onClick={[Function]}
     onResponderGrant={[Function]}
     onResponderMove={[Function]}
@@ -1235,6 +1320,22 @@ exports[`MessageBubble snapshots renders other user message (peer) 1`] = `
   style={{}}
 >
   <View
+    accessibilityActions={
+      [
+        {
+          "label": "Répondre",
+          "name": "reply",
+        },
+        {
+          "label": "Réagir",
+          "name": "react",
+        },
+        {
+          "label": "Plus",
+          "name": "more",
+        },
+      ]
+    }
     accessibilityState={
       {
         "busy": undefined,
@@ -1255,6 +1356,7 @@ exports[`MessageBubble snapshots renders other user message (peer) 1`] = `
     accessible={true}
     collapsable={false}
     focusable={false}
+    onAccessibilityAction={[Function]}
     onClick={[Function]}
     onResponderGrant={[Function]}
     onResponderMove={[Function]}
@@ -1394,6 +1496,22 @@ exports[`MessageBubble snapshots renders own message (mine) 1`] = `
   style={{}}
 >
   <View
+    accessibilityActions={
+      [
+        {
+          "label": "Répondre",
+          "name": "reply",
+        },
+        {
+          "label": "Réagir",
+          "name": "react",
+        },
+        {
+          "label": "Plus",
+          "name": "more",
+        },
+      ]
+    }
     accessibilityState={
       {
         "busy": undefined,
@@ -1414,6 +1532,7 @@ exports[`MessageBubble snapshots renders own message (mine) 1`] = `
     accessible={true}
     collapsable={false}
     focusable={false}
+    onAccessibilityAction={[Function]}
     onClick={[Function]}
     onResponderGrant={[Function]}
     onResponderMove={[Function]}

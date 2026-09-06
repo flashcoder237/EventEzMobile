@@ -3782,7 +3782,10 @@
     "retrySend": "Retry",
     "newMessagesBadge_one": "{{count}} new message",
     "newMessagesBadge_other": "{{count}} new messages",
-    "scrollToBottom": "Scroll to bottom"
+    "scrollToBottom": "Scroll to bottom",
+    "tapToLoadImage": "Tap to load",
+    "reply": "Reply",
+    "react": "React"
   },
   "scanForm": {
     "loading": "Loading...",
