@@ -90,6 +90,41 @@ export async function getMessages(
   return rows.map(rowToMessage).filter((m): m is Message => m !== null);
 }
 
+/**
+ * Comme getMessages mais retourne aussi le nombre de LIGNES lues (avant filtrage
+ * des lignes corrompues). Le pagineur doit baser « charger plus » sur rowCount
+ * (= la DB a-t-elle rendu une page pleine ?) et NON sur messages.length : sinon
+ * quelques lignes corrompues font croire à tort qu'il n'y a plus d'historique.
+ */
+export async function getMessagesPage(
+  conversationId: string | number,
+  limit = 30,
+  beforeServerId?: number | null,
+): Promise<{ messages: Message[]; rowCount: number }> {
+  const db = await getDatabase();
+  const cid = convKey(conversationId);
+  let rows: MessageRow[];
+  if (beforeServerId != null) {
+    rows = await db.getAllAsync<MessageRow>(
+      `SELECT * FROM messages
+       WHERE conversation_id = ? AND server_id IS NOT NULL AND server_id < ?
+       ORDER BY server_id DESC LIMIT ?`,
+      cid, beforeServerId, limit,
+    );
+  } else {
+    rows = await db.getAllAsync<MessageRow>(
+      `SELECT * FROM messages WHERE conversation_id = ?
+       ORDER BY (server_id IS NULL) DESC, server_id DESC, created_at DESC
+       LIMIT ?`,
+      cid, limit,
+    );
+  }
+  return {
+    messages: rows.map(rowToMessage).filter((m): m is Message => m !== null),
+    rowCount: rows.length,
+  };
+}
+
 /** Nombre de messages stockés localement pour une conversation. */
 export async function countMessages(conversationId: string | number): Promise<number> {
   const db = await getDatabase();

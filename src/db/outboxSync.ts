@@ -83,6 +83,10 @@ async function _flushOutboxInner(): Promise<number> {
         conversation: entry.conversation_id,
         reply_to: entry.reply_to ?? undefined,
         attachment_ids: attachmentIds.length ? attachmentIds : undefined,
+        // Clé d'idempotence : si ce POST a déjà abouti côté serveur mais que la
+        // réponse s'est perdue (coupure au retour), un rejeu retrouvera le même
+        // message au lieu d'en créer un doublon. temp_id == client_temp_id.
+        client_temp_id: entry.temp_id,
       });
 
       // 3. Réconcilie la ligne optimiste (temp_id) → message serveur.

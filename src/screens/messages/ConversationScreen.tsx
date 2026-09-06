@@ -108,6 +108,7 @@ import EventActionsSheet, {
 import CacheService from '../../services/CacheService';
 import {
   getMessages as getLocalMessages,
+  getMessagesPage as getLocalMessagesPage,
   upsertMessages as upsertLocalMessages,
   reconcileSent as reconcileLocalSent,
   insertPending as insertLocalPending,
@@ -651,17 +652,17 @@ export default function ConversationScreen() {
       //    le dernier curseur, au lieu de repaginer). Puis re-lit le local.
       try {
         await syncConversation(state.conversationId);
-        const refreshed = await getLocalMessages(state.conversationId, 30);
+        const page = await getLocalMessagesPage(state.conversationId, 30);
+        const refreshed = page.messages;
         if (refreshed.length > 0) {
           actions.setMessages(refreshed);
           actions.setLoading(false);
           setMessagesLoadError(null);
-          // Autorise le scroll-up : si on a rempli la page (30), il y a
-          // probablement plus d'historique (en local ou sur le serveur).
-          // Sans ça, hasMore restait false → remontée impossible sur une
-          // grande conversation. loadMore lit le local d'abord (beforeServerId)
-          // puis complète au réseau.
-          actions.setHasMore(refreshed.length >= 30);
+          // Autorise le scroll-up : si la DB a rendu une page pleine (30 LIGNES),
+          // il y a probablement plus d'historique. On se base sur rowCount (lignes
+          // lues) et non sur refreshed.length : quelques lignes corrompues filtrées
+          // ne doivent pas faire croire à tort qu'il n'y a plus rien à charger.
+          actions.setHasMore(page.rowCount >= 30);
           // Le delta a suffi → on ne fait PAS le getMessages complet ci-dessous.
           return;
         }
@@ -715,10 +716,13 @@ export default function ConversationScreen() {
           .filter(n => Number.isFinite(n))
           .sort((a, b) => a - b)[0];
         if (oldest != null) {
-          const older = await getLocalMessages(state.conversationId, 30, oldest);
+          const olderPage = await getLocalMessagesPage(state.conversationId, 30, oldest);
+          const older = olderPage.messages;
           if (older.length > 0) {
             actions.addMessagesBefore(older);
-            actions.setHasMore(older.length >= 30);
+            // rowCount (lignes lues) et non older.length : lignes corrompues
+            // filtrées ne doivent pas couper la pagination prématurément.
+            actions.setHasMore(olderPage.rowCount >= 30);
             actions.setLoadingMore(false);
             return;
           }
@@ -2539,7 +2543,11 @@ export default function ConversationScreen() {
       // uploadés. Chaque attachment temporaire reçoit un id `tmp:...` qu'on
       // ajoute à `uploadingIds` ; MessageBubble affiche un overlay loader
       // tant que l'id figure dans ce Set.
-      tempMessageId = `temp-${Date.now()}`;
+      // Suffixe aléatoire OBLIGATOIRE : deux envois dans la même milliseconde
+      // (double-tap, vocal + texte) produiraient le même `temp-<ms>` → collision
+      // de PRIMARY KEY en SQLite (messages.id / outbox.temp_id) : le 2e message
+      // ÉCRASE le 1er (ON CONFLICT DO UPDATE) → perte silencieuse d'un message.
+      tempMessageId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       const tempAttachments = effectiveFiles.map((f, i) => ({
         id: `tmp:${tempMessageId}:${i}`,
         file: f.uri,

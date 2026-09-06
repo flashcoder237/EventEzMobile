@@ -75,6 +75,9 @@ export const messagesAPI = {
     // mode REST (WS indispo), un message avec image seule est rejeté car
     // content="" + 0 attachment lié.
     attachment_ids?: (string | number)[];
+    // Clé d'idempotence d'envoi : le serveur déduplique un rejeu (réponse
+    // perdue) au lieu de créer un doublon. temp_id local == client_temp_id.
+    client_temp_id?: string;
   }) =>
     api.post('/messages/', data),
 

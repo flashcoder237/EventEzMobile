@@ -91,8 +91,11 @@ export async function enqueueOutbox(entry: {
   try {
     const cnt = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) as n FROM outbox');
     if ((cnt?.n ?? 0) >= OUTBOX_MAX_ENTRIES) {
+      // On n'évince JAMAIS une entrée 'sending' : son POST REST est peut-être en
+      // vol et ses fichiers en cours de lecture. La supprimer = upload cassé +
+      // markOutboxFailed no-op sur ligne disparue = message perdu sans trace.
       const oldest = await db.getAllAsync<OutboxRow>(
-        'SELECT * FROM outbox ORDER BY created_at ASC LIMIT ?',
+        "SELECT * FROM outbox WHERE state != 'sending' ORDER BY created_at ASC LIMIT ?",
         (cnt!.n - OUTBOX_MAX_ENTRIES) + 1,
       );
       for (const row of oldest) {
