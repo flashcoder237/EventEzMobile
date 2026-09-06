@@ -6559,6 +6559,16 @@
         "confirmClose": "Confirm closing",
         "closed": "Till closed"
       }
+    },
+    "documents": {
+      "title": "Documents to print",
+      "a11y": "Printable documents",
+      "badges": "Attendee badges",
+      "badgesHint": "A6 format, 4 per A4 page",
+      "attendanceSheet": "Sign-in sheet",
+      "attendanceSheetHint": "To sign at the front desk — ready before the event",
+      "certificates": "Attendance certificates",
+      "certificatesHint": "After the event, for checked-in attendees"
     }
   },
   "moderation": {

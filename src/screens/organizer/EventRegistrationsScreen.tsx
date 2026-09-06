@@ -24,6 +24,7 @@ import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { registrationsAPI, eventsAPI } from '../../api';
 import ExportButton from '../../components/common/ExportButton';
+import EventDocumentsButton from '../../components/organizer/EventDocumentsButton';
 import { Registration, RootStackParamList } from '../../types';
 import {
   Colors,
@@ -574,6 +575,12 @@ export default function EventRegistrationsScreen() {
               >
                 <Ionicons name="mail-outline" size={18} color={colors.gray700} />
               </TouchableOpacity>
+              {/* Documents imprimables (badges, émargement, attestations).
+                  Les générateurs existaient côté serveur et étaient accessibles
+                  depuis le web, mais aucun écran mobile ne les appelait — or
+                  l'organisateur qui prépare son accueil a son téléphone en
+                  main, pas son ordinateur. */}
+              <EventDocumentsButton eventId={eventId} eventTitle={eventTitle} />
               <ExportButton
                 endpoint="/registrations/export/"
                 filename={t('organizer.eventRegistrations.exportFilename', {

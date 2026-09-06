@@ -6559,6 +6559,16 @@
         "confirmClose": "Confirmer la clôture",
         "closed": "Caisse clôturée"
       }
+    },
+    "documents": {
+      "title": "Documents à imprimer",
+      "a11y": "Documents imprimables",
+      "badges": "Badges participants",
+      "badgesHint": "Format A6, 4 par page A4",
+      "attendanceSheet": "Feuille d'émargement",
+      "attendanceSheetHint": "À faire signer à l'accueil — prête avant l'événement",
+      "certificates": "Attestations de présence",
+      "certificatesHint": "Après l'événement, pour les participants pointés"
     }
   },
   "moderation": {
