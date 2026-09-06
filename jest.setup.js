@@ -96,6 +96,12 @@ jest.mock('react-native-reanimated', () => {
     cancelAnimation: () => {},
     runOnJS: (fn) => fn,
     runOnUI: (fn) => fn,
+    // Internes requis par react-native-gesture-handler (GestureDetector →
+    // useAnimatedGesture → Reanimated.useEvent). Sans ces stubs, monter une
+    // bulle avec gestes (swipe-reply / double-tap) plantait en test.
+    useEvent: () => () => {},
+    useHandler: () => ({ context: {}, doDependenciesDiffer: false }),
+    setGestureState: () => {},
     interpolate: () => 0,
     interpolateColor: () => '#000',
     Extrapolate: { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' },

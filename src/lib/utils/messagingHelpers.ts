@@ -241,8 +241,12 @@ export function getMessageStatus(message: Message, otherUserId?: string | number
     return 'sending';
   }
 
-  // Message avec erreur d'envoi
-  if ((message as any).sendFailed) {
+  // Message avec erreur d'envoi. Le watchdog d'envoi et l'outbox posent le flag
+  // `is_failed` (cf. ConversationScreen markLocalFailed / actions.updateMessage).
+  // On lisait UNIQUEMENT `sendFailed`, un champ jamais écrit → un message échoué
+  // restait affiché « envoyé » (coche) : mensonge d'état, pas d'icône rouge, pas
+  // de retry. On teste les deux (is_failed = source réelle, sendFailed = legacy).
+  if ((message as any).is_failed || (message as any).sendFailed) {
     return 'failed';
   }
 

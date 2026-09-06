@@ -120,8 +120,9 @@ import {
   searchLocalMessages,
 } from '../../db/messageRepository';
 import { syncConversation } from '../../db/messageSync';
-import { enqueueOutbox } from '../../db/outboxRepository';
+import { enqueueOutbox, resetOutboxRetry, getOutboxForConversation } from '../../db/outboxRepository';
 import { flushOutbox } from '../../db/outboxSync';
+import * as Haptics from 'expo-haptics';
 import { useVoicePrefetch, getCachedVoiceUri, registerSentVoice, getSentVoiceUri } from '../../hooks/useVoicePrefetch';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -1918,8 +1919,48 @@ export default function ConversationScreen() {
   // ============================================
 
   const handleMessageLongPress = useCallback((message: Message) => {
+    try { Haptics.selectionAsync(); } catch { /* ignore */ }
     actions.showActionMenu(message);
   }, [actions]);
+
+  // Renvoi d'un message en échec depuis la bulle (« Réessayer »). Deux origines
+  // possibles d'un échec :
+  //  - OUTBOX (envoi hors-ligne) : l'entrée existe déjà → on réarme + flush.
+  //  - WATCHDOG WS (socket mort 15s après l'envoi) : le message est marqué
+  //    is_failed en base mais N'EST PAS dans l'outbox → on l'y (ré)insère à
+  //    partir de son contenu, puis flush. client_temp_id = son id → idempotence
+  //    serveur (pas de doublon si l'envoi initial avait en fait abouti).
+  const handleRetryMessage = useCallback(async (message: Message) => {
+    const tid = String(message.id);
+    const convId = state.conversationId;
+    if (!convId) return;
+    // Optimiste : repasse la bulle en « envoi » tout de suite.
+    actions.updateMessage(tid, { is_failed: false } as any);
+    try {
+      const existing = await getOutboxForConversation(convId);
+      const inOutbox = existing.some(e => e.temp_id === tid);
+      if (inOutbox) {
+        await resetOutboxRetry(tid).catch(() => {});
+      } else {
+        await enqueueOutbox({
+          tempId: tid,
+          conversationId: convId,
+          content: message.content ?? '',
+          replyTo: message.reply_to != null && typeof message.reply_to !== 'object'
+            ? String(message.reply_to) : undefined,
+          attachments: (message.attachments || [])
+            .map((a: any) => ({ uri: a.file || a.uri, name: a.file_name || a.name || 'file', type: a.attachment_type || a.type || 'document' }))
+            .filter((a: any) => !!a.uri),
+        });
+      }
+      await flushOutbox().catch(() => {});
+    } catch {
+      // Échec du retry → on remet la bulle en échec pour que l'utilisateur
+      // puisse réessayer (pas de perte silencieuse).
+      actions.updateMessage(tid, { is_failed: true } as any);
+      markLocalFailed(tid).catch(() => {});
+    }
+  }, [state.conversationId, actions]);
 
   const handleMessageAction = useCallback(async (action: MessageActionType) => {
     const message = state.selectedMessage;
@@ -2439,6 +2480,28 @@ export default function ConversationScreen() {
     }
   };
 
+  // Double-tap sur une bulle → réaction rapide ❤️ (réflexe Instagram/iMessage),
+  // sans ouvrir le picker. Réutilise le même chemin WS/REST + état optimiste.
+  const handleQuickReact = useCallback(async (message: Message) => {
+    const messageIdStr = String(message.id);
+    const emoji = '❤️';
+    try {
+      if (isConnected && isAuthenticated) {
+        wsAddReaction(messageIdStr, emoji);
+      } else {
+        await messagesAPI.addReaction(messageIdStr, emoji);
+      }
+      actions.addReaction(messageIdStr, emoji, String(user?.id));
+    } catch (error) {
+      if (__DEV__) console.error('Erreur réaction rapide:', error);
+    }
+  }, [isConnected, isAuthenticated, wsAddReaction, actions, user?.id]);
+
+  // Swipe sur une bulle → répondre à CE message (réflexe WhatsApp/Telegram).
+  const handleSwipeReply = useCallback((message: Message) => {
+    actions.startReply(message);
+  }, [actions]);
+
   // ============================================
   // SEND MESSAGE
   // ============================================
@@ -2605,6 +2668,9 @@ export default function ConversationScreen() {
       };
 
       actions.addMessage(tempMessage);
+      // Retour haptique léger à l'envoi (le geste central de la messagerie était
+      // muet → « feel » plat comparé à WhatsApp/iMessage).
+      try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch { /* ignore */ }
       // Persiste l'optimiste en SQLite (état 'pending') → il survit au refresh
       // et à la fermeture avant confirmation serveur. reconcileSent (WS) le
       // remplacera par le message serveur ; markFailed le passera en échec.
@@ -3164,6 +3230,7 @@ export default function ConversationScreen() {
         uploadingAttachmentIds={uploadingIds}
         slowUploadAttachmentIds={slowUploadIds}
         onLongPress={selectionMode ? (() => {}) : handleMessageLongPress}
+        onRetry={selectionMode ? undefined : handleRetryMessage}
         onPlayVoice={selectionMode ? () => {} : playVoiceMessage}
         onSeekVoice={selectionMode ? () => {} : seekVoiceMessage}
         onSkipForward={skipForward15s}
@@ -3172,6 +3239,8 @@ export default function ConversationScreen() {
         listenedVoiceIds={listenedVoiceIds}
         onForward={selectionMode ? () => {} : handleForwardMessage}
         onReplyPress={selectionMode ? undefined : handleReplyPress}
+        onSwipeReply={selectionMode ? undefined : handleSwipeReply}
+        onQuickReact={selectionMode ? undefined : handleQuickReact}
       />
     );
 

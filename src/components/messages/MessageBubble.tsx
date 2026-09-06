@@ -17,6 +17,13 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import ImageView from 'react-native-image-viewing';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
 // expo-file-system v19+ a deplace l'API classique vers /legacy. Le module
 // principal exporte la nouvelle API File/Directory class-based qui n'a pas
 // `cacheDirectory` au top-level.
@@ -165,6 +172,9 @@ interface MessageBubbleProps {
       "Connexion lente" pour rassurer l'user que l'envoi est encore en cours. */
   slowUploadAttachmentIds?: Set<string>;
   onLongPress: (message: Message) => void;
+  /** Renvoi d'un message en échec (bulle rouge). Tap direct sur « Réessayer »
+      sous la bulle — sans passer par la modale (découvrabilité). */
+  onRetry?: (message: Message) => void;
   onPlayVoice?: (
     uri: string,
     messageId: string,
@@ -191,6 +201,11 @@ interface MessageBubbleProps {
       message original. Le parent (ConversationScreen) doit lookup l'index
       du message dans state.messages et appeler flatListRef.scrollToIndex. */
   onReplyPress?: (originalMessageId: number | string) => void;
+  /** Swipe horizontal sur la bulle → répondre à CE message (réflexe
+      WhatsApp/Telegram). Le parent ouvre le pill de réponse. */
+  onSwipeReply?: (message: Message) => void;
+  /** Double-tap sur la bulle → réaction rapide (❤️). Réflexe Instagram/iMessage. */
+  onQuickReact?: (message: Message) => void;
 }
 
 // ============================================================================
@@ -417,6 +432,7 @@ function MessageBubble({
   uploadingAttachmentIds,
   slowUploadAttachmentIds,
   onLongPress,
+  onRetry,
   onSeekVoice,
   onSkipForward,
   onCyclePlaybackRate,
@@ -425,6 +441,8 @@ function MessageBubble({
   onPlayVoice,
   onForward,
   onReplyPress,
+  onSwipeReply,
+  onQuickReact,
 }: MessageBubbleProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
@@ -437,6 +455,57 @@ function MessageBubble({
   const hasAttachments = message.attachments && message.attachments.length > 0;
   const status = isMine ? getMessageStatus(message, otherUserId) : undefined;
   const groupedReactions = groupReactions(message.reactions);
+
+  // ── Gestes réflexes (swipe→répondre, double-tap→réagir) ──────────────────
+  // Ce sont les deux gestes les plus musculaires d'une messagerie 2026 ; leur
+  // absence faisait « swiper dans le vide » les utilisateurs habitués.
+  const translateX = useSharedValue(0);
+  const triggerSwipeReply = useCallback(() => {
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+    onSwipeReply?.(message);
+  }, [onSwipeReply, message]);
+  const triggerQuickReact = useCallback(() => {
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+    onQuickReact?.(message);
+  }, [onQuickReact, message]);
+
+  // Swipe horizontal (sens dépendant de l'expéditeur : on tire la bulle vers
+  // le centre). Déclenche « répondre » passé un seuil, puis revient en place.
+  const REPLY_THRESHOLD = 56;
+  const panGesture = useMemo(() => Gesture.Pan()
+    .enabled(!!onSwipeReply)
+    .activeOffsetX(isMine ? [-15, 9999] : [-9999, 15])
+    .failOffsetY([-12, 12])
+    .onUpdate((e) => {
+      const dx = e.translationX;
+      // On n'autorise le déplacement que dans le sens naturel (mine: gauche,
+      // peer: droite) et on borne l'amplitude.
+      const bounded = isMine ? Math.max(-80, Math.min(0, dx)) : Math.min(80, Math.max(0, dx));
+      translateX.value = bounded;
+    })
+    .onEnd(() => {
+      if (Math.abs(translateX.value) >= REPLY_THRESHOLD) {
+        runOnJS(triggerSwipeReply)();
+      }
+      translateX.value = withSpring(0, { damping: 18, stiffness: 220 });
+    }), [isMine, onSwipeReply, triggerSwipeReply, translateX]);
+
+  const doubleTapGesture = useMemo(() => Gesture.Tap()
+    .enabled(!!onQuickReact)
+    .numberOfTaps(2)
+    .maxDuration(260)
+    .onEnd((_e, success) => {
+      if (success) runOnJS(triggerQuickReact)();
+    }), [onQuickReact, triggerQuickReact]);
+
+  const composedGesture = useMemo(
+    () => Gesture.Simultaneous(panGesture, doubleTapGesture),
+    [panGesture, doubleTapGesture],
+  );
+
+  const swipeAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
 
   // Bulle interlocuteur : rose doux. Light = blush léger, dark = rose-bordeaux.
   // On garde l'indigo `colors.primary` pour le sender (mine) — palette cohérente
@@ -1058,12 +1127,23 @@ function MessageBubble({
   }
 
   return (
-    <TouchableOpacity
-      style={[styles.messageRow, isMine && styles.messageRowMine, isGrouped && styles.messageRowGrouped]}
-      onLongPress={handleLongPress}
-      delayLongPress={300}
-      activeOpacity={0.8}
-    >
+    <GestureDetector gesture={composedGesture}>
+      <Animated.View style={swipeAnimStyle}>
+        {/* Indice visuel de swipe→répondre : icône qui se révèle en tirant. */}
+        {!!onSwipeReply && (
+          <View
+            pointerEvents="none"
+            style={[styles.swipeReplyHint, isMine ? styles.swipeReplyHintMine : styles.swipeReplyHintPeer]}
+          >
+            <Ionicons name="arrow-undo" size={16} color={colors.gray400} />
+          </View>
+        )}
+        <TouchableOpacity
+          style={[styles.messageRow, isMine && styles.messageRowMine, isGrouped && styles.messageRowGrouped]}
+          onLongPress={handleLongPress}
+          delayLongPress={300}
+          activeOpacity={0.8}
+        >
       {/* Avatar (only for other user's messages, hidden when grouped) */}
       {!isMine && (
         isGrouped ? (
@@ -1174,6 +1254,24 @@ function MessageBubble({
           );
         })()}
 
+        {/* Échec d'envoi : bouton « Réessayer » DIRECTEMENT sous la bulle
+            (sans passer par la modale) — les testeurs restaient bloqués devant
+            un rond rouge sans savoir comment renvoyer. */}
+        {status === 'failed' && onRetry && (
+          <TouchableOpacity
+            style={styles.retryRow}
+            onPress={() => onRetry(message)}
+            accessibilityRole="button"
+            accessibilityLabel={t('conversation.retrySend', { defaultValue: 'Réessayer' })}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="refresh" size={13} color={colors.error} />
+            <Text style={[styles.retryText, { color: colors.error }]}>
+              {t('conversation.retrySend', { defaultValue: 'Réessayer' })}
+            </Text>
+          </TouchableOpacity>
+        )}
+
         {/* Reactions — restent OUT de la bulle (chips qui debordent en bas) */}
         {renderReactions()}
 
@@ -1224,7 +1322,9 @@ function MessageBubble({
           sections={[{ actions: attachSheetActions }]}
         />
       </View>
-    </TouchableOpacity>
+        </TouchableOpacity>
+      </Animated.View>
+    </GestureDetector>
   );
 }
 
@@ -1263,6 +1363,8 @@ function arePropsEqual(prevProps: MessageBubbleProps, nextProps: MessageBubblePr
     prevProps.message.content === nextProps.message.content &&
     prevProps.message.is_edited === nextProps.message.is_edited &&
     prevProps.message.is_deleted === nextProps.message.is_deleted &&
+    // is_failed : transition envoi→échec doit re-render (icône rouge + Réessayer).
+    (prevProps.message as any).is_failed === (nextProps.message as any).is_failed &&
     prevProps.message.read_by?.length === nextProps.message.read_by?.length &&
     prevProps.message.reactions?.length === nextProps.message.reactions?.length &&
     prevProps.isMine === nextProps.isMine &&
@@ -1711,6 +1813,31 @@ const styles = StyleSheet.create({
   },
   statusIcon: {
     marginLeft: 4,
+  },
+  retryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    gap: 4,
+    marginTop: 3,
+    marginRight: 4,
+  },
+  swipeReplyHint: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    opacity: 0.6,
+  },
+  swipeReplyHintMine: {
+    right: 8,
+  },
+  swipeReplyHintPeer: {
+    left: 8,
+  },
+  retryText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 
   // Avatar spacer for grouped messages
