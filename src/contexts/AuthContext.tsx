@@ -420,6 +420,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (voiceCacheError) {
       if (__DEV__) console.warn('clearVoiceCache on logout failed:', voiceCacheError);
     }
+    // SÉCURITÉ : purge les clés AsyncStorage de messagerie écrites en BRUT (sans
+    // le préfixe @ez:cache: de CacheService), donc jamais touchées par clearAll :
+    //  - draft:<convId>            = brouillons non envoyés (CONTENU de message)
+    //  - voice_pos / voice_listened / voice_start_offset = activité vocale
+    // Sur un appareil partagé, ces données du user A survivaient au logout et
+    // étaient lisibles par le user B (l'inbox recharge les drafts non scopés).
+    try {
+      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+      const keys = await AsyncStorage.getAllKeys();
+      const toRemove = keys.filter(k =>
+        k.startsWith('draft:') ||
+        k.startsWith('voice_pos:') ||
+        k.startsWith('voice_listened:') ||
+        k.startsWith('voice_start_offset:') ||
+        k.startsWith('offline_queue:'), // ancienne file (legacy) éventuellement résiduelle
+      );
+      if (toRemove.length) await AsyncStorage.multiRemove(toRemove);
+    } catch (draftErr) {
+      if (__DEV__) console.warn('draft/voice keys clear on logout failed:', draftErr);
+    }
     // Purge l'état de navigation persisté : sans ça, le prochain user (ou le
     // même user sur un autre compte) verrait au prochain cold start l'écran
     // organizer / paiement / autre sur lequel l'ancien user était.

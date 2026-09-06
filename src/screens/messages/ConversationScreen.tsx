@@ -113,6 +113,7 @@ import {
   insertPending as insertLocalPending,
   patchLocalMessage,
   deleteLocalMessage,
+  getMessageSendState,
 } from '../../db/messageRepository';
 import { syncConversation } from '../../db/messageSync';
 import { enqueueOutbox } from '../../db/outboxRepository';
@@ -283,20 +284,14 @@ export default function ConversationScreen() {
         actions.addMessage(newMessage);
         // FlatList inversé affiche automatiquement les nouveaux messages en bas (index 0)
       }
-      // Persiste en SQLite : un message WS doit survivre au refresh/fermeture.
-      // MAIS pas pour l'écho de MON PROPRE message : le backend broadcast aussi
-      // message.new à l'expéditeur, sans exclusion. Le persister ici créerait
-      // une ligne serveur À CÔTÉ de la ligne temp-xxx (que seul onMessageSent /
-      // reconcileSent nettoie) → doublon persistant si message.sent est perdu.
-      // La réconciliation optimiste est la seule voie pour mes propres messages.
-      const msgSenderId = (() => {
-        const s: any = (newMessage as any).sender;
-        if (s == null) return null;
-        return typeof s === 'object' && s.id != null ? Number(s.id) : Number(s);
-      })();
-      if (msgSenderId !== Number(user?.id)) {
-        upsertLocalMessages(incomingConvId, [newMessage as any]).catch(() => {});
-      }
+      // Persiste TOUJOURS en SQLite (upsert idempotent par id) — y compris pour
+      // MES propres messages. Un message que j'envoie depuis un AUTRE device
+      // (web/tablette) arrive ici en message.new (le message.sent part au socket
+      // émetteur) : il n'a AUCUNE ligne temp-xxx sur ce téléphone, donc le
+      // sauter le faisait disparaître de SQLite au reload. Pour un message émis
+      // depuis CE device, reconcileSent nettoie la ligne temp-xxx, et l'upsert
+      // par id serveur ne crée pas de doublon.
+      upsertLocalMessages(incomingConvId, [newMessage as any]).catch(() => {});
     },
     onMessageSent: ({ clientTempId, message }) => {
       // Réconciliation optimiste : on remplace la bulle temp (client_temp_id)
@@ -423,14 +418,18 @@ export default function ConversationScreen() {
   // en base. flushOutbox est idempotent (garde 'sending').
   useEffect(() => {
     if (isConnected) {
-      flushOutbox().then((sent) => {
-        if (sent > 0 && state.conversationId) {
-          // Rafraîchit l'affichage depuis le local après réconciliation.
+      // On rafraîchit TOUJOURS l'affichage depuis le local après le flush, même
+      // si CE flush a renvoyé 0 : un autre appelant (useOutboxUI) peut avoir
+      // fait l'envoi et réconcilié la base (le verrou _flushing fait retourner
+      // 0 à l'appel perdant). Sans ça, une bulle 'pending' réconciliée par
+      // l'autre flush restait figée à l'écran de cette conversation.
+      flushOutbox().finally(() => {
+        if (state.conversationId) {
           getLocalMessages(state.conversationId, 30)
             .then((msgs) => { if (msgs.length) actions.setMessages(msgs); })
             .catch(() => {});
         }
-      }).catch(() => {});
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected]);
@@ -649,6 +648,12 @@ export default function ConversationScreen() {
           actions.setMessages(refreshed);
           actions.setLoading(false);
           setMessagesLoadError(null);
+          // Autorise le scroll-up : si on a rempli la page (30), il y a
+          // probablement plus d'historique (en local ou sur le serveur).
+          // Sans ça, hasMore restait false → remontée impossible sur une
+          // grande conversation. loadMore lit le local d'abord (beforeServerId)
+          // puis complète au réseau.
+          actions.setHasMore(refreshed.length >= 30);
           // Le delta a suffi → on ne fait PAS le getMessages complet ci-dessous.
           return;
         }
@@ -684,6 +689,28 @@ export default function ConversationScreen() {
       const params: any = {
         conversation: state.conversationId,
       };
+
+      // Pagination "charger plus" APRÈS une sync delta : pas de nextPageUrl
+      // réseau, mais on a l'historique en LOCAL. On lit les messages plus
+      // anciens que le plus ancien affiché (beforeServerId) depuis SQLite —
+      // instantané, offline. Si le local est épuisé, on retombe sur le réseau.
+      if (loadMore && !state.nextPageUrl && state.conversationId) {
+        const oldest = [...state.messages]
+          .map(m => (typeof m.id === 'number' ? m.id : Number(m.id)))
+          .filter(n => Number.isFinite(n))
+          .sort((a, b) => a - b)[0];
+        if (oldest != null) {
+          const older = await getLocalMessages(state.conversationId, 30, oldest);
+          if (older.length > 0) {
+            actions.addMessagesBefore(older);
+            actions.setHasMore(older.length >= 30);
+            actions.setLoadingMore(false);
+            return;
+          }
+          // Local épuisé → laisse le réseau tenter (params.page absent = page 1,
+          // borné par le backend ; hasMore passera à false si rien de neuf).
+        }
+      }
 
       if (loadMore && state.nextPageUrl) {
         // Extraire le numéro de page de l'URL (PageNumberPagination)
@@ -2571,7 +2598,7 @@ export default function ConversationScreen() {
       // laissait l'utilisateur dans le noir si une image était rejetée.
       type UploadOutcome =
         | { ok: true; id: string; tmpIdx: number; fileType: 'image' | 'voice' | 'document'; fileName: string }
-        | { ok: false; error: string; code?: string; tmpIdx: number; fileType: 'image' | 'voice' | 'document'; fileName: string };
+        | { ok: false; error: string; code?: string; isNetwork?: boolean; tmpIdx: number; fileType: 'image' | 'voice' | 'document'; fileName: string };
 
       const uploadOutcomes: UploadOutcome[] = await Promise.all(
         effectiveFiles.map(async (att, idx): Promise<UploadOutcome> => {
@@ -2607,10 +2634,15 @@ export default function ConversationScreen() {
             if (__DEV__) console.error('Erreur upload attachment:', uploadError);
             const data = uploadError?.response?.data || {};
             const errorMsg: string = data.error || uploadError?.message || t('conversation.errorFallback');
+            // Échec RÉSEAU (pas de réponse serveur) vs REJET applicatif (400
+            // quota/taille avec un code). Le réseau → l'attachment doit partir
+            // en outbox pour rejeu, pas être abandonné.
+            const isNetwork = !uploadError?.response;
             return {
               ok: false,
               error: errorMsg,
               code: data.code,
+              isNetwork,
               tmpIdx: idx,
               fileType: att.type,
               fileName: att.name,
@@ -2678,9 +2710,33 @@ export default function ConversationScreen() {
           })
           .join('\n');
 
-        // Cas 1 : tous échouent + pas de texte → on rollback le tempMessage
+        // Cas 1 : tous les uploads échouent + pas de texte.
         if (attachmentIds.length === 0 && messageContent.length === 0) {
+          // Si les échecs sont RÉSEAU (coupure en cours d'upload), on ne perd
+          // PAS les fichiers : on met le message en OUTBOX (fichiers persistés)
+          // pour rejeu à la reconnexion. L'utilisateur n'a pas à ré-attacher.
+          const allNetwork = failedUploads.every(f => f.isNetwork);
+          const convId = state.conversationId;
+          if (allNetwork && convId) {
+            try {
+              await enqueueOutbox({
+                tempId: tempMessageId,
+                conversationId: convId,
+                content: '',
+                replyTo: state.replyToMessage?.id ? String(state.replyToMessage.id) : undefined,
+                attachments: effectiveFiles.map((f: any) => ({ uri: f.uri, name: f.name, type: f.type })),
+              });
+              // La bulle optimiste (insertLocalPending) reste affichée en attente.
+              actions.cancelReply();
+              showSuccess(t('conversation.pendingMessageTitle'), t('conversation.pendingMessageMessage'));
+              return;
+            } catch {
+              /* enqueue HS → rollback comme un échec applicatif ci-dessous */
+            }
+          }
+          // Rejet applicatif (quota/taille) OU enqueue impossible → rollback.
           actions.removeTempMessages();
+          deleteLocalMessage(tempMessageId).catch(() => {});
           showError(
             failedUploads.length > 1 ? t('conversation.filesRejectedPlural') : t('conversation.filesRejectedSingular'),
             summary,
@@ -2729,6 +2785,43 @@ export default function ConversationScreen() {
         attachmentIds.length > 0 ? attachmentIds : undefined,
         String(tempMessage.id),
       );
+
+      if (wsSent) {
+        // WATCHDOG anti-perte au flapping : wsSendMessage ne renvoie que
+        // readyState===OPEN, sans ACK applicatif. Si le socket meurt juste
+        // après le .send(), le serveur ne reçoit rien → aucun message.sent /
+        // message.new → la bulle temp-xxx resterait 'pending' à VIE.
+        // On vérifie 8s plus tard : si la ligne est toujours 'pending' (non
+        // réconciliée), on rejoue via REST (ou outbox si hors ligne).
+        const tid = String(tempMessage.id);
+        const convId = conversationIdToUse;
+        setTimeout(async () => {
+          try {
+            const st = await getMessageSendState(tid);
+            if (st !== 'pending') return; // réconcilié ou déjà géré
+            // Toujours en attente → le WS n'a pas abouti. Rejeu.
+            const resp = await messagesAPI.sendMessage({
+              conversation: convId,
+              content: messageContent,
+              reply_to: state.replyToMessage?.id != null ? String(state.replyToMessage.id) : undefined,
+              attachment_ids: attachmentIds.length > 0 ? attachmentIds : undefined,
+            });
+            if (resp.data) {
+              actions.updateMessage(tid, resp.data);
+              reconcileLocalSent(convId, tid, resp.data).catch(() => {});
+            }
+          } catch {
+            // REST échoue aussi (vraiment hors ligne) → outbox pour rejeu.
+            enqueueOutbox({
+              tempId: tid,
+              conversationId: convId,
+              content: messageContent,
+              replyTo: state.replyToMessage?.id ? String(state.replyToMessage.id) : undefined,
+              attachments: [],
+            }).catch(() => {});
+          }
+        }, 8000);
+      }
 
       if (!wsSent) {
         const response = await messagesAPI.sendMessage({

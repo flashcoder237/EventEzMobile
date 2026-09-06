@@ -72,9 +72,12 @@ export async function bumpConversationOnNewMessage(
   incrementUnread: boolean,
 ): Promise<void> {
   const db = await getDatabase();
+  // MAX(last_message_at, ?) : un message.new arrivé out-of-order (event WS en
+  // retard, rejeu) ne doit jamais faire REDESCENDRE last_message_at et
+  // réordonner l'inbox à tort. COALESCE gère la 1re fois (colonne NULL).
   await db.runAsync(
     `UPDATE conversations
-     SET last_message_at = ?,
+     SET last_message_at = MAX(COALESCE(last_message_at, ''), ?),
          unread_count = unread_count + ?
      WHERE id = ?`,
     lastMessageAt,

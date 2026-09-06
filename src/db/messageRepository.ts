@@ -158,6 +158,23 @@ export async function deleteLocalMessage(id: string): Promise<void> {
 }
 
 /**
+ * Retourne l'état d'envoi d'une ligne (pour le watchdog de réconciliation) :
+ * - 'reconciled' si la ligne temp a disparu (remplacée par le serveur)
+ * - 'pending' | 'failed' | 'sent' sinon
+ */
+export async function getMessageSendState(
+  tempId: string,
+): Promise<'reconciled' | 'pending' | 'failed' | 'sent'> {
+  const db = await getDatabase();
+  const row = await db.getFirstAsync<{ send_state: string }>(
+    'SELECT send_state FROM messages WHERE id = ?',
+    tempId,
+  );
+  if (!row) return 'reconciled';
+  return (row.send_state as any) ?? 'sent';
+}
+
+/**
  * Applique un patch partiel (édition, suppression, réaction reçue par WS) à un
  * message déjà en base. Sans ça, un message édité/supprimé en temps réel
  * réaffichait son ancien état au prochain reload (avant la resync delta).

@@ -135,6 +135,17 @@ export async function resetOutboxRetry(tempId: string): Promise<void> {
 /** Retire une entrée de la file (envoi confirmé). */
 export async function removeOutbox(tempId: string): Promise<void> {
   const db = await getDatabase();
+  // Nettoie les fichiers persistés AVANT de supprimer la ligne, sinon une
+  // suppression manuelle (dequeue) d'un message échoué laissait ses fichiers
+  // orphelins à vie dans documentDirectory/outbox/. Idempotent.
+  try {
+    const row = await db.getFirstAsync<OutboxRow>('SELECT * FROM outbox WHERE temp_id = ?', tempId);
+    if (row?.attachments) {
+      await cleanupPersistedAttachments(JSON.parse(row.attachments));
+    }
+  } catch {
+    /* best-effort */
+  }
   await db.runAsync('DELETE FROM outbox WHERE temp_id = ?', tempId);
 }
 
