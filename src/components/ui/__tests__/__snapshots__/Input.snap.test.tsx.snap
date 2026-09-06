@@ -41,7 +41,7 @@ exports[`Input snapshots renders default with placeholder 1`] = `
           {
             "flex": 1,
             "fontFamily": "Montserrat_400Regular",
-            "fontSize": 16,
+            "fontSize": 17.5,
             "paddingVertical": 12.5,
           },
           false,
@@ -132,7 +132,7 @@ exports[`Input snapshots renders disabled 1`] = `
           {
             "flex": 1,
             "fontFamily": "Montserrat_400Regular",
-            "fontSize": 16,
+            "fontSize": 17.5,
             "paddingVertical": 12.5,
           },
           false,
@@ -219,7 +219,7 @@ exports[`Input snapshots renders secureTextEntry (password) 1`] = `
           {
             "flex": 1,
             "fontFamily": "Montserrat_400Regular",
-            "fontSize": 16,
+            "fontSize": 17.5,
             "paddingVertical": 12.5,
           },
           false,
@@ -372,7 +372,7 @@ exports[`Input snapshots renders title variant with labelTrailing 1`] = `
           {
             "flex": 1,
             "fontFamily": "Montserrat_400Regular",
-            "fontSize": 16,
+            "fontSize": 17.5,
             "paddingVertical": 12.5,
           },
           {
@@ -461,7 +461,7 @@ exports[`Input snapshots renders with error state 1`] = `
           {
             "flex": 1,
             "fontFamily": "Montserrat_400Regular",
-            "fontSize": 16,
+            "fontSize": 17.5,
             "paddingVertical": 12.5,
           },
           false,
@@ -479,7 +479,7 @@ exports[`Input snapshots renders with error state 1`] = `
       [
         {
           "fontFamily": "Montserrat_500Medium",
-          "fontSize": 11.5,
+          "fontSize": 13,
           "lineHeight": 16,
           "marginTop": 4,
         },
@@ -575,7 +575,7 @@ exports[`Input snapshots renders with label + icon + hint 1`] = `
           {
             "flex": 1,
             "fontFamily": "Montserrat_400Regular",
-            "fontSize": 16,
+            "fontSize": 17.5,
             "paddingVertical": 12.5,
           },
           false,
@@ -595,7 +595,7 @@ exports[`Input snapshots renders with label + icon + hint 1`] = `
       [
         {
           "fontFamily": "Montserrat_500Medium",
-          "fontSize": 11.5,
+          "fontSize": 13,
           "lineHeight": 16,
           "marginTop": 4,
         },
@@ -678,7 +678,7 @@ exports[`Input snapshots renders with success state 1`] = `
           {
             "flex": 1,
             "fontFamily": "Montserrat_400Regular",
-            "fontSize": 16,
+            "fontSize": 17.5,
             "paddingVertical": 12.5,
           },
           false,
@@ -696,7 +696,7 @@ exports[`Input snapshots renders with success state 1`] = `
       [
         {
           "fontFamily": "Montserrat_500Medium",
-          "fontSize": 11.5,
+          "fontSize": 13,
           "lineHeight": 16,
           "marginTop": 4,
         },

@@ -4,9 +4,16 @@ import { Dimensions, PixelRatio } from 'react-native';
 const BASELINE_WIDTH = 390;
 const BASELINE_HEIGHT = 844;
 
-// Facteur global applique a toutes les tailles issues de ms()/mvs().
-// 1.0 = taille d'origine, <1 = reduit globalement (utile si le design paraissait trop gros).
+// Facteur global applique aux tailles issues de ms()/mvs() — donc aux ESPACEMENTS
+// (Spacing) et dimensions UI. 1.0 = taille d'origine, <1 = reduit globalement.
 const GLOBAL_SHRINK = 0.83;
+
+// Facteur SÉPARÉ pour les POLICES (msFont → FontSizes). Volontairement plus
+// proche de 1 que GLOBAL_SHRINK : à 0.83 le texte était jugé trop petit
+// (senior/malvoyant, audit UX). On agrandit la police SANS toucher aux
+// espacements (qui restent à 0.83) → aucun débordement des ~1500 conteneurs à
+// dimension fixe de l'app. 0.92 ≈ +11% de lisibilité vs l'ancien 0.83.
+const FONT_SHRINK = 0.92;
 
 // On lit les dimensions une seule fois au chargement du module.
 // L'orientation portrait est assumee (min/max pour couvrir les deux cas).
@@ -38,9 +45,17 @@ export const moderateVerticalScale = (size: number, factor: number = 0.3): numbe
 /** Arrondi au pixel physique le plus proche pour eviter le blur sur les bordures/tailles fines. */
 export const pixelRound = (size: number): number => PixelRatio.roundToNearestPixel(size);
 
-/** moderateScale + arrondi pixel + shrink global. A utiliser pour les tailles de police et dimensions UI. */
+/** moderateScale + arrondi pixel + shrink global. Pour les ESPACEMENTS et dimensions UI. */
 export const ms = (size: number, factor: number = 0.3): number =>
   pixelRound(moderateScale(size, factor) * GLOBAL_SHRINK);
+
+/**
+ * Comme ms(), mais avec le shrink POLICE (moins agressif). À utiliser
+ * EXCLUSIVEMENT pour les tailles de police (FontSizes) — jamais pour des
+ * dimensions, sinon on casse la cohérence texte/conteneur.
+ */
+export const msFont = (size: number, factor: number = 0.3): number =>
+  pixelRound(moderateScale(size, factor) * FONT_SHRINK);
 
 /** Version verticale arrondie avec shrink global. */
 export const mvs = (size: number, factor: number = 0.3): number =>

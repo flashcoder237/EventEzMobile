@@ -32,7 +32,7 @@ exports[`Badge snapshots renders default variant md 1`] = `
         },
         {
           "color": "#4F46E5",
-          "fontSize": 14,
+          "fontSize": 15.5,
         },
         undefined,
       ]
@@ -75,7 +75,7 @@ exports[`Badge snapshots renders destructive variant 1`] = `
         },
         {
           "color": "#EF4444",
-          "fontSize": 14,
+          "fontSize": 15.5,
         },
         undefined,
       ]
@@ -118,7 +118,7 @@ exports[`Badge snapshots renders info variant 1`] = `
         },
         {
           "color": "#1E40AF",
-          "fontSize": 14,
+          "fontSize": 15.5,
         },
         undefined,
       ]
@@ -161,7 +161,7 @@ exports[`Badge snapshots renders outline variant 1`] = `
         },
         {
           "color": "#374151",
-          "fontSize": 14,
+          "fontSize": 15.5,
         },
         undefined,
       ]
@@ -204,7 +204,7 @@ exports[`Badge snapshots renders secondary variant 1`] = `
         },
         {
           "color": "#374151",
-          "fontSize": 14,
+          "fontSize": 15.5,
         },
         undefined,
       ]
@@ -247,7 +247,7 @@ exports[`Badge snapshots renders small size 1`] = `
         },
         {
           "color": "#065F46",
-          "fontSize": 11.5,
+          "fontSize": 13,
         },
         undefined,
       ]
@@ -290,7 +290,7 @@ exports[`Badge snapshots renders success variant 1`] = `
         },
         {
           "color": "#065F46",
-          "fontSize": 14,
+          "fontSize": 15.5,
         },
         undefined,
       ]
@@ -333,7 +333,7 @@ exports[`Badge snapshots renders warning variant 1`] = `
         },
         {
           "color": "#92400E",
-          "fontSize": 14,
+          "fontSize": 15.5,
         },
         undefined,
       ]

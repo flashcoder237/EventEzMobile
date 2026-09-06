@@ -47,7 +47,7 @@ exports[`ErrorState snapshots renders default (no retry callback) 1`] = `
       [
         {
           "fontFamily": "FunnelDisplay_700Bold",
-          "fontSize": 18,
+          "fontSize": 20,
           "letterSpacing": -0.3,
           "marginBottom": 8.5,
           "textAlign": "center",
@@ -65,7 +65,7 @@ exports[`ErrorState snapshots renders default (no retry callback) 1`] = `
       [
         {
           "fontFamily": "Montserrat_400Regular",
-          "fontSize": 14,
+          "fontSize": 15.5,
           "lineHeight": 20,
           "maxWidth": 280,
           "textAlign": "center",
@@ -128,7 +128,7 @@ exports[`ErrorState snapshots renders with custom title + message 1`] = `
       [
         {
           "fontFamily": "FunnelDisplay_700Bold",
-          "fontSize": 18,
+          "fontSize": 20,
           "letterSpacing": -0.3,
           "marginBottom": 8.5,
           "textAlign": "center",
@@ -146,7 +146,7 @@ exports[`ErrorState snapshots renders with custom title + message 1`] = `
       [
         {
           "fontFamily": "Montserrat_400Regular",
-          "fontSize": 14,
+          "fontSize": 15.5,
           "lineHeight": 20,
           "maxWidth": 280,
           "textAlign": "center",
@@ -209,7 +209,7 @@ exports[`ErrorState snapshots renders with retry button 1`] = `
       [
         {
           "fontFamily": "FunnelDisplay_700Bold",
-          "fontSize": 18,
+          "fontSize": 20,
           "letterSpacing": -0.3,
           "marginBottom": 8.5,
           "textAlign": "center",
@@ -227,7 +227,7 @@ exports[`ErrorState snapshots renders with retry button 1`] = `
       [
         {
           "fontFamily": "Montserrat_400Regular",
-          "fontSize": 14,
+          "fontSize": 15.5,
           "lineHeight": 20,
           "maxWidth": 280,
           "textAlign": "center",
@@ -313,7 +313,7 @@ exports[`ErrorState snapshots renders with retry button 1`] = `
               "letterSpacing": 0.3,
             },
             {
-              "fontSize": 15,
+              "fontSize": 16.5,
             },
             undefined,
           ]
@@ -380,7 +380,7 @@ exports[`ErrorState snapshots renders withCard variant + retry hidden 1`] = `
       [
         {
           "fontFamily": "FunnelDisplay_700Bold",
-          "fontSize": 18,
+          "fontSize": 20,
           "letterSpacing": -0.3,
           "marginBottom": 8.5,
           "textAlign": "center",
@@ -398,7 +398,7 @@ exports[`ErrorState snapshots renders withCard variant + retry hidden 1`] = `
       [
         {
           "fontFamily": "Montserrat_400Regular",
-          "fontSize": 14,
+          "fontSize": 15.5,
           "lineHeight": 20,
           "maxWidth": 280,
           "textAlign": "center",

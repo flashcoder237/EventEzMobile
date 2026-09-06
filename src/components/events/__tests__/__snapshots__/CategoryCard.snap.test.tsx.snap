@@ -89,7 +89,7 @@ exports[`CategoryCard snapshots renders compact variant 1`] = `
         {
           "color": "#374151",
           "fontFamily": "Montserrat_500Medium",
-          "fontSize": 14,
+          "fontSize": 15.5,
         },
         {
           "color": "#374151",
@@ -206,7 +206,7 @@ exports[`CategoryCard snapshots renders default variant 1`] = `
         {
           "color": "#374151",
           "fontFamily": "Montserrat_500Medium",
-          "fontSize": 14,
+          "fontSize": 15.5,
           "textAlign": "center",
         },
         {
@@ -222,7 +222,7 @@ exports[`CategoryCard snapshots renders default variant 1`] = `
       [
         {
           "color": "#9CA3AF",
-          "fontSize": 11.5,
+          "fontSize": 13,
           "marginTop": 2,
         },
         {
@@ -340,7 +340,7 @@ exports[`CategoryCard snapshots renders default variant without eventCount 1`] =
         {
           "color": "#374151",
           "fontFamily": "Montserrat_500Medium",
-          "fontSize": 14,
+          "fontSize": 15.5,
           "textAlign": "center",
         },
         {
@@ -462,7 +462,7 @@ exports[`CategoryCard snapshots renders large variant with image 1`] = `
           {
             "color": "#FFFFFF",
             "fontFamily": "FunnelDisplay_700Bold",
-            "fontSize": 21,
+            "fontSize": 23.5,
             "letterSpacing": -0.5,
             "marginBottom": 4,
           }
@@ -474,7 +474,7 @@ exports[`CategoryCard snapshots renders large variant with image 1`] = `
         style={
           {
             "color": "rgba(255, 255, 255, 0.8)",
-            "fontSize": 14,
+            "fontSize": 15.5,
           }
         }
       >
@@ -569,7 +569,7 @@ exports[`CategoryCard snapshots renders large variant without image (gradient fa
         {
           "color": "#FFFFFF",
           "fontFamily": "FunnelDisplay_700Bold",
-          "fontSize": 21,
+          "fontSize": 23.5,
           "letterSpacing": -0.5,
           "marginBottom": 4,
         }
@@ -581,7 +581,7 @@ exports[`CategoryCard snapshots renders large variant without image (gradient fa
       style={
         {
           "color": "rgba(255, 255, 255, 0.8)",
-          "fontSize": 14,
+          "fontSize": 15.5,
         }
       }
     >

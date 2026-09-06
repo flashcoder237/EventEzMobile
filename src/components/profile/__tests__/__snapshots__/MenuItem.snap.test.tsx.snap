@@ -95,7 +95,7 @@ exports[`MenuItem snapshots renders danger variant + isLast 1`] = `
               "color": "#111827",
               "flexShrink": 1,
               "fontFamily": "Montserrat_500Medium",
-              "fontSize": 16,
+              "fontSize": 17.5,
             },
             {
               "color": "#111827",
@@ -203,7 +203,7 @@ exports[`MenuItem snapshots renders loading state 1`] = `
               "color": "#111827",
               "flexShrink": 1,
               "fontFamily": "Montserrat_500Medium",
-              "fontSize": 16,
+              "fontSize": 17.5,
             },
             {
               "color": "#111827",
@@ -316,7 +316,7 @@ exports[`MenuItem snapshots renders title only 1`] = `
               "color": "#111827",
               "flexShrink": 1,
               "fontFamily": "Montserrat_500Medium",
-              "fontSize": 16,
+              "fontSize": 17.5,
             },
             {
               "color": "#111827",
@@ -466,7 +466,7 @@ exports[`MenuItem snapshots renders with badge >99 1`] = `
               "color": "#111827",
               "flexShrink": 1,
               "fontFamily": "Montserrat_500Medium",
-              "fontSize": 16,
+              "fontSize": 17.5,
             },
             {
               "color": "#111827",
@@ -616,7 +616,7 @@ exports[`MenuItem snapshots renders with badge 1`] = `
               "color": "#111827",
               "flexShrink": 1,
               "fontFamily": "Montserrat_500Medium",
-              "fontSize": 16,
+              "fontSize": 17.5,
             },
             {
               "color": "#111827",
@@ -754,7 +754,7 @@ exports[`MenuItem snapshots renders with critical alert 1`] = `
               "color": "#111827",
               "flexShrink": 1,
               "fontFamily": "Montserrat_500Medium",
-              "fontSize": 16,
+              "fontSize": 17.5,
             },
             {
               "color": "#111827",
@@ -773,7 +773,7 @@ exports[`MenuItem snapshots renders with critical alert 1`] = `
           {
             "color": "#4B5563",
             "fontFamily": "Montserrat_400Regular",
-            "fontSize": 14,
+            "fontSize": 15.5,
             "marginTop": 2,
           },
           {
@@ -889,7 +889,7 @@ exports[`MenuItem snapshots renders with stat inline 1`] = `
               "color": "#111827",
               "flexShrink": 1,
               "fontFamily": "Montserrat_500Medium",
-              "fontSize": 16,
+              "fontSize": 17.5,
             },
             {
               "color": "#111827",
@@ -1023,7 +1023,7 @@ exports[`MenuItem snapshots renders with subtitle 1`] = `
               "color": "#111827",
               "flexShrink": 1,
               "fontFamily": "Montserrat_500Medium",
-              "fontSize": 16,
+              "fontSize": 17.5,
             },
             {
               "color": "#111827",
@@ -1042,7 +1042,7 @@ exports[`MenuItem snapshots renders with subtitle 1`] = `
           {
             "color": "#4B5563",
             "fontFamily": "Montserrat_400Regular",
-            "fontSize": 14,
+            "fontSize": 15.5,
             "marginTop": 2,
           },
           {

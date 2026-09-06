@@ -3546,7 +3546,7 @@ export default function ConversationScreen() {
             <Text
               style={[
                 styles.headerSubtitle,
-                { color: otherParticipant?.presence_status === 'online' ? '#10B981' : colors.gray500 },
+                { color: otherParticipant?.presence_status === 'online' ? colors.success : colors.gray500 },
               ]}
               numberOfLines={1}
             >
@@ -3962,7 +3962,11 @@ export default function ConversationScreen() {
               const failed = convQueue.filter(m => m.failed);
               return (
                 <>
-                  {pending.length > 0 && (
+                  {/* Le bandeau « en attente » n'est montré QUE si on est
+                      connecté (donc en train de flusher). Hors ligne, le bandeau
+                      « Reconnexion… » en haut dit déjà la même chose + chaque
+                      bulle a son spinner → on évite une strate d'alerte redondante. */}
+                  {pending.length > 0 && isConnected && (
                     <View style={[styles.offlineQueueBanner, { backgroundColor: colors.warningBg, borderTopColor: colors.warning }]}>
                       <Ionicons name="time-outline" size={14} color={colors.warning} />
                       <Text style={[styles.offlineQueueBannerText, { color: colors.warning }]}>
@@ -4943,14 +4947,15 @@ const styles = StyleSheet.create({
     ...TextStyles.bodyBold,
     fontFamily: FontFamily.displayBold,
     letterSpacing: -0.2,
-    maxWidth: 180,
+    // maxWidth retiré : `numberOfLines={1}` + flexShrink gèrent déjà la
+    // troncature, et le 180px en dur coupait un nom au milieu du vide sur
+    // grand écran / iPad (signalé par le DA).
   },
   headerSubtitle: {
     fontFamily: FontFamily.semiBold,
     fontSize: 11,
     letterSpacing: 0.1,
     marginTop: 1,
-    maxWidth: 180,
   },
   headerMenuButton: {
     padding: Spacing.sm,

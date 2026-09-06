@@ -92,7 +92,7 @@ exports[`GradientButton snapshots renders disabled primary 1`] = `
             "letterSpacing": 0.3,
           },
           {
-            "fontSize": 15,
+            "fontSize": 16.5,
           },
           undefined,
         ]
@@ -197,7 +197,7 @@ exports[`GradientButton snapshots renders fullWidth lg 1`] = `
             "letterSpacing": 0.3,
           },
           {
-            "fontSize": 16,
+            "fontSize": 17.5,
           },
           undefined,
         ]
@@ -262,7 +262,7 @@ exports[`GradientButton snapshots renders ghost variant 1`] = `
           "letterSpacing": 0.3,
         },
         {
-          "fontSize": 15,
+          "fontSize": 16.5,
         },
         undefined,
       ]
@@ -431,7 +431,7 @@ exports[`GradientButton snapshots renders outline variant with iconLeft 1`] = `
           "letterSpacing": 0.3,
         },
         {
-          "fontSize": 15,
+          "fontSize": 16.5,
         },
         undefined,
       ]
@@ -534,7 +534,7 @@ exports[`GradientButton snapshots renders primary md (default) 1`] = `
             "letterSpacing": 0.3,
           },
           {
-            "fontSize": 15,
+            "fontSize": 16.5,
           },
           undefined,
         ]
@@ -599,7 +599,7 @@ exports[`GradientButton snapshots renders secondary variant sm 1`] = `
           "letterSpacing": 0.3,
         },
         {
-          "fontSize": 14,
+          "fontSize": 15.5,
         },
         undefined,
       ]

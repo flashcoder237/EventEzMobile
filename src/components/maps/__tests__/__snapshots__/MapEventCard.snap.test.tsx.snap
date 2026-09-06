@@ -160,7 +160,7 @@ exports[`MapEventCard snapshots renders free event without image (placeholder) 1
         [
           {
             "fontFamily": "FunnelDisplay_700Bold",
-            "fontSize": 15,
+            "fontSize": 16.5,
             "letterSpacing": -0.2,
             "lineHeight": 19,
             "marginBottom": 4,
@@ -213,7 +213,7 @@ exports[`MapEventCard snapshots renders free event without image (placeholder) 1
         [
           {
             "fontFamily": "Montserrat_700Bold",
-            "fontSize": 14,
+            "fontSize": 15.5,
           },
           {
             "color": "#10B981",
@@ -443,7 +443,7 @@ exports[`MapEventCard snapshots renders paid event with image 1`] = `
         [
           {
             "fontFamily": "FunnelDisplay_700Bold",
-            "fontSize": 15,
+            "fontSize": 16.5,
             "letterSpacing": -0.2,
             "lineHeight": 19,
             "marginBottom": 4,
@@ -496,7 +496,7 @@ exports[`MapEventCard snapshots renders paid event with image 1`] = `
         [
           {
             "fontFamily": "Montserrat_700Bold",
-            "fontSize": 14,
+            "fontSize": 15.5,
           },
           {
             "color": "#111827",
@@ -726,7 +726,7 @@ exports[`MapEventCard snapshots renders with userLocation + distance 1`] = `
         [
           {
             "fontFamily": "FunnelDisplay_700Bold",
-            "fontSize": 15,
+            "fontSize": 16.5,
             "letterSpacing": -0.2,
             "lineHeight": 19,
             "marginBottom": 4,
@@ -795,7 +795,7 @@ exports[`MapEventCard snapshots renders with userLocation + distance 1`] = `
         [
           {
             "fontFamily": "Montserrat_700Bold",
-            "fontSize": 14,
+            "fontSize": 15.5,
           },
           {
             "color": "#111827",
@@ -985,7 +985,7 @@ exports[`MapEventCard snapshots renders without category 1`] = `
         [
           {
             "fontFamily": "FunnelDisplay_700Bold",
-            "fontSize": 15,
+            "fontSize": 16.5,
             "letterSpacing": -0.2,
             "lineHeight": 19,
             "marginBottom": 4,
@@ -1038,7 +1038,7 @@ exports[`MapEventCard snapshots renders without category 1`] = `
         [
           {
             "fontFamily": "Montserrat_700Bold",
-            "fontSize": 14,
+            "fontSize": 15.5,
           },
           {
             "color": "#111827",

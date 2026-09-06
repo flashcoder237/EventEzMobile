@@ -2,7 +2,7 @@
 // Inspired by Eventbrite 2025 rebrand
 // Typography: Funnel Display (titles), Montserrat (body)
 
-import { ms } from '../utils/responsive';
+import { ms, msFont } from '../utils/responsive';
 
 export const Colors = {
   // Primary - Indigo profond (EventEz signature)
@@ -219,20 +219,23 @@ export const FontFamily = {
 
 // FontSizes : adapte a la largeur d'ecran via moderateScale (facteur 0.3).
 // Reference : iPhone 14 (390pt). Les petits ecrans rapetissent legerement, les tablettes grossissent modestement.
+// FontSizes utilise msFont (shrink police 0.92) et NON ms (0.83) : le texte est
+// ~11% plus grand qu'avant sans toucher aux espacements → lisibilité améliorée
+// sans casser les layouts (les conteneurs à dimension fixe ne bougent pas).
 export const FontSizes = {
-  xs: ms(11),
-  sm: ms(13),
-  md: ms(14),
-  base: ms(15),
-  lg: ms(17),
-  xl: ms(20),
-  '2xl': ms(24),
-  '3xl': ms(30),
-  '4xl': ms(36),
-  '5xl': ms(48),
-  '6xl': ms(56),
-  '7xl': ms(64),
-  '8xl': ms(72),
+  xs: msFont(11),
+  sm: msFont(13),
+  md: msFont(14),
+  base: msFont(15),
+  lg: msFont(17),
+  xl: msFont(20),
+  '2xl': msFont(24),
+  '3xl': msFont(30),
+  '4xl': msFont(36),
+  '5xl': msFont(48),
+  '6xl': msFont(56),
+  '7xl': msFont(64),
+  '8xl': msFont(72),
 };
 
 export const FontWeights = {
