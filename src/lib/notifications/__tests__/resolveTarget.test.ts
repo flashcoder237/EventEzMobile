@@ -191,6 +191,12 @@ describe('resolveNotificationTarget — par notification_type', () => {
     expect(resolveNotificationTarget(notif({ notification_type: 'refund_processed' })))
       .toEqual({ screen: 'RefundsList' });
   });
+  // Un retrait se suit depuis le portefeuille (solde + historique), pas depuis
+  // MyPayments qui est l'historique du PAYEUR.
+  it('payout_status → Wallet', () => {
+    expect(resolveNotificationTarget(notif({ notification_type: 'payout_status' })))
+      .toEqual({ screen: 'Wallet' });
+  });
   it('ticket_transfer → MyTickets', () => {
     expect(resolveNotificationTarget(notif({ notification_type: 'ticket_transfer' })))
       .toEqual({ tab: 'MyTickets' });

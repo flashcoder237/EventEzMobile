@@ -87,7 +87,9 @@ const channelForType = (type?: string): string => {
   // Urgent en premier — prend le pas sur les matchs génériques (payment, refund)
   if (URGENT_TYPES.has(type)) return 'urgent_actions';
   if (type.includes('message')) return 'messages';
-  if (type.includes('payment') || type.includes('refund')) return 'payments';
+  // 'payout' ne contient PAS 'payment' : sans ce terme, les notifications de
+  // retrait tombaient sur le canal 'default' au lieu du canal argent.
+  if (type.includes('payment') || type.includes('refund') || type.includes('payout')) return 'payments';
   if (type.includes('event_reminder') || type.includes('session_reminder')) return 'event_reminders';
   return 'default';
 };

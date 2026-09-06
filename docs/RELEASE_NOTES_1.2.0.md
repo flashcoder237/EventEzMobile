@@ -154,6 +154,27 @@ Contenu réel du build 1.2.0.
 - Carte « Mes Events » affichait 0 vue (`view_count` absent du serializer liste).
 - Build EAS Android : module `eventez-pip` sans `versionName` → échec de config.
 
+**Retraits organisateur (backend + web)**
+- Coordonnees bancaires verrouillees : `bank_account_number` etait modifiable
+  via l'API alors que le Mobile Money etait deja verrouille juste a cote
+  (compte compromis -> RIB change -> virement a l'attaquant).
+- Restitution du solde sur refus DEFINITIF d'une passerelle. Jamais sur un
+  timeout : le debit est peut-etre parti, on verifie d'abord.
+- Trois garde-fous configurables A CHAUD en administration (Paiements ->
+  Configuration -> « Securite des retraits »), tous debrayables :
+  double validation au-dela d'un seuil (0 = desactive, deux administrateurs
+  DISTINCTS requis), KYC verifie exige, blocage si des remboursements sont dus.
+- E-mails de suivi de retrait : il n'en existait AUCUN. L'organisateur n'etait
+  prevenu qu'en in-app — donc pas du tout s'il n'ouvre pas l'application.
+  Quatre etapes desormais notifiees (demande recue / en cours d'envoi / verse /
+  echec) en in-app + push + e-mail, avec numero de compte masque.
+- Les retraits verses via pawaPay, CamPay et la reconciliation ne notifiaient
+  RIEN. Tous les chemins passent maintenant par une source unique
+  (`payout_notifications.notify_payout`), idempotente sur rejeu de webhook.
+- Web : les refus de retrait affichaient « une erreur est survenue ». Les
+  motifs actionnables (plafond par retrait, plafond journalier avec le montant
+  restant, KYC, remboursements) sont maintenant affiches tels quels.
+
 **Rappel avant publication**
 - Rebuild natif OBLIGATOIRE (permissions média retirées, icônes alternatives
   supprimées, module pip, deeplinks) : une mise à jour OTA ne suffit pas.
@@ -161,7 +182,8 @@ Contenu réel du build 1.2.0.
   `READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO`, puis re-soumettre via **Publishing
   overview** (le rejet Play sera levé). Ne PAS remplir le formulaire de
   déclaration photo picker.
-- Appliquer les migrations backend : `accounts/0027`, `notifications/0025`.
+- Appliquer les migrations backend : `accounts/0027`, `notifications/0025`,
+  `payments/0058`, `payments/0059`, `notifications/0028`.
 - Vérifier que `apple-app-site-association` déployé contient bien le Team ID
   `9T6HK8G8B5` (le placeholder cassait les Universal Links iOS).
 - Redéployer le backend (`deploy.sh update`) + redémarrer worker/beat pour les

@@ -819,6 +819,7 @@ export type NotificationType =
   | 'verification_reminder'
   | 'feedback_request'
   | 'refund_processed'
+  | 'payout_status'
   | 'ticket_transfer'
   | 'check_in_confirmation'
   // Social / engagement

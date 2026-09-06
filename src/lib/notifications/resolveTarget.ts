@@ -91,6 +91,12 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
       return { screen: 'MyPayments' };
     case 'refund_processed':
       return { screen: 'RefundsList' };
+    // Retrait organisateur (demande reçue / en cours / versé / échec) →
+    // portefeuille, seul écran qui montre le solde et l'historique des
+    // retraits. Sans ce cas, la notification retombait sur l'écran par défaut
+    // et l'organisateur devait retrouver son retrait à la main.
+    case 'payout_status':
+      return { screen: 'Wallet' };
     case 'ticket_transfer':
       return { tab: 'MyTickets' };
 
