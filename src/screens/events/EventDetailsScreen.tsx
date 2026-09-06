@@ -1158,6 +1158,24 @@ export default function EventDetailsScreen() {
             </TouchableOpacity>
           )}
 
+          {/* Motif d'annulation. Il etait collecte et envoye dans les
+              notifications, mais n'apparaissait NULLE PART sur la page — celle
+              vers laquelle la notification d'annulation renvoie justement.
+              C'est la premiere question que se pose le participant. */}
+          {event.status === 'cancelled' && (event as any).cancellation_reason ? (
+            <View style={[styles.cancelReasonCard, { backgroundColor: `${colors.error}14`, borderColor: `${colors.error}33` }]}>
+              <Ionicons name="alert-circle-outline" size={20} color={colors.error} />
+              <View style={styles.cancelReasonText}>
+                <Text style={[styles.cancelReasonTitle, { color: colors.error }]}>
+                  {t('eventDetails.cancelReasonTitle')}
+                </Text>
+                <Text style={[styles.cancelReasonBody, { color: colors.gray700 }]}>
+                  {(event as any).cancellation_reason}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
           {/* Liste de cadeaux / cagnotte (mariages, célébrations).
               L'écran et son deeplink existaient déjà, mais AUCUN bouton n'y
               menait : un invité qui ouvrait le mariage dans l'app ne voyait
@@ -1821,6 +1839,26 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginTop: Spacing.md,
+  },
+  cancelReasonCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginTop: Spacing.md,
+  },
+  cancelReasonText: { flex: 1 },
+  cancelReasonTitle: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.sm,
+    marginBottom: 2,
+  },
+  cancelReasonBody: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.sm,
+    lineHeight: 20,
   },
   infoIconContainer: {
     width: 44,

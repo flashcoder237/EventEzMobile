@@ -715,7 +715,8 @@
     "invitationGateDesc": "This event is reserved for invited guests. If you received an invitation, please accept it to gain access.",
     "codeGateDesc": "Enter the code to see the full details",
     "giftRegistryCta": "Gift registry",
-    "giftRegistrySubtitle": "See the list and chip in if you feel like it"
+    "giftRegistrySubtitle": "See the list and chip in if you feel like it",
+    "cancelReasonTitle": "Reason for cancellation"
   },
   "events": {
     "videoBadge": "Video",
@@ -3446,7 +3447,15 @@
     "giftYourName": "Your name",
     "giftMethod": "Payment method",
     "giftPay": "Contribute",
-    "giftError": "Payment couldn't start."
+    "giftError": "Payment couldn't start.",
+    "summaryTitle": "Your reply",
+    "summaryAccepted": "You confirmed your attendance.",
+    "summaryDeclined": "You declined the invitation.",
+    "summaryPartySize": "Guests with you",
+    "summaryHeadcount": "Seats reserved",
+    "summaryDietary": "Dietary needs",
+    "summaryTable": "Your table",
+    "summaryTablePending": "Your table will be shared before the event."
   },
   "teamInvitation": {
     "eyebrow": "INVITATION",
@@ -3769,7 +3778,8 @@
     "mutedLockMessage": "You have been muted in this discussion by the organizer.",
     "postingLockMessage": "Only the organizer can post in this discussion.",
     "defaultUserName": "this user",
-    "someFilesQueuedForRetry": "Some files will be resent once the connection is back."
+    "someFilesQueuedForRetry": "Some files will be resent once the connection is back.",
+    "retrySend": "Retry"
   },
   "scanForm": {
     "loading": "Loading...",

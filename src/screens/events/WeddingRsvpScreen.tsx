@@ -76,6 +76,72 @@ export default function WeddingRsvpScreen() {
     load();
   }, [load]);
 
+  /**
+   * Recapitulatif de ce que l'invite a declare, et de son placement.
+   * Un refus n'a ni couvert ni table : on n'affiche alors que le statut.
+   */
+  const renderSummary = () => {
+    if (!info) return null;
+    const declined = info.status === 'declined';
+
+    const rows: Array<{ label: string; value: string }> = [];
+    if (!declined) {
+      if (info.party_size > 0) {
+        rows.push({
+          label: t('wedding.summaryPartySize', { defaultValue: 'Accompagnants' }),
+          value: String(info.party_size),
+        });
+      }
+      if (info.total_headcount) {
+        rows.push({
+          label: t('wedding.summaryHeadcount', { defaultValue: 'Couverts réservés' }),
+          value: String(info.total_headcount),
+        });
+      }
+      if (info.dietary_requirements) {
+        rows.push({
+          label: t('wedding.summaryDietary', { defaultValue: 'Régime alimentaire' }),
+          value: info.dietary_requirements,
+        });
+      }
+      if (info.table_name) {
+        rows.push({
+          label: t('wedding.summaryTable', { defaultValue: 'Votre table' }),
+          value: info.table_name,
+        });
+      }
+    }
+
+    return (
+      <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
+        <Text style={[styles.summaryEyebrow, { color: colors.gray500 }]}>
+          {t('wedding.summaryTitle', { defaultValue: 'Votre réponse' })}
+        </Text>
+        <Text style={[styles.summaryStatus, { color: colors.text }]}>
+          {declined
+            ? t('wedding.summaryDeclined', { defaultValue: "Vous avez décliné l'invitation." })
+            : t('wedding.summaryAccepted', { defaultValue: 'Vous avez confirmé votre présence.' })}
+        </Text>
+
+        {rows.map((row) => (
+          <Text key={row.label} style={[styles.summaryRow, { color: colors.textSecondary }]}>
+            {row.label} : <Text style={{ color: colors.text }}>{row.value}</Text>
+          </Text>
+        ))}
+
+        {/* Le placement peut ne pas etre encore fait : le dire evite que
+            l'invite croie avoir ete oublie. */}
+        {!declined && !info.table_name ? (
+          <Text style={[styles.summaryHint, { color: colors.gray500 }]}>
+            {t('wedding.summaryTablePending', {
+              defaultValue: "Votre table vous sera communiquée avant l'événement.",
+            })}
+          </Text>
+        ) : null}
+      </View>
+    );
+  };
+
   const submit = async () => {
     if (attending === null) return;
     setSubmitting(true);
@@ -164,9 +230,16 @@ export default function WeddingRsvpScreen() {
         )}
 
         {phase === 'already' && (
-          <Text style={[styles.centerMsg, { color: colors.textSecondary }]}>
-            {t('wedding.alreadyResponded', { defaultValue: 'Vous avez déjà répondu à cette invitation.' })}
-          </Text>
+          <>
+            <Text style={[styles.centerMsg, { color: colors.textSecondary }]}>
+              {t('wedding.alreadyResponded', { defaultValue: 'Vous avez déjà répondu à cette invitation.' })}
+            </Text>
+            {/* Ce que l'invité a déclaré + son placement. Ces données étaient
+                DÉJÀ renvoyées par l'API mais jamais réaffichées : il saisissait
+                son régime alimentaire puis ne pouvait plus le vérifier, et ne
+                savait pas à quelle table il était assis. */}
+            {renderSummary()}
+          </>
         )}
 
         {phase === 'done' && (
@@ -177,6 +250,7 @@ export default function WeddingRsvpScreen() {
                 ? t('wedding.thanksAccepted', { defaultValue: 'Merci ! Votre présence est confirmée.' })
                 : t('wedding.thanksDeclined', { defaultValue: 'Merci de nous avoir prévenus.' })}
             </Text>
+            {acceptedFinal ? renderSummary() : null}
             <TouchableOpacity
               activeOpacity={TOUCH_OPACITY}
               onPress={() => navigation.navigate('Main' as never)}
@@ -296,6 +370,23 @@ const styles = StyleSheet.create({
   meta: { fontFamily: FontFamily.regular, fontSize: FontSizes.sm },
   centerMsg: { fontFamily: FontFamily.regular, fontSize: FontSizes.md, textAlign: 'center', marginVertical: Spacing.lg },
   doneBox: { alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.xl },
+  summaryCard: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginTop: Spacing.lg,
+    gap: 4,
+  },
+  summaryEyebrow: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 4,
+  },
+  summaryStatus: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.md, marginBottom: 4 },
+  summaryRow: { fontFamily: FontFamily.regular, fontSize: FontSizes.sm, lineHeight: 20 },
+  summaryHint: { fontFamily: FontFamily.regular, fontSize: FontSizes.xs, marginTop: 6 },
   link: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.md, marginTop: Spacing.sm },
   form: { gap: Spacing.md },
   choiceRow: { flexDirection: 'row', gap: Spacing.sm },
