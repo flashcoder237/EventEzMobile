@@ -193,6 +193,38 @@ export async function markFailed(tempId: string): Promise<void> {
   await db.runAsync("UPDATE messages SET send_state = 'failed' WHERE id = ?", tempId);
 }
 
+// Rétention locale : nombre max de messages CONFIRMÉS conservés par
+// conversation. Au-delà, on élague les plus anciens (l'historique se re-charge
+// à la demande via la pagination réseau `beforeServerId`). Sans borne, la base
+// SQLite croît à vie (5 ans × 30 msg/j ≈ 55k lignes/conv). On ne touche jamais
+// aux messages optimistes/échoués (server_id NULL = envoi en cours).
+const MAX_MESSAGES_PER_CONVERSATION = 500;
+
+/**
+ * Élague les messages confirmés les plus anciens d'une conversation au-delà du
+ * cap de rétention. No-op si sous le seuil. Best-effort (jamais bloquant).
+ */
+export async function pruneConversationHistory(
+  conversationId: string | number,
+  keep = MAX_MESSAGES_PER_CONVERSATION,
+): Promise<number> {
+  const db = await getDatabase();
+  const cid = convKey(conversationId);
+  // On garde les `keep` messages confirmés (server_id NOT NULL) les plus
+  // récents ; on supprime les confirmés plus anciens que ce seuil. Les
+  // optimistes (server_id NULL) sont exclus de la purge (envoi en cours).
+  const res = await db.runAsync(
+    `DELETE FROM messages
+     WHERE conversation_id = ? AND server_id IS NOT NULL AND server_id NOT IN (
+       SELECT server_id FROM messages
+       WHERE conversation_id = ? AND server_id IS NOT NULL
+       ORDER BY server_id DESC LIMIT ?
+     )`,
+    cid, cid, keep,
+  );
+  return res.changes ?? 0;
+}
+
 /**
  * Purge de TOUS les messages locaux d'un expéditeur (blocage utilisateur).
  * Le blocage masque en lecture partout (DM + groupes) : le backend ne re-sert

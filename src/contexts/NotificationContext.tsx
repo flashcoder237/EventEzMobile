@@ -118,6 +118,8 @@ interface NotificationContextType {
   markNotificationAsRead: (id: string) => Promise<void>;
   markAllNotificationsAsRead: () => Promise<void>;
   refreshCounts: () => Promise<void>;
+  /** Recalcule le badge Messages depuis SQLite (temps réel, sans réseau). */
+  refreshMessageBadgeFromLocal: () => Promise<void>;
   initializePushNotifications: () => Promise<void>;
   requestPushPermission: () => Promise<boolean>;
   /**
@@ -147,6 +149,8 @@ interface UnreadCountsContextType {
   exhibitorApplicationsCount: number;
   satellitesToApproveCount: number;
   totalPendingCount: number;
+  /** Recalcule le badge Messages depuis SQLite (temps réel, sans réseau). */
+  refreshMessageBadgeFromLocal: () => Promise<void>;
 }
 
 const UnreadCountsContext = createContext<UnreadCountsContextType | undefined>(undefined);
@@ -508,6 +512,22 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     await fetchUnreadCounts();
   }, [fetchUnreadCounts]);
 
+  /**
+   * Recalcule le badge Messages depuis SQLite (instantané, offline, sans
+   * réseau). À appeler quand l'unread change en temps réel (message WS reçu,
+   * mark-read) : sans ça, le badge de l'onglet ne bougeait qu'au poll/foreground
+   * et divergeait de l'inbox déjà à jour.
+   */
+  const refreshMessageBadgeFromLocal = useCallback(async () => {
+    try {
+      const { getTotalUnread } = await import('../db/conversationRepository');
+      const n = await getTotalUnread();
+      setUnreadMessageCount(n);
+    } catch {
+      /* SQLite indispo → on garde la valeur réseau existante */
+    }
+  }, []);
+
   // Keep navigation callback in sync with latest handler
   useEffect(() => {
     pushNotificationService.setNavigationCallback(handleNotificationNavigation);
@@ -743,6 +763,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     markNotificationAsRead,
     markAllNotificationsAsRead,
     refreshCounts,
+    refreshMessageBadgeFromLocal,
     initializePushNotifications,
     requestPushPermission,
     maybePromptForPushPermission,
@@ -768,6 +789,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     markAllNotificationsAsRead,
     maybePromptForPushPermission,
     refreshCounts,
+    refreshMessageBadgeFromLocal,
     initializePushNotifications,
     requestPushPermission,
     openNotificationSettings,
@@ -783,6 +805,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     exhibitorApplicationsCount,
     satellitesToApproveCount,
     totalPendingCount,
+    refreshMessageBadgeFromLocal,
   }), [
     unreadNotificationCount,
     unreadMessageCount,
@@ -793,6 +816,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     exhibitorApplicationsCount,
     satellitesToApproveCount,
     totalPendingCount,
+    refreshMessageBadgeFromLocal,
   ]);
 
   return (

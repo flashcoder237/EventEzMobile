@@ -289,6 +289,14 @@ export default function ConversationScreen() {
       if (incomingConvId === String(state.conversationId)) {
         actions.addMessage(newMessage);
         // FlatList inversé affiche automatiquement les nouveaux messages en bas (index 0)
+        // Un message SYSTÈME (ex. « X a été ajouté/retiré ») signale un changement
+        // de roster : le backend ne notifie que l'ajouté/retiré, pas les autres
+        // membres → leur liste de participants (panel admin, modale, quota
+        // « groupe complet ») restait figée jusqu'au re-mount. On resynchronise
+        // les détails de la conversation à réception d'un system message.
+        if ((newMessage as any).message_type === 'system') {
+          fetchConversationDetails().catch(() => {});
+        }
       }
       // Persiste TOUJOURS en SQLite (upsert idempotent par id) — y compris pour
       // MES propres messages. Un message que j'envoie depuis un AUTRE device

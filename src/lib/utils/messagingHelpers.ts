@@ -4,6 +4,22 @@
  */
 
 import { Message, User } from '../../types';
+import i18n from '../../i18n';
+
+/**
+ * Locale BCP47 pour les API toLocale*Date/Time — dérivée de la langue i18n
+ * courante (ex 'fr' → 'fr-FR', 'en' → 'en-US'). Les dates/heures des messages
+ * ne doivent PAS être figées en 'fr-FR' : un utilisateur EN voyait ses
+ * timestamps en français. `undefined` laisse l'OS choisir si langue inconnue.
+ */
+function currentDateLocale(): string | undefined {
+  const lang = (i18n.language || 'fr').split('-')[0];
+  if (lang === 'fr') return 'fr-FR';
+  if (lang === 'en') return 'en-US';
+  // Autres langues (chargées OTA) : on passe le code tel quel à Intl, qui
+  // sait résoudre 'es', 'de', etc. ; fallback OS si non supporté.
+  return lang || undefined;
+}
 
 // ============================================
 // CONSTANTES
@@ -43,11 +59,11 @@ export const MESSAGES_PER_PAGE = 20;
  */
 export function formatMessageTime(dateString: string): string {
   const date = new Date(dateString);
-  return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString(currentDateLocale(), { hour: '2-digit', minute: '2-digit' });
 }
 
 /**
- * Formate la date relative (Aujourd'hui, Hier, ou date complète)
+ * Formate la date relative (Aujourd'hui, Hier, ou date complète) — locale-aware.
  */
 export function formatMessageDate(dateString: string): string {
   const date = new Date(dateString);
@@ -56,12 +72,12 @@ export function formatMessageDate(dateString: string): string {
   yesterday.setDate(yesterday.getDate() - 1);
 
   if (date.toDateString() === today.toDateString()) {
-    return "Aujourd'hui";
+    return i18n.t('messageTime.today');
   }
   if (date.toDateString() === yesterday.toDateString()) {
-    return 'Hier';
+    return i18n.t('messageTime.yesterday');
   }
-  return date.toLocaleDateString('fr-FR', {
+  return date.toLocaleDateString(currentDateLocale(), {
     day: 'numeric',
     month: 'long',
     year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined,
@@ -69,7 +85,7 @@ export function formatMessageDate(dateString: string): string {
 }
 
 /**
- * Formate le temps écoulé pour la liste des conversations
+ * Formate le temps écoulé pour la liste des conversations — locale-aware.
  */
 export function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
@@ -79,11 +95,11 @@ export function formatRelativeTime(dateString: string): string {
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
 
-  if (minutes < 1) return "À l'instant";
-  if (minutes < 60) return `${minutes}min`;
-  if (hours < 24) return `${hours}h`;
-  if (days < 7) return `${days}j`;
-  return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  if (minutes < 1) return i18n.t('messageTime.justNow');
+  if (minutes < 60) return i18n.t('messageTime.minutesShort', { count: minutes });
+  if (hours < 24) return i18n.t('messageTime.hoursShort', { count: hours });
+  if (days < 7) return i18n.t('messageTime.daysShort', { count: days });
+  return date.toLocaleDateString(currentDateLocale(), { day: 'numeric', month: 'short' });
 }
 
 /**

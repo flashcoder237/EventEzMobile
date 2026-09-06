@@ -39,6 +39,7 @@ import {
 } from '../../db/conversationRepository';
 import { countOutboxTotals } from '../../db/outboxRepository';
 import { useAuth } from '../../contexts/AuthContext';
+import { useUnreadCounts } from '../../contexts/NotificationContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useMutedConversations } from '../../hooks/useMutedConversations';
 import { useMessagingWebSocket } from '../../hooks/useMessagingWebSocket';
@@ -569,6 +570,7 @@ const swipeStyles = StyleSheet.create({
 export default function MessagesScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
+  const { refreshMessageBadgeFromLocal } = useUnreadCounts();
   const { showConfirm, showError } = useAlert();
   const { isMuted, toggle: toggleMute } = useMutedConversations();
   const { colors, isDark } = useTheme();
@@ -846,7 +848,10 @@ export default function MessagesScreen() {
           incomingConvId,
           msg.created_at,
           senderId !== Number(user?.id),
-        ).catch(() => {});
+        ).catch(() => {})
+          // Recale le badge onglet depuis SQLite (temps réel) — sinon il ne
+          // bougeait qu'au poll/foreground et divergeait de l'inbox.
+          .then(() => refreshMessageBadgeFromLocal());
       }
       // Refetch si la conv n'a pas ete trouvee (DM d'un nouvel interlocuteur,
       // conv creee pendant qu'on etait hors-ligne, etc.). Hors du setState
@@ -873,7 +878,8 @@ export default function MessagesScreen() {
         prev.map(c => (ids.has(String(c.id)) ? { ...c, unread_count: 0 } : c)),
       );
       // Remet à zéro le non-lu en SQLite aussi (cohérence de l'inbox locale).
-      ids.forEach(id => clearLocalUnread(id).catch(() => {}));
+      Promise.all([...ids].map(id => clearLocalUnread(id).catch(() => {})))
+        .then(() => refreshMessageBadgeFromLocal());
       // Invalide le cache pour cohérence après reload
       CacheService.invalidate(`convos:${user?.id}`);
     },

@@ -98,3 +98,17 @@ export async function clearUnread(conversationId: string | number): Promise<void
     String(conversationId),
   );
 }
+
+/**
+ * Somme des non-lus locaux (badge onglet Messages). Source SQLite temps réel :
+ * le badge global de l'app se basait sur un fetch réseau rafraîchi seulement au
+ * foreground/poll → il divergeait de l'inbox mise à jour instantanément par WS.
+ * Lire le local (instantané, offline) permet de garder le badge cohérent.
+ */
+export async function getTotalUnread(): Promise<number> {
+  const db = await getDatabase();
+  const row = await db.getFirstAsync<{ n: number }>(
+    'SELECT COALESCE(SUM(unread_count), 0) as n FROM conversations',
+  );
+  return row?.n ?? 0;
+}

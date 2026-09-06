@@ -7,7 +7,7 @@
  */
 import { messagesAPI } from '../api/messages';
 import type { Message } from '../types';
-import { getSyncCursor, setSyncCursor, upsertMessages } from './messageRepository';
+import { getSyncCursor, setSyncCursor, upsertMessages, pruneConversationHistory } from './messageRepository';
 
 export interface SyncResult {
   /** nombre de messages nouveaux/modifiés appliqués localement */
@@ -62,6 +62,12 @@ export async function syncConversation(conversationId: string | number): Promise
     }
 
     if (!data.has_more) break;
+  }
+
+  // Rétention : borne la taille locale de la conversation (best-effort, non
+  // bloquant). L'historique élagué reste re-chargeable via la pagination réseau.
+  if (applied > 0) {
+    pruneConversationHistory(conversationId).catch(() => {});
   }
 
   return { applied, cursor };

@@ -11,6 +11,7 @@ jest.mock('../messageRepository', () => ({
   getSyncCursor: jest.fn(),
   setSyncCursor: jest.fn(),
   upsertMessages: jest.fn(),
+  pruneConversationHistory: jest.fn(() => Promise.resolve(0)),
 }));
 jest.mock('../../api/messages', () => ({
   messagesAPI: { syncMessages: jest.fn() },

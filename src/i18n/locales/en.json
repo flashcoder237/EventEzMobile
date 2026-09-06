@@ -616,7 +616,10 @@
     "invisibleHint": "You are invisible — turn on to be seen too.",
     "message": "Message",
     "connected": "Connected",
-    "empty": "Nobody is visible yet. Be the first to turn on your networking!"
+    "empty": "Nobody is visible yet. Be the first to turn on your networking!",
+    "scanOptInTitle": "Let exhibitors scan my badge",
+    "scanOptInSubtitle": "Exhibiting companies will be able to save your name and contact details by scanning your badge, so they can follow up after the event.",
+    "scanOptInWithdrawNote": "You can turn this off at any time. Contacts already saved by exhibitors are not deleted automatically — you can request their erasure from your privacy settings."
   },
   "eventDetails": {
     "eyebrow": "EVENT",
@@ -7312,6 +7315,49 @@
     "payOrange": "Orange Money",
     "payCard": "Card",
     "paymentInitiated": "Payment initiated. Confirm it on your phone.",
-    "payError": "Could not initiate the booth payment."
+    "payError": "Could not initiate the booth payment.",
+    "captureLeads": "Capture contacts"
+  },
+  "leadCapture": {
+    "title": "Capture a contact",
+    "hint": "Point at the QR code on the visitor's badge.",
+    "permissionTitle": "Allow camera access",
+    "permissionBody": "The camera is only used to read the badge QR code of visitors who agreed to be contacted.",
+    "permissionCta": "Turn on the camera",
+    "manualEntry": "Type the reference instead",
+    "manualPlaceholder": "Badge reference",
+    "unnamed": "Contact saved",
+    "alreadyKnown": "Already met — record updated.",
+    "qualify": "Qualify this contact",
+    "rating_hot": "Hot",
+    "rating_warm": "Warm",
+    "rating_cold": "Cold",
+    "notesPlaceholder": "What you talked about (optional)",
+    "next": "Next contact",
+    "retry": "Scan again",
+    "noConsentTitle": "This visitor has not agreed",
+    "noConsentBody": "Ask them to open the EventEz app, go to the event, then \"Who’s here\", and allow exhibitors to save their contact details. You can then scan again.",
+    "notFoundTitle": "Badge not recognised",
+    "notFoundBody": "This badge does not belong to this event. Check the reference printed under the QR code.",
+    "errorTitle": "Scan failed",
+    "a11yCaptured": "Contact saved: {{name}}",
+    "a11yNoConsent": "This visitor has not agreed to be contacted.",
+    "a11yNotFound": "Badge not recognised.",
+    "a11yCount": "{{count}} contacts saved"
+  },
+  "messageTime": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "justNow": "Just now",
+    "minutesShort": "{{count}}min",
+    "hoursShort": "{{count}}h",
+    "daysShort": "{{count}}d"
+  },
+  "messageStatus": {
+    "sending": "Sending",
+    "failed": "Failed to send",
+    "sent": "Sent",
+    "delivered": "Delivered",
+    "read": "Read"
   }
 }

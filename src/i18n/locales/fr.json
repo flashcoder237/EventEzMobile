@@ -616,7 +616,10 @@
     "invisibleHint": "Vous êtes invisible — activez pour être vu aussi.",
     "message": "Message",
     "connected": "Connecté",
-    "empty": "Personne n'est encore visible. Soyez le premier à activer votre networking !"
+    "empty": "Personne n'est encore visible. Soyez le premier à activer votre networking !",
+    "scanOptInTitle": "Autoriser les exposants à me scanner",
+    "scanOptInSubtitle": "Les entreprises exposantes pourront enregistrer votre nom et vos coordonnées en scannant votre badge, pour vous recontacter après l'événement.",
+    "scanOptInWithdrawNote": "Vous pouvez le désactiver à tout moment. Les contacts déjà enregistrés par les exposants ne sont pas supprimés automatiquement — vous pouvez demander leur effacement depuis vos paramètres de confidentialité."
   },
   "eventDetails": {
     "eyebrow": "ÉVÉNEMENT",
@@ -7312,6 +7315,49 @@
     "payOrange": "Orange Money",
     "payCard": "Carte bancaire",
     "paymentInitiated": "Paiement initié. Valide-le sur ton téléphone.",
-    "payError": "Impossible d'initier le paiement du stand."
+    "payError": "Impossible d'initier le paiement du stand.",
+    "captureLeads": "Capturer des contacts"
+  },
+  "leadCapture": {
+    "title": "Capturer un contact",
+    "hint": "Visez le QR du badge du visiteur.",
+    "permissionTitle": "Autoriser la caméra",
+    "permissionBody": "La caméra sert uniquement à lire le QR du badge des visiteurs qui ont accepté d'être contactés.",
+    "permissionCta": "Activer la caméra",
+    "manualEntry": "Saisir la référence à la main",
+    "manualPlaceholder": "Référence du badge",
+    "unnamed": "Contact enregistré",
+    "alreadyKnown": "Déjà rencontré — fiche mise à jour.",
+    "qualify": "Qualifier ce contact",
+    "rating_hot": "Chaud",
+    "rating_warm": "Tiède",
+    "rating_cold": "Froid",
+    "notesPlaceholder": "Ce dont vous avez parlé (facultatif)",
+    "next": "Contact suivant",
+    "retry": "Scanner à nouveau",
+    "noConsentTitle": "Ce visiteur n'a pas accepté",
+    "noConsentBody": "Demandez-lui d'ouvrir l'application EventEz, d'aller sur l'événement puis « Qui est là », et d'autoriser les exposants à enregistrer ses coordonnées. Vous pourrez ensuite rescanner.",
+    "notFoundTitle": "Badge non reconnu",
+    "notFoundBody": "Ce badge n'appartient pas à cet événement. Vérifiez la référence imprimée sous le QR.",
+    "errorTitle": "Scan impossible",
+    "a11yCaptured": "Contact enregistré : {{name}}",
+    "a11yNoConsent": "Ce visiteur n'a pas accepté d'être contacté.",
+    "a11yNotFound": "Badge non reconnu.",
+    "a11yCount": "{{count}} contacts enregistrés"
+  },
+  "messageTime": {
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "justNow": "À l'instant",
+    "minutesShort": "{{count}}min",
+    "hoursShort": "{{count}}h",
+    "daysShort": "{{count}}j"
+  },
+  "messageStatus": {
+    "sending": "Envoi en cours",
+    "failed": "Échec de l'envoi",
+    "sent": "Envoyé",
+    "delivered": "Distribué",
+    "read": "Lu"
   }
 }

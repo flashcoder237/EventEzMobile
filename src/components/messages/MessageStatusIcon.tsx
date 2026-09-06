@@ -6,6 +6,7 @@
 import React from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Colors } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { MessageStatus } from '../../lib/utils/messagingHelpers';
@@ -17,6 +18,16 @@ interface MessageStatusIconProps {
 
 export default function MessageStatusIcon({ status, size = 14 }: MessageStatusIconProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
+
+  // Le statut d'envoi/lu était purement visuel (coches) → invisible pour un
+  // lecteur d'écran. On annonce chaque état via accessibilityLabel.
+  const a11yLabel = t(`messageStatus.${status}`);
+  const a11y = {
+    accessible: true,
+    accessibilityRole: 'image' as const,
+    accessibilityLabel: a11yLabel,
+  };
 
   switch (status) {
     case 'sending':
@@ -25,6 +36,7 @@ export default function MessageStatusIcon({ status, size = 14 }: MessageStatusIc
           size="small"
           color={colors.gray400}
           style={styles.spinner}
+          {...a11y}
         />
       );
 
@@ -34,6 +46,7 @@ export default function MessageStatusIcon({ status, size = 14 }: MessageStatusIc
           name="alert-circle"
           size={size}
           color={colors.error}
+          {...a11y}
         />
       );
 
@@ -43,12 +56,13 @@ export default function MessageStatusIcon({ status, size = 14 }: MessageStatusIc
           name="checkmark"
           size={size}
           color={colors.gray400}
+          {...a11y}
         />
       );
 
     case 'delivered':
       return (
-        <View style={styles.doubleCheck}>
+        <View style={styles.doubleCheck} {...a11y}>
           <Ionicons
             name="checkmark-done"
             size={size}
@@ -59,7 +73,7 @@ export default function MessageStatusIcon({ status, size = 14 }: MessageStatusIc
 
     case 'read':
       return (
-        <View style={styles.doubleCheck}>
+        <View style={styles.doubleCheck} {...a11y}>
           <Ionicons
             name="checkmark-done"
             size={size}
