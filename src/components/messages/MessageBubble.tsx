@@ -1577,9 +1577,14 @@ const styles = StyleSheet.create({
 
   // Message Text
   messageText: {
-    fontSize: FontSizes.base,
+    // Corps de message = surface de lecture PRINCIPALE de l'app. base (ms(15)
+    // ≈12.5px après shrink 0.83) était jugé trop petit par les 3 juges (esthète,
+    // senior, a11y). lg (ms(17) ≈14px) rapproche du standard messagerie sans
+    // toucher au GLOBAL_SHRINK global (app-wide, hors périmètre). lineHeight
+    // suit la taille (~1.45).
+    fontSize: FontSizes.lg,
     color: Colors.gray900,
-    lineHeight: 22,
+    lineHeight: 24,
   },
   messageTextMine: {
     color: Colors.white,
