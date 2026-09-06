@@ -193,6 +193,23 @@ export async function markFailed(tempId: string): Promise<void> {
   await db.runAsync("UPDATE messages SET send_state = 'failed' WHERE id = ?", tempId);
 }
 
+/**
+ * Purge de TOUS les messages locaux d'un expéditeur (blocage utilisateur).
+ * Le blocage masque en lecture partout (DM + groupes) : le backend ne re-sert
+ * plus ses messages (filtre serveur), on efface donc aussi ce qui était déjà
+ * stocké en SQLite pour qu'ils ne réapparaissent pas au reload. On matche via
+ * json_extract sur le sender.id du payload (pas de colonne dédiée).
+ */
+export async function purgeMessagesFromSender(senderId: string | number): Promise<number> {
+  const db = await getDatabase();
+  const sid = String(senderId);
+  const res = await db.runAsync(
+    `DELETE FROM messages WHERE CAST(json_extract(payload, '$.sender.id') AS TEXT) = ?`,
+    sid,
+  );
+  return res.changes ?? 0;
+}
+
 export async function deleteLocalMessage(id: string): Promise<void> {
   const db = await getDatabase();
   await db.runAsync('DELETE FROM messages WHERE id = ?', id);

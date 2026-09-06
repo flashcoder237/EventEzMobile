@@ -116,6 +116,7 @@ import {
   deleteLocalMessage,
   getMessageSendState,
   markFailed as markLocalFailed,
+  purgeMessagesFromSender,
 } from '../../db/messageRepository';
 import { syncConversation } from '../../db/messageSync';
 import { enqueueOutbox } from '../../db/outboxRepository';
@@ -1046,6 +1047,9 @@ export default function ConversationScreen() {
       async () => {
         try {
           await messagesAPI.blockUser(state.otherUserId!);
+          // Purge locale : le backend ne re-servira plus ses messages, on efface
+          // ce qui est déjà en SQLite pour qu'ils ne réapparaissent pas au reload.
+          try { await purgeMessagesFromSender(state.otherUserId!); } catch {}
           toastSuccess(t('conversation.userBlocked'));
           navigation.goBack();
         } catch {
@@ -2105,11 +2109,19 @@ export default function ConversationScreen() {
       async () => {
         try {
           await messagesAPI.blockUser(targetUserId);
+          // Purge SQLite : ses messages ne réapparaîtront pas au reload.
+          try { await purgeMessagesFromSender(targetUserId); } catch {}
           toastSuccess(t('conversation.userBlocked'));
-          // Pour une conversation directe, on remonte. Pour un groupe, on
-          // reste sur place mais l'user n'aura plus ses futurs messages.
           if (conversationType === 'direct') {
             navigation.goBack();
+          } else {
+            // Groupe : on reste sur place → on retire IMMÉDIATEMENT ses messages
+            // de la liste affichée (le backend ne les re-servira plus).
+            const norm = (s: any): string =>
+              (s && typeof s === 'object' ? String(s.id ?? '') : String(s ?? ''));
+            actions.setMessages(
+              state.messages.filter(m => norm((m as any).sender) !== String(targetUserId)),
+            );
           }
         } catch {
           showError(t('common.error'), t('conversation.blockError'));
