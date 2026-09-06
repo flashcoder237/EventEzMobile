@@ -27,13 +27,22 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (_openPromise) return _openPromise;
 
   _openPromise = (async () => {
-    const db = await SQLite.openDatabaseAsync(DB_NAME);
-    // WAL : lectures concurrentes non bloquées par les écritures (fluidité UI).
-    await db.execAsync('PRAGMA journal_mode = WAL;');
-    await db.execAsync('PRAGMA foreign_keys = ON;');
-    await migrate(db);
-    _db = db;
-    return db;
+    try {
+      const db = await SQLite.openDatabaseAsync(DB_NAME);
+      // WAL : lectures concurrentes non bloquées par les écritures (fluidité UI).
+      await db.execAsync('PRAGMA journal_mode = WAL;');
+      await db.execAsync('PRAGMA foreign_keys = ON;');
+      await migrate(db);
+      _db = db;
+      return db;
+    } catch (e) {
+      // CRUCIAL : reset _openPromise pour qu'un appel ULTÉRIEUR RETENTE
+      // l'ouverture. Sans ce reset, une seule ouverture échouée (disque
+      // temporairement plein, verrou transitoire) laissait _openPromise sur une
+      // promesse rejetée à vie → toute la messagerie morte jusqu'au restart.
+      _openPromise = null;
+      throw e;
+    }
   })();
 
   return _openPromise;
@@ -115,15 +124,28 @@ let _writeChain: Promise<unknown> = Promise.resolve();
  * Exécute `task` en exclusion mutuelle avec les autres écritures. Garantit
  * qu'aucune transaction ne démarre pendant qu'une autre tourne.
  */
+// Garde anti-deadlock : si une écriture ne se règle jamais (lock SQLite bloqué,
+// transaction qui hang), sans timeout TOUTE la chaîne d'écriture gèlerait à vie
+// (plus aucun message persisté). On borne chaque maillon.
+const WRITE_TIMEOUT_MS = 15000;
+
 export function runExclusive<T>(task: () => Promise<T>): Promise<T> {
-  const result = _writeChain.then(task, task);
-  // La chaîne ne doit jamais rester rejetée (sinon toutes les écritures
-  // suivantes seraient court-circuitées) → on neutralise le rejet du maillon.
+  const guarded = () => {
+    let timer: ReturnType<typeof setTimeout>;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('runExclusive: write timeout')), WRITE_TIMEOUT_MS);
+    });
+    return Promise.race([task(), timeout]).finally(() => clearTimeout(timer));
+  };
+  const result = _writeChain.then(guarded, guarded);
+  // La chaîne ne doit jamais rester ni rejetée ni pending (sinon toutes les
+  // écritures suivantes seraient court-circuitées / gelées) → on neutralise le
+  // rejet ET le timeout borne l'attente du maillon.
   _writeChain = result.then(
     () => undefined,
     () => undefined,
   );
-  return result;
+  return result as Promise<T>;
 }
 
 /**

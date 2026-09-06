@@ -31,7 +31,20 @@ export async function syncConversation(conversationId: string | number): Promise
     const params: { conversation: string | number; since?: string } = { conversation: conversationId };
     if (cursor) params.since = cursor;
 
-    const resp = await messagesAPI.syncMessages(params);
+    let resp;
+    try {
+      resp = await messagesAPI.syncMessages(params);
+    } catch (e: any) {
+      // Curseur corrompu/invalide → 400. Sans réparation, la sync delta de
+      // cette conversation resterait bloquée à vie (seul le WS l'alimenterait).
+      // On réinitialise le curseur pour repartir d'une resync complète.
+      if (e?.response?.status === 400 && cursor) {
+        cursor = null;
+        await setSyncCursor(conversationId, null, new Date().toISOString());
+        continue; // retente immédiatement sans `since`
+      }
+      throw e;
+    }
     const data = resp.data as { results: Message[]; next_since: string | null; has_more: boolean };
     const results = data.results || [];
 

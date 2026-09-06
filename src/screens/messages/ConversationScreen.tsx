@@ -114,6 +114,7 @@ import {
   patchLocalMessage,
   deleteLocalMessage,
   getMessageSendState,
+  markFailed as markLocalFailed,
 } from '../../db/messageRepository';
 import { syncConversation } from '../../db/messageSync';
 import { enqueueOutbox } from '../../db/outboxRepository';
@@ -184,6 +185,9 @@ export default function ConversationScreen() {
   const currentPlayerMsgIdRef = useRef<string | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const draftSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Watchdogs d'envoi (un par message WS en attente d'ACK) — clearés au
+  // démontage pour éviter setState/écriture SQLite sur écran mort.
+  const watchdogTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   // Fallback timeout pour forcer la sortie de l'etat "loading" du voice player
   // si aucun status callback n'est arrive (certains backends streamant lentement).
   const loadingFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -450,6 +454,10 @@ export default function ConversationScreen() {
         clearInterval(recordingIntervalRef.current);
         recordingIntervalRef.current = null;
       }
+      // Clear tous les watchdogs d'envoi en attente (évite setState/écriture
+      // SQLite/POST réseau sur écran démonté + libère les closures retenues).
+      watchdogTimersRef.current.forEach(clearTimeout);
+      watchdogTimersRef.current.clear();
       if (loadingFallbackRef.current) {
         clearTimeout(loadingFallbackRef.current);
         loadingFallbackRef.current = null;
@@ -673,7 +681,14 @@ export default function ConversationScreen() {
           nextPageUrl: string | null;
         }>(cacheKey);
         if (cached?.data) {
-          actions.setMessages(cached.data.messages);
+          // Le cache legacy peut contenir un ancien snapshot d'AVANT une
+          // suppression (soft-delete) → il ré-afficherait le contenu supprimé.
+          // On masque les messages supprimés par SÉCURITÉ (SQLite/delta font
+          // foi ; ce cache n'est qu'un filet de transition).
+          const safeCached = (cached.data.messages || []).map((m: any) =>
+            m?.is_deleted ? { ...m, content: '', attachments: [] } : m,
+          );
+          actions.setMessages(safeCached);
           actions.setHasMore(cached.data.hasMore);
           actions.setNextPageUrl(cached.data.nextPageUrl);
           actions.setLoading(false);
@@ -2789,38 +2804,28 @@ export default function ConversationScreen() {
       if (wsSent) {
         // WATCHDOG anti-perte au flapping : wsSendMessage ne renvoie que
         // readyState===OPEN, sans ACK applicatif. Si le socket meurt juste
-        // après le .send(), le serveur ne reçoit rien → aucun message.sent /
-        // message.new → la bulle temp-xxx resterait 'pending' à VIE.
-        // On vérifie 8s plus tard : si la ligne est toujours 'pending' (non
-        // réconciliée), on rejoue via REST (ou outbox si hors ligne).
+        // après le .send(), aucun message.sent/message.new n'arrive → la bulle
+        // temp-xxx resterait 'pending' à vie.
+        //
+        // On NE REJOUE PAS via REST : le POST REST ne porte pas de client_temp_id
+        // et le backend ne déduplique pas → un WS simplement LENT (message.sent
+        // qui arrive à 8.1s) provoquerait un DOUBLON chez le destinataire. À la
+        // place, 15s plus tard, si le message est toujours 'pending', on le
+        // marque 'failed' (bulle « Réessayer ») : l'utilisateur décide, et la
+        // resync delta le fera disparaître s'il a en fait abouti côté serveur.
+        //
+        // Le timer est stocké dans un ref et clearé au démontage (pas de
+        // setState sur écran mort, pas d'accumulation).
         const tid = String(tempMessage.id);
-        const convId = conversationIdToUse;
-        setTimeout(async () => {
+        const timer = setTimeout(async () => {
+          watchdogTimersRef.current.delete(timer);
           try {
-            const st = await getMessageSendState(tid);
-            if (st !== 'pending') return; // réconcilié ou déjà géré
-            // Toujours en attente → le WS n'a pas abouti. Rejeu.
-            const resp = await messagesAPI.sendMessage({
-              conversation: convId,
-              content: messageContent,
-              reply_to: state.replyToMessage?.id != null ? String(state.replyToMessage.id) : undefined,
-              attachment_ids: attachmentIds.length > 0 ? attachmentIds : undefined,
-            });
-            if (resp.data) {
-              actions.updateMessage(tid, resp.data);
-              reconcileLocalSent(convId, tid, resp.data).catch(() => {});
-            }
-          } catch {
-            // REST échoue aussi (vraiment hors ligne) → outbox pour rejeu.
-            enqueueOutbox({
-              tempId: tid,
-              conversationId: convId,
-              content: messageContent,
-              replyTo: state.replyToMessage?.id ? String(state.replyToMessage.id) : undefined,
-              attachments: [],
-            }).catch(() => {});
-          }
-        }, 8000);
+            if ((await getMessageSendState(tid)) !== 'pending') return;
+            await markLocalFailed(tid);
+            actions.updateMessage(tid, { is_failed: true });
+          } catch { /* best-effort */ }
+        }, 15000);
+        watchdogTimersRef.current.add(timer);
       }
 
       if (!wsSent) {

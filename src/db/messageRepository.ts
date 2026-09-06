@@ -19,12 +19,18 @@ export interface MessageRow {
   send_state: 'sent' | 'pending' | 'failed';
 }
 
-/** Convertit une ligne SQLite en objet Message applicatif. */
-function rowToMessage(row: MessageRow): Message {
-  const msg = JSON.parse(row.payload) as Message;
-  // send_state pilote l'affichage d'échec côté UI.
-  if (row.send_state === 'failed') msg.is_failed = true;
-  return msg;
+/** Convertit une ligne SQLite en objet Message applicatif, ou null si le
+ *  payload est corrompu (write partiel, encodage). Le null est filtré par
+ *  l'appelant : une seule ligne illisible ne doit PAS casser toute la
+ *  conversation (getMessages jetterait sinon → écran vide en offline). */
+function rowToMessage(row: MessageRow): Message | null {
+  try {
+    const msg = JSON.parse(row.payload) as Message;
+    if (row.send_state === 'failed') msg.is_failed = true;
+    return msg;
+  } catch {
+    return null;
+  }
 }
 
 const convKey = (conversationId: string | number) => String(conversationId);
@@ -81,7 +87,7 @@ export async function getMessages(
       cid, limit,
     );
   }
-  return rows.map(rowToMessage);
+  return rows.map(rowToMessage).filter((m): m is Message => m !== null);
 }
 
 /** Nombre de messages stockés localement pour une conversation. */

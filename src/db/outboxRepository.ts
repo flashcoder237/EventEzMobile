@@ -16,6 +16,9 @@ import { getDatabase } from './database';
 // moment de l'enqueue.
 const OUTBOX_DIR = `${FileSystem.documentDirectory}outbox/`;
 
+// Cap d'entrées en file : au-delà, éviction FIFO (anti-remplissage disque).
+const OUTBOX_MAX_ENTRIES = 100;
+
 async function persistAttachment(att: OutboxAttachment): Promise<OutboxAttachment> {
   try {
     await FileSystem.makeDirectoryAsync(OUTBOX_DIR, { intermediates: true });
@@ -82,6 +85,22 @@ export async function enqueueOutbox(entry: {
   attachments?: OutboxAttachment[];
 }): Promise<void> {
   const db = await getDatabase();
+  // Garde anti-remplissage disque : cap le nombre d'entrées outbox. Au-delà,
+  // on évince les plus VIEILLES (FIFO, fichiers nettoyés) — sinon un usage
+  // offline intensif (des centaines de médias) pourrait remplir le stockage.
+  try {
+    const cnt = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) as n FROM outbox');
+    if ((cnt?.n ?? 0) >= OUTBOX_MAX_ENTRIES) {
+      const oldest = await db.getAllAsync<OutboxRow>(
+        'SELECT * FROM outbox ORDER BY created_at ASC LIMIT ?',
+        (cnt!.n - OUTBOX_MAX_ENTRIES) + 1,
+      );
+      for (const row of oldest) {
+        if (row.attachments) await cleanupPersistedAttachments(JSON.parse(row.attachments));
+        await db.runAsync('DELETE FROM outbox WHERE temp_id = ?', row.temp_id);
+      }
+    }
+  } catch { /* best-effort */ }
   // Copie les fichiers vers le stockage persistant avant de mémoriser leur URI.
   const persisted = entry.attachments && entry.attachments.length
     ? await Promise.all(entry.attachments.map(persistAttachment))

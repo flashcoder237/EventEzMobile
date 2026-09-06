@@ -218,12 +218,20 @@ function messageReducer(state: MessageState, action: MessageAction): MessageStat
       return { ...state, messages: [incoming, ...state.messages] };
     }
 
-    case 'ADD_MESSAGES_BEFORE':
-      // Append pour FlatList inversé — les messages plus anciens vont à la fin (haut de la liste)
+    case 'ADD_MESSAGES_BEFORE': {
+      // Append pour FlatList inversé — les messages plus anciens vont à la fin
+      // (haut de la liste). DÉDUP par id : la pagination par page-number peut
+      // renvoyer des messages chevauchant la fenêtre déjà chargée (et le
+      // fallback "page 1" sur curseur épuisé re-renvoie les mêmes) → sans dédup,
+      // doublons visibles + warning React keys.
+      const existingIds = new Set(state.messages.map(m => String(m.id)));
+      const fresh = action.payload.filter(m => !existingIds.has(String(m.id)));
+      if (fresh.length === 0) return state;
       return {
         ...state,
-        messages: [...state.messages, ...action.payload],
+        messages: [...state.messages, ...fresh],
       };
+    }
 
     case 'UPDATE_MESSAGE': {
       // Comparaison normalisee via String() : `m.id` peut etre `number`
@@ -448,10 +456,14 @@ function messageReducer(state: MessageState, action: MessageAction): MessageStat
 
     case 'MARK_MESSAGE_READ': {
       const readUserId = Number(action.payload.userId);
+      // Comparaison NORMALISÉE String() : msg.id est un number (REST/delta) et
+      // messageId arrive en string (WS) → `123 !== "123"` rendait ce case
+      // no-op (read receipt jamais appliqué en mémoire). Cf. les autres cases.
+      const targetId = String(action.payload.messageId);
       return {
         ...state,
         messages: state.messages.map(msg => {
-          if (msg.id !== action.payload.messageId) return msg;
+          if (String(msg.id) !== targetId) return msg;
           const readBy = msg.read_by || [];
           if (readBy.includes(readUserId)) return msg;
           return { ...msg, read_by: [...readBy, readUserId] };

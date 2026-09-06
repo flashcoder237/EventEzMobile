@@ -17,11 +17,15 @@ interface ConversationRow {
   unread_count: number;
 }
 
-function rowToConversation(row: ConversationRow): Conversation {
-  const c = JSON.parse(row.payload) as Conversation;
-  // Le compteur non-lu local prime (mis à jour en temps réel par le WS).
-  (c as any).unread_count = row.unread_count;
-  return c;
+function rowToConversation(row: ConversationRow): Conversation | null {
+  try {
+    const c = JSON.parse(row.payload) as Conversation;
+    // Le compteur non-lu local prime (mis à jour en temps réel par le WS).
+    (c as any).unread_count = row.unread_count;
+    return c;
+  } catch {
+    return null; // ligne corrompue → ignorée (ne casse pas toute l'inbox)
+  }
 }
 
 /** Persiste (upsert) un lot de conversations renvoyé par l'API. */
@@ -59,7 +63,7 @@ export async function getConversations(limit = 50): Promise<Conversation[]> {
      LIMIT ?`,
     limit,
   );
-  return rows.map(rowToConversation);
+  return rows.map(rowToConversation).filter((c): c is Conversation => c !== null);
 }
 
 /**
