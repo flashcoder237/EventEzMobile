@@ -4116,7 +4116,10 @@
     "postingLockMessage": "Seul l'organisateur peut écrire dans cette discussion.",
     "defaultUserName": "cet utilisateur",
     "someFilesQueuedForRetry": "Certains fichiers seront renvoyés dès le retour de la connexion.",
-    "retrySend": "Réessayer"
+    "retrySend": "Réessayer",
+    "newMessagesBadge_one": "{{count}} nouveau message",
+    "newMessagesBadge_other": "{{count}} nouveaux messages",
+    "scrollToBottom": "Aller en bas"
   },
   "scanForm": {
     "loading": "Chargement...",

@@ -201,6 +201,12 @@ export default function ConversationScreen() {
   const voiceHardTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [forwardSearchQuery, setForwardSearchQuery] = React.useState('');
   const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
+  // Compteur de messages reçus pendant qu'on est remonté dans l'historique →
+  // pastille « N » sur la flèche de descente (réflexe Telegram/WhatsApp).
+  const [newMessagesCount, setNewMessagesCount] = React.useState(0);
+  // Ref miroir pour lire l'état « remonté » dans les callbacks WS sans les
+  // recréer à chaque scroll.
+  const isScrolledUpRef = useRef(false);
 
   // Feature: voice preview before send
   const [pendingVoiceUri, setPendingVoiceUri] = useState<string | null>(null);
@@ -253,7 +259,11 @@ export default function ConversationScreen() {
   // Message en attente d'envoi reel (undo possible pendant N secondes apres
   // tap "Envoyer"). On affiche une snackbar avec "Annuler". Apres expiration
   // du delai, on commit l'envoi reel via WS/REST.
-  const UNDO_SEND_DELAY_MS = 5000;
+  // 2.5s (et non 5s) : l'audit UX a montré que 5s faisaient RESSENTIR un « lag »
+  // à chaque envoi (le destinataire reçoit 5s après) alors que <1% sont annulés.
+  // 2.5s laisse le temps d'annuler une bourde sans que les échanges rapides
+  // paraissent lents.
+  const UNDO_SEND_DELAY_MS = 2500;
   const [pendingUndoMessage, setPendingUndoMessage] = useState<{
     tempId: string;
     expiresAt: number;
@@ -291,6 +301,12 @@ export default function ConversationScreen() {
       if (incomingConvId === String(state.conversationId)) {
         actions.addMessage(newMessage);
         // FlatList inversé affiche automatiquement les nouveaux messages en bas (index 0)
+        // Si l'utilisateur est REMONTÉ dans l'historique, on n'auto-scrolle pas :
+        // on incrémente la pastille « N nouveaux » sur la flèche de descente.
+        const senderId = (newMessage as any).sender?.id ?? (newMessage as any).sender;
+        if (isScrolledUpRef.current && String(senderId) !== String(user?.id)) {
+          setNewMessagesCount(c => c + 1);
+        }
         // Un message SYSTÈME (ex. « X a été ajouté/retiré ») signale un changement
         // de roster : le backend ne notifie que l'ajouté/retiré, pas les autres
         // membres → leur liste de participants (panel admin, modale, quota
@@ -3138,11 +3154,16 @@ export default function ConversationScreen() {
   const handleScroll = useCallback((event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     // In inverted FlatList, scrolling "up" (to older messages) increases offsetY
-    setShowScrollToBottom(offsetY > 300);
+    const scrolledUp = offsetY > 300;
+    setShowScrollToBottom(scrolledUp);
+    isScrolledUpRef.current = scrolledUp;
+    // De retour près du bas → on efface le compteur de nouveaux messages.
+    if (!scrolledUp) setNewMessagesCount(0);
   }, []);
 
   const scrollToBottom = useCallback(() => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    setNewMessagesCount(0);
   }, []);
 
   // Scroll-to-original quand l'user tap le reply preview d'un message.
@@ -3752,8 +3773,21 @@ export default function ConversationScreen() {
               style={[styles.scrollToBottomButton, { backgroundColor: colors.card, borderColor: colors.gray200 }]}
               onPress={scrollToBottom}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={
+                newMessagesCount > 0
+                  ? t('conversation.newMessagesBadge', { count: newMessagesCount, defaultValue: '{{count}} nouveaux messages' })
+                  : t('conversation.scrollToBottom', { defaultValue: 'Aller en bas' })
+              }
             >
               <Ionicons name="chevron-down" size={22} color={colors.gray700} />
+              {newMessagesCount > 0 && (
+                <View style={[styles.newMessagesBadge, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.newMessagesBadgeText}>
+                    {newMessagesCount > 99 ? '99+' : newMessagesCount}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           )}
         </View>
@@ -5040,6 +5074,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...Shadows.lg,
     borderWidth: 1,
+  },
+  newMessagesBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -4,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  newMessagesBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
 
   // Voice preview bar

@@ -3779,7 +3779,10 @@
     "postingLockMessage": "Only the organizer can post in this discussion.",
     "defaultUserName": "this user",
     "someFilesQueuedForRetry": "Some files will be resent once the connection is back.",
-    "retrySend": "Retry"
+    "retrySend": "Retry",
+    "newMessagesBadge_one": "{{count}} new message",
+    "newMessagesBadge_other": "{{count}} new messages",
+    "scrollToBottom": "Scroll to bottom"
   },
   "scanForm": {
     "loading": "Loading...",
