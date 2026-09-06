@@ -713,7 +713,9 @@
     "reviewSubmitError": "Impossible de soumettre votre avis",
     "loginRequiredWaitlist": "Connectez-vous pour rejoindre la liste d'attente",
     "invitationGateDesc": "Cet événement est réservé aux personnes invitées. Si vous avez reçu une invitation, veuillez l'accepter pour y accéder.",
-    "codeGateDesc": "Entrez le code pour voir les détails complets"
+    "codeGateDesc": "Entrez le code pour voir les détails complets",
+    "giftRegistryCta": "Liste de cadeaux",
+    "giftRegistrySubtitle": "Découvrez la liste et participez si le cœur vous en dit"
   },
   "events": {
     "videoBadge": "Vidéo",
@@ -1440,7 +1442,9 @@
     "logoutLabel": "Déconnexion",
     "logoutInProgress": "Déconnexion en cours...",
     "appVersion": "EventEz v{{version}}",
-    "myQRTitle": "Mon QR Code"
+    "myQRTitle": "Mon QR Code",
+    "refundsMenu": "Mes remboursements",
+    "refundsSubtitle": "Suivez où en est votre argent"
   },
   "editProfile": {
     "title": "Modifier mon profil",
@@ -4969,7 +4973,8 @@
     "virtualJoinLive": "Rejoindre le direct",
     "virtualStartsInMinutes": "Commence dans {{count}} min",
     "virtualUnavailableTitle": "Visio indisponible",
-    "virtualUnavailableNote": "EventEz Visio n'est pas encore activé pour cet événement. L'organisateur communiquera le lien de connexion."
+    "virtualUnavailableNote": "EventEz Visio n'est pas encore activé pour cet événement. L'organisateur communiquera le lien de connexion.",
+    "waitlistPosition": "Position {{position}} dans la file"
   },
   "componentsCommon": {
     "exportTitle": "Choisir le format",

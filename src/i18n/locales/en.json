@@ -713,7 +713,9 @@
     "reviewSubmitError": "Could not submit your review",
     "loginRequiredWaitlist": "Sign in to join the waitlist",
     "invitationGateDesc": "This event is reserved for invited guests. If you received an invitation, please accept it to gain access.",
-    "codeGateDesc": "Enter the code to see the full details"
+    "codeGateDesc": "Enter the code to see the full details",
+    "giftRegistryCta": "Gift registry",
+    "giftRegistrySubtitle": "See the list and chip in if you feel like it"
   },
   "events": {
     "videoBadge": "Video",
@@ -1440,7 +1442,9 @@
     "logoutLabel": "Sign out",
     "logoutInProgress": "Signing out...",
     "appVersion": "EventEz v{{version}}",
-    "myQRTitle": "My QR Code"
+    "myQRTitle": "My QR Code",
+    "refundsMenu": "My refunds",
+    "refundsSubtitle": "Track where your money stands"
   },
   "editProfile": {
     "title": "Edit profile",
@@ -4969,7 +4973,8 @@
     "virtualJoinLive": "Join live",
     "virtualStartsInMinutes": "Starts in {{count}} min",
     "virtualUnavailableTitle": "Video call unavailable",
-    "virtualUnavailableNote": "EventEz Video is not active yet for this event. The organizer will share the join link."
+    "virtualUnavailableNote": "EventEz Video is not active yet for this event. The organizer will share the join link.",
+    "waitlistPosition": "Position {{position}} in the queue"
   },
   "componentsCommon": {
     "exportTitle": "Choose format",

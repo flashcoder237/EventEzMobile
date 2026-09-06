@@ -468,6 +468,16 @@ export default function ProfileScreen() {
               title={t('profile.invitationsMenu')}
               badge={pendingInvitationCount}
               onPress={() => navigation.navigate('Invitations')}
+            />
+            {/* Suivi des remboursements. L'écran existait et était complet,
+                mais n'avait AUCUNE entrée de menu : on n'y accédait que par un
+                tap sur la notification. Un participant qui l'efface ne pouvait
+                plus jamais savoir où en était son argent. */}
+            <MenuItem
+              icon="cash-outline"
+              title={t('profile.refundsMenu')}
+              subtitle={t('profile.refundsSubtitle')}
+              onPress={() => navigation.navigate('RefundsList')}
               isLast
             />
           </View>

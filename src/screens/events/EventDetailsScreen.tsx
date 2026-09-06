@@ -1158,6 +1158,34 @@ export default function EventDetailsScreen() {
             </TouchableOpacity>
           )}
 
+          {/* Liste de cadeaux / cagnotte (mariages, célébrations).
+              L'écran et son deeplink existaient déjà, mais AUCUN bouton n'y
+              menait : un invité qui ouvrait le mariage dans l'app ne voyait
+              jamais la cagnotte. Le web a le bouton depuis EventActions.tsx —
+              le correctif n'avait pas été porté ici.
+              Conditionné à `has_gift_registry` pour ne jamais afficher un lien
+              mort. */}
+          {(event as any).has_gift_registry && (
+            <TouchableOpacity
+              style={[styles.networkingCard, { backgroundColor: colors.primaryBg, borderColor: `${colors.primary}33` }]}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('WeddingGiftRegistry', {
+                slug: event.slug || event.id,
+              })}
+              accessibilityRole="button"
+              accessibilityLabel={t('eventDetails.giftRegistryCta')}
+            >
+              <View style={[styles.infoIconContainer, { backgroundColor: colors.surface }]}>
+                <Ionicons name="gift-outline" size={22} color={colors.primary} />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={[styles.infoTitle, { color: colors.gray900 }]}>{t('eventDetails.giftRegistryCta')}</Text>
+                <Text style={[styles.infoSubtitle, { color: colors.gray500 }]}>{t('eventDetails.giftRegistrySubtitle')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+
           {/* Section: Gallery */}
           {allImages.length > 1 && (
             <View style={[styles.gallerySection, { borderTopColor: colors.gray100 }]}>

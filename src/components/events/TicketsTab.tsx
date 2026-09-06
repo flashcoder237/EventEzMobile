@@ -240,6 +240,15 @@ export default function TicketsTab({
                     ? t('componentsEvents.waitlistBodyJoined')
                     : t('componentsEvents.waitlistBodyDefault')}
                 </Text>
+                {/* Position dans la file. La donnée était déjà chargée et typée
+                    (`WaitlistEntry.position`) mais n'était JAMAIS rendue : le
+                    participant savait qu'il était inscrit, pas où il en était.
+                    Le web l'affiche depuis toujours. */}
+                {waitlistEntry?.position ? (
+                  <Text style={[styles.waitlistPosition, { color: colors.accent }]}>
+                    {t('componentsEvents.waitlistPosition', { position: waitlistEntry.position })}
+                  </Text>
+                ) : null}
               </View>
               {waitlistEntry ? (
                 <TouchableOpacity
@@ -465,6 +474,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     marginTop: 2,
+  },
+  waitlistPosition: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4,
   },
   waitlistBtnFilled: {
     flexDirection: 'row',
