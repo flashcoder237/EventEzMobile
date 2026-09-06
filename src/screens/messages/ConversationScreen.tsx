@@ -117,6 +117,7 @@ import {
   getMessageSendState,
   markFailed as markLocalFailed,
   purgeMessagesFromSender,
+  searchLocalMessages,
 } from '../../db/messageRepository';
 import { syncConversation } from '../../db/messageSync';
 import { enqueueOutbox } from '../../db/outboxRepository';
@@ -1123,7 +1124,15 @@ export default function ConversationScreen() {
         const results: Message[] = res.data?.results || res.data || [];
         setSearchResults(results);
       } catch {
-        if (!ctrl.signal.aborted) setSearchResults([]);
+        // Fallback OFFLINE : le réseau a échoué → on cherche dans SQLite local
+        // (sinon l'écran restait vide alors que les messages sont en base).
+        if (ctrl.signal.aborted) return;
+        try {
+          const local = await searchLocalMessages(state.conversationId!, query);
+          if (!ctrl.signal.aborted) setSearchResults(local);
+        } catch {
+          if (!ctrl.signal.aborted) setSearchResults([]);
+        }
       } finally {
         if (!ctrl.signal.aborted) setSearchLoading(false);
       }
@@ -2799,10 +2808,48 @@ export default function ConversationScreen() {
         );
         actions.updateMessage(tempMessageId, { attachments: remainingAttachments });
 
-        showError(
-          failedUploads.length > 1 ? t('conversation.someFilesRejectedPlural') : t('conversation.someFilesRejectedSingular'),
-          summary,
-        );
+        // Les fichiers ayant échoué pour cause RÉSEAU ne doivent PAS être perdus
+        // (ex. 2 photos, 1 KO réseau) : on les met en OUTBOX comme un message de
+        // suivi (fichiers persistés, rejoués à la reconnexion). Les rejets
+        // APPLICATIFS (quota/taille) restent définitifs — inutile de les rejouer.
+        const networkFailed = failedUploads.filter(f => f.isNetwork);
+        const convIdForRetry = state.conversationId;
+        if (networkFailed.length > 0 && convIdForRetry) {
+          const retryFiles = networkFailed
+            .map(f => effectiveFiles[f.tmpIdx])
+            .filter(Boolean)
+            .map((f: any) => ({ uri: f.uri, name: f.name, type: f.type }));
+          if (retryFiles.length > 0) {
+            try {
+              // temp_id distinct du message principal → entrée outbox séparée
+              // (client_temp_id dédié = pas de collision, idempotence serveur OK).
+              await enqueueOutbox({
+                tempId: `${tempMessageId}-retry-${Date.now()}`,
+                conversationId: convIdForRetry,
+                content: '',
+                attachments: retryFiles,
+              });
+            } catch {
+              /* enqueue HS → au pire on retombe sur le simple avertissement */
+            }
+          }
+        }
+
+        // Message d'alerte : si des fichiers réseau ont été mis en file de rejeu,
+        // on le dit ; sinon avertissement de rejet standard.
+        if (networkFailed.length > 0) {
+          showSuccess(
+            t('conversation.pendingMessageTitle'),
+            t('conversation.someFilesQueuedForRetry', {
+              defaultValue: 'Certains fichiers seront renvoyés dès le retour de la connexion.',
+            }),
+          );
+        } else {
+          showError(
+            failedUploads.length > 1 ? t('conversation.someFilesRejectedPlural') : t('conversation.someFilesRejectedSingular'),
+            summary,
+          );
+        }
       }
 
       // Barriere d'undo : rien ne part tant que la fenetre de 5s n'est pas

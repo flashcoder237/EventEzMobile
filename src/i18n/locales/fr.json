@@ -4094,7 +4094,8 @@
     "readOnlyLockMessage": "Discussion en lecture seule. Pensez à sauvegarder.",
     "mutedLockMessage": "Vous avez été muté dans cette discussion par l'organisateur.",
     "postingLockMessage": "Seul l'organisateur peut écrire dans cette discussion.",
-    "defaultUserName": "cet utilisateur"
+    "defaultUserName": "cet utilisateur",
+    "someFilesQueuedForRetry": "Certains fichiers seront renvoyés dès le retour de la connexion."
   },
   "scanForm": {
     "loading": "Chargement...",

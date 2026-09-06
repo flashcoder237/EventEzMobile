@@ -3757,7 +3757,8 @@
     "readOnlyLockMessage": "Read-only discussion. Save your messages.",
     "mutedLockMessage": "You have been muted in this discussion by the organizer.",
     "postingLockMessage": "Only the organizer can post in this discussion.",
-    "defaultUserName": "this user"
+    "defaultUserName": "this user",
+    "someFilesQueuedForRetry": "Some files will be resent once the connection is back."
   },
   "scanForm": {
     "loading": "Loading...",

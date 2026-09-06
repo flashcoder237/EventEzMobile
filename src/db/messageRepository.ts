@@ -193,6 +193,34 @@ export async function markFailed(tempId: string): Promise<void> {
   await db.runAsync("UPDATE messages SET send_state = 'failed' WHERE id = ?", tempId);
 }
 
+/**
+ * Recherche locale (SQLite) dans le contenu texte des messages d'une
+ * conversation. Fallback quand le réseau échoue : la recherche serveur laissait
+ * l'écran vide hors ligne alors que les messages sont en base locale. Insensible
+ * à la casse (LIKE), exclut les messages supprimés. Ordre : plus récents d'abord.
+ */
+export async function searchLocalMessages(
+  conversationId: string | number,
+  query: string,
+  limit = 50,
+): Promise<Message[]> {
+  const q = query.trim();
+  if (!q) return [];
+  const db = await getDatabase();
+  const cid = convKey(conversationId);
+  // LIKE avec échappement des jokers SQL (% et _) pour une recherche littérale.
+  const escaped = q.replace(/[%_\\]/g, (m) => `\\${m}`);
+  const rows = await db.getAllAsync<MessageRow>(
+    `SELECT * FROM messages
+     WHERE conversation_id = ? AND is_deleted = 0
+       AND LOWER(json_extract(payload, '$.content')) LIKE LOWER(?) ESCAPE '\\'
+     ORDER BY (server_id IS NULL) DESC, server_id DESC, created_at DESC
+     LIMIT ?`,
+    cid, `%${escaped}%`, limit,
+  );
+  return rows.map(rowToMessage).filter((m): m is Message => m !== null);
+}
+
 // Rétention locale : nombre max de messages CONFIRMÉS conservés par
 // conversation. Au-delà, on élague les plus anciens (l'historique se re-charge
 // à la demande via la pagination réseau `beforeServerId`). Sans borne, la base
