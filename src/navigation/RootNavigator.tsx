@@ -82,6 +82,7 @@ const FollowingUsersScreen = withSuspense(lazy(() => import('../screens/profile/
 const MemoriesScreen = withSuspense(lazy(() => import('../screens/profile/MemoriesScreen')));
 const TermsScreen = withSuspense(lazy(() => import('../screens/profile/TermsScreen')));
 const PrivacyScreen = withSuspense(lazy(() => import('../screens/profile/PrivacyScreen')));
+const MyDataAtExhibitorsScreen = withSuspense(lazy(() => import('../screens/profile/MyDataAtExhibitorsScreen')));
 const NotificationsScreen = withSuspense(lazy(() => import('../screens/dashboard/NotificationsScreen')));
 const EventAttendeesScreen = withSuspense(lazy(() => import('../screens/events/EventAttendeesScreen')));
 const PendingTransfersScreen = withSuspense(lazy(() => import('../screens/tickets/PendingTransfersScreen')));
@@ -403,6 +404,7 @@ export default function RootNavigator() {
       />
       <Stack.Screen name="Terms" component={TermsScreen} />
       <Stack.Screen name="Privacy" component={PrivacyScreen} />
+      <Stack.Screen name="MyDataAtExhibitors" component={MyDataAtExhibitorsScreen} />
       <Stack.Screen name="BecomeOrganizer" component={BecomeOrganizerScreen} />
       <Stack.Screen
         name="Verification"

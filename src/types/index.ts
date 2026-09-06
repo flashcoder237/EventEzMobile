@@ -1780,6 +1780,7 @@ export type RootStackParamList = {
   MyBooth: undefined;
   LeadCapture: { eventId: string; eventTitle?: string };
   MyLeads: { eventId: string; eventTitle?: string };
+  MyDataAtExhibitors: undefined;
   ExhibitApply: { eventId: string; eventTitle?: string };
   EventAnalytics: { eventId: string };
   EventRegistrations: { eventId: string };

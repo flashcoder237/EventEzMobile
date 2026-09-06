@@ -1492,6 +1492,21 @@ export default function SettingsScreen() {
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
           )}
+          {/* Exercice concret des droits, pas le texte légal : quand un
+              exposant scanne votre badge il repart avec vos coordonnées, et
+              la notification qui vous en informe promet que vous pouvez les
+              retirer d'ici. C'est cette promesse tenue. */}
+          {matchesQuery(searchQuery, [
+            t('settings.aboutSection'), t('settings.rowMyDataAtExhibitors'), t('eyebrow.gdpr'),
+          ]) && (
+          <OptionCard
+            icon="business-outline"
+            eyebrow={t('eyebrow.gdpr')}
+            title={t('settings.rowMyDataAtExhibitors')}
+            onPress={() => navigation.navigate('MyDataAtExhibitors')}
+            right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
+          />
+          )}
           {matchesQuery(searchQuery, [t('settings.aboutSection'), t('settings.rowAppVersion'), t('eyebrow.version')]) && (
           <OptionCard
             icon="information-outline"

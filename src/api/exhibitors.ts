@@ -126,6 +126,15 @@ export const exhibitorsAPI = {
   }) => api.post('/exhibitor-leads/qualify/', data),
   getMyLeads: (params: { event?: string }) =>
     api.get('/exhibitor-leads/mine/', { params }),
+
+  // ── Côté VISITEUR : mes droits sur mes propres données ───────────────────
+  // Savoir quelles entreprises détiennent mes coordonnées (RGPD art. 15).
+  // Sans cet accès, on ne peut pas exercer ses droits sur ce qu'on ignore.
+  getLeadsAboutMe: () => api.get('/exhibitor-leads/about-me/'),
+  // Effacer mes coordonnées chez un exposant (art. 17). La ligne survit
+  // anonymisée : l'exposant garde son bilan de salon, pas mes données.
+  eraseMyLead: (leadId?: string) =>
+    api.post('/exhibitor-leads/erase-mine/', leadId ? { lead: leadId } : {}),
   // L'export CSV passe par `useExport` (téléchargement natif + partage
   // système), pas par axios : responseType binaire est peu fiable en RN.
   // Endpoint : /exhibitor-leads/export/

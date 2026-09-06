@@ -370,3 +370,26 @@ describe('resolveNotificationTarget — fallback générique', () => {
     }))).toEqual({ screen: 'EventDetails', params: { eventId: 'from-payload' } });
   });
 });
+
+describe('resolveNotificationTarget — scan de badge exposant', () => {
+  // Le bug réel : `exhibitor_lead_captured` n'avait aucun cas, et le repli
+  // générique lit `extra_data.event_id` — que cette notification fournit.
+  // La personne qui venait d'apprendre qu'une entreprise détenait ses
+  // coordonnées atterrissait donc sur la page de l'événement, c'est-à-dire
+  // une billetterie, au lieu du moyen de les retirer.
+  it('mène à l\'écran d\'effacement, pas à l\'événement', () => {
+    const target = resolveNotificationTarget(notif({
+      notification_type: 'exhibitor_lead_captured',
+      extra_data: { event_id: 'EVT-1', exhibitor: 'Acme Robotics' },
+    }));
+    expect(target).toEqual({ screen: 'MyDataAtExhibitors' });
+  });
+
+  it('ne retombe pas sur EventDetails malgré event_id', () => {
+    const target: any = resolveNotificationTarget(notif({
+      notification_type: 'exhibitor_lead_captured',
+      extra_data: { event_id: 'EVT-1' },
+    }));
+    expect(target?.screen).not.toBe('EventDetails');
+  });
+});

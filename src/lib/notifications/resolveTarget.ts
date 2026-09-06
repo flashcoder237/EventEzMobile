@@ -160,6 +160,14 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
     case 'exhibitor_booking_cancelled':
       return { screen: 'MyBooth' };
 
+    // ─── Scan de badge : on informe le VISITEUR, pas l'exposant ───
+    // Sans ce cas, le repli lit `meta.event_id` (que la notification
+    // fournit) et ouvre la page de l'événement : la personne qui vient
+    // d'apprendre qu'une entreprise détient ses coordonnées atterrissait
+    // sur une billetterie, pas sur le moyen de les retirer.
+    case 'exhibitor_lead_captured':
+      return { screen: 'MyDataAtExhibitors' };
+
     // ─── Équipe événement ───
     // TeamInvitation exige un `token` (pas un id) → on ouvre la liste des events
     // où l'utilisateur est membre d'équipe, toujours navigable sans param.
