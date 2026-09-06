@@ -5839,7 +5839,8 @@
         "deleteDesc": "Action irréversible",
         "invite": "Inviter des invités",
         "inviteDescInviteOnly": "Seul moyen de donner accès à cet événement sur invitation",
-        "duplicatePastDesc": "Repart d'une copie modifiable"
+        "duplicatePastDesc": "Repart d'une copie modifiable",
+        "remindInvites": "Relancer les invités"
       },
       "emptyEyebrowResults": "AUCUN RÉSULTAT",
       "emptyEyebrowCatalog": "CATALOGUE VIDE",
@@ -5893,7 +5894,13 @@
       "inviteInvalidMessage": "Vérifiez ces adresses : {{emails}}",
       "inviteSentTitle": "Invitations envoyées",
       "inviteSentMessage": "{{count}} invitation(s) envoyée(s).",
-      "inviteError": "Impossible d'envoyer les invitations."
+      "inviteError": "Impossible d'envoyer les invitations.",
+      "remindSent": "{{sent}} relance(s) envoyée(s).",
+      "remindSentWithSkipped": "{{sent}} relance(s) envoyée(s), {{skipped}} ignorée(s).",
+      "remindNone": "Aucun invité à relancer pour le moment.",
+      "remindErrorTitle": "Relance impossible",
+      "remindErrorMessage": "Les relances n'ont pas pu être envoyées. Réessayez.",
+      "remindPendingProgress": "Envoi des relances…"
     },
     "volunteer": {
       "tabReceived": "Reçues ({{count}})",

@@ -97,7 +97,7 @@ export default function MyEventsScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
-  const { toastSuccess } = useFeedback();
+  const { toastSuccess, toastInfo } = useFeedback();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const tour = useTour();
@@ -209,6 +209,57 @@ export default function MyEventsScreen() {
   const [inviteEmails, setInviteEmails] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
+
+  // Relance groupée des invités sans réponse. Toast discret et non bloquant :
+  // c'est une confirmation d'action réussie, pas une décision à prendre.
+  const [remindingId, setRemindingId] = useState<string | null>(null);
+
+  const handleRemindPending = async (event: Event) => {
+    if (remindingId) return;
+    setRemindingId(event.id);
+    // Retour IMMEDIAT : sur un reseau lent, sans lui l'action semble sans effet
+    // et l'organisateur reclique — d'ou des relances en double.
+    toastInfo(
+      t('organizer.myEvents.remindPendingProgress', {
+        defaultValue: 'Envoi des relances…',
+      }),
+    );
+    try {
+      const res = await invitationsAPI.remindPending(event.id);
+      const sent = res.data?.sent ?? 0;
+      const skipped = res.data?.skipped ?? 0;
+      if (sent === 0) {
+        // Rien envoyé n'est pas une erreur : tout le monde a déjà répondu ou
+        // vient d'être relancé. Le dire clairement évite un second clic inutile.
+        toastSuccess(
+          t('organizer.myEvents.remindNone', {
+            defaultValue: 'Aucun invité à relancer pour le moment.',
+          }),
+        );
+      } else {
+        toastSuccess(
+          skipped > 0
+            ? t('organizer.myEvents.remindSentWithSkipped', {
+                sent, skipped,
+                defaultValue: `${sent} relance(s) envoyée(s), ${skipped} ignorée(s).`,
+              })
+            : t('organizer.myEvents.remindSent', {
+                sent,
+                defaultValue: `${sent} relance(s) envoyée(s).`,
+              }),
+        );
+      }
+    } catch {
+      showError(
+        t('organizer.myEvents.remindErrorTitle', { defaultValue: 'Relance impossible' }),
+        t('organizer.myEvents.remindErrorMessage', {
+          defaultValue: "Les relances n'ont pas pu être envoyées. Réessayez.",
+        }),
+      );
+    } finally {
+      setRemindingId(null);
+    }
+  };
 
   const closeInvite = () => {
     if (inviteLoading) return;
@@ -722,6 +773,14 @@ export default function MyEventsScreen() {
           ? t('organizer.myEvents.actions.inviteDescInviteOnly', { defaultValue: '' }) || undefined
           : undefined,
         onPress: () => setInviteTarget(event),
+      });
+      // Relancer les invités restés sans réponse. La tâche backend existait
+      // depuis longtemps mais rien ne l'appelait : sans ce déclencheur,
+      // l'organisateur n'avait aucun moyen de relancer.
+      configActions.push({
+        label: t('organizer.myEvents.actions.remindInvites', { defaultValue: 'Relancer les invités' }),
+        icon: 'notifications-outline',
+        onPress: () => handleRemindPending(event),
       });
     }
     if (event.status === 'validated') {

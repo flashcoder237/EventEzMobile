@@ -5839,7 +5839,8 @@
         "deleteDesc": "Irreversible action",
         "invite": "Invite guests",
         "inviteDescInviteOnly": "The only way to grant access to this invite-only event",
-        "duplicatePastDesc": "Start from an editable copy"
+        "duplicatePastDesc": "Start from an editable copy",
+        "remindInvites": "Remind guests"
       },
       "emptyEyebrowResults": "NO RESULTS",
       "emptyEyebrowCatalog": "EMPTY CATALOG",
@@ -5893,7 +5894,13 @@
       "inviteInvalidMessage": "Please check these addresses: {{emails}}",
       "inviteSentTitle": "Invitations sent",
       "inviteSentMessage": "{{count}} invitation(s) sent.",
-      "inviteError": "Could not send invitations."
+      "inviteError": "Could not send invitations.",
+      "remindSent": "{{sent}} reminder(s) sent.",
+      "remindSentWithSkipped": "{{sent}} reminder(s) sent, {{skipped}} skipped.",
+      "remindNone": "No guest to remind right now.",
+      "remindErrorTitle": "Reminder failed",
+      "remindErrorMessage": "The reminders couldn't be sent. Please try again.",
+      "remindPendingProgress": "Sending reminders…"
     },
     "volunteer": {
       "tabReceived": "Received ({{count}})",

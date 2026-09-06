@@ -62,6 +62,19 @@ export const invitationsAPI = {
   bulkInvite: (data: { event: string; invitees: Array<{ email: string; name?: string }>; message?: string }) =>
     api.post('/invitations/', data),
 
+  /**
+   * Relances. Le backend impose un délai minimum entre deux rappels et un
+   * plafond de 3 : un invité harcelé signale l'e-mail en spam, ce qui pénalise
+   * la délivrabilité de TOUS les envois de la plateforme. Un refus revient en
+   * 400 avec `code: 'reminder_not_allowed'`.
+   */
+  remind: (id: string) =>
+    api.post(`/invitations/${id}/remind/`),
+
+  /** Relance tous les invités sans réponse d'un événement. */
+  remindPending: (eventId: string) =>
+    api.post<{ sent: number; skipped: number }>('/invitations/remind-pending/', { event: eventId }),
+
   accept: (id: string) =>
     api.post(`/invitations/${id}/accept/`),
 
