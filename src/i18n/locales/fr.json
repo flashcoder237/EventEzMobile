@@ -581,7 +581,13 @@
     "notifyOnTitle": "C'est noté !",
     "notifyOnBody": "Tu seras prévenu dès que les premiers événements arrivent.",
     "notifyOffTitle": "Notifications désactivées",
-    "notifyOffBody": "Active les notifications dans les réglages pour être prévenu."
+    "notifyOffBody": "Active les notifications dans les réglages pour être prévenu.",
+    "organizersEyebrow": "Organisateurs",
+    "organizersTitle": "Ceux qui font vivre la scène",
+    "organizersTitleWithCity": "Ils organisent à {{city}}",
+    "organizerVerified": "Organisateur vérifié",
+    "organizerEventCount": "{{count}} événement",
+    "organizerEventCount_plural": "{{count}} événements"
   },
   "pricingTiers": {
     "title": "Paliers de prix",
@@ -1654,7 +1660,8 @@
     "shortcutInvoices": "Factures",
     "shortcutTaxes": "Fiscalité",
     "shortcutMyEvents": "Mes Évén.",
-    "shortcutHelp": "Aide"
+    "shortcutHelp": "Aide",
+    "rowMyDataAtExhibitors": "Mes données chez les exposants"
   },
   "messages": {
     "title": "Messages",
@@ -7369,5 +7376,23 @@
     "unnamed": "Contact sans nom",
     "emptyTitle": "Aucun contact pour l’instant",
     "emptyBody": "Scannez le badge des visiteurs qui passent sur votre stand. Vous pourrez ensuite exporter la liste complète en CSV."
+  },
+  "myDataExhibitors": {
+    "title": "Mes données chez les exposants",
+    "intro": "{{count}} entreprise détient vos coordonnées suite à un scan de badge.",
+    "intro_plural": "{{count}} entreprises détiennent vos coordonnées suite à un scan de badge.",
+    "capturedOn": "Scanné le {{date}}",
+    "erase": "Effacer",
+    "eraseAll": "Tout effacer",
+    "eraseOneA11y": "Effacer mes données chez {{company}}",
+    "erased": "Vos coordonnées ont été effacées.",
+    "eraseError": "L'effacement n'a pas abouti.",
+    "confirmCta": "Effacer",
+    "confirmOneTitle": "Effacer mes données chez {{company}} ?",
+    "confirmOneBody": "Votre nom, votre e-mail et votre téléphone seront supprimés. {{company}} gardera seulement le décompte de ses contacts, sans aucun moyen de vous recontacter. C’est irréversible.",
+    "confirmAllTitle": "Effacer mes données chez tous les exposants ?",
+    "confirmAllBody": "Votre nom, votre e-mail et votre téléphone seront supprimés chez toutes les entreprises listées. C’est irréversible.",
+    "emptyTitle": "Aucune entreprise ne détient vos coordonnées",
+    "emptyBody": "Les exposants ne peuvent enregistrer vos coordonnées qu’en scannant votre badge, et seulement si vous l’avez autorisé sur l’événement concerné."
   }
 }

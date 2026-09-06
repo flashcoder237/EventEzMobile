@@ -581,7 +581,13 @@
     "notifyOnTitle": "You're all set!",
     "notifyOnBody": "We'll let you know as soon as the first events go live.",
     "notifyOffTitle": "Notifications off",
-    "notifyOffBody": "Enable notifications in settings to be alerted."
+    "notifyOffBody": "Enable notifications in settings to be alerted.",
+    "organizersEyebrow": "Organisers",
+    "organizersTitle": "The people behind the scene",
+    "organizersTitleWithCity": "Organising in {{city}}",
+    "organizerVerified": "Verified organiser",
+    "organizerEventCount": "{{count}} event",
+    "organizerEventCount_plural": "{{count}} events"
   },
   "pricingTiers": {
     "title": "Price tiers",
@@ -1654,7 +1660,8 @@
     "shortcutInvoices": "Invoices",
     "shortcutTaxes": "Taxes",
     "shortcutMyEvents": "My Events",
-    "shortcutHelp": "Help"
+    "shortcutHelp": "Help",
+    "rowMyDataAtExhibitors": "My data held by exhibitors"
   },
   "messages": {
     "title": "Messages",
@@ -7369,5 +7376,23 @@
     "unnamed": "Unnamed contact",
     "emptyTitle": "No contacts yet",
     "emptyBody": "Scan the badge of visitors who stop by your booth. You can then export the full list as CSV."
+  },
+  "myDataExhibitors": {
+    "title": "My data held by exhibitors",
+    "intro": "{{count}} company holds your contact details from a badge scan.",
+    "intro_plural": "{{count}} companies hold your contact details from a badge scan.",
+    "capturedOn": "Scanned on {{date}}",
+    "erase": "Erase",
+    "eraseAll": "Erase all",
+    "eraseOneA11y": "Erase my data held by {{company}}",
+    "erased": "Your contact details have been erased.",
+    "eraseError": "The erasure did not go through.",
+    "confirmCta": "Erase",
+    "confirmOneTitle": "Erase my data held by {{company}}?",
+    "confirmOneBody": "Your name, email and phone number will be deleted. {{company}} will only keep its contact count, with no way to reach you. This cannot be undone.",
+    "confirmAllTitle": "Erase my data held by every exhibitor?",
+    "confirmAllBody": "Your name, email and phone number will be deleted at every listed company. This cannot be undone.",
+    "emptyTitle": "No company holds your contact details",
+    "emptyBody": "Exhibitors can only save your details by scanning your badge, and only if you allowed it for that event."
   }
 }

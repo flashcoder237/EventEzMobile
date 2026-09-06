@@ -39,8 +39,9 @@ import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import EventCoverMedia from '../../components/events/EventCoverMedia';
 import CitiesSection from '../../components/events/CitiesSection';
-import { eventsAPI, categoriesAPI, recommendationsAPI, advertisementsAPI, getMediaUrl } from '../../api';
+import { eventsAPI, categoriesAPI, recommendationsAPI, advertisementsAPI, usersAPI, getMediaUrl } from '../../api';
 import type { AdvertisementPublic } from '../../api';
+import { selectLocalOrganizers } from '../../lib/discover/localOrganizers';
 import { Event, Category, RootStackParamList, MainTabParamList } from '../../types';
 import AdvertisementCard from '../../components/common/AdvertisementCard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -252,6 +253,12 @@ export default function DiscoverScreen() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const [nearbyEvents, setNearbyEvents] = useState<Event[]>([]);
+  // Organisateurs proches : on ne suit pas que des evenements, on suit
+  // des gens. `localOrganizerCity` retient la ville reellement utilisee,
+  // pour que le titre ne mente pas quand on retombe sur la selection
+  // nationale.
+  const [localOrganizers, setLocalOrganizers] = useState<any[]>([]);
+  const [localOrganizerCity, setLocalOrganizerCity] = useState<string | null>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [freeEvents, setFreeEvents] = useState<Event[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -521,6 +528,19 @@ export default function DiscoverScreen() {
     }
   }, [location]);
 
+  // Organisateurs a proximite. La regle de selection (ville du profil,
+  // repli national, exclusion des profils vides) vit dans
+  // `lib/discover/localOrganizers` pour etre testable sans monter tout
+  // l'ecran — c'est la regle qui compte, pas le rendu.
+  const fetchLocalOrganizers = useCallback(async () => {
+    const result = await selectLocalOrganizers(
+      async (params) => getApiResults<any>(await usersAPI.getOrganizers(params)),
+      user?.city,
+    );
+    setLocalOrganizers(result.organizers);
+    setLocalOrganizerCity(result.city);
+  }, [user?.city]);
+
   // === Ads (géo-ciblées) — fetch dès qu'on a la geo (loose : ne bloque pas
   // sans geo, le backend renverra les pubs sans contrainte). ===
   const fetchAds = useCallback(async () => {
@@ -736,6 +756,9 @@ export default function DiscoverScreen() {
     fetchDiscoveryData();
     const task = InteractionManager.runAfterInteractions(() => {
       fetchRecommendations();
+      // Section secondaire : chargée après les interactions pour ne pas
+      // retarder le premier rendu de l'accueil.
+      fetchLocalOrganizers();
       // Vérifier la perm sans la demander — la card explicative gère le prompt
       checkLocationPermSilent();
       // Premier batch "Pour vous" (page 1) + ads sans contrainte géo. Si la
@@ -784,6 +807,7 @@ export default function DiscoverScreen() {
       fetchDiscoveryData(true),
       fetchRecommendations(true),
       location ? fetchNearbyEvents() : Promise.resolve(),
+      fetchLocalOrganizers(),
       fetchAds(),
       loadMoreForYou(true),
     ]);
@@ -946,6 +970,88 @@ export default function DiscoverScreen() {
   };
 
   // === Nearby horizontal — compact portrait cards ===
+  // Carte organisateur : l'identité d'abord (photo + nom), la preuve
+  // ensuite (nombre d'événements, note). Le badge vérifié porte un libellé
+  // accessible — un pictogramme seul ne dit rien à qui ne le voit pas.
+  const renderOrganizerCard = ({ item, index }: { item: any; index: number }) => {
+    const name = (item.company_name || `${item.first_name || ''} ${item.last_name || ''}`).trim();
+    // getMediaUrl peut renvoyer null : on résout ici pour que le repli
+    // « icône » couvre aussi une URL non résolvable, pas seulement un
+    // champ vide.
+    const avatar = getMediaUrl(item.profile_picture || item.organizer_profile?.logo);
+    const eventCount = Number(item.organizer_profile?.event_count || 0);
+    const rating = Number(item.organizer_profile?.rating || 0);
+    const place = [item.city, item.country].filter(Boolean).join(', ');
+    return (
+      <StaggeredItem index={index} staggerDelay={70}>
+        <AnimatedPressable
+          animationType="shadow"
+          onPress={() => navigation.navigate('OrganizerProfile', { organizerId: String(item.slug || item.id) })}
+          accessibilityRole="button"
+          accessibilityLabel={name}
+          style={[styles.organizerCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+        >
+          <View style={[styles.organizerAvatar, { backgroundColor: colors.gray100 }]}>
+            {avatar ? (
+              <Image source={{ uri: avatar }} style={styles.organizerAvatarImg} />
+            ) : (
+              <Ionicons name="business" size={22} color={colors.gray400} />
+            )}
+          </View>
+          <View style={styles.organizerNameRow}>
+            <Text
+              style={[styles.organizerName, { color: colors.text }]}
+              numberOfLines={1}
+              allowFontScaling
+              maxFontSizeMultiplier={1.4}
+            >
+              {name}
+            </Text>
+            {!!item.is_verified && (
+              <Ionicons
+                name="checkmark-circle"
+                size={14}
+                color={colors.primary}
+                accessibilityLabel={t('discover.organizerVerified')}
+              />
+            )}
+          </View>
+          {!!place && (
+            <Text
+              style={[styles.organizerMeta, { color: colors.gray500 }]}
+              numberOfLines={1}
+              allowFontScaling
+              maxFontSizeMultiplier={1.4}
+            >
+              {place}
+            </Text>
+          )}
+          <View style={styles.organizerStats}>
+            <Text
+              style={[styles.organizerMeta, { color: colors.gray500 }]}
+              allowFontScaling
+              maxFontSizeMultiplier={1.3}
+            >
+              {t('discover.organizerEventCount', { count: eventCount })}
+            </Text>
+            {rating > 0 && (
+              <View style={styles.organizerRating}>
+                <Ionicons name="star" size={11} color="#F59E0B" />
+                <Text
+                  style={[styles.organizerMeta, { color: colors.gray500 }]}
+                  allowFontScaling
+                  maxFontSizeMultiplier={1.3}
+                >
+                  {rating.toFixed(1)}
+                </Text>
+              </View>
+            )}
+          </View>
+        </AnimatedPressable>
+      </StaggeredItem>
+    );
+  };
+
   const renderNearbyCard = ({ item, index }: { item: Event; index: number }) => {
     const img = eventImage(item);
     const ph = eventPlaceholder(item);
@@ -1772,6 +1878,35 @@ export default function DiscoverScreen() {
                 </SectionEntrance>
               )}
 
+              {/* === ORGANISATEURS PROCHES === */}
+              {/* On ne suit pas que des événements, on suit des gens. La
+                  section se masque seule si elle n'a rien : un rail vide
+                  donne l'impression d'une plateforme déserte. */}
+              {localOrganizers.length > 0 && (
+                <SectionEntrance delay={320}>
+                  <View style={styles.section}>
+                    <SectionHeader
+                      eyebrow={t('discover.organizersEyebrow')}
+                      title={localOrganizerCity
+                        ? t('discover.organizersTitleWithCity', { city: localOrganizerCity })
+                        : t('discover.organizersTitle')}
+                    />
+                    <FlatList
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      data={localOrganizers}
+                      keyExtractor={(it) => `org-${it.id}`}
+                      contentContainerStyle={styles.horizontalListContent}
+                      renderItem={renderOrganizerCard}
+                      removeClippedSubviews
+                      initialNumToRender={3}
+                      maxToRenderPerBatch={6}
+                      windowSize={5}
+                    />
+                  </View>
+                </SectionEntrance>
+              )}
+
               {/* === RECOMMENDED rec card (user) === */}
               {user && recommendations.length > 0 && (
                 <SectionEntrance delay={380}>
@@ -2566,6 +2701,28 @@ const styles = StyleSheet.create({
   },
 
   // === NEARBY CARD ===
+  organizerCard: {
+    width: 168,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 14,
+    gap: 4,
+  },
+  organizerAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  organizerAvatarImg: { width: '100%', height: '100%' },
+  organizerNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  organizerName: { flex: 1, fontFamily: FontFamily.bold, fontSize: 14, letterSpacing: -0.2 },
+  organizerMeta: { fontFamily: FontFamily.regular, fontSize: 11.5 },
+  organizerStats: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
+  organizerRating: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   nearbyCard: {
     width: 220,
     borderRadius: 20,
