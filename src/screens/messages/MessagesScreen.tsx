@@ -218,7 +218,7 @@ const ConversationCard = memo(function ConversationCard({
           <View
             style={[
               cardStyles.presenceDot,
-              { backgroundColor: '#22C55E', borderColor: colors.background },
+              { backgroundColor: colors.success, borderColor: colors.background },
             ]}
             accessibilityLabel={t('messages.online')}
           />
@@ -1618,7 +1618,7 @@ export default function MessagesScreen() {
                   width: 8,
                   height: 8,
                   borderRadius: 4,
-                  backgroundColor: wsConnected ? '#10B981' : '#F59E0B',
+                  backgroundColor: wsConnected ? colors.success : colors.warning,
                   opacity: wsConnected ? 1 : 0.7,
                 }}
                 accessibilityLabel={wsConnected ? t('messages.liveOn') : t('messages.liveReconnecting')}

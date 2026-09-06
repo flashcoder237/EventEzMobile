@@ -3765,6 +3765,14 @@ export default function ConversationScreen() {
             inverted={true}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
+            // Virtualisation : sans ces props, RN monte ~10 écrans de bulles
+            // (composants lourds : gestes, images, waveform) → ouverture lente +
+            // scroll saccadé sur conversation fournie. Réglages alignés sur
+            // MessagesScreen (l'inbox les avait déjà, la conversation non).
+            windowSize={7}
+            maxToRenderPerBatch={8}
+            initialNumToRender={12}
+            removeClippedSubviews
           />
 
           {/* Scroll to bottom button */}
@@ -3955,9 +3963,9 @@ export default function ConversationScreen() {
               return (
                 <>
                   {pending.length > 0 && (
-                    <View style={styles.offlineQueueBanner}>
-                      <Ionicons name="time-outline" size={14} color="#92400E" />
-                      <Text style={styles.offlineQueueBannerText}>
+                    <View style={[styles.offlineQueueBanner, { backgroundColor: colors.warningBg, borderTopColor: colors.warning }]}>
+                      <Ionicons name="time-outline" size={14} color={colors.warning} />
+                      <Text style={[styles.offlineQueueBannerText, { color: colors.warning }]}>
                         {pending.length === 1
                           ? t('conversation.pendingQueueSingular')
                           : t('conversation.pendingQueuePlural', { count: pending.length })}
@@ -3967,22 +3975,22 @@ export default function ConversationScreen() {
                   )}
                   {failed.length > 0 && (
                     <TouchableOpacity
-                      style={styles.failedQueueBanner}
+                      style={[styles.failedQueueBanner, { backgroundColor: colors.errorBg, borderTopColor: colors.error }]}
                       onPress={() => setFailedMessagesModalVisible(true)}
                       activeOpacity={0.85}
                       accessibilityRole="button"
                       accessibilityLabel={t('conversation.failedQueueA11y')}
                     >
-                      <Ionicons name="alert-circle" size={16} color="#991B1B" />
-                      <Text style={styles.failedQueueBannerText}>
+                      <Ionicons name="alert-circle" size={16} color={colors.error} />
+                      <Text style={[styles.failedQueueBannerText, { color: colors.error }]}>
                         {failed.length === 1
                           ? t('conversation.failedQueueSingular')
                           : t('conversation.failedQueuePlural', { count: failed.length })}
                       </Text>
-                      <Text style={styles.failedQueueBannerCta}>
+                      <Text style={[styles.failedQueueBannerCta, { color: colors.error }]}>
                         {t('conversation.failedQueueView')}
                       </Text>
-                      <Ionicons name="chevron-forward" size={14} color="#991B1B" />
+                      <Ionicons name="chevron-forward" size={14} color={colors.error} />
                     </TouchableOpacity>
                   )}
                 </>
@@ -4996,7 +5004,12 @@ const styles = StyleSheet.create({
     marginVertical: Spacing.md,
   },
   dateText: {
+    // Traitement éditorial (uppercase + tracking + semibold) au lieu d'une
+    // pilule grise anonyme — la seule touche « pas finie » relevée par le DA.
     fontSize: FontSizes.xs,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
     color: Colors.gray500,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,

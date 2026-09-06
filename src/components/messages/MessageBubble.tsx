@@ -515,11 +515,12 @@ function MessageBubble({
     transform: [{ translateX: translateX.value }],
   }));
 
-  // Bulle interlocuteur : rose doux. Light = blush léger, dark = rose-bordeaux.
-  // On garde l'indigo `colors.primary` pour le sender (mine) — palette cohérente
-  // avec le brand EventEz (indigo + accent corail).
-  const peerBubbleBg = isDark ? '#3B2330' : '#FFE4EC';
-  const peerTextColor = isDark ? '#FCE7F3' : colors.gray900;
+  // Bulle interlocuteur : surface neutre issue des TOKENS (gray100), pas un rose
+  // inventé en dur. L'ancien duo indigo-plein / rose-bonbon #FFE4EC (hors charte)
+  // faisait « Saint-Valentin 2014 » et cassait l'identité EventEz. Le neutre
+  // laisse respirer l'indigo « mine » et hérite automatiquement du dark mode.
+  const peerBubbleBg = colors.gray100;
+  const peerTextColor = colors.gray900;
 
   const handleLongPress = useCallback(() => {
     onLongPress(message);
@@ -944,7 +945,10 @@ function MessageBubble({
       const voiceBg = 'transparent';
       const voiceFg = isMine ? Colors.white : colors.primary;
       const activeBar = isMine ? Colors.white : colors.primary;
-      const inactiveBar = isMine ? 'rgba(255,255,255,0.35)' : (isDark ? 'rgba(252,231,243,0.3)' : 'rgba(190,24,93,0.25)');
+      // Barres non lues : indigo désaturé (cohérent charte, plus le rose hors
+      // charte) et opacité remontée à 0.45 (l'ancien 0.25 était quasi invisible
+      // pour les malvoyants — signalé à l'audit a11y).
+      const inactiveBar = isMine ? 'rgba(255,255,255,0.4)' : (isDark ? 'rgba(129,140,248,0.45)' : 'rgba(79,70,229,0.35)');
       const durationColor = isMine ? 'rgba(255,255,255,0.85)' : peerTextColor;
 
       const isCurrent = voicePlayback?.messageId === String(message.id);
@@ -1283,9 +1287,11 @@ function MessageBubble({
                 <Text style={[
                   styles.timeTextInside,
                   {
+                    // Opacité remontée à 0.85 (vs 0.7) : le blanc à 70% sur
+                    // l'indigo était sous le seuil de contraste lisible.
                     color: imageOnlyBubble
-                      ? 'rgba(255,255,255,0.9)'
-                      : (isMine ? 'rgba(255,255,255,0.7)' : colors.gray500),
+                      ? 'rgba(255,255,255,0.95)'
+                      : (isMine ? 'rgba(255,255,255,0.85)' : colors.gray500),
                   },
                 ]}>
                   {formatMessageTime(message.created_at)}
@@ -1563,7 +1569,9 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   timeTextInside: {
-    fontSize: 10,
+    // 11px (et non 10) : à 10px + shrink 0.83 l'heure était sous 8.5px réels,
+    // illisible pour senior/malvoyant (signalé par 3 juges).
+    fontSize: 11,
     fontFamily: FontFamily.medium,
   },
 
