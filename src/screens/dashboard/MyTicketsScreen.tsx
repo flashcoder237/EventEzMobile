@@ -718,7 +718,6 @@ export default function MyTicketsScreen() {
     // overlap slightly. Sans `isFirstInMonth`, le 1er ticket d'un mois suivant
     // (index > 0) chevaucherait le header de mois et le masquerait.
     const isFirst = index === 0;
-    const isPendingStack = isPending && !isFirst;
     const overlapMargin = !isFirstInMonth && !isArchived ? -Spacing.xl - 20 : 0;
 
     // Dimensions for accent fills
@@ -864,7 +863,7 @@ export default function MyTicketsScreen() {
 
               {/* Footer meta */}
               <View style={styles.ticketMainFooter}>
-                {dateInfo && !isPendingStack && (
+                {dateInfo && !isPending && (
                   <View style={[styles.dateChip, { backgroundColor: isDark ? colors.gray200 : colors.gray50, borderColor: colors.border }]}>
                     <Ionicons
                       name="calendar-outline"
@@ -881,7 +880,11 @@ export default function MyTicketsScreen() {
                     </Text>
                   </View>
                 )}
-                {isPendingStack && (
+                {/* Statut « en attente de paiement » + bouton Payer : affiché
+                    pour TOUT billet pending (avant, gaté sur isPendingStack =
+                    !isFirst → le 1er billet non payé s'affichait comme payé,
+                    sans indicateur ni bouton Payer). */}
+                {isPending && (
                   <View style={styles.pendingRow}>
                     <View style={[styles.pendingIcon, { backgroundColor: isExpiredPending ? colors.gray100 : colors.warningLight }]}>
                       <Ionicons
@@ -911,7 +914,7 @@ export default function MyTicketsScreen() {
                     )}
                   </View>
                 )}
-                {event?.location_city && !isPendingStack && (
+                {event?.location_city && !isPending && (
                   <View style={styles.locRow}>
                     <Ionicons name="location" size={12} color={colors.gray400} />
                     <Text style={[styles.locText, { color: colors.gray500 }]} numberOfLines={1}>
