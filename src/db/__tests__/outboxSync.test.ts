@@ -10,6 +10,7 @@ jest.mock('../outboxRepository', () => ({
   markOutboxSending: jest.fn(),
   markOutboxFailed: jest.fn(),
   removeOutbox: jest.fn(),
+  cleanupPersistedAttachments: jest.fn(() => Promise.resolve()),
 }));
 jest.mock('../messageRepository', () => ({ reconcileSent: jest.fn() }));
 jest.mock('../../api/messages', () => ({

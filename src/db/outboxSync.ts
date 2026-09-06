@@ -13,6 +13,7 @@ import {
   markOutboxSending,
   markOutboxFailed,
   removeOutbox,
+  cleanupPersistedAttachments,
   type OutboxAttachment,
 } from './outboxRepository';
 
@@ -90,6 +91,8 @@ async function _flushOutboxInner(): Promise<number> {
         await reconcileSent(entry.conversation_id, entry.temp_id, resp.data);
       }
       await removeOutbox(entry.temp_id);
+      // Nettoie les fichiers persistants copiés à l'enqueue (envoi confirmé).
+      await cleanupPersistedAttachments(entry.attachments);
       sent += 1;
     } catch {
       await markOutboxFailed(entry.temp_id);

@@ -61,9 +61,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { downloadThenSaveToGallery } from '../../lib/media/mediaActions';
 import { useMessageState, AttachedFile } from '../../hooks/useMessageState';
-import { useOfflineQueue } from '../../hooks/useOfflineQueue';
+import { useOutboxUI } from '../../hooks/useOutboxUI';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
-import type { QueuedMessage } from '../../lib/utils/messagingHelpers';
 import { Message, RootStackParamList, User } from '../../types';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import {
@@ -380,33 +379,11 @@ export default function ConversationScreen() {
   // scopé par userId) et les rejoue dès que la connexion revient. Le banner
   // "X message(s) en attente" s'affiche au-dessus de l'InputToolbar quand
   // queue.length > 0.
-  const offlineQueue = useOfflineQueue({
-    isConnected,
-    userId: user?.id,
-    onSendMessage: useCallback(async (queued: QueuedMessage): Promise<boolean> => {
-      try {
-        const response = await messagesAPI.sendMessage({
-          conversation: queued.conversationId,
-          content: queued.content,
-          reply_to: queued.replyTo,
-          attachment_ids: queued.attachments?.length ? queued.attachments : undefined,
-        });
-        // Replace any temp message in current view if applicable
-        if (String(queued.conversationId) === String(state.conversationId) && response.data) {
-          actions.addMessage(response.data);
-        }
-        return true;
-      } catch {
-        return false;
-      }
-    }, [state.conversationId, actions]),
-    onMessageFailed: useCallback((queued: QueuedMessage) => {
-      showError(
-        t('conversation.notSentTitle'),
-        t('conversation.notSentMessage'),
-      );
-    }, [showError, t]),
-  });
+  // File d'envoi hors-ligne = OUTBOX SQLite (source unique). useOutboxUI expose
+  // l'interface d'affichage/retry compatible (queue/isSyncing/retryMessage/
+  // dequeue). L'ancien useOfflineQueue (AsyncStorage) a été retiré : depuis la
+  // Phase 5, handleSend enqueue dans l'outbox SQLite, plus dans l'AsyncStorage.
+  const offlineQueue = useOutboxUI(state.conversationId, isConnected);
 
   // ============================================
   // EFFECTS

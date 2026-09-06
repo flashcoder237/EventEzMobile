@@ -107,6 +107,30 @@ jest.mock('../../../api', () => ({
   },
 }));
 
+// ── Couche SQLite / sync : neutralisée (testée à part dans src/db/__tests__).
+// syncConversation résout vite pour que fetchMessages tombe sur le fallback
+// réseau (getMessages) sans attendre un retry réseau réel.
+jest.mock('../../../db/messageSync', () => ({
+  syncConversation: jest.fn(() => Promise.resolve({ applied: 0, cursor: null })),
+}));
+jest.mock('../../../db/messageRepository', () => ({
+  getMessages: jest.fn(() => Promise.resolve([])),
+  upsertMessages: jest.fn(() => Promise.resolve()),
+  reconcileSent: jest.fn(() => Promise.resolve()),
+  insertPending: jest.fn(() => Promise.resolve()),
+  patchLocalMessage: jest.fn(() => Promise.resolve()),
+  deleteLocalMessage: jest.fn(() => Promise.resolve()),
+}));
+jest.mock('../../../db/outboxRepository', () => ({
+  enqueueOutbox: jest.fn(() => Promise.resolve()),
+  getOutboxForConversation: jest.fn(() => Promise.resolve([])),
+  removeOutbox: jest.fn(() => Promise.resolve()),
+  resetOutboxRetry: jest.fn(() => Promise.resolve()),
+}));
+jest.mock('../../../db/outboxSync', () => ({
+  flushOutbox: jest.fn(() => Promise.resolve(0)),
+}));
+
 // ── WebSocket hook (renvoie connected + tous les sender stubs) ───
 jest.mock('../../../hooks/useMessagingWebSocket', () => ({
   useMessagingWebSocket: () => ({

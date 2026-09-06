@@ -37,6 +37,7 @@ import {
   bumpConversationOnNewMessage as bumpLocalConversation,
   clearUnread as clearLocalUnread,
 } from '../../db/conversationRepository';
+import { countOutboxTotals } from '../../db/outboxRepository';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useMutedConversations } from '../../hooks/useMutedConversations';
@@ -682,15 +683,10 @@ export default function MessagesScreen() {
       return;
     }
     try {
-      const raw = await AsyncStorage.getItem(`offline_queue:${user.id}`);
-      if (!raw) {
-        setOfflineCounts({ pending: 0, failed: 0 });
-        return;
-      }
-      const queue = JSON.parse(raw) as Array<{ failed?: boolean }>;
-      const failed = queue.filter(m => m.failed).length;
-      const pending = queue.length - failed;
-      setOfflineCounts({ pending, failed });
+      // Source unique = OUTBOX SQLite (l'ancienne file AsyncStorage a été
+      // retirée). Le compteur reflète désormais les vrais messages en attente.
+      const totals = await countOutboxTotals();
+      setOfflineCounts(totals);
     } catch {
       setOfflineCounts({ pending: 0, failed: 0 });
     }

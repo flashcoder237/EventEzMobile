@@ -369,6 +369,25 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 
+// expo-sqlite : mock in-memory neutre. Les tests unitaires ne valident pas le
+// SQL (fait via les tests de logique messageSync/outboxSync qui mockent le
+// repository) ; ce mock évite juste "NativeDatabase is not a constructor" au
+// montage des écrans messagerie qui touchent la base.
+jest.mock('expo-sqlite', () => {
+  const fakeDb = {
+    execAsync: jest.fn().mockResolvedValue(undefined),
+    runAsync: jest.fn().mockResolvedValue({ changes: 0, lastInsertRowId: 0 }),
+    getAllAsync: jest.fn().mockResolvedValue([]),
+    getFirstAsync: jest.fn().mockResolvedValue(null),
+    withTransactionAsync: jest.fn(async (task) => { await task(); }),
+    closeAsync: jest.fn().mockResolvedValue(undefined),
+  };
+  return {
+    openDatabaseAsync: jest.fn().mockResolvedValue(fakeDb),
+    openDatabaseSync: jest.fn().mockReturnValue(fakeDb),
+  };
+});
+
 // Silence des warnings RN qui polluent les logs de tests
 jest.spyOn(console, 'warn').mockImplementation((msg) => {
   if (typeof msg === 'string' && (

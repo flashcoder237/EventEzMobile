@@ -154,4 +154,12 @@ export async function clearAllLocalData(): Promise<void> {
       /* table absente → rien à purger */
     }
   }
+  // Supprime aussi les fichiers d'attachments persistés de l'outbox (import
+  // dynamique pour éviter un cycle database ↔ file-system au chargement).
+  try {
+    const FileSystem = require('expo-file-system/legacy');
+    await FileSystem.deleteAsync(`${FileSystem.documentDirectory}outbox/`, { idempotent: true });
+  } catch {
+    /* dossier absent → rien à purger */
+  }
 }
