@@ -7317,7 +7317,8 @@
     "payCard": "Card",
     "paymentInitiated": "Payment initiated. Confirm it on your phone.",
     "payError": "Could not initiate the booth payment.",
-    "captureLeads": "Capture contacts"
+    "captureLeads": "Capture contacts",
+    "viewLeads": "My contacts"
   },
   "leadCapture": {
     "title": "Capture a contact",
@@ -7360,5 +7361,13 @@
     "sent": "Sent",
     "delivered": "Delivered",
     "read": "Read"
+  },
+  "myLeads": {
+    "title": "My contacts",
+    "count": "{{count}} contact saved",
+    "count_plural": "{{count}} contacts saved",
+    "unnamed": "Unnamed contact",
+    "emptyTitle": "No contacts yet",
+    "emptyBody": "Scan the badge of visitors who stop by your booth. You can then export the full list as CSV."
   }
 }

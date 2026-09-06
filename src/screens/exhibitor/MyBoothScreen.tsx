@@ -222,6 +222,51 @@ export default function MyBoothScreen() {
                     <BookingStatusChip status={bk.status} colors={colors} t={t} />
                   </View>
 
+                  {/* Capture de contacts : la raison d'être du stand. Sans ce
+                      point d'entrée, la fonctionnalité n'existait qu'en API.
+                      Réservée aux stands actifs — mêmes statuts que le
+                      backend, sinon le bouton mènerait à un refus. */}
+                  {(bk.status === 'paid' || bk.status === 'partially_paid') && (
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate('LeadCapture', {
+                        eventId: bk.event,
+                        eventTitle: bk.event_title,
+                      })}
+                      style={[styles.cta, { backgroundColor: colors.primary }]}
+                      accessibilityRole="button"
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons name="scan-outline" size={18} color="#fff" />
+                      <Text style={styles.ctaText}>
+                        {t('myBoothMobile.captureLeads', {
+                          defaultValue: 'Capturer des contacts',
+                        })}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Récupérer les contacts : c'est le livrable qui justifie
+                      le stand. Sans ce lien, l'exposant scanne sans jamais
+                      pouvoir emporter quoi que ce soit. */}
+                  {(bk.status === 'paid' || bk.status === 'partially_paid') && (
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate('MyLeads', {
+                        eventId: bk.event,
+                        eventTitle: bk.event_title,
+                      })}
+                      style={[styles.secondaryCta, { borderColor: hairline }]}
+                      accessibilityRole="button"
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons name="people-outline" size={18} color={colors.primary} />
+                      <Text style={[styles.secondaryCtaText, { color: colors.primary }]}>
+                        {t('myBoothMobile.viewLeads', {
+                          defaultValue: 'Mes contacts',
+                        })}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+
                   {/* Paiement du stand : réservation acceptée mais pas encore réglée */}
                   {(bk.status === 'pending' || bk.status === 'partially_paid') && (
                     <View style={[styles.payBox, { borderTopColor: hairline }]}>
@@ -371,6 +416,13 @@ const styles = StyleSheet.create({
   rowValue: { fontSize: 13, fontWeight: '700' },
   cta: { marginTop: 10, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingVertical: 12 },
   ctaText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  // Action secondaire : même cible tactile que la principale (48px avec le
+  // padding), traitement visuel plus discret.
+  secondaryCta: {
+    marginTop: 8, borderRadius: 14, borderWidth: 1, alignItems: 'center',
+    justifyContent: 'center', flexDirection: 'row', gap: 6, paddingVertical: 12,
+  },
+  secondaryCtaText: { fontSize: 14, fontWeight: '700' },
   statusChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, alignSelf: 'flex-start' },
   statusChipText: { fontSize: 11, fontFamily: FontFamily.bold, letterSpacing: 0.3 },
   payBox: { borderTopWidth: 1, paddingTop: 12, marginTop: 6, gap: 10 },

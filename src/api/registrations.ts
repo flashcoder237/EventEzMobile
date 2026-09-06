@@ -120,6 +120,13 @@ export const registrationsAPI = {
 
   setNetworkingOptIn: (registrationId: string, optIn: boolean) =>
     api.post(`/registrations/${registrationId}/networking/`, { opt_in: optIn }),
+  // Consentement SÉPARÉ du précédent : apparaître dans l'annuaire et
+  // autoriser des entreprises exposantes à repartir avec ses coordonnées
+  // sont deux finalités différentes, chacune avec son propre accord.
+  setExhibitorScanOptIn: (registrationId: string, optIn: boolean) =>
+    api.post(`/registrations/${registrationId}/networking/`, {
+      exhibitor_scan_opt_in: optIn,
+    }),
 
   // Communication
   resendConfirmation: (registrationId: string) =>

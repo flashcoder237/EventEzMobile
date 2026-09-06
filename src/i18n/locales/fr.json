@@ -7317,7 +7317,8 @@
     "payCard": "Carte bancaire",
     "paymentInitiated": "Paiement initié. Valide-le sur ton téléphone.",
     "payError": "Impossible d'initier le paiement du stand.",
-    "captureLeads": "Capturer des contacts"
+    "captureLeads": "Capturer des contacts",
+    "viewLeads": "Mes contacts"
   },
   "leadCapture": {
     "title": "Capturer un contact",
@@ -7360,5 +7361,13 @@
     "sent": "Envoyé",
     "delivered": "Distribué",
     "read": "Lu"
+  },
+  "myLeads": {
+    "title": "Mes contacts",
+    "count": "{{count}} contact enregistré",
+    "count_plural": "{{count}} contacts enregistrés",
+    "unnamed": "Contact sans nom",
+    "emptyTitle": "Aucun contact pour l’instant",
+    "emptyBody": "Scannez le badge des visiteurs qui passent sur votre stand. Vous pourrez ensuite exporter la liste complète en CSV."
   }
 }

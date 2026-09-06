@@ -111,4 +111,22 @@ export const exhibitorsAPI = {
   updateSalesConfig: (id: string, data: {
     enabled?: boolean; host_revenue_share_pct?: number; default_fee_bearer?: string;
   }) => api.patch(`/exhibitor-sales-config/${id}/`, data),
+
+  // ── Capture de contacts (lead retrieval) ─────────────────────────────────
+  // Le scan renvoie 403 avec code 'consent_required' si le visiteur n'a pas
+  // accepté d'être contacté par les exposants. Ce refus doit être affiché tel
+  // quel : capturer en silence serait une collecte illicite.
+  scanLead: (data: {
+    event: string; code: string; rating?: 'hot' | 'warm' | 'cold'; notes?: string;
+  }) => api.post('/exhibitor-leads/scan/', data),
+  // Qualification APRÈS le scan : le visiteur est déjà reparti, on ne peut
+  // pas lui redemander son badge pour ajouter une note.
+  qualifyLead: (data: {
+    event: string; lead: string; rating?: 'hot' | 'warm' | 'cold'; notes?: string;
+  }) => api.post('/exhibitor-leads/qualify/', data),
+  getMyLeads: (params: { event?: string }) =>
+    api.get('/exhibitor-leads/mine/', { params }),
+  // L'export CSV passe par `useExport` (téléchargement natif + partage
+  // système), pas par axios : responseType binaire est peu fiable en RN.
+  // Endpoint : /exhibitor-leads/export/
 };

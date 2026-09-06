@@ -129,6 +129,8 @@ const SeatingPlanEditorScreen = withSuspense(lazy(() => import('../screens/organ
 const BoothManagementScreen = withSuspense(lazy(() => import('../screens/organizer/BoothManagementScreen')));
 const BoothPlanEditorScreen = withSuspense(lazy(() => import('../screens/organizer/BoothPlanEditorScreen')));
 const MyBoothScreen = withSuspense(lazy(() => import('../screens/exhibitor/MyBoothScreen')));
+const LeadCaptureScreen = withSuspense(lazy(() => import('../screens/exhibitor/LeadCaptureScreen')));
+const MyLeadsScreen = withSuspense(lazy(() => import('../screens/exhibitor/MyLeadsScreen')));
 const ExhibitApplyScreen = withSuspense(lazy(() => import('../screens/exhibitor/ExhibitApplyScreen')));
 
 // Moderation Screens (lazy — staff only)
@@ -455,6 +457,8 @@ export default function RootNavigator() {
       <Stack.Screen name="BoothManagement" component={BoothManagementScreen} />
       <Stack.Screen name="BoothPlanEditor" component={BoothPlanEditorScreen} />
       <Stack.Screen name="MyBooth" component={MyBoothScreen} />
+      <Stack.Screen name="LeadCapture" component={LeadCaptureScreen} />
+      <Stack.Screen name="MyLeads" component={MyLeadsScreen} />
       <Stack.Screen name="ExhibitApply" component={ExhibitApplyScreen} />
       <Stack.Screen name="SeatingPlanEditor" component={SeatingPlanEditorScreen} />
 

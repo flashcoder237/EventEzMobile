@@ -41,6 +41,7 @@ export default function EventAttendeesScreen() {
 
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   const [youVisible, setYouVisible] = useState(false);
+  const [allowScan, setAllowScan] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [toggling, setToggling] = useState(false);
@@ -51,6 +52,7 @@ export default function EventAttendeesScreen() {
       const data: any = res.data || {};
       setAttendees((data.attendees ?? []) as Attendee[]);
       setYouVisible(!!data.you_are_visible);
+      setAllowScan(!!data.you_allow_exhibitor_scan);
     } catch {
       setAttendees([]);
     } finally {
@@ -73,6 +75,22 @@ export default function EventAttendeesScreen() {
       await registrationsAPI.setNetworkingOptIn(registrationId, next);
     } catch {
       setYouVisible(!next); // rollback
+    } finally {
+      setToggling(false);
+    }
+  }, [registrationId]);
+
+  // Consentement SÉPARÉ du précédent. Être visible dans l'annuaire (pour
+  // que d'autres participants vous écrivent) et autoriser une entreprise
+  // exposante à repartir avec vos coordonnées sont deux choses
+  // différentes : le RGPD exige un accord par finalité.
+  const toggleScanConsent = useCallback(async (next: boolean) => {
+    setToggling(true);
+    setAllowScan(next); // optimiste
+    try {
+      await registrationsAPI.setExhibitorScanOptIn(registrationId, next);
+    } catch {
+      setAllowScan(!next); // rollback
     } finally {
       setToggling(false);
     }
@@ -135,6 +153,45 @@ export default function EventAttendeesScreen() {
                 <Ionicons name="eye-off-outline" size={14} color={colors.warning} />
                 <Text style={[styles.invisibleText, { color: colors.warning }]}>{t('attendees.invisibleHint')}</Text>
               </View>
+            )}
+
+            {/* Consentement DISTINCT : autoriser des entreprises exposantes à
+                enregistrer ses coordonnées n'est pas la même chose qu'être
+                visible dans l'annuaire. Deux finalités, deux accords. */}
+            <View style={[styles.scanConsentRow, { borderTopColor: colors.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[styles.optInTitle, { color: colors.text }]}
+                  allowFontScaling
+                  maxFontSizeMultiplier={1.6}
+                >
+                  {t('attendees.scanOptInTitle')}
+                </Text>
+                <Text
+                  style={[styles.optInSubtitle, { color: colors.gray500 }]}
+                  allowFontScaling
+                  maxFontSizeMultiplier={1.6}
+                >
+                  {t('attendees.scanOptInSubtitle')}
+                </Text>
+              </View>
+              <Switch
+                value={allowScan}
+                onValueChange={toggleScanConsent}
+                disabled={toggling}
+                trackColor={{ false: colors.gray300, true: colors.primary }}
+                thumbColor="#FFFFFF"
+                accessibilityLabel={t('attendees.scanOptInTitle')}
+              />
+            </View>
+            {allowScan && (
+              <Text
+                style={[styles.scanConsentNote, { color: colors.gray500 }]}
+                allowFontScaling
+                maxFontSizeMultiplier={1.6}
+              >
+                {t('attendees.scanOptInWithdrawNote')}
+              </Text>
             )}
           </View>
 
@@ -211,6 +268,13 @@ const styles = StyleSheet.create({
   optInRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   optInTitle: { fontFamily: FontFamily.bold, fontSize: 15, letterSpacing: -0.2 },
   optInSubtitle: { fontFamily: FontFamily.regular, fontSize: 12, lineHeight: 16, marginTop: 2 },
+  scanConsentRow: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+    borderTopWidth: 1, paddingTop: Spacing.md, marginTop: Spacing.md,
+  },
+  scanConsentNote: {
+    fontFamily: FontFamily.regular, fontSize: 11, lineHeight: 15, marginTop: Spacing.xs,
+  },
   invisibleBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, paddingVertical: 8, borderRadius: BorderRadius.lg,
