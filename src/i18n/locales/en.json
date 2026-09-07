@@ -4640,7 +4640,8 @@
     "statusConfirmed": "Confirmed",
     "statusPending": "Pending",
     "statusCancelled": "Cancelled",
-    "statusValidated": "Validated"
+    "statusValidated": "Validated",
+    "pdfOnline": "Online event"
   },
   "offlineTickets": {
     "headerTitle": "Offline",
@@ -5013,6 +5014,8 @@
     "virtualStartsInMinutes": "Starts in {{count}} min",
     "virtualUnavailableTitle": "Video call unavailable",
     "virtualUnavailableNote": "EventEz Video is not active yet for this event. The organizer will share the join link.",
+    "virtualWaitingHostTitle": "The live hasn't started yet",
+    "virtualWaitingHostNote": "You'll be able to join as soon as the organizer opens the room.",
     "waitlistPosition": "Position {{position}} in the queue",
     "ticketsClosesIn_days": "Closes in {{count}}d",
     "ticketsClosesIn_hours": "Closes in {{count}}h",

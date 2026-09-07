@@ -132,6 +132,15 @@ export default function QRCodeScreen() {
 
   const generateTicketHTML = (qrImageUrl: string): string => {
     const eventTitle = event?.title || (ticket as any)?.event_title || t('qrCode.eventFallback');
+    // Organisateur : `organizer` est un OBJET cote detail event.
+    // `organizer_name` n'existe que dans le serializer de LISTE — le lire
+    // ici donnait toujours vide.
+    const org: any = (event as any)?.organizer;
+    const organizerName = (org && (
+      org.company_name
+      || `${org.first_name || ''} ${org.last_name || ''}`.trim()
+      || org.username
+    )) || (event as any)?.organizer_name || '';
     // QR généré LOCALEMENT (qrcode-svg → base64). Pas de fallback vers un
     // service tiers (api.qrserver.com) : cela envoyait l'URL de vérification du
     // billet chez un tiers (fuite de données) et dépendait de sa disponibilité.
@@ -181,9 +190,20 @@ export default function QRCodeScreen() {
           </div>
           <div class="event-section">
             <div class="event-title">${eventTitle}</div>
-            ${event?.start_date ? `<div class="meta-item"><span class="meta-icon">📅</span> ${formatDate(event.start_date)}</div>` : ''}
-            ${event?.start_date ? `<div class="meta-item"><span class="meta-icon">🕐</span> ${formatTime(event.start_date)}</div>` : ''}
-            ${event?.location_name || event?.location_city ? `<div class="meta-item"><span class="meta-icon">📍</span> ${event.location_name || event.location_city}</div>` : ''}
+            ${event?.start_date ? `<div class="meta-item"><span class="meta-icon">📅</span> ${formatEventDateRange(
+              event.start_date, (event as any).end_date,
+              i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR',
+            )}</div>` : ''}
+            ${/* Lieu : un event EN LIGNE n'a pas de ville. Le PDF affichait
+                  alors une ligne vide — le billet ne disait plus ou aller. */ ''}
+            ${(event as any)?.location_type === 'online'
+              ? `<div class="meta-item"><span class="meta-icon">💻</span> ${t('qrCode.pdfOnline')}</div>`
+              : (event?.location_name || event?.location_city
+                ? `<div class="meta-item"><span class="meta-icon">📍</span> ${[event.location_name, event.location_city].filter(Boolean).join(', ')}</div>`
+                : '')}
+            ${/* L'organisateur manquait : un billet doit dire QUI l'a emis,
+                  ne serait-ce que pour savoir a qui s'adresser sur place. */ ''}
+            ${organizerName ? `<div class="meta-item"><span class="meta-icon">🏢</span> ${organizerName}</div>` : ''}
           </div>
           <div class="qr-section">
             ${qrUrl ? `<div class="qr-container"><img src="${qrUrl}" alt="QR Code" /></div>` : ''}
