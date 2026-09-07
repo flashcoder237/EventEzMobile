@@ -801,6 +801,22 @@ export default function MyEventsScreen() {
           onPress: () => navigation.navigate('SeatingPlans', { eventId: event.slug || event.id }),
         },
         {
+          // Gestion mariage : invités/RSVP. Les endpoints organisateur exigent
+          // l'UUID de l'événement (pas le slug) — on passe event.id explicitement.
+          label: t('organizer.myEvents.actions.weddingGuests', { defaultValue: 'Invités & RSVP' }),
+          icon: 'people-outline',
+          onPress: () => navigation.navigate('WeddingGuestsManage', {
+            eventId: event.id, eventTitle: event.title,
+          }),
+        },
+        {
+          label: t('organizer.myEvents.actions.weddingGifts', { defaultValue: 'Cagnotte & cadeaux' }),
+          icon: 'gift-outline',
+          onPress: () => navigation.navigate('WeddingGiftsManage', {
+            eventId: event.id, eventTitle: event.title,
+          }),
+        },
+        {
           label: t('organizer.myEvents.actions.exhibitors', { defaultValue: 'Exposants & stands' }),
           icon: 'storefront-outline',
           onPress: () => navigation.navigate('BoothManagement', { eventId: event.slug || event.id }),

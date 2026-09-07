@@ -3576,6 +3576,10 @@
     "actionsSheet": {
       "closeA11y": "Fermer le menu",
       "cancel": "Annuler"
+    },
+    "venuePicker": {
+      "label": "Utiliser un lieu enregistré",
+      "hint": "Les champs se remplissent automatiquement. Vous pouvez les ajuster ensuite."
     }
   },
   "componentsCharts": {

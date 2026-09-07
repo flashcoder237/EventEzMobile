@@ -4244,6 +4244,10 @@
     "actionsSheet": {
       "closeA11y": "Close menu",
       "cancel": "Cancel"
+    },
+    "venuePicker": {
+      "label": "Use a saved venue",
+      "hint": "The fields fill in automatically. You can adjust them afterwards."
     }
   },
   "componentsCharts": {

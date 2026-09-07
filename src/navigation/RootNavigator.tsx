@@ -127,6 +127,8 @@ const DashboardsScreen = withSuspense(lazy(() => import('../screens/organizer/Da
 const DashboardDetailsScreen = withSuspense(lazy(() => import('../screens/organizer/DashboardDetailsScreen')));
 const SeatingPlansScreen = withSuspense(lazy(() => import('../screens/organizer/SeatingPlansScreen')));
 const SeatingPlanEditorScreen = withSuspense(lazy(() => import('../screens/organizer/SeatingPlanEditorScreen')));
+const WeddingGuestsManageScreen = withSuspense(lazy(() => import('../screens/organizer/WeddingGuestsManageScreen')));
+const WeddingGiftsManageScreen = withSuspense(lazy(() => import('../screens/organizer/WeddingGiftsManageScreen')));
 const BoothManagementScreen = withSuspense(lazy(() => import('../screens/organizer/BoothManagementScreen')));
 const BoothPlanEditorScreen = withSuspense(lazy(() => import('../screens/organizer/BoothPlanEditorScreen')));
 const MyBoothScreen = withSuspense(lazy(() => import('../screens/exhibitor/MyBoothScreen')));
@@ -463,6 +465,9 @@ export default function RootNavigator() {
       <Stack.Screen name="MyLeads" component={MyLeadsScreen} />
       <Stack.Screen name="ExhibitApply" component={ExhibitApplyScreen} />
       <Stack.Screen name="SeatingPlanEditor" component={SeatingPlanEditorScreen} />
+      {/* Mariage — gestion organisateur (nav interne, jamais deep link) */}
+      <Stack.Screen name="WeddingGuestsManage" component={WeddingGuestsManageScreen} />
+      <Stack.Screen name="WeddingGiftsManage" component={WeddingGiftsManageScreen} />
 
       {/* Moderation Screens */}
       <Stack.Screen name="Moderation" component={ModerationScreen} />
