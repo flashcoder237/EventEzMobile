@@ -1510,6 +1510,13 @@ const styles = StyleSheet.create({
   // Bubble Container
   bubbleContainer: {
     maxWidth: '75%',
+    // flexShrink:1 INDISPENSABLE : dans le messageRow (flexDirection row /
+    // row-reverse), sans lui le conteneur est mesuré à sa largeur de contenu
+    // « idéale » et le Text ne se re-wrappe pas — le dernier mot déborde et est
+    // rogné au bord de l'écran (« un autre test » affiché « un autre » alors que
+    // le contenu stocké est complet). flexShrink laisse le conteneur rétrécir à
+    // la place disponible et le texte passer à la ligne normalement.
+    flexShrink: 1,
   },
   senderName: {
     fontFamily: FontFamily.semiBold,
