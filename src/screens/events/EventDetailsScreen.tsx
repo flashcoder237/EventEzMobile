@@ -69,6 +69,8 @@ import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
 import { eventsAPI, getMediaUrl, virtualRoomsAPI } from '../../api';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useVisioCall } from '../../contexts/VisioCallContext';
+import { useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import UserBadges from '../../components/common/UserBadges';
 import { Badge } from '../../components/ui/Badge';
 import ConvertedPrice from '../../components/common/ConvertedPrice';
@@ -158,6 +160,9 @@ export default function EventDetailsScreen() {
     user?.id && event?.organizer?.id && String(user.id) === String(event.organizer.id)
   );
   const canAccessVisio = !!userRegistration || isOrganizer;
+  const { startCall } = useVisioCall();
+  const [, requestCameraPermission] = useCameraPermissions();
+  const [, requestMicPermission] = useMicrophonePermissions();
 
   // Rejoindre la visio via le flux GATÉ (event_join) — même chemin sécurisé
   // que VirtualTab. Ne JAMAIS ouvrir event.online_url en brut : ça
@@ -179,22 +184,24 @@ export default function EventDetailsScreen() {
       // partie du fragment — le JWT serait ignoré et l'accès refusé.
       const finalUrl: string =
         data.provider === 'jaas' && data.token ? withJwt(data.url, data.token) : data.url;
-      if (data.provider === 'jitsi_public' && data.password) {
-        showAlert(
-          t('componentsEvents.virtualPasswordTitle'),
-          t('componentsEvents.virtualPasswordMessage', { password: data.password }),
-          [
-            { text: t('common.cancel'), style: 'cancel' },
-            {
-              text: t('componentsEvents.virtualJoinAction'),
-              onPress: () => navigation.navigate('Browser', { url: finalUrl, title: event?.title, roomId: data.room_id }),
-            },
-          ],
-          'info',
-        );
-      } else {
-        navigation.navigate('Browser', { url: finalUrl, title: event?.title, roomId: data.room_id });
-      }
+
+      // Permissions caméra/micro AVANT d'ouvrir la WebView Jitsi (Android :
+      // getUserMedia bloqué sinon → écran blanc).
+      try {
+        await requestCameraPermission();
+        await requestMicPermission();
+      } catch { /* best-effort */ }
+
+      // Visio PERSISTANTE (comme VirtualTab) : startCall monte la WebView à la
+      // racine → l'appel survit à la navigation, réductible en bulle. AVANT, ce
+      // chemin naviguait vers l'écran 'Browser' (démonté à la navigation = appel
+      // coupé) — incohérent avec le reste.
+      startCall({
+        url: finalUrl,
+        roomId: data.room_id,
+        title: event?.title,
+        recordingNotice: data.recording_notice ?? null,
+      });
     } catch (error: any) {
       const minsRemaining = error?.response?.data?.minutes_remaining;
       const msg = error?.response?.data?.error || t('componentsEvents.virtualGenericError');
@@ -207,7 +214,7 @@ export default function EventDetailsScreen() {
     } finally {
       setJoiningVisio(false);
     }
-  }, [eventId, event?.title, navigation, showAlert, showError, t]);
+  }, [eventId, event?.title, startCall, requestCameraPermission, requestMicPermission, showError, t]);
 
   // Deep-link « rejoindre la visio » (initialTab='virtual', depuis une notif
   // event_live) : on scrolle jusqu'à la section en ligne dès que sa position
