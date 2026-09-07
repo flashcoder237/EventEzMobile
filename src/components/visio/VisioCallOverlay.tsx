@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useVisioCall } from '../../contexts/VisioCallContext';
 import { FontFamily, FontSizes, Spacing } from '../../constants/theme';
+import { enterPip, isPipSupported } from '../../../modules/eventez-pip/src';
 
 /**
  * Overlay VISIO PERSISTANT — monté UNE fois à la racine. Rend UNE SEULE WebView
@@ -64,20 +65,31 @@ export default function VisioCallOverlay() {
     return () => clearTimeout(timer);
   }, [call, isLoading]);
 
-  // Quand l'app part en arrière-plan pendant un appel : on RÉDUIT EN BULLE
-  // in-app (au lieu du PiP système Android, qui affiche l'UI de l'app et non la
-  // vidéo Jitsi — rendu cassé). La bulle réapparaît au retour dans EventEz ;
-  // l'audio de la réunion continue en fond. Choix produit vs PiP système.
+  // Quand l'app part en arrière-plan pendant un appel : on remet la visio en
+  // PLEIN ÉCRAN *avant* de déclencher le PiP système Android.
+  //
+  // POURQUOI : le PiP système capture l'écran de l'app tel qu'il est à cet
+  // instant. S'il capturait un écran quelconque (profil + petite bulle), la
+  // fenêtre PiP montrait l'UI de l'app, pas la vidéo (bug signalé). En forçant
+  // le plein écran d'abord, le PiP capture la VISIO plein écran → on voit bien
+  // la réunion dans la fenêtre flottante.
+  //
+  // Android émet `inactive` juste AVANT `background` : on maximise sur
+  // `inactive` (une frame d'avance) puis on entre en PiP sur `background`.
   useEffect(() => {
     if (!call) return;
     const onChange = (state: string) => {
-      if (state === 'inactive' || state === 'background') {
-        minimize();
+      if (state === 'inactive') {
+        // Frame d'anticipation : la visio remplit l'écran avant la capture PiP.
+        maximize();
+      } else if (state === 'background' && isPipSupported()) {
+        maximize();
+        enterPip();
       }
     };
     const sub = AppState.addEventListener('change', onChange);
     return () => sub.remove();
-  }, [call, minimize]);
+  }, [call, maximize]);
 
   const panResponder = useMemo(
     () => PanResponder.create({
