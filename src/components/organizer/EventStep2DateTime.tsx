@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
+import VenuePicker from './VenuePicker';
 import { Spacing } from '../../constants/theme';
 import { LocationType } from '../../types';
 import { LOCATION_TYPES } from '../../hooks/useEventForm';
@@ -200,6 +201,17 @@ export default function EventStep2DateTime({
       {(locationType === 'in_person' || locationType === 'hybrid') && (
         <View style={[styles.locationFields, themed.locationFields]}>
           <Text style={[styles.subSectionTitle, themed.subSectionTitle]}>{t('componentsOrganizer.step2.physicalLocationTitle')}</Text>
+
+          {/* Lieu enregistré : remplit les champs ci-dessous d'un coup. Il ne
+              les verrouille pas — l'organisateur peut préciser « Salle B »
+              juste après. Ne s'affiche pas si aucun lieu n'est enregistré. */}
+          <VenuePicker
+            onSelect={(venue) => {
+              onLocationNameChange(venue.name || '');
+              if (venue.address) onLocationAddressChange(venue.address);
+              if (venue.city_label) onLocationCityChange(venue.city_label);
+            }}
+          />
           <View style={styles.inputGroup}>
             <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step2.venueNameLabel')}</Text>
             <TextInput

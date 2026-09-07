@@ -462,3 +462,20 @@ export const utmAPI = {
   getStats: (eventId: string) =>
     api.get('/utm/stats/', { params: { event_id: eventId } }),
 };
+
+/**
+ * Lieux réutilisables (organisateur).
+ *
+ * Évite de ressaisir la même adresse à chaque événement — sur un téléphone,
+ * c'est encore plus pénible que sur un ordinateur. Un lieu est PRIVÉ à son
+ * propriétaire : il n'y a pas de répertoire partagé.
+ */
+export const venuesAPI = {
+  getAll: (params?: any) => api.get('/venues/', { params }),
+  getById: (id: string) => api.get(`/venues/${id}/`),
+  create: (data: any) => api.post('/venues/', data),
+  update: (id: string, data: any) => api.patch(`/venues/${id}/`, data),
+  remove: (id: string) => api.delete(`/venues/${id}/`),
+  /** Événements PUBLIÉS à ce lieu — ce qui donne sa valeur à une fiche. */
+  getEvents: (id: string) => api.get(`/venues/${id}/events/`),
+};
