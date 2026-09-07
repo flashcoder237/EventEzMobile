@@ -2647,7 +2647,11 @@ export default function ConversationScreen() {
       setPendingVoiceDuration(0);
     }
 
-    const messageContent = state.newMessage.trim();
+    // Lit le REF (synchrone) et non state.newMessage : au moment de l'envoi, la
+    // derniere frappe peut ne pas encore etre committee dans le state (course
+    // IME Android). newMessageRef.current est toujours a jour → plus de mot
+    // manquant. Repli sur state.newMessage par prudence.
+    const messageContent = (newMessageRef.current || state.newMessage).trim();
     const hasContent = messageContent.length > 0 || effectiveFiles.length > 0;
     if (!hasContent) return;
 
@@ -2684,6 +2688,10 @@ export default function ConversationScreen() {
 
     const isEditing = !!state.editingMessage;
 
+    // Vide le ref immediatement (l'effet sur state.newMessage le ferait aussi au
+    // prochain render, mais on evite toute fenetre de re-lecture du contenu deja
+    // envoye).
+    newMessageRef.current = '';
     actions.setNewMessage('');
     actions.setSending(true);
     // Suppression immediate du brouillon (pas seulement apres succes du send) :
@@ -4165,6 +4173,13 @@ export default function ConversationScreen() {
               value={state.newMessage}
               focusSignal={composerFocusSignal}
               onChangeText={(text) => {
+                // Ref mise a jour SYNCHRONE (avant le setState async) : handleSend
+                // lit newMessageRef.current, pas state.newMessage. Sans ca, taper
+                // « Envoyer » pendant que la composition IME du dernier mot n'est
+                // pas encore committee dans le state React envoyait un message
+                // ampute (« un autre test » -> « un autre »). Le ref capture la
+                // derniere frappe immediatement.
+                newMessageRef.current = text;
                 // La sauvegarde du brouillon est pilotee par l'effet sur
                 // `state.newMessage` : elle couvre ainsi TOUS les chemins qui
                 // modifient le champ, pas seulement la frappe.

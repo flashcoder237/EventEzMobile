@@ -242,9 +242,29 @@ function messageReducer(state: MessageState, action: MessageAction): MessageStat
       const targetId = String(action.payload.id);
       return {
         ...state,
-        messages: state.messages.map(m =>
-          String(m.id) === targetId ? { ...m, ...action.payload.updates } : m
-        ),
+        messages: state.messages.map(m => {
+          if (String(m.id) !== targetId) return m;
+          const updates = action.payload.updates as any;
+          // Réconciliation optimiste same-device (onMessageSent WS + REST) : le
+          // message serveur REMPLACE le message temp, y compris ses attachments
+          // dont l'URL serveur est souvent RELATIVE (/media/…) et pas encore en
+          // cache → cadre blanc jusqu'au reload. On préserve l'URI locale
+          // (file://) déjà rendue comme `file` affiché et on range l'URL serveur
+          // dans `_server_file` (même logique que ADD_MESSAGE ci-dessus).
+          const incomingAtts = updates?.attachments;
+          if (Array.isArray(incomingAtts) && incomingAtts.length > 0) {
+            const tempAtts: any[] = (m as any).attachments || [];
+            const merged = incomingAtts.map((real: any, idx: number) => {
+              const localUri = tempAtts[idx]?.file;
+              if (typeof localUri === 'string' && localUri.startsWith('file://')) {
+                return { ...real, file: localUri, _server_file: real.file };
+              }
+              return real;
+            });
+            return { ...m, ...updates, attachments: merged };
+          }
+          return { ...m, ...updates };
+        }),
       };
     }
 

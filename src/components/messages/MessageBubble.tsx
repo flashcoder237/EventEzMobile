@@ -33,6 +33,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { useTranslation } from 'react-i18next';
+import { getMediaUrl } from '../../api';
 import { Message } from '../../types';
 import {
   Colors,
@@ -892,6 +893,18 @@ function MessageBubble({
       // en cours d'upload = locale). On affiche le LQIP + overlay.
       const attId = String(attachment.id || index);
       const gateImage = isSlowCellular && !isUploading && !manuallyLoadedImages.has(attId);
+      // Source de l'image, robuste à la réconciliation optimiste :
+      //  1. URI locale (file://…) si présente → déjà rendue, aucun re-download
+      //     ni cadre blanc à l'envoi (le merge same-device conserve `file` local
+      //     et range l'URL serveur dans `_server_file`).
+      //  2. sinon l'URL serveur normalisée via getMediaUrl : le WS renvoie un
+      //     chemin RELATIF (/media/…) qu'expo-image ne sait pas résoudre → sans
+      //     ça, cadre blanc jusqu'au reload. getMediaUrl préfixe le host.
+      const rawFile: string | undefined = attachment.file || undefined;
+      const isLocalUri = typeof rawFile === 'string' && rawFile.startsWith('file://');
+      const imageSource = isLocalUri
+        ? rawFile
+        : (getMediaUrl(rawFile) || getMediaUrl(attachment._server_file) || rawFile);
       return (
         <TouchableOpacity
           key={attachment.id || index}
@@ -919,7 +932,7 @@ function MessageBubble({
           <Image
             // En mode gate, on ne fournit PAS `source` (plein format) → seul le
             // placeholder LQIP s'affiche, aucune data consommée.
-            source={gateImage ? undefined : attachment.file}
+            source={gateImage ? undefined : imageSource}
             style={[styles.imageAttachmentWhatsApp, { backgroundColor: colors.gray100 }]}
             contentFit="cover"
             cachePolicy="memory-disk"

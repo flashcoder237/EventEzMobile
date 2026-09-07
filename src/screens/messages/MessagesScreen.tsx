@@ -116,7 +116,12 @@ const ConversationCard = memo(function ConversationCard({
   // placeholder initiales.
   const groupAvatar = getMediaUrl((conversation as any).avatar);
   const directAvatar = getMediaUrl(otherUser?.profile_picture || (otherUser as any)?.image);
-  const avatar = groupAvatar || directAvatar;
+  // Garde par TYPE : une conversation groupe/event porte l'identité de
+  // l'événement (avatar dérivé du banner, désormais fourni en secours par le
+  // backend), JAMAIS la photo d'un participant. Sans cette garde, un event sans
+  // avatar retombait sur `directAvatar` = la tête d'un invité. Si l'avatar
+  // event manque encore, on laisse tomber sur les initiales du groupe.
+  const avatar = isGroupOrEvent ? groupAvatar : (directAvatar || groupAvatar);
   const initials = getUserInitials(displayName);
   const hasUnread = conversation.unread_count > 0;
 
