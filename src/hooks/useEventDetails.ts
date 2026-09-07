@@ -175,9 +175,22 @@ export function useEventDetails(
 
   const fetchUserRegistration = async (uuid: string) => {
     try {
-      const response = await registrationsAPI.getRegistrations({ event: uuid, page_size: 1 });
+      // FILTRE PAR USER OBLIGATOIRE : pour un ORGANISATEUR, l'endpoint renvoie
+      // TOUTES les inscriptions de ses events (les participants) en plus des
+      // siennes. Sans `user=<moi>`, on prenait par erreur l'inscription d'un
+      // PARTICIPANT → « Mon inscription » fantôme sur son propre event.
+      const params: Record<string, any> = { event: uuid };
+      if (user?.id) params.user = user.id;
+      const response = await registrationsAPI.getRegistrations(params);
       const registrations = response.data?.results || response.data || [];
-      const registration = registrations.find((r: Registration) => r.status !== 'cancelled');
+      // Garde client : ne garder QUE mes inscriptions non annulées (défense en
+      // profondeur si le backend ignorait le filtre user).
+      const myId = String(user?.id ?? '');
+      const registration = registrations.find((r: Registration) => {
+        if (r.status === 'cancelled') return false;
+        const regUserId = String((r as any).user?.id ?? (r as any).user ?? '');
+        return !myId || regUserId === myId;
+      });
       setUserRegistration(registration || null);
     } catch (error) {
       if (__DEV__) console.log('No registration found for this event');
