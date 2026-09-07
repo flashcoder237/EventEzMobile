@@ -7559,6 +7559,7 @@
     "liveBannerA11y": "{{title}} is live, tap to join",
     "seeAll": "View",
     "liveMultiTitle": "{{count}} events in progress",
-    "liveBannerMultiA11y": "{{count}} live events, tap for the list"
+    "liveBannerMultiA11y": "{{count}} live events, tap for the list",
+    "resizeBubble": "Resize"
   }
 }

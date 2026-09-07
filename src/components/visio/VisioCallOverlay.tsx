@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,10 @@ import {
   Animated,
   PanResponder,
   Platform,
+  AppState,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -20,20 +21,21 @@ import { FontFamily, FontSizes, Spacing } from '../../constants/theme';
 import { enterPip, isPipSupported } from '../../../modules/eventez-pip/src';
 
 /**
- * Overlay VISIO PERSISTANT — monté UNE fois à la racine (sibling de
- * RootNavigator), au-dessus de toute la navigation. Rend une SEULE WebView Jitsi
- * qui SURVIT à la navigation (l'appel ne se coupe plus quand on change d'écran).
+ * Overlay VISIO PERSISTANT — monté UNE fois à la racine. Rend UNE SEULE WebView
+ * Jitsi qui SURVIT à la navigation ET au passage plein-écran ↔ bulle.
  *
- * Deux modes (VisioCallContext) :
- *  - fullscreen : plein écran avec header + bouton réduire/raccrocher.
- *  - bubble     : vignette flottante draggable ; tap = repasser en plein écran.
+ * ⚠️ POINT CRITIQUE : la WebView doit rester le MÊME nœud React (même position
+ * dans l'arbre) dans les deux modes. Si on la place dans deux `return`
+ * différents, React la DÉMONTE/REMONTE → elle se recharge → on SORT et RE-ENTRE
+ * dans la réunion (bug signalé). Ici : un SEUL arbre, seul le style du conteneur
+ * change ; les contrôles se superposent conditionnellement.
  *
- * La WebView reste MONTÉE dans les deux modes → le flux WebRTC continue.
+ * Deux tailles de bulle (petite / grande) — l'utilisateur peut agrandir.
  */
 
-const BUBBLE_W = 120;
-const BUBBLE_H = 160;
 const MARGIN = 12;
+const BUBBLE_SMALL = { w: 120, h: 160 };
+const BUBBLE_LARGE = { w: 190, h: 250 };
 
 export default function VisioCallOverlay() {
   const { call, endCall, minimize, maximize } = useVisioCall();
@@ -42,33 +44,30 @@ export default function VisioCallOverlay() {
   const insets = useSafeAreaInsets();
   const webViewRef = useRef<WebView>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [bubbleLarge, setBubbleLarge] = useState(false);
 
-  // Position de la bulle (coin bas-droit par défaut).
   const screen = Dimensions.get('window');
+  const bubbleSize = bubbleLarge ? BUBBLE_LARGE : BUBBLE_SMALL;
   const pan = useRef(
     new Animated.ValueXY({
-      x: screen.width - BUBBLE_W - MARGIN,
-      y: screen.height - BUBBLE_H - MARGIN - 80,
+      x: screen.width - BUBBLE_SMALL.w - MARGIN,
+      y: screen.height - BUBBLE_SMALL.h - MARGIN - 80,
     }),
   ).current;
 
-  // Réinitialise le loader à chaque nouvel appel.
   useEffect(() => {
     if (call?.url) setIsLoading(true);
   }, [call?.url]);
 
-  // Filet anti-spinner-infini (SPA Jitsi : onLoadEnd non fiable).
   useEffect(() => {
     if (!call || !isLoading) return;
     const timer = setTimeout(() => setIsLoading(false), 6000);
     return () => clearTimeout(timer);
   }, [call, isLoading]);
 
-  // PiP Android : si l'app part en arrière-plan pendant un appel, on passe en
-  // fenêtre système flottante (le module eventez-pip reste utile).
+  // PiP système Android quand l'app part en arrière-plan pendant un appel.
   useEffect(() => {
     if (!call) return;
-    const { AppState } = require('react-native');
     const onChange = (state: string) => {
       if ((state === 'inactive' || state === 'background') && isPipSupported()) {
         enterPip();
@@ -78,70 +77,119 @@ export default function VisioCallOverlay() {
     return () => sub.remove();
   }, [call]);
 
-  const panResponder = useRef(
-    PanResponder.create({
+  const panResponder = useMemo(
+    () => PanResponder.create({
       onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 4 || Math.abs(g.dy) > 4,
-      onPanResponderGrant: () => {
-        pan.extractOffset();
-      },
-      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
-        useNativeDriver: false,
-      }),
-      onPanResponderRelease: () => {
-        pan.flattenOffset();
-      },
+      onPanResponderGrant: () => { pan.extractOffset(); },
+      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false }),
+      onPanResponderRelease: () => { pan.flattenOffset(); },
     }),
-  ).current;
+    [pan],
+  );
 
   if (!call) return null;
 
   const isBubble = call.mode === 'bubble';
 
-  // ── La WebView (identique dans les deux modes → JAMAIS démontée) ──────────
-  const webview = (
-    <WebView
-      ref={webViewRef}
-      source={{ uri: call.url }}
-      style={{ flex: 1, backgroundColor: '#000' }}
-      onLoadEnd={() => setIsLoading(false)}
-      onError={() => setIsLoading(false)}
-      onRenderProcessGone={() => setIsLoading(false)}
-      allowsInlineMediaPlayback
-      mediaPlaybackRequiresUserAction={false}
-      mediaCapturePermissionGrantType="grant"
-      domStorageEnabled
-      javaScriptEnabled
-      originWhitelist={['*']}
-      setSupportMultipleWindows={false}
-      mixedContentMode="always"
-      sharedCookiesEnabled
-    />
-  );
+  // ── Conteneur : plein écran OU bulle flottante (MÊME arbre) ────────────────
+  // fullscreen → View absolu plein écran. bubble → Animated.View draggable.
+  // La WebView est le MÊME nœud dans les deux → jamais rechargée.
+  const containerStyle = isBubble
+    ? [
+        styles.bubbleContainer,
+        { width: bubbleSize.w, height: bubbleSize.h, borderColor: colors.primary },
+        { transform: pan.getTranslateTransform() },
+      ]
+    : styles.fullContainer;
 
-  // ── MODE BULLE ────────────────────────────────────────────────────────────
-  if (isBubble) {
-    return (
-      <Animated.View
-        style={[
-          styles.bubble,
-          {
-            transform: pan.getTranslateTransform(),
-            borderColor: colors.primary,
-          },
-        ]}
-        {...panResponder.panHandlers}
+  // TOUJOURS Animated.View (jamais alterner le TYPE de composant : un View→
+  // Animated.View remonterait tout l'arbre, WebView incluse → rechargement/
+  // sortie de réunion). Les panHandlers ne sont actifs qu'en mode bulle.
+  const containerProps = isBubble ? panResponder.panHandlers : {};
+
+  return (
+    <Animated.View style={containerStyle} {...containerProps}>
+      {/* Zone WebView (position stable). En bulle : tap = agrandir en plein écran. */}
+      <TouchableOpacity
+        activeOpacity={1}
+        disabled={!isBubble}
+        onPress={isBubble ? maximize : undefined}
+        style={styles.webviewZone}
       >
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.bubbleTapZone}
-          onPress={maximize}
-          accessibilityRole="button"
-          accessibilityLabel={t('visio.expandCall', { defaultValue: 'Agrandir la visio' })}
-        >
-          <View style={styles.bubbleWebviewWrap} pointerEvents="none">
-            {webview}
+        <View style={styles.webviewWrap} pointerEvents={isBubble ? 'none' : 'auto'}>
+          <WebView
+            ref={webViewRef}
+            source={{ uri: call.url }}
+            style={{ flex: 1, backgroundColor: '#000' }}
+            onLoadEnd={() => setIsLoading(false)}
+            onError={() => setIsLoading(false)}
+            onRenderProcessGone={() => setIsLoading(false)}
+            allowsInlineMediaPlayback
+            mediaPlaybackRequiresUserAction={false}
+            mediaCapturePermissionGrantType="grant"
+            domStorageEnabled
+            javaScriptEnabled
+            originWhitelist={['*']}
+            setSupportMultipleWindows={false}
+            mixedContentMode="always"
+            sharedCookiesEnabled
+          />
+          {isLoading && !isBubble && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+
+      {/* ── Contrôles PLEIN ÉCRAN (superposés, pas de re-render de la WebView) ── */}
+      {!isBubble && (
+        <>
+          <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? insets.top : insets.top }]} pointerEvents="box-none">
+            <TouchableOpacity
+              onPress={minimize}
+              style={styles.headerBtn}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={t('visio.minimize', { defaultValue: 'Réduire' })}
+            >
+              <Ionicons name="chevron-down" size={24} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {call.title || t('componentsCommon.webviewVisioTitle', { defaultValue: 'Visioconférence' })}
+            </Text>
+            <TouchableOpacity
+              onPress={endCall}
+              style={[styles.headerBtn, styles.hangupBtn]}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={t('visio.endCall', { defaultValue: 'Raccrocher' })}
+            >
+              <Ionicons name="call" size={18} color="#fff" style={{ transform: [{ rotate: '135deg' }] }} />
+            </TouchableOpacity>
           </View>
-          {/* Bouton raccrocher sur la bulle */}
+
+          {call.recordingNotice ? (
+            <View style={[styles.recordingNotice, { top: insets.top + 52 }]} pointerEvents="none">
+              <Ionicons name="radio-button-on" size={12} color="#FF6B6B" />
+              <Text style={styles.recordingNoticeText} numberOfLines={2}>{call.recordingNotice}</Text>
+            </View>
+          ) : null}
+        </>
+      )}
+
+      {/* ── Contrôles BULLE (agrandir la bulle / raccrocher) ── */}
+      {isBubble && (
+        <>
+          <TouchableOpacity
+            style={styles.bubbleResize}
+            onPress={() => setBubbleLarge(v => !v)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={t('visio.resizeBubble', { defaultValue: 'Redimensionner' })}
+          >
+            <Ionicons name={bubbleLarge ? 'contract' : 'expand'} size={12} color="#fff" />
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.bubbleHangup}
             onPress={endCall}
@@ -151,114 +199,59 @@ export default function VisioCallOverlay() {
           >
             <Ionicons name="close" size={14} color="#fff" />
           </TouchableOpacity>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  }
-
-  // ── MODE PLEIN ÉCRAN ──────────────────────────────────────────────────────
-  return (
-    <View style={StyleSheet.absoluteFill}>
-      <SafeAreaView style={[styles.fullContainer, { backgroundColor: '#000' }]} edges={['top']}>
-        <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? insets.top : 0 }]}>
-          <TouchableOpacity
-            onPress={minimize}
-            style={styles.headerBtn}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel={t('visio.minimize', { defaultValue: 'Réduire' })}
-          >
-            <Ionicons name="chevron-down" size={24} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {call.title || t('componentsCommon.webviewVisioTitle', { defaultValue: 'Visioconférence' })}
-          </Text>
-          <TouchableOpacity
-            onPress={endCall}
-            style={[styles.headerBtn, styles.hangupBtn]}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel={t('visio.endCall', { defaultValue: 'Raccrocher' })}
-          >
-            <Ionicons name="call" size={18} color="#fff" style={{ transform: [{ rotate: '135deg' }] }} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Notice RGPD d'enregistrement (fournie par event_join). */}
-        {call.recordingNotice ? (
-          <View style={styles.recordingNotice}>
-            <Ionicons name="radio-button-on" size={12} color="#FF6B6B" />
-            <Text style={styles.recordingNoticeText} numberOfLines={2}>
-              {call.recordingNotice}
-            </Text>
-          </View>
-        ) : null}
-
-        <View style={{ flex: 1 }}>
-          {webview}
-          {isLoading && (
-            <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-          )}
-        </View>
-      </SafeAreaView>
-    </View>
+        </>
+      )}
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  fullContainer: { flex: 1 },
+  fullContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000',
+    zIndex: 9999,
+  },
+  webviewZone: { flex: 1 },
+  webviewWrap: { flex: 1 },
   header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    backgroundColor: 'rgba(0,0,0,0.85)',
+    paddingBottom: Spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.55)',
     gap: Spacing.sm,
+    zIndex: 2,
   },
   headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
   },
-  hangupBtn: {
-    backgroundColor: '#EF4444',
-  },
+  hangupBtn: { backgroundColor: '#EF4444' },
   headerTitle: {
-    flex: 1,
-    color: '#fff',
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.sm,
-    textAlign: 'center',
+    flex: 1, color: '#fff',
+    fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm, textAlign: 'center',
   },
   recordingNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(255,107,107,0.15)',
+    position: 'absolute',
+    left: Spacing.md, right: Spacing.md,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: Spacing.md, paddingVertical: 6,
+    backgroundColor: 'rgba(239,68,68,0.28)',
+    borderRadius: 8,
+    zIndex: 2,
   },
-  recordingNoticeText: {
-    flex: 1,
-    color: '#fff',
-    fontFamily: FontFamily.regular,
-    fontSize: 11,
-  },
+  recordingNoticeText: { flex: 1, color: '#fff', fontFamily: FontFamily.regular, fontSize: 11 },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#000',
+    alignItems: 'center', justifyContent: 'center', backgroundColor: '#000',
   },
   // Bulle flottante
-  bubble: {
+  bubbleContainer: {
     position: 'absolute',
-    width: BUBBLE_W,
-    height: BUBBLE_H,
     borderRadius: 16,
     borderWidth: 2,
     overflow: 'hidden',
@@ -270,17 +263,20 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     zIndex: 9999,
   },
-  bubbleTapZone: { flex: 1 },
-  bubbleWebviewWrap: { flex: 1 },
   bubbleHangup: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    top: 4, right: 4,
+    width: 24, height: 24, borderRadius: 12,
     backgroundColor: 'rgba(239,68,68,0.95)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
+    zIndex: 3,
+  },
+  bubbleResize: {
+    position: 'absolute',
+    top: 4, left: 4,
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center', justifyContent: 'center',
+    zIndex: 3,
   },
 });

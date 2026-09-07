@@ -7559,6 +7559,7 @@
     "liveBannerA11y": "{{title}} est en direct, appuyer pour rejoindre",
     "seeAll": "Voir",
     "liveMultiTitle": "{{count}} événements en cours",
-    "liveBannerMultiA11y": "{{count}} événements en direct, appuyer pour la liste"
+    "liveBannerMultiA11y": "{{count}} événements en direct, appuyer pour la liste",
+    "resizeBubble": "Redimensionner"
   }
 }
