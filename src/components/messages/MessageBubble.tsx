@@ -1529,6 +1529,18 @@ const styles = StyleSheet.create({
   bubble: {
     padding: Spacing.md,
     borderRadius: BorderRadius.lg,
+    // La contrainte de largeur doit descendre JUSQU'AU TEXTE.
+    // `flexShrink: 1` posé seulement sur `bubbleContainer` ne suffisait
+    // pas : le conteneur rétrécissait bien, mais cette View-ci gardait sa
+    // largeur « idéale » de contenu et débordait — le dernier mot était
+    // rogné au bord de l'écran (« Connectez-vous » affiché « Connectez »)
+    // alors que le contenu stocké est complet (le copier/coller le
+    // prouve : il restitue tout le message).
+    flexShrink: 1,
+    // `minWidth: 0` lève la taille minimale automatique du contenu flex :
+    // sans lui, un mot long empêche tout rétrécissement, et `flexShrink`
+    // reste sans effet.
+    minWidth: 0,
   },
   bubbleOther: {
     backgroundColor: Colors.white,
@@ -1612,6 +1624,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 4,
     marginTop: 4,
+    // L'horodatage occupe sa propre ligne : il ne doit pas imposer sa
+    // largeur à la bulle, sinon un message court est étiré et un message
+    // long est mesuré sur cette base plutôt que sur la place disponible.
+    alignSelf: 'flex-end',
   },
   timeRowOverlay: {
     // Sur image only : positionner en absolu en bas-droite avec un fond
@@ -1634,6 +1650,9 @@ const styles = StyleSheet.create({
 
   // Message Text
   messageText: {
+    // Idem : sans `flexShrink`, le Text impose sa largeur de contenu à la
+    // bulle et le wrap ne se déclenche jamais.
+    flexShrink: 1,
     // Corps de message = surface de lecture PRINCIPALE de l'app. base (ms(15)
     // ≈12.5px après shrink 0.83) était jugé trop petit par les 3 juges (esthète,
     // senior, a11y). lg (ms(17) ≈14px) rapproche du standard messagerie sans
