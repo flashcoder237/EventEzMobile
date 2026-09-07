@@ -3,6 +3,11 @@
 Texte « Nouveautés de cette version » pour l'App Store / Play Store.
 Ton : sobre / professionnel. À coller tel quel dans le champ dédié, par langue.
 
+> 🗄️ **ARCHIVE — ne pas publier.** Cette version a été préparée mais jamais
+> publiée : son contenu n'a atteint aucun utilisateur. Il est repris dans
+> `RELEASE_NOTES_1.3.0.md`, qui est la note à utiliser pour la mise en ligne.
+> Ce fichier est conservé comme trace de travail.
+
 > ⚠️ **Version en préparation — à compléter au fil de l'eau.**
 > Toute modification livrée AVANT la publication s'ajoute ici, dans « Notes
 > internes ». Le texte store est rédigé en dernier, à partir de cette liste :
