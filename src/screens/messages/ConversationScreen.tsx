@@ -60,7 +60,6 @@ import ImageView from 'react-native-image-viewing';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { downloadThenSaveToGallery } from '../../lib/media/mediaActions';
-import { hasUntouchedTemplate } from '../../lib/messaging/quickReplyGuard';
 import { useMessageState, AttachedFile } from '../../hooks/useMessageState';
 import { useOutboxUI } from '../../hooks/useOutboxUI';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
@@ -169,9 +168,10 @@ export default function ConversationScreen() {
   const { t, i18n } = useTranslation();
   const dateLocale = i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR';
 
-  // Reponses rapides de l'organisateur. Source UNIQUE : la bande de puces et
-  // le garde anti-envoi d'amorce incomplete lisent la meme liste, sinon
-  // ajouter une puce ouvrirait un trou dans le garde sans qu'on le voie.
+  // Reponses rapides de l'organisateur : amorces de reponses recurrentes,
+  // inserees dans le champ pour etre completees (le clavier s'ouvre dans la
+  // foulee). Rien n'est impose — l'organisateur reste libre d'envoyer,
+  // modifier ou effacer ce qu'il veut.
   const QUICK_REPLIES = useMemo(() => ([
     { key: 'address', icon: 'location-outline' as const, label: t('conversation.quickReplyAddress'), tpl: t('conversation.quickReplyAddressTpl') },
     { key: 'schedule', icon: 'time-outline' as const, label: t('conversation.quickReplySchedule'), tpl: t('conversation.quickReplyScheduleTpl') },
@@ -180,10 +180,6 @@ export default function ConversationScreen() {
     { key: 'parking', icon: 'car-outline' as const, label: t('conversation.quickReplyParking'), tpl: t('conversation.quickReplyParkingTpl') },
     { key: 'thanks', icon: 'heart-outline' as const, label: t('conversation.quickReplyThanks'), tpl: t('conversation.quickReplyThanksTpl') },
   ]), [t]);
-  const QUICK_REPLY_TEMPLATES = useMemo(
-    () => QUICK_REPLIES.map((q) => q.tpl),
-    [QUICK_REPLIES],
-  );
 
   // State centralisé
   const { state, actions } = useMessageState(initialConversationId, userName);
@@ -2655,24 +2651,14 @@ export default function ConversationScreen() {
     const hasContent = messageContent.length > 0 || effectiveFiles.length > 0;
     if (!hasContent) return;
 
-    // Les reponses rapides posent une AMORCE a completer (« 📍 Adresse : »),
-    // pas un message fini. Rien ne le disait : on appuyait, ca remplissait le
-    // champ, on envoyait — et la discussion de l'evenement recevait une
-    // phrase inachevee, visible de tous les participants.
-    // On ne bloque QUE les amorces reellement issues des puces (comparees
-    // aux gabarits), jamais un message de l'utilisateur qui finirait par
-    // « : » de son propre chef. Une piece jointe vaut completion : « Voici
-    // le programme : » + un PDF est un message parfaitement valide.
-    if (
-      !effectiveFiles.length
-      && hasUntouchedTemplate(messageContent, QUICK_REPLY_TEMPLATES)
-    ) {
-      showError(
-        t('conversation.incompleteTemplateTitle'),
-        t('conversation.incompleteTemplateMessage'),
-      );
-      return;
-    }
+    // NOTE : aucun garde ici sur les reponses rapides restees incompletes.
+    // Elles posent une amorce (« 📍 Adresse : ») et il est tentant de
+    // refuser l'envoi tant qu'elle n'est pas completee — mais ce serait
+    // decider a la place de l'organisateur qu'il s'est trompe. Il peut
+    // vouloir annoncer « Adresse : » puis l'adresse juste apres, ou coller
+    // quelque chose dans la foulee. On l'AIDE (le clavier s'ouvre des
+    // l'insertion, curseur pret a ecrire) sans jamais l'empecher d'ecrire
+    // ce qu'il veut.
 
     // Lecture seule : on bloque l'envoi (filet de sécurité, l'UI désactive déjà
     // visuellement le toolbar).

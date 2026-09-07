@@ -4141,9 +4141,7 @@
     "tapToLoadImage": "Appuyer pour charger",
     "reply": "Répondre",
     "react": "Réagir",
-    "reactionToggleA11y": "Réaction {{emoji}}, {{count}}",
-    "incompleteTemplateTitle": "Message incomplet",
-    "incompleteTemplateMessage": "Cette réponse rapide attend une suite. Complétez-la après les deux-points avant de l'envoyer — les participants ne verraient qu'une phrase inachevée."
+    "reactionToggleA11y": "Réaction {{emoji}}, {{count}}"
   },
   "scanForm": {
     "loading": "Chargement...",
