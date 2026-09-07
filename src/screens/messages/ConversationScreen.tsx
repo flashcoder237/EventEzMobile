@@ -203,6 +203,9 @@ export default function ConversationScreen() {
   const currentPlayerMsgIdRef = useRef<string | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const draftSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Verrou d'envoi SYNCHRONE : `state.sending` ne devient vrai qu'au
+  // rendu suivant, trop tard pour bloquer un second appui immediat.
+  const sendLockRef = useRef(false);
   // Le brouillon n'est restaure qu'UNE fois par conversation. Sans ce garde,
   // un rejeu de l'effet (changement de conversationId, remontage) ecrase ce
   // que l'utilisateur est en train d'ecrire par un ancien brouillon.
@@ -210,6 +213,15 @@ export default function ConversationScreen() {
   // Miroir synchrone du champ de saisie, lisible depuis une callback async
   // sans dependre d'une closure perimee.
   const newMessageRef = useRef('');
+
+  // Ecrit le champ de saisie. Passe TOUJOURS par ici : la ref est la
+  // source synchrone lue par l'envoi, l'etat React n'est qu'un miroir
+  // pour le rendu. Les mettre a jour separement laissait la ref en
+  // retard d'un rendu — et le message partait ampute.
+  const writeMessage = useCallback((text: string) => {
+    newMessageRef.current = text;
+    actions.setNewMessage(text);
+  }, [actions]);
   // Incremente a chaque insertion de reponse rapide : ouvre le clavier pour
   // que l'organisateur complete l'amorce au lieu de l'envoyer telle quelle.
   const [composerFocusSignal, setComposerFocusSignal] = useState(0);
@@ -528,7 +540,12 @@ export default function ConversationScreen() {
   // visible : apres envoi, le champ etait bien vide en memoire mais le
   // brouillon restait en base et reapparaissait au retour sur l'ecran.
   useEffect(() => {
-    newMessageRef.current = state.newMessage;
+    // NE PAS reassigner `newMessageRef` ici. Cet effet s'execute APRES le
+    // rendu : y recopier `state.newMessage` ecrasait la valeur synchrone
+    // posee par `onChangeText`, et rendait le message ampute quand on
+    // envoyait avant que la composition du dernier mot soit committee
+    // (« Connectez-vous » -> « Connectez »).
+    // La ref est la source SYNCHRONE ; l'etat React n'est qu'un miroir.
     const convId = state.conversationId;
     if (!convId) return;
 
@@ -573,7 +590,7 @@ export default function ConversationScreen() {
             // appuyer sur une puce de reponse rapide) avant qu'elle
             // n'aboutisse. On ne remplace jamais un champ deja rempli.
             if (!newMessageRef.current.trim()) {
-              actions.setNewMessage(text);
+              writeMessage(text);
             }
           } else {
             // Brouillon expire — on nettoie pour ne pas le refaire apparaitre
@@ -582,7 +599,7 @@ export default function ConversationScreen() {
         } else {
           // Legacy (sans timestamp) : restaure mais re-sauvegarde avec ts pour
           // que la prochaine fois le TTL s'applique
-          actions.setNewMessage(raw);
+          writeMessage(raw);
           AsyncStorage.setItem(`draft:${convId}`, `${Date.now()}|${raw}`).catch(() => {});
         }
       })
@@ -2605,7 +2622,22 @@ export default function ConversationScreen() {
   // ============================================
 
   const handleSend = async () => {
-    if (state.sending) return;
+    // VERROU SYNCHRONE, et pas seulement `state.sending`.
+    // `state.sending` est un etat React : il n'est vrai qu'apres le rendu
+    // suivant, et `setSending(true)` n'arrive qu'apres toute la preparation
+    // (fichiers, voix, validations). Deux appuis rapproches — ou un double
+    // tap involontaire — passaient donc TOUS LES DEUX cette garde et
+    // produisaient deux messages identiques.
+    if (sendLockRef.current || state.sending) return;
+    sendLockRef.current = true;
+    try {
+      await performSend();
+    } finally {
+      sendLockRef.current = false;
+    }
+  };
+
+  const performSend = async () => {
 
     // Annule immediatement tout setTimeout de sauvegarde de brouillon. Sans
     // ce garde, l'envoi peut se finir en ~200ms (WS) puis le timer T+500
@@ -2692,7 +2724,7 @@ export default function ConversationScreen() {
     // prochain render, mais on evite toute fenetre de re-lecture du contenu deja
     // envoye).
     newMessageRef.current = '';
-    actions.setNewMessage('');
+    writeMessage('');
     actions.setSending(true);
     // Suppression immediate du brouillon (pas seulement apres succes du send) :
     // si l'user navigue away avant la fin du await, le draft est deja parti.
@@ -3176,7 +3208,7 @@ export default function ConversationScreen() {
         };
         const entry = reasonI18nMap[reason];
         if (entry) {
-          actions.setNewMessage(messageContent);
+          writeMessage(messageContent);
           if (entry.cleanupCTA) {
             // CTA "Faire du menage" : proposer de supprimer la conv ou des messages
             showAlert(
@@ -3228,11 +3260,11 @@ export default function ConversationScreen() {
             t('conversation.pendingMessageMessage'),
           );
         } catch {
-          actions.setNewMessage(messageContent);
+          writeMessage(messageContent);
           showError(t('common.error'), t('conversation.sendError'));
         }
       } else {
-        actions.setNewMessage(messageContent);
+        writeMessage(messageContent);
         showError(t('common.error'), t('conversation.sendError'));
         // Échec alors qu'on est CONNECTÉ (pas d'enqueue outbox) : la bulle a été
         // retirée du state (removeTempMessages), il faut aussi purger la ligne
@@ -4125,7 +4157,7 @@ export default function ConversationScreen() {
                       // la discussion recevait « 📍 Adresse : » sans adresse.
                       const current = state.newMessage.trim();
                       const next = current ? `${current}\n${tpl.tpl}` : tpl.tpl;
-                      actions.setNewMessage(next);
+                      writeMessage(next);
                       setComposerFocusSignal((n) => n + 1);
                     }}
                     activeOpacity={0.75}
@@ -4183,7 +4215,7 @@ export default function ConversationScreen() {
                 // La sauvegarde du brouillon est pilotee par l'effet sur
                 // `state.newMessage` : elle couvre ainsi TOUS les chemins qui
                 // modifient le champ, pas seulement la frappe.
-                actions.setNewMessage(text);
+                writeMessage(text);
                 handleTyping();
               }}
               onSend={handleSend}
