@@ -80,6 +80,19 @@ export default function WebViewScreen() {
     webViewRef.current?.reload();
   }, []);
 
+  // FILET DE SÉCURITÉ (visio) : l'overlay opaque du loader est retiré par
+  // onLoadEnd — mais Jitsi est une SPA dont onLoadEnd ne reflète pas l'état réel
+  // (il peut ne jamais se déclencher après le lazy-load de lib-jitsi-meet). Sans
+  // ce timeout, l'utilisateur reste devant un écran blanc + spinner alors qu'il
+  // est DÉJÀ connecté (les autres le voient). On désarme le loader après un
+  // délai borné : Jitsi peint sa propre UI, donc masquer l'overlay révèle la
+  // salle. Réarmé à chaque tentative.
+  useEffect(() => {
+    if (!isVisio || !isLoading || hasError) return;
+    const timer = setTimeout(() => setIsLoading(false), 6000);
+    return () => clearTimeout(timer);
+  }, [isVisio, isLoading, hasError, attempt]);
+
   /**
    * Reconnexion AUTOMATIQUE apres une coupure en visio.
    *
@@ -167,6 +180,10 @@ export default function WebViewScreen() {
         onLoadEnd={() => setIsLoading(false)}
         onError={() => { setIsLoading(false); setHasError(true); }}
         onHttpError={() => { setIsLoading(false); setHasError(true); }}
+        // Android : si le process WebView crashe (Jitsi/WebRTC est lourd), sans
+        // ce handler le crash passe SILENCIEUX → overlay figé. On bascule en
+        // erreur (retry possible) au lieu d'un écran blanc éternel.
+        onRenderProcessGone={() => { setIsLoading(false); setHasError(true); }}
         onNavigationStateChange={(state) => {
           if (!title && state.title) setPageTitle(state.title);
         }}
@@ -174,13 +191,24 @@ export default function WebViewScreen() {
         sharedCookiesEnabled
         mediaPlaybackRequiresUserAction={false}
         // VISIO en WebView : la caméra/micro doivent être accordés à la page
-        // (Jitsi WebRTC). Sans ça → écran noir / pas de son. iOS :
-        // mediaCapturePermissionGrantType="grant" accorde automatiquement.
-        // Android : react-native-webview accorde de lui-même les permissions
-        // média de la page tant que l'app a CAMERA/RECORD_AUDIO au manifeste
-        // (déclarées dans app.json) — pas de handler à brancher.
+        // (Jitsi WebRTC). Sans ça → écran noir / pas de son.
         allowsInlineMediaPlayback
+        // iOS : accorde automatiquement caméra/micro à la page.
         mediaCapturePermissionGrantType="grant"
+        // Android : le WebChromeClient de react-native-webview 13.15 accorde
+        // lui-même getUserMedia à la page SI l'app a les permissions RUNTIME
+        // CAMERA + RECORD_AUDIO (déclarées app.json ET accordées par l'OS). La
+        // demande de permission runtime doit avoir eu lieu AVANT d'ouvrir la
+        // visio (sinon Jitsi reste bloqué à l'init WebRTC).
+        // Jitsi (SPA) utilise abondamment localStorage : sans domStorageEnabled,
+        // l'app Jitsi échoue à s'initialiser sur Android → écran blanc.
+        domStorageEnabled
+        javaScriptEnabled
+        originWhitelist={['*']}
+        // Jitsi peut tenter d'ouvrir des sous-fenêtres (deep-link/popup) : on
+        // reste dans la même WebView plutôt qu'une fenêtre cible vide.
+        setSupportMultipleWindows={false}
+        mixedContentMode="always"
       />
 
       {/* Connexion lente detectee : prevenir AVANT que le forfait soit

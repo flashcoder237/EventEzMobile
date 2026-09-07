@@ -19,6 +19,7 @@ import { LoadingSpinner } from '../ui/LoadingOverlay';
 import { formatCount } from '../../lib/utils/numberFormatters';
 import { withJwt } from '../../lib/utils/visioUrl';
 import { useLiveStatus } from '../../hooks/useLiveStatus';
+import { useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 
 interface VirtualRoom {
   id: string;
@@ -55,6 +56,9 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
   const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null);
+  // Permissions média (caméra + micro) pour la visio Jitsi en WebView.
+  const [, requestCameraPermission] = useCameraPermissions();
+  const [, requestMicPermission] = useMicrophonePermissions();
   // Statut « en direct » temps réel (bannière + CTA quand c'est en cours).
   const { status: live } = useLiveStatus(eventId, { enabled: true });
 
@@ -114,6 +118,16 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
       const finalUrl = data.provider === 'jaas' && data.token
         ? withJwt(data.url, data.token)
         : data.url;
+
+      // Permissions caméra + micro demandées AVANT d'ouvrir la WebView Jitsi.
+      // Sur Android, le WebChromeClient n'accorde getUserMedia à la page QUE si
+      // l'app a déjà les permissions runtime — sinon Jitsi reste bloqué à l'init
+      // WebRTC (écran blanc). Best-effort : un refus n'empêche pas d'entrer
+      // (participation audio/observateur possible, Jitsi redemande au besoin).
+      try {
+        await requestCameraPermission();
+        await requestMicPermission();
+      } catch { /* noop */ }
 
       navigation.navigate('Browser', { url: finalUrl, roomId: data.room_id });
       fetchVirtualData();
