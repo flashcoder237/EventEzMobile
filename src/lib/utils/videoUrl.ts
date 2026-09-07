@@ -9,6 +9,10 @@ const YOUTUBE_HOSTS = new Set([
   'www.youtube.com',
   'm.youtube.com',
   'youtu.be',
+  // Domaine que NOUS produisons : une URL deja propre (recopiee depuis un
+  // autre evenement) doit rester reconnue.
+  'youtube-nocookie.com',
+  'www.youtube-nocookie.com',
 ]);
 const VIMEO_HOSTS = new Set([
   'vimeo.com',
@@ -32,22 +36,31 @@ export function getEmbedUrl(url: string): string {
     if (host === 'youtu.be') {
       const videoId = parsed.pathname.replace(/^\//, '');
       if (videoId) {
-        return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1`;
+        return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1`;
       }
     }
     if (parsed.pathname === '/watch') {
       const videoId = parsed.searchParams.get('v') || '';
       if (videoId) {
-        return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1`;
+        return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1`;
       }
     }
     if (parsed.pathname.startsWith('/embed/')) {
+      // TROU EVITE : on renvoyait l'URL telle quelle. Un organisateur qui
+      // colle le lien du bouton « Partager > Integrer » de YouTube
+      // contournait donc le domaine sans cookies, et ses visiteurs
+      // recevaient les traceurs. On reecrit le domaine en preservant les
+      // parametres choisis.
+      const videoId = parsed.pathname.split('/embed/')[1]?.split('/')[0] || '';
+      if (videoId) {
+        return `https://www.youtube-nocookie.com/embed/${videoId}${parsed.search}`;
+      }
       return url;
     }
     if (parsed.pathname.startsWith('/shorts/')) {
       const videoId = parsed.pathname.split('/shorts/')[1]?.split('/')[0] || '';
       if (videoId) {
-        return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1`;
+        return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1`;
       }
     }
   }

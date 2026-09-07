@@ -7,17 +7,34 @@ import { getEmbedUrl, isExternalVideoUrl, getVideoProvider } from '../videoUrl';
 
 describe('getEmbedUrl — YouTube', () => {
   it('watch?v=ID → embed', () => {
-    expect(getEmbedUrl('https://www.youtube.com/watch?v=abc123')).toContain('youtube.com/embed/abc123');
+    expect(getEmbedUrl('https://www.youtube.com/watch?v=abc123')).toContain('youtube-nocookie.com/embed/abc123');
   });
   it('youtu.be/ID → embed', () => {
-    expect(getEmbedUrl('https://youtu.be/xyz789')).toContain('youtube.com/embed/xyz789');
+    expect(getEmbedUrl('https://youtu.be/xyz789')).toContain('youtube-nocookie.com/embed/xyz789');
   });
   it('shorts/ID → embed', () => {
-    expect(getEmbedUrl('https://www.youtube.com/shorts/short99')).toContain('youtube.com/embed/short99');
+    expect(getEmbedUrl('https://www.youtube.com/shorts/short99')).toContain('youtube-nocookie.com/embed/short99');
   });
-  it('déjà en /embed/ → renvoyé tel quel', () => {
-    const url = 'https://www.youtube.com/embed/keep1';
-    expect(getEmbedUrl(url)).toBe(url);
+  it('déjà en /embed/ → réécrit sans cookies', () => {
+    // C'est le lien que donne le bouton « Partager > Intégrer » de
+    // YouTube. Renvoyé tel quel, il réintroduisait les traceurs alors que
+    // tous les autres formats en étaient protégés.
+    const out = getEmbedUrl('https://www.youtube.com/embed/keep1');
+    expect(out).toContain('youtube-nocookie.com/embed/keep1');
+    expect(out).not.toContain('www.youtube.com');
+  });
+  it('m.youtube.com en /embed/ est aussi réécrit', () => {
+    const out = getEmbedUrl('https://m.youtube.com/embed/keep2');
+    expect(out).toContain('youtube-nocookie.com/embed/keep2');
+  });
+  it('préserve les paramètres de l URL d intégration', () => {
+    const out = getEmbedUrl('https://www.youtube.com/embed/keep3?start=30');
+    expect(out).toContain('start=30');
+  });
+  it('une URL déjà propre reste valide', () => {
+    // Sinon elle serait rejetée et la vidéo ne s afficherait plus.
+    const out = getEmbedUrl('https://www.youtube-nocookie.com/embed/keep4?autoplay=1');
+    expect(out).toContain('youtube-nocookie.com/embed/keep4');
   });
   it('m.youtube.com supporté', () => {
     expect(getEmbedUrl('https://m.youtube.com/watch?v=mob1')).toContain('embed/mob1');
