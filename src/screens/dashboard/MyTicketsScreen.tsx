@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ScrollView,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import Animated, {
   FadeIn,
@@ -42,6 +43,7 @@ import {
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLiveRegistrations } from '../../contexts/LiveRegistrationsContext';
 import { MyTicketsScreenSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem } from '../../components/ui/Animations';
 import {
@@ -304,6 +306,9 @@ export default function MyTicketsScreen() {
   const { colors, isDark } = useTheme();
   const { cacheMultipleTickets, cachedTicketCount } = useOfflineTickets();
   const { isOffline } = useNetworkSpeed();
+  // « Mes events en cours » (source partagée) : badge EN DIRECT + bouton
+  // Rejoindre par carte — accès per-event que la bannière globale ne donne pas.
+  const { live: liveRegs, isEventLive, joinLive, joiningId } = useLiveRegistrations();
   const tour = useTour();
   // Tracks one-shot auto-redirect to OfflineTickets per offline session.
   // Reset quand l'utilisateur repasse online — si la connexion retombe,
@@ -706,6 +711,12 @@ export default function MyTicketsScreen() {
     const isArchived = variant === 'archived';
     const statusConfig = getStatusConfig(item.status);
     const isPending = item.status === 'pending' || item.status === 'pending_approval';
+    // Event EN COURS maintenant (source partagée). La reg live compacte porte le
+    // slug + is_online pour le flux Rejoindre.
+    const eventIdStr = event?.id != null ? String(event.id) : '';
+    const isLive = !isArchived && !!eventIdStr && isEventLive(eventIdStr);
+    const liveReg = isLive ? liveRegs.find(r => String(r.event_id) === eventIdStr) : undefined;
+    const isJoiningThis = !!liveReg && joiningId === liveReg.event_id;
     // Inscription pending « expirée » : event terminé ou deadline passée → plus
     // finalisable (cf. garde backend). On masque le bouton Payer et on l'indique.
     const now = Date.now();
@@ -820,8 +831,13 @@ export default function MyTicketsScreen() {
                   </Text>
                 </View>
 
-                {/* Countdown ring (featured, within 14 days) OR date tile */}
-                {isFirst && !isArchived && daysUntil !== null && daysUntil >= 0 && daysUntil <= 14 ? (
+                {/* EN DIRECT (event en cours) prime sur countdown/date */}
+                {isLive ? (
+                  <View style={styles.liveTile}>
+                    <View style={styles.liveTileDot} />
+                    <Text style={styles.liveTileText}>{t('visio.liveNow', { defaultValue: 'EN DIRECT' })}</Text>
+                  </View>
+                ) : isFirst && !isArchived && daysUntil !== null && daysUntil >= 0 && daysUntil <= 14 ? (
                   <CountdownRing
                     days={daysUntil}
                     color={accentColor}
@@ -921,6 +937,36 @@ export default function MyTicketsScreen() {
                       {event.location_city}
                     </Text>
                   </View>
+                )}
+                {/* Bouton Rejoindre — event en cours (accès per-event que la
+                    bannière globale ne donne pas). Même flux que la bannière. */}
+                {isLive && liveReg && (
+                  <TouchableOpacity
+                    style={styles.joinLiveBtn}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      joinLive(liveReg, (idOrSlug) =>
+                        navigation.navigate('EventDetails', { eventId: idOrSlug }),
+                      );
+                    }}
+                    disabled={isJoiningThis}
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('visio.join', { defaultValue: 'Rejoindre' })}
+                  >
+                    {isJoiningThis ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <>
+                        <Ionicons name={liveReg.is_online ? 'videocam' : 'arrow-forward'} size={12} color="#fff" />
+                        <Text style={styles.joinLiveBtnText}>
+                          {liveReg.is_online
+                            ? t('visio.join', { defaultValue: 'Rejoindre' })
+                            : t('visio.view', { defaultValue: 'Voir' })}
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
                 )}
               </View>
             </View>
@@ -1907,6 +1953,41 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: BorderRadius.lg,
     minWidth: 54,
+  },
+  // Badge « EN DIRECT » (event en cours) — remplace la date-tile / countdown.
+  liveTile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: '#EF4444',
+  },
+  liveTileDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#fff' },
+  liveTileText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 0.5,
+    color: '#fff',
+  },
+  joinLiveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    marginTop: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#EF4444',
+    alignSelf: 'flex-start',
+    minWidth: 100,
+  },
+  joinLiveBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    color: '#fff',
   },
   dateTileDay: {
     fontFamily: FontFamily.displayExtraBold,

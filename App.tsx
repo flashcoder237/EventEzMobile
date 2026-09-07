@@ -76,6 +76,7 @@ import AnnouncementsModal from './src/components/common/AnnouncementsModal';
 import AnimatedSplash from './src/components/common/AnimatedSplash';
 import RootNavigator from './src/navigation/RootNavigator';
 import { VisioCallProvider } from './src/contexts/VisioCallContext';
+import { LiveRegistrationsProvider } from './src/contexts/LiveRegistrationsContext';
 import VisioCallOverlay from './src/components/visio/VisioCallOverlay';
 import LiveEventBanner from './src/components/visio/LiveEventBanner';
 import VerificationGuardModal from './src/components/auth/VerificationGuardModal';
@@ -363,6 +364,7 @@ function AppContent() {
                     <InAppToastProvider>
                       <FeatureTourProvider>
                       <VisioCallProvider>
+                      <LiveRegistrationsProvider>
                       <StatusBar style={isDark ? 'light' : 'dark'} />
                       {/* Raccourcis d'icône (long-press) — role-aware, sans rendu */}
                       <QuickActionsBridge />
@@ -399,6 +401,7 @@ function AppContent() {
                           Rendu APRÈS RootNavigator pour avoir accès à la
                           navigation et passer au-dessus visuellement. */}
                       <IncidentBanner />
+                      </LiveRegistrationsProvider>
                       </VisioCallProvider>
                       </FeatureTourProvider>
                     </InAppToastProvider>

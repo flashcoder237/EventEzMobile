@@ -730,7 +730,12 @@ class PushNotificationService {
             route?.name === 'Conversation' &&
             String((route.params as any)?.conversationId) === String(data?.conversation_id);
 
-          if (!onSameConv && (title || body)) {
+          // `event_live` a un canal in-app DÉDIÉ et PERSISTANT (LiveEventBanner
+          // globale). Le toast éphémère ferait doublon → on le supprime pour ce
+          // type ; le deeplink push (app fermée) reste géré par handleNotificationTap.
+          const isEventLive = data?.notification_type === 'event_live';
+
+          if (!onSameConv && !isEventLive && (title || body)) {
             // Determine icon + dedup key + onPress depending on notif type.
             let icon: 'message' | 'notification' | 'success' | 'warning' | 'info' = 'notification';
             let dedupKey: string | undefined;
