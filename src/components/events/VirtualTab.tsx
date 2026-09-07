@@ -20,6 +20,7 @@ import { formatCount } from '../../lib/utils/numberFormatters';
 import { withJwt } from '../../lib/utils/visioUrl';
 import { useLiveStatus } from '../../hooks/useLiveStatus';
 import { useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
+import { useVisioCall } from '../../contexts/VisioCallContext';
 
 interface VirtualRoom {
   id: string;
@@ -59,6 +60,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
   // Permissions média (caméra + micro) pour la visio Jitsi en WebView.
   const [, requestCameraPermission] = useCameraPermissions();
   const [, requestMicPermission] = useMicrophonePermissions();
+  const { startCall } = useVisioCall();
   // Statut « en direct » temps réel (bannière + CTA quand c'est en cours).
   const { status: live } = useLiveStatus(eventId, { enabled: true });
 
@@ -129,7 +131,16 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
         await requestMicPermission();
       } catch { /* noop */ }
 
-      navigation.navigate('Browser', { url: finalUrl, roomId: data.room_id });
+      // Visio PERSISTANTE : au lieu de naviguer vers un écran (démonté à la
+      // navigation → appel coupé), on démarre un appel GLOBAL rendu en overlay
+      // racine (VisioCallOverlay). L'appel survit à la navigation, réductible
+      // en bulle. Le leave (quota) est géré par endCall du contexte.
+      startCall({
+        url: finalUrl,
+        roomId: data.room_id,
+        title: t('componentsCommon.webviewVisioTitle', { defaultValue: 'Visioconférence' }),
+        recordingNotice: data.recording_notice ?? null,
+      });
       fetchVirtualData();
     } catch (error: any) {
       // Aligné sur RegistrationDetailsScreen : on distingue 503 (visio pas encore

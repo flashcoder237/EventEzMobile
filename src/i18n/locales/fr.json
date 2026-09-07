@@ -7541,5 +7541,10 @@
     "confirmAllBody": "Votre nom, votre e-mail et votre téléphone seront supprimés chez toutes les entreprises listées. C’est irréversible.",
     "emptyTitle": "Aucune entreprise ne détient vos coordonnées",
     "emptyBody": "Les exposants ne peuvent enregistrer vos coordonnées qu’en scannant votre badge, et seulement si vous l’avez autorisé sur l’événement concerné."
+  },
+  "visio": {
+    "expandCall": "Agrandir la visio",
+    "endCall": "Raccrocher",
+    "minimize": "Réduire"
   }
 }

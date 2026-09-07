@@ -75,6 +75,8 @@ import ForceUpdateGate from './src/components/common/ForceUpdateGate';
 import AnnouncementsModal from './src/components/common/AnnouncementsModal';
 import AnimatedSplash from './src/components/common/AnimatedSplash';
 import RootNavigator from './src/navigation/RootNavigator';
+import { VisioCallProvider } from './src/contexts/VisioCallContext';
+import VisioCallOverlay from './src/components/visio/VisioCallOverlay';
 import VerificationGuardModal from './src/components/auth/VerificationGuardModal';
 import LockGate from './src/components/auth/LockGate';
 import { DEEP_LINK_SCHEME, WEB_BASE_URL, stripLocalePrefix } from './src/constants/urls';
@@ -359,6 +361,7 @@ function AppContent() {
                   <AnnouncementsProvider>
                     <InAppToastProvider>
                       <FeatureTourProvider>
+                      <VisioCallProvider>
                       <StatusBar style={isDark ? 'light' : 'dark'} />
                       {/* Raccourcis d'icône (long-press) — role-aware, sans rendu */}
                       <QuickActionsBridge />
@@ -381,12 +384,17 @@ function AppContent() {
                       </ForceUpdateGate>
                       <VerificationGuardModal />
                       <AnnouncementsModal />
+                      {/* Overlay visio PERSISTANT — sibling de RootNavigator :
+                          la WebView Jitsi survit à la navigation (appel non
+                          coupé), réductible en bulle flottante. */}
+                      <VisioCallOverlay />
                       {/* Banner global d'incident — overlay top quand un 503
                           est intercepté par axios. Permet à l'utilisateur de
                           voir l'incident + cliquer "Voir l'évolution".
                           Rendu APRÈS RootNavigator pour avoir accès à la
                           navigation et passer au-dessus visuellement. */}
                       <IncidentBanner />
+                      </VisioCallProvider>
                       </FeatureTourProvider>
                     </InAppToastProvider>
                   </AnnouncementsProvider>

@@ -7541,5 +7541,10 @@
     "confirmAllBody": "Your name, email and phone number will be deleted at every listed company. This cannot be undone.",
     "emptyTitle": "No company holds your contact details",
     "emptyBody": "Exhibitors can only save your details by scanning your badge, and only if you allowed it for that event."
+  },
+  "visio": {
+    "expandCall": "Expand video call",
+    "endCall": "End call",
+    "minimize": "Minimize"
   }
 }
