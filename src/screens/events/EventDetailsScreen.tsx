@@ -204,13 +204,22 @@ export default function EventDetailsScreen() {
       });
     } catch (error: any) {
       const minsRemaining = error?.response?.data?.minutes_remaining;
+      const apiCode = error?.response?.data?.code;
       const msg = error?.response?.data?.error || t('componentsEvents.virtualGenericError');
-      showError(
-        t('componentsEvents.virtualAccessDenied'),
-        minsRemaining
-          ? t('componentsEvents.virtualAccessLater', { minutes: minsRemaining })
-          : msg,
-      );
+      if (apiCode === 'host_not_present') {
+        // Salle pas encore ouverte par l'organisateur : attente, pas un refus.
+        showError(
+          t('componentsEvents.virtualWaitingHostTitle', { defaultValue: 'Direct pas encore démarré' }),
+          msg,
+        );
+      } else {
+        showError(
+          t('componentsEvents.virtualAccessDenied'),
+          minsRemaining
+            ? t('componentsEvents.virtualAccessLater', { minutes: minsRemaining })
+            : msg,
+        );
+      }
     } finally {
       setJoiningVisio(false);
     }

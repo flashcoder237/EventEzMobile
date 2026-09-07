@@ -44,6 +44,7 @@ import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLiveRegistrations } from '../../contexts/LiveRegistrationsContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { MyTicketsScreenSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem } from '../../components/ui/Animations';
 import {
@@ -309,6 +310,7 @@ export default function MyTicketsScreen() {
   // « Mes events en cours » (source partagée) : badge EN DIRECT + bouton
   // Rejoindre par carte — accès per-event que la bannière globale ne donne pas.
   const { live: liveRegs, isEventLive, joinLive, joiningId } = useLiveRegistrations();
+  const { toastInfo } = useFeedback();
   const tour = useTour();
   // Tracks one-shot auto-redirect to OfflineTickets per offline session.
   // Reset quand l'utilisateur repasse online — si la connexion retombe,
@@ -943,11 +945,23 @@ export default function MyTicketsScreen() {
                 {isLive && liveReg && (
                   <TouchableOpacity
                     style={styles.joinLiveBtn}
-                    onPress={(e) => {
+                    onPress={async (e) => {
                       e.stopPropagation();
-                      joinLive(liveReg, (idOrSlug) =>
+                      const r = await joinLive(liveReg, (idOrSlug) =>
                         navigation.navigate('EventDetails', { eventId: idOrSlug }),
                       );
+                      // Salle pas encore ouverte par l'orga (#16297) : toast d'attente.
+                      if (r === 'host_not_present') {
+                        toastInfo(
+                          t('componentsEvents.virtualWaitingHostTitle', { defaultValue: 'Direct pas encore démarré' }),
+                          {
+                            body: t('componentsEvents.virtualWaitingHostNote', {
+                              defaultValue: "Vous pourrez rejoindre dès que l'organisateur aura ouvert la salle.",
+                            }),
+                            dedupKey: 'live_host_not_present',
+                          },
+                        );
+                      }
                     }}
                     disabled={isJoiningThis}
                     activeOpacity={0.85}

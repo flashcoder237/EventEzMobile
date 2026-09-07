@@ -33,11 +33,13 @@ interface LiveRegistrationsContextValue {
   isEventLive: (eventId: string) => boolean;
   refresh: () => void;
   /** Rejoindre un event live : visio si online (startCall), sinon navigation
-   *  détail (le caller fournit `onNavigateDetail`). Gère le lock anti-double. */
+   *  détail (le caller fournit `onNavigateDetail`). Gère le lock anti-double.
+   *  Retourne un statut pour que le caller affiche un message adapté :
+   *  'host_not_present' = la salle n'est pas encore ouverte par l'organisateur. */
   joinLive: (
     reg: LiveReg,
     onNavigateDetail: (eventIdOrSlug: string) => void,
-  ) => Promise<void>;
+  ) => Promise<'joined' | 'navigated' | 'host_not_present' | 'error'>;
   /** true pendant un join en cours (feedback bouton). */
   joiningId: string | null;
   /** Réglage utilisateur : afficher ou non la bannière « En direct » globale. */
@@ -101,21 +103,21 @@ export function LiveRegistrationsProvider({ children }: { children: ReactNode })
   const joinLive = useCallback(async (
     reg: LiveReg,
     onNavigateDetail: (eventIdOrSlug: string) => void,
-  ) => {
+  ): Promise<'joined' | 'navigated' | 'host_not_present' | 'error'> => {
     const target = reg.event_slug || reg.event_id;
     // Présentiel : pas de visio → détail event.
     if (!reg.is_online) {
       onNavigateDetail(target);
-      return;
+      return 'navigated';
     }
-    if (joiningId) return;
+    if (joiningId) return 'error';
     setJoiningId(reg.event_id);
     try {
       const res = await virtualRoomsAPI.eventJoin(reg.event_id);
       const data = res.data;
       if (!data?.url) {
         onNavigateDetail(target);
-        return;
+        return 'navigated';
       }
       const finalUrl = data.provider === 'jaas' && data.token ? withJwt(data.url, data.token) : data.url;
       startCall({
@@ -124,8 +126,16 @@ export function LiveRegistrationsProvider({ children }: { children: ReactNode })
         title: reg.event_title,
         recordingNotice: data.recording_notice ?? null,
       });
-    } catch {
+      return 'joined';
+    } catch (e: any) {
+      // Salle pas encore ouverte par l'organisateur (garde-fou #16297) : on NE
+      // navigue PAS vers le détail — on remonte le statut pour que le caller
+      // affiche « le direct n'a pas encore démarré ». Sinon fallback détail.
+      if (e?.response?.data?.code === 'host_not_present') {
+        return 'host_not_present';
+      }
       onNavigateDetail(target);
+      return 'error';
     } finally {
       setJoiningId(null);
     }
@@ -148,7 +158,7 @@ const NOOP_VALUE: LiveRegistrationsContextValue = {
   live: [],
   isEventLive: () => false,
   refresh: () => {},
-  joinLive: async () => {},
+  joinLive: async () => 'error',
   joiningId: null,
   bannerEnabled: true,
   setBannerEnabled: () => {},

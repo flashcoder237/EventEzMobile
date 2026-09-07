@@ -12,6 +12,7 @@ import { useVisioCall } from '../../contexts/VisioCallContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLiveRegistrations, LiveReg } from '../../contexts/LiveRegistrationsContext';
 import { useStatus } from '../../contexts/StatusContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { RootStackParamList } from '../../types';
 import { FontFamily, Spacing } from '../../constants/theme';
 
@@ -33,6 +34,7 @@ export default function LiveEventBanner() {
   const { call } = useVisioCall();
   const { live, joinLive, joiningId, bannerEnabled, setBannerHeight } = useLiveRegistrations();
   const { lastServiceIncident } = useStatus();
+  const { toastInfo } = useFeedback();
   const pulse = useRef(new Animated.Value(0)).current;
   const [listOpen, setListOpen] = useState(false);
 
@@ -58,18 +60,34 @@ export default function LiveEventBanner() {
     navigation.navigate('EventDetails', { eventId: idOrSlug });
   }, [navigation]);
 
-  const handleTapBanner = useCallback(() => {
+  // Salle pas encore ouverte par l'organisateur (#16297) : toast d'attente,
+  // au lieu de renvoyer silencieusement au détail de l'event.
+  const notifyIfWaitingHost = useCallback((result: string) => {
+    if (result === 'host_not_present') {
+      toastInfo(
+        t('componentsEvents.virtualWaitingHostTitle', { defaultValue: 'Direct pas encore démarré' }),
+        {
+          body: t('componentsEvents.virtualWaitingHostNote', {
+            defaultValue: "Vous pourrez rejoindre dès que l'organisateur aura ouvert la salle.",
+          }),
+          dedupKey: 'live_host_not_present',
+        },
+      );
+    }
+  }, [toastInfo, t]);
+
+  const handleTapBanner = useCallback(async () => {
     if (live.length === 1) {
-      joinLive(live[0], goDetail);
+      notifyIfWaitingHost(await joinLive(live[0], goDetail));
     } else {
       setListOpen(true); // plusieurs directs → liste, accès à TOUS
     }
-  }, [live, joinLive, goDetail]);
+  }, [live, joinLive, goDetail, notifyIfWaitingHost]);
 
-  const handleJoinFromList = useCallback((reg: LiveReg) => {
+  const handleJoinFromList = useCallback(async (reg: LiveReg) => {
     setListOpen(false);
-    joinLive(reg, goDetail);
-  }, [joinLive, goDetail]);
+    notifyIfWaitingHost(await joinLive(reg, goDetail));
+  }, [joinLive, goDetail, notifyIfWaitingHost]);
 
   if (!visible) return null;
 

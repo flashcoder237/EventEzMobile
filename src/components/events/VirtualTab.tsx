@@ -147,11 +147,21 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
       // activée côté serveur — pas la faute de l'utilisateur) du reste.
       const code = error?.response?.status;
       const apiMsg = error?.response?.data?.error;
+      const apiCode = error?.response?.data?.code;
       const minsRemaining = error?.response?.data?.minutes_remaining;
       if (code === 503) {
         showError(
           t('componentsEvents.virtualUnavailableTitle'),
           t('componentsEvents.virtualUnavailableNote'),
+        );
+      } else if (apiCode === 'host_not_present') {
+        // Pas un refus : la salle n'est pas encore ouverte par l'organisateur.
+        // Titre neutre (attente), pas « Accès refusé ».
+        showError(
+          t('componentsEvents.virtualWaitingHostTitle', { defaultValue: 'Direct pas encore démarré' }),
+          apiMsg || t('componentsEvents.virtualWaitingHostNote', {
+            defaultValue: "Vous pourrez rejoindre dès que l'organisateur aura ouvert la salle.",
+          }),
         );
       } else {
         showError(
