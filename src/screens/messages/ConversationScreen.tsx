@@ -83,6 +83,7 @@ import {
   shouldShowDateSeparator,
   isMyMessage,
   getReplyToContent,
+  hasUserReacted,
   TYPING_SEND_INTERVAL,
 } from '../../lib/utils/messagingHelpers';
 
@@ -2518,6 +2519,26 @@ export default function ConversationScreen() {
     actions.startReply(message);
   }, [actions]);
 
+  // Tap sur une chip de réaction → toggle sa propre réaction (ajoute si absente,
+  // retire si déjà posée). Les chips étaient purement décoratives avant.
+  const handleToggleReaction = useCallback(async (message: Message, emoji: string) => {
+    const messageIdStr = String(message.id);
+    const mine = hasUserReacted(message.reactions, emoji, user?.id);
+    try {
+      if (mine) {
+        if (isConnected && isAuthenticated) wsRemoveReaction(messageIdStr, emoji);
+        else await messagesAPI.removeReaction(messageIdStr, emoji);
+        actions.removeReaction(messageIdStr, emoji, String(user?.id));
+      } else {
+        if (isConnected && isAuthenticated) wsAddReaction(messageIdStr, emoji);
+        else await messagesAPI.addReaction(messageIdStr, emoji);
+        actions.addReaction(messageIdStr, emoji, String(user?.id));
+      }
+    } catch (error) {
+      if (__DEV__) console.error('Erreur toggle réaction:', error);
+    }
+  }, [isConnected, isAuthenticated, wsAddReaction, wsRemoveReaction, actions, user?.id]);
+
   // ============================================
   // SEND MESSAGE
   // ============================================
@@ -3262,6 +3283,11 @@ export default function ConversationScreen() {
         onReplyPress={selectionMode ? undefined : handleReplyPress}
         onSwipeReply={selectionMode ? undefined : handleSwipeReply}
         onQuickReact={selectionMode ? undefined : handleQuickReact}
+        onToggleReaction={selectionMode ? undefined : handleToggleReaction}
+        currentUserId={user?.id}
+        // Nom d'expéditeur affiché seulement en groupe/event, côté peer, en tête
+        // d'une salve (pas grouté) — savoir qui parle à plusieurs (réflexe WhatsApp).
+        showSenderName={conversationType !== 'direct' && !isMine && !isGrouped}
       />
     );
 

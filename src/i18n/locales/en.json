@@ -1768,7 +1768,13 @@
     "searchResultsSection": "Results",
     "noConnectionsEyebrow": "NETWORKING",
     "noConnectionsTitle": "No connections yet",
-    "noConnectionsCta": "Connect via QR"
+    "noConnectionsCta": "Connect via QR",
+    "emptyEyebrowArchived": "ARCHIVED",
+    "emptyEyebrowEmpty": "EMPTY INBOX",
+    "archivedEmptyDesc": "Your archived conversations will land here.",
+    "noConversationsDesc": "Start a new message — we'll find someone to talk to.",
+    "attachmentPreview": "[Attachment]",
+    "noMatchingMessage": "No matching message"
   },
   "notifications": {
     "title": "Notifications",
@@ -3785,7 +3791,8 @@
     "scrollToBottom": "Scroll to bottom",
     "tapToLoadImage": "Tap to load",
     "reply": "Reply",
-    "react": "React"
+    "react": "React",
+    "reactionToggleA11y": "Reaction {{emoji}}, {{count}}"
   },
   "scanForm": {
     "loading": "Loading...",

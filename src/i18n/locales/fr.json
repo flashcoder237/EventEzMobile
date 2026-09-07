@@ -1768,7 +1768,13 @@
     "searchResultsSection": "Résultats",
     "noConnectionsEyebrow": "RÉSEAUTAGE",
     "noConnectionsTitle": "Aucune connexion pour l'instant",
-    "noConnectionsCta": "Se connecter via QR"
+    "noConnectionsCta": "Se connecter via QR",
+    "emptyEyebrowArchived": "BOÎTE ARCHIVÉE",
+    "emptyEyebrowEmpty": "BOÎTE VIDE",
+    "archivedEmptyDesc": "Les conversations archivées viendront se loger ici.",
+    "noConversationsDesc": "Commence un nouveau message — on trouvera quelqu'un à qui parler.",
+    "attachmentPreview": "[Pièce jointe]",
+    "noMatchingMessage": "Aucun message ne correspond"
   },
   "notifications": {
     "title": "Notifications",
@@ -4122,7 +4128,8 @@
     "scrollToBottom": "Aller en bas",
     "tapToLoadImage": "Appuyer pour charger",
     "reply": "Répondre",
-    "react": "Réagir"
+    "react": "Réagir",
+    "reactionToggleA11y": "Réaction {{emoji}}, {{count}}"
   },
   "scanForm": {
     "loading": "Chargement...",

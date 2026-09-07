@@ -52,6 +52,7 @@ import {
   getMessageAvatar,
   getMessageStatus,
   groupReactions,
+  hasUserReacted,
   formatDuration,
 } from '../../lib/utils/messagingHelpers';
 import MessageStatusIcon from './MessageStatusIcon';
@@ -207,6 +208,13 @@ interface MessageBubbleProps {
   onSwipeReply?: (message: Message) => void;
   /** Double-tap sur la bulle → réaction rapide (❤️). Réflexe Instagram/iMessage. */
   onQuickReact?: (message: Message) => void;
+  /** Tap sur une chip de réaction → toggle sa propre réaction (ajoute/retire). */
+  onToggleReaction?: (message: Message, emoji: string) => void;
+  /** Id de l'utilisateur courant — pour savoir s'il a déjà réagi (toggle). */
+  currentUserId?: string | number;
+  /** Affiche le nom de l'expéditeur au-dessus de la bulle (groupes/events) —
+      réflexe WhatsApp : savoir qui parle dans un fil à plusieurs. */
+  showSenderName?: boolean;
 }
 
 // ============================================================================
@@ -444,6 +452,9 @@ function MessageBubble({
   onReplyPress,
   onSwipeReply,
   onQuickReact,
+  onToggleReaction,
+  currentUserId,
+  showSenderName = false,
 }: MessageBubbleProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
@@ -1102,17 +1113,25 @@ function MessageBubble({
     // (marginTop negatif). Cote droit si isMine, gauche sinon.
     return (
       <View style={[styles.reactionsContainer, isMine && styles.reactionsContainerMine]}>
-        {entries.map(([emoji, count]) => (
-          <View
+        {entries.map(([emoji, count]) => {
+          const reactedByMe = hasUserReacted(message.reactions, emoji, currentUserId);
+          return (
+          <TouchableOpacity
             key={emoji}
+            disabled={!onToggleReaction}
+            onPress={() => onToggleReaction?.(message, emoji)}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            accessibilityRole="button"
+            accessibilityLabel={t('conversation.reactionToggleA11y', { emoji, count, defaultValue: '{{emoji}} {{count}}' })}
             style={[
               styles.reactionBadge,
               {
                 // Fond toujours opaque (jamais transparent) pour rester
                 // lisible sur n'importe quel bg (canvas, bulle indigo, bulle
                 // rose, image). En dark mode : card sombre + border claire.
-                backgroundColor: isDark ? colors.card : '#FFFFFF',
-                borderColor: isDark ? colors.gray200 : 'rgba(0,0,0,0.08)',
+                // Réaction de l'utilisateur courant = mise en avant (bord indigo).
+                backgroundColor: reactedByMe ? colors.primaryBg : (isDark ? colors.card : '#FFFFFF'),
+                borderColor: reactedByMe ? colors.primary : (isDark ? colors.gray200 : 'rgba(0,0,0,0.08)'),
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: 1 },
                 shadowOpacity: 0.12,
@@ -1127,8 +1146,9 @@ function MessageBubble({
                 {count}
               </Text>
             )}
-          </View>
-        ))}
+          </TouchableOpacity>
+          );
+        })}
       </View>
     );
   };
@@ -1208,6 +1228,16 @@ function MessageBubble({
       )}
 
       <View style={styles.bubbleContainer}>
+        {/* Nom de l'expéditeur (groupes/events) : savoir qui parle dans un fil à
+            plusieurs. Uniquement côté peer, non groupé (le 1er d'une salve). */}
+        {showSenderName && !isMine && (
+          <Text style={[styles.senderName, { color: colors.primary }]} numberOfLines={1}>
+            {(message as any).sender_name
+              || (typeof message.sender === 'object' && message.sender
+                ? ((message.sender as any).first_name || (message.sender as any).username || '')
+                : '')}
+          </Text>
+        )}
         {/* === BULLE UNIFIEE (style WhatsApp) ===
             Reply preview + attachments + texte + timestamp TOUS dans la
             meme bulle. Image attachment "deborde" (full bleed) jusqu'aux
@@ -1421,6 +1451,7 @@ function arePropsEqual(prevProps: MessageBubbleProps, nextProps: MessageBubblePr
     prevProps.message.reactions?.length === nextProps.message.reactions?.length &&
     prevProps.isMine === nextProps.isMine &&
     prevProps.isGrouped === nextProps.isGrouped &&
+    prevProps.showSenderName === nextProps.showSenderName &&
     prevProps.playingVoiceId === nextProps.playingVoiceId &&
     prevProps.replyToMessage?.id === nextProps.replyToMessage?.id
   );
@@ -1466,6 +1497,12 @@ const styles = StyleSheet.create({
   // Bubble Container
   bubbleContainer: {
     maxWidth: '75%',
+  },
+  senderName: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    marginBottom: 2,
+    marginLeft: 4,
   },
 
   // Bubble
@@ -1848,10 +1885,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   reactionEmoji: {
-    fontSize: 14,
+    // 16 (vs 14) : une chip de réaction à 14px était riquiqui vs les ~20px
+    // d'iMessage/Messenger (signalé par le DA).
+    fontSize: 16,
   },
   reactionCount: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.gray600,
     marginLeft: 2,
     fontFamily: FontFamily.medium,

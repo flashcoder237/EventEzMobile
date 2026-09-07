@@ -1518,12 +1518,12 @@ export default function MessagesScreen() {
   const renderEmpty = () => {
     // Erreur de chargement prioritaire sur le empty state vide.
     if (loadError) return renderLoadError();
-    const eyebrow = activeTab === 'archived' ? 'BOÎTE ARCHIVÉE' : 'BOÎTE VIDE';
+    const eyebrow = activeTab === 'archived' ? t('messages.emptyEyebrowArchived') : t('messages.emptyEyebrowEmpty');
     const title = activeTab === 'archived' ? t('messages.archivedEmpty') : t('messages.noConversationsYet');
     const sub =
       activeTab === 'archived'
-        ? 'Les conversations archivées viendront se loger ici.'
-        : 'Commence un nouveau message — on trouvera quelqu\'un à qui parler.';
+        ? t('messages.archivedEmptyDesc')
+        : t('messages.noConversationsDesc');
     return (
       <View style={styles.emptyWrap}>
         <AnimatedIllustration entry="fadeIn" idle="sway">
@@ -1842,14 +1842,14 @@ export default function MessagesScreen() {
                     style={[styles.messageSearchContent, { color: colors.text }]}
                     numberOfLines={2}
                   >
-                    {msg.content || '[Pièce jointe]'}
+                    {msg.content || t('messages.attachmentPreview')}
                   </Text>
                 </View>
               </TouchableOpacity>
             ))
           ) : !searchingMessages ? (
             <Text style={[styles.messageSearchEmpty, { color: colors.gray400 }]}>
-              Aucun message ne correspond
+              {t('messages.noMatchingMessage')}
             </Text>
           ) : null}
         </View>

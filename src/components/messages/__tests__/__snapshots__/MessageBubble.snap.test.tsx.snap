@@ -944,36 +944,70 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
         }
       >
         <View
+          accessibilityLabel="Réaction ❤️, 2"
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": true,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={false}
+          hitSlop={
+            {
+              "bottom": 6,
+              "left": 6,
+              "right": 6,
+              "top": 6,
+            }
+          }
+          onClick={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
           style={
-            [
-              {
-                "alignItems": "center",
-                "borderRadius": 999,
-                "borderWidth": 1,
-                "flexDirection": "row",
-                "gap": 2,
-                "paddingHorizontal": 8,
-                "paddingVertical": 3,
+            {
+              "alignItems": "center",
+              "backgroundColor": "#FFFFFF",
+              "borderColor": "rgba(0,0,0,0.08)",
+              "borderRadius": 999,
+              "borderWidth": 1,
+              "elevation": 2,
+              "flexDirection": "row",
+              "gap": 2,
+              "opacity": 1,
+              "paddingHorizontal": 8,
+              "paddingVertical": 3,
+              "shadowColor": "#000",
+              "shadowOffset": {
+                "height": 1,
+                "width": 0,
               },
-              {
-                "backgroundColor": "#FFFFFF",
-                "borderColor": "rgba(0,0,0,0.08)",
-                "elevation": 2,
-                "shadowColor": "#000",
-                "shadowOffset": {
-                  "height": 1,
-                  "width": 0,
-                },
-                "shadowOpacity": 0.12,
-                "shadowRadius": 2,
-              },
-            ]
+              "shadowOpacity": 0.12,
+              "shadowRadius": 2,
+            }
           }
         >
           <Text
             style={
               {
-                "fontSize": 14,
+                "fontSize": 16,
               }
             }
           >
@@ -985,7 +1019,7 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
                 {
                   "color": "#4B5563",
                   "fontFamily": "Montserrat_500Medium",
-                  "fontSize": 11,
+                  "fontSize": 12,
                   "marginLeft": 2,
                 },
                 {
@@ -998,36 +1032,70 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
           </Text>
         </View>
         <View
+          accessibilityLabel="Réaction 😂, 1"
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": true,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={false}
+          hitSlop={
+            {
+              "bottom": 6,
+              "left": 6,
+              "right": 6,
+              "top": 6,
+            }
+          }
+          onClick={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
           style={
-            [
-              {
-                "alignItems": "center",
-                "borderRadius": 999,
-                "borderWidth": 1,
-                "flexDirection": "row",
-                "gap": 2,
-                "paddingHorizontal": 8,
-                "paddingVertical": 3,
+            {
+              "alignItems": "center",
+              "backgroundColor": "#FFFFFF",
+              "borderColor": "rgba(0,0,0,0.08)",
+              "borderRadius": 999,
+              "borderWidth": 1,
+              "elevation": 2,
+              "flexDirection": "row",
+              "gap": 2,
+              "opacity": 1,
+              "paddingHorizontal": 8,
+              "paddingVertical": 3,
+              "shadowColor": "#000",
+              "shadowOffset": {
+                "height": 1,
+                "width": 0,
               },
-              {
-                "backgroundColor": "#FFFFFF",
-                "borderColor": "rgba(0,0,0,0.08)",
-                "elevation": 2,
-                "shadowColor": "#000",
-                "shadowOffset": {
-                  "height": 1,
-                  "width": 0,
-                },
-                "shadowOpacity": 0.12,
-                "shadowRadius": 2,
-              },
-            ]
+              "shadowOpacity": 0.12,
+              "shadowRadius": 2,
+            }
           }
         >
           <Text
             style={
               {
-                "fontSize": 14,
+                "fontSize": 16,
               }
             }
           >
