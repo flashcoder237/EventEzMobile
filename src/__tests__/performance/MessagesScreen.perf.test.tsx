@@ -23,6 +23,16 @@ jest.mock('@react-navigation/native', () => ({
     }, []);
   },
   useIsFocused: () => true,
+  useRoute: () => ({ params: {} }),
+  // navigationRef.ts (importé transitivement via pushNotificationService →
+  // NotificationContext → MessagesScreen) a besoin de ces exports, sinon le
+  // module plante au require avant même le rendu.
+  createNavigationContainerRef: () => ({
+    isReady: () => false,
+    navigate: jest.fn(),
+    current: null,
+  }),
+  CommonActions: { navigate: jest.fn(), reset: jest.fn() },
 }));
 
 const themeColors = {
@@ -144,6 +154,14 @@ jest.mock('../../components/ui/Animations', () => {
     StaggeredItem: ({ children }: any) => React.createElement(RN.View, null, children),
   };
 });
+
+// MessagesScreen consomme useUnreadCounts() (badge Messages recalé depuis
+// SQLite). Ce test de perf rend l'écran SANS NotificationProvider → on stub le
+// hook pour ne pas exiger tout l'arbre de providers.
+jest.mock('../../contexts/NotificationContext', () => ({
+  useUnreadCounts: () => ({ refreshMessageBadgeFromLocal: jest.fn() }),
+  useNotifications: () => ({ refreshCounts: jest.fn() }),
+}));
 
 import MessagesScreen from '../../screens/messages/MessagesScreen';
 
