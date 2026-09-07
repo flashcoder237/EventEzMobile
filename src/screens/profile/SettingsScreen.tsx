@@ -20,6 +20,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAuth } from '../../contexts/AuthContext';
+import { useLiveRegistrations } from '../../contexts/LiveRegistrationsContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -332,6 +333,7 @@ const shortcutStyles = StyleSheet.create({
 export default function SettingsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { logout, user } = useAuth();
+  const { bannerEnabled, setBannerEnabled } = useLiveRegistrations();
   const { showAlert, showError, showConfirm, showSuccess } = useAlert();
   const { colors, isDark, mode: themeMode, setMode: setThemeMode } = useTheme();
   const { t, i18n } = useTranslation();
@@ -962,6 +964,23 @@ export default function SettingsScreen() {
               <SoftToggle
                 value={notifyPayment}
                 onToggle={(v) => handleToggle('notify_payment', v, setNotifyPayment)}
+              />
+            }
+          />
+          )}
+          {/* Bannière « En direct » — préférence LOCALE (pas d'appel API) :
+              afficher ou non le bandeau rouge global quand un event inscrit est
+              en cours. */}
+          {matchesQuery(searchQuery, [t('settings.notificationsSectionEyebrow'), t('settings.rowLiveBanner'), t('settings.rowLiveBannerSubtitle'), t('eyebrow.events')]) && (
+          <OptionCard
+            icon="radio-outline"
+            eyebrow={t('eyebrow.events')}
+            title={t('settings.rowLiveBanner', { defaultValue: 'Bannière des événements en direct' })}
+            subtitle={t('settings.rowLiveBannerSubtitle', { defaultValue: 'Affiche un bandeau pour rejoindre un événement en cours.' })}
+            right={
+              <SoftToggle
+                value={bannerEnabled}
+                onToggle={(v) => setBannerEnabled(v)}
               />
             }
           />

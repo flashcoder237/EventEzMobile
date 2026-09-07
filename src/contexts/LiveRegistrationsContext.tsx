@@ -1,10 +1,13 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { AppState } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registrationsAPI } from '../api/registrations';
 import { virtualRoomsAPI } from '../api/content';
 import { withJwt } from '../lib/utils/visioUrl';
 import { useAuth } from './AuthContext';
 import { useVisioCall } from './VisioCallContext';
+
+const BANNER_PREF_KEY = 'live_banner_enabled';
 
 /**
  * Source UNIQUE des « mes événements EN COURS maintenant » (GET /registrations/live/).
@@ -37,6 +40,13 @@ interface LiveRegistrationsContextValue {
   ) => Promise<void>;
   /** true pendant un join en cours (feedback bouton). */
   joiningId: string | null;
+  /** Réglage utilisateur : afficher ou non la bannière « En direct » globale. */
+  bannerEnabled: boolean;
+  setBannerEnabled: (v: boolean) => void;
+  /** Hauteur mesurée de la bannière (0 si masquée) — sert à POUSSER le contenu
+   *  des écrans vers le bas au lieu de le recouvrir. Reportée par la bannière. */
+  bannerHeight: number;
+  setBannerHeight: (h: number) => void;
 }
 
 const LiveRegistrationsContext = createContext<LiveRegistrationsContextValue | undefined>(undefined);
@@ -48,6 +58,21 @@ export function LiveRegistrationsProvider({ children }: { children: ReactNode })
   const { startCall } = useVisioCall();
   const [live, setLive] = useState<LiveReg[]>([]);
   const [joiningId, setJoiningId] = useState<string | null>(null);
+  const [bannerEnabled, setBannerEnabledState] = useState(true);
+  const [bannerHeight, setBannerHeight] = useState(0);
+
+  // Réglage persistant (défaut ON). Chargé au montage.
+  useEffect(() => {
+    AsyncStorage.getItem(BANNER_PREF_KEY)
+      .then(v => { if (v === '0') setBannerEnabledState(false); })
+      .catch(() => {});
+  }, []);
+
+  const setBannerEnabled = useCallback((v: boolean) => {
+    setBannerEnabledState(v);
+    AsyncStorage.setItem(BANNER_PREF_KEY, v ? '1' : '0').catch(() => {});
+    if (!v) setBannerHeight(0); // masquée → ne pousse plus le contenu.
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!isAuthenticated) { setLive([]); return; }
@@ -107,7 +132,10 @@ export function LiveRegistrationsProvider({ children }: { children: ReactNode })
   }, [joiningId, startCall]);
 
   return (
-    <LiveRegistrationsContext.Provider value={{ live, isEventLive, refresh, joinLive, joiningId }}>
+    <LiveRegistrationsContext.Provider value={{
+      live, isEventLive, refresh, joinLive, joiningId,
+      bannerEnabled, setBannerEnabled, bannerHeight, setBannerHeight,
+    }}>
       {children}
     </LiveRegistrationsContext.Provider>
   );
@@ -122,6 +150,10 @@ const NOOP_VALUE: LiveRegistrationsContextValue = {
   refresh: () => {},
   joinLive: async () => {},
   joiningId: null,
+  bannerEnabled: true,
+  setBannerEnabled: () => {},
+  bannerHeight: 0,
+  setBannerHeight: () => {},
 };
 
 export function useLiveRegistrations(): LiveRegistrationsContextValue {

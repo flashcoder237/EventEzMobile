@@ -1674,7 +1674,9 @@
     "shortcutTaxes": "Taxes",
     "shortcutMyEvents": "My Events",
     "shortcutHelp": "Help",
-    "rowMyDataAtExhibitors": "My data held by exhibitors"
+    "rowMyDataAtExhibitors": "My data held by exhibitors",
+    "rowLiveBanner": "Live events banner",
+    "rowLiveBannerSubtitle": "Show a banner to join an event that is currently live."
   },
   "messages": {
     "title": "Messages",
@@ -7554,6 +7556,9 @@
     "liveNow": "LIVE",
     "join": "Join",
     "view": "View",
-    "liveBannerA11y": "{{title}} is live, tap to join"
+    "liveBannerA11y": "{{title}} is live, tap to join",
+    "seeAll": "View",
+    "liveMultiTitle": "{{count}} events in progress",
+    "liveBannerMultiA11y": "{{count}} live events, tap for the list"
   }
 }

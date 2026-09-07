@@ -102,8 +102,16 @@ export function VisioCallProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// Défaut inerte hors provider (écrans montés en isolation dans les tests) : on
+// ne casse pas, la visio est un bonus. startCall no-op = pas d'appel démarré.
+const NOOP_VISIO: VisioCallContextValue = {
+  call: null,
+  startCall: () => {},
+  endCall: () => {},
+  minimize: () => {},
+  maximize: () => {},
+};
+
 export function useVisioCall(): VisioCallContextValue {
-  const ctx = useContext(VisioCallContext);
-  if (!ctx) throw new Error('useVisioCall must be used within a VisioCallProvider');
-  return ctx;
+  return useContext(VisioCallContext) ?? NOOP_VISIO;
 }

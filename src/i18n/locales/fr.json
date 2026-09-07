@@ -1674,7 +1674,9 @@
     "shortcutTaxes": "Fiscalité",
     "shortcutMyEvents": "Mes Évén.",
     "shortcutHelp": "Aide",
-    "rowMyDataAtExhibitors": "Mes données chez les exposants"
+    "rowMyDataAtExhibitors": "Mes données chez les exposants",
+    "rowLiveBanner": "Bannière des événements en direct",
+    "rowLiveBannerSubtitle": "Affiche un bandeau pour rejoindre un événement en cours."
   },
   "messages": {
     "title": "Messages",
@@ -7554,6 +7556,9 @@
     "liveNow": "EN DIRECT",
     "join": "Rejoindre",
     "view": "Voir",
-    "liveBannerA11y": "{{title}} est en direct, appuyer pour rejoindre"
+    "liveBannerA11y": "{{title}} est en direct, appuyer pour rejoindre",
+    "seeAll": "Voir",
+    "liveMultiTitle": "{{count}} événements en cours",
+    "liveBannerMultiA11y": "{{count}} événements en direct, appuyer pour la liste"
   }
 }

@@ -79,6 +79,7 @@ import { VisioCallProvider } from './src/contexts/VisioCallContext';
 import { LiveRegistrationsProvider } from './src/contexts/LiveRegistrationsContext';
 import VisioCallOverlay from './src/components/visio/VisioCallOverlay';
 import LiveEventBanner from './src/components/visio/LiveEventBanner';
+import LiveBannerSpacer from './src/components/visio/LiveBannerSpacer';
 import VerificationGuardModal from './src/components/auth/VerificationGuardModal';
 import LockGate from './src/components/auth/LockGate';
 import { DEEP_LINK_SCHEME, WEB_BASE_URL, stripLocalePrefix } from './src/constants/urls';
@@ -381,7 +382,11 @@ function AppContent() {
                       <ForceUpdateGate>
                         <LockGate>
                           <MaintenanceGate>
-                            <RootNavigator />
+                            {/* Spacer : pousse la navigation sous la bannière
+                                « En direct » (ne recouvre plus les headers). */}
+                            <LiveBannerSpacer>
+                              <RootNavigator />
+                            </LiveBannerSpacer>
                           </MaintenanceGate>
                         </LockGate>
                       </ForceUpdateGate>
