@@ -1108,7 +1108,12 @@ export default function PaymentScreen() {
       const finCode = error?.response?.data?.code;
       const finMsg = error?.response?.data?.error || error?.response?.data?.message;
       if (
-        (finCode === 'event_ended' || finCode === 'registration_closed' || finCode === 'tickets_unavailable')
+        // `event_full` manquait : la jauge globale de l'événement est atteinte.
+        // Ce refus survient au PIRE moment — l'acheteur vient de saisir ses
+        // coordonnées Mobile Money — et retombait jusqu'ici sur le message
+        // générique « une erreur est survenue », qui ne dit pas quoi faire.
+        (finCode === 'event_ended' || finCode === 'registration_closed'
+          || finCode === 'event_full' || finCode === 'tickets_unavailable')
         && typeof finMsg === 'string'
       ) {
         showError(t('payment.paymentErrorTitle'), finMsg);
