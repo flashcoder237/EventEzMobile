@@ -5892,7 +5892,8 @@
         "duplicatePastDesc": "Start from an editable copy",
         "remindInvites": "Remind guests",
         "weddingGuests": "Guests & RSVP",
-        "weddingGifts": "Registry & gifts"
+        "weddingGifts": "Registry & gifts",
+        "weddingTables": "Seating plan"
       },
       "emptyEyebrowResults": "NO RESULTS",
       "emptyEyebrowCatalog": "EMPTY CATALOG",
@@ -6667,6 +6668,35 @@
         "gift": "Gift (item)",
         "cash_fund": "Cash fund"
       },
+      "error": "Something went wrong"
+    },
+    "weddingTables": {
+      "title": "Seating plan",
+      "noTables": "No tables yet. Create one.",
+      "addTable": "Add a table",
+      "newTable": "New table",
+      "editTable": "Edit table",
+      "name": "Table name",
+      "namePlaceholder": "Table 1, Family…",
+      "capacity": "Seats",
+      "created": "Table created",
+      "updated": "Table updated",
+      "deleted": "Table deleted",
+      "deleteTitle": "Delete table",
+      "deleteMessage": "Delete “{{name}}”? Guests will be unassigned.",
+      "occupancy": "{{taken}}/{{capacity}} seats",
+      "available": "{{n}} seat(s)",
+      "full": "Full",
+      "tableEmpty": "No one at this table",
+      "unassignedTitle": "To seat ({{count}})",
+      "allSeated": "All confirmed guests are seated.",
+      "createFirst": "Create a table first to seat your guests.",
+      "assignGuest": "Seat {{name}}",
+      "assignTo": "Seat {{name}} at…",
+      "assigned": "Guest seated",
+      "unassign": "Remove",
+      "unassigned": "Guest removed",
+      "capacityError": "Not enough seats at this table.",
       "error": "Something went wrong"
     }
   },

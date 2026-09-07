@@ -1834,6 +1834,7 @@ export type RootStackParamList = {
   // deep link). eventId = UUID de l'événement (endpoints organisateur stricts).
   WeddingGuestsManage: { eventId: string; eventTitle?: string };
   WeddingGiftsManage: { eventId: string; eventTitle?: string };
+  WeddingTablesManage: { eventId: string; eventTitle?: string };
   // Vue user-side : "Mes events en equipe" — events ou je suis staff actif
   MyTeamEvents: undefined;
   DiscountManagement: { eventId: string };

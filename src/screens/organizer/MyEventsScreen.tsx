@@ -817,6 +817,13 @@ export default function MyEventsScreen() {
           }),
         },
         {
+          label: t('organizer.myEvents.actions.weddingTables', { defaultValue: 'Plan de table' }),
+          icon: 'restaurant-outline',
+          onPress: () => navigation.navigate('WeddingTablesManage', {
+            eventId: event.id, eventTitle: event.title,
+          }),
+        },
+        {
           label: t('organizer.myEvents.actions.exhibitors', { defaultValue: 'Exposants & stands' }),
           icon: 'storefront-outline',
           onPress: () => navigation.navigate('BoothManagement', { eventId: event.slug || event.id }),

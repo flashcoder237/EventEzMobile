@@ -5892,7 +5892,8 @@
         "duplicatePastDesc": "Repart d'une copie modifiable",
         "remindInvites": "Relancer les invités",
         "weddingGuests": "Invités & RSVP",
-        "weddingGifts": "Cagnotte & cadeaux"
+        "weddingGifts": "Cagnotte & cadeaux",
+        "weddingTables": "Plan de table"
       },
       "emptyEyebrowResults": "AUCUN RÉSULTAT",
       "emptyEyebrowCatalog": "CATALOGUE VIDE",
@@ -6667,6 +6668,35 @@
         "gift": "Cadeau (objet)",
         "cash_fund": "Cagnotte"
       },
+      "error": "Une erreur est survenue"
+    },
+    "weddingTables": {
+      "title": "Plan de table",
+      "noTables": "Aucune table. Créez-en une.",
+      "addTable": "Ajouter une table",
+      "newTable": "Nouvelle table",
+      "editTable": "Modifier la table",
+      "name": "Nom de la table",
+      "namePlaceholder": "Table 1, Famille…",
+      "capacity": "Nombre de couverts",
+      "created": "Table créée",
+      "updated": "Table mise à jour",
+      "deleted": "Table supprimée",
+      "deleteTitle": "Supprimer la table",
+      "deleteMessage": "Supprimer « {{name}} » ? Les invités seront désassignés.",
+      "occupancy": "{{taken}}/{{capacity}} couverts",
+      "available": "{{n}} place(s)",
+      "full": "Complète",
+      "tableEmpty": "Personne à cette table",
+      "unassignedTitle": "À placer ({{count}})",
+      "allSeated": "Tous les invités confirmés sont placés.",
+      "createFirst": "Créez d'abord une table pour placer vos invités.",
+      "assignGuest": "Placer {{name}}",
+      "assignTo": "Placer {{name}} à…",
+      "assigned": "Invité placé",
+      "unassign": "Retirer",
+      "unassigned": "Invité retiré",
+      "capacityError": "Capacité insuffisante à cette table.",
       "error": "Une erreur est survenue"
     }
   },
