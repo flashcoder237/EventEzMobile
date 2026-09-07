@@ -18,7 +18,6 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useVisioCall } from '../../contexts/VisioCallContext';
 import { FontFamily, FontSizes, Spacing } from '../../constants/theme';
-import { enterPip, isPipSupported } from '../../../modules/eventez-pip/src';
 
 /**
  * Overlay VISIO PERSISTANT — monté UNE fois à la racine. Rend UNE SEULE WebView
@@ -65,17 +64,20 @@ export default function VisioCallOverlay() {
     return () => clearTimeout(timer);
   }, [call, isLoading]);
 
-  // PiP système Android quand l'app part en arrière-plan pendant un appel.
+  // Quand l'app part en arrière-plan pendant un appel : on RÉDUIT EN BULLE
+  // in-app (au lieu du PiP système Android, qui affiche l'UI de l'app et non la
+  // vidéo Jitsi — rendu cassé). La bulle réapparaît au retour dans EventEz ;
+  // l'audio de la réunion continue en fond. Choix produit vs PiP système.
   useEffect(() => {
     if (!call) return;
     const onChange = (state: string) => {
-      if ((state === 'inactive' || state === 'background') && isPipSupported()) {
-        enterPip();
+      if (state === 'inactive' || state === 'background') {
+        minimize();
       }
     };
     const sub = AppState.addEventListener('change', onChange);
     return () => sub.remove();
-  }, [call]);
+  }, [call, minimize]);
 
   const panResponder = useMemo(
     () => PanResponder.create({
