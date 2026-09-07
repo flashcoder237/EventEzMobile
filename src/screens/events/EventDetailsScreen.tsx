@@ -268,6 +268,14 @@ export default function EventDetailsScreen() {
   // ne borne pas le propriétaire.
   const canJoinVisio = canAccessVisio && (!isEventPast || isOrganizer);
 
+  // Événement mariage : discriminé par la CATÉGORIE (slug de préférence, name en
+  // repli). Les éléments spécifiques mariage (bouton cagnotte/liste de cadeaux)
+  // ne doivent apparaître QUE pour un mariage — même signal que le web et le
+  // menu organisateur (MyEventsScreen).
+  const isWedding = /mariage|wedding|celebration/i.test(
+    `${event?.category?.slug || ''} ${event?.category?.name || ''}`,
+  );
+
   // All hooks must be called before any early returns
   const scrollY = useSharedValue(0);
   // Lazy-load heavy below-the-fold sections (Reviews, Sponsors, Agenda, Location).
@@ -1205,9 +1213,10 @@ export default function EventDetailsScreen() {
               menait : un invité qui ouvrait le mariage dans l'app ne voyait
               jamais la cagnotte. Le web a le bouton depuis EventActions.tsx —
               le correctif n'avait pas été porté ici.
-              Conditionné à `has_gift_registry` pour ne jamais afficher un lien
-              mort. */}
-          {(event as any).has_gift_registry && (
+              Double garde : l'événement doit être un mariage (catégorie) ET
+              avoir une cagnotte active (`has_gift_registry`) — un event
+              non-mariage ne montre jamais ce bouton, même avec le flag. */}
+          {isWedding && (event as any).has_gift_registry && (
             <TouchableOpacity
               style={[styles.networkingCard, { backgroundColor: colors.primaryBg, borderColor: `${colors.primary}33` }]}
               activeOpacity={0.85}
