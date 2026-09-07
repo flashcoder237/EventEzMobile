@@ -5011,7 +5011,12 @@
     "virtualStartsInMinutes": "Commence dans {{count}} min",
     "virtualUnavailableTitle": "Visio indisponible",
     "virtualUnavailableNote": "EventEz Visio n'est pas encore activé pour cet événement. L'organisateur communiquera le lien de connexion.",
-    "waitlistPosition": "Position {{position}} dans la file"
+    "waitlistPosition": "Position {{position}} dans la file",
+    "ticketsClosesIn_days": "Ferme dans {{count}} j",
+    "ticketsClosesIn_hours": "Ferme dans {{count}} h",
+    "ticketsClosesIn_minutes": "Ferme dans {{count}} min",
+    "ticketsSaleEnded": "Ventes terminées",
+    "ticketsSaleNotStarted": "Bientôt en vente"
   },
   "componentsCommon": {
     "exportTitle": "Choisir le format",

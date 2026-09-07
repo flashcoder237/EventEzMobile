@@ -5011,7 +5011,12 @@
     "virtualStartsInMinutes": "Starts in {{count}} min",
     "virtualUnavailableTitle": "Video call unavailable",
     "virtualUnavailableNote": "EventEz Video is not active yet for this event. The organizer will share the join link.",
-    "waitlistPosition": "Position {{position}} in the queue"
+    "waitlistPosition": "Position {{position}} in the queue",
+    "ticketsClosesIn_days": "Closes in {{count}}d",
+    "ticketsClosesIn_hours": "Closes in {{count}}h",
+    "ticketsClosesIn_minutes": "Closes in {{count}}min",
+    "ticketsSaleEnded": "Sales ended",
+    "ticketsSaleNotStarted": "On sale soon"
   },
   "componentsCommon": {
     "exportTitle": "Choose format",

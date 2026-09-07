@@ -13,6 +13,8 @@ import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from
 import { useTheme } from '../../contexts/ThemeContext';
 import ConvertedPrice from '../common/ConvertedPrice';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
+import { getSaleState } from '../../utils/ticketSaleWindow';
+import { getDeadlineInfo, shouldHighlightDeadline } from '../../utils/saleDeadline';
 
 export interface TicketsTabProps {
   event: Event;
@@ -59,6 +61,15 @@ export default function TicketsTab({
   const isBilletterie = event.event_type === 'billetterie';
   const tickets = event.ticket_types || [];
 
+  // Horloge qui avance : sans elle, un écran laissé ouvert continuerait
+  // d'annoncer « ferme dans 2 h » une fois la vente close. On rafraîchit
+  // à la minute — suffisant pour une échéance, et sans coût notable.
+  const [nowTs, setNowTs] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    const timer = setInterval(() => setNowTs(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <View style={styles.section}>
       {/* === Header === */}
@@ -73,7 +84,16 @@ export default function TicketsTab({
         <>
           {tickets.map((ticket, index) => {
             const available = getTicketAvailability(ticket);
-            const isSoldOut = available <= 0;
+            // Fenêtre de vente : l'utilisateur voyait un billet d'apparence
+            // normale, tapait « Acheter », et ne découvrait la fermeture
+            // qu'à l'écran suivant. Le helper existait et était testé, mais
+            // n'était pas importé ici.
+            const saleState = getSaleState(ticket, nowTs);
+            const isClosed = saleState !== 'open';
+            const deadline = getDeadlineInfo(ticket.sales_end, nowTs);
+            const showDeadline = saleState === 'open'
+              && shouldHighlightDeadline(deadline);
+            const isSoldOut = available <= 0 || isClosed;
             const isLowStock = !isSoldOut && available <= 10;
             const accent = tierAccent(ticket.name, t);
             const isFree = ticket.price === 0;
@@ -126,7 +146,40 @@ export default function TicketsTab({
                         </Text>
                       </View>
                     )}
-                    {isSoldOut && (
+                    {/* Échéance qui approche. Affichée SEULEMENT quand elle
+                        compte : une pastille permanente se banaliserait et
+                        ne serait plus vue le jour où elle importe. */}
+                    {showDeadline && deadline && (
+                      <View style={[
+                        styles.urgencyPill,
+                        {
+                          backgroundColor: deadline.urgency === 'soon'
+                            ? colors.gray600
+                            : colors.accent,
+                        },
+                      ]}>
+                        <Ionicons name="time" size={9} color="#fff" />
+                        <Text style={styles.urgencyText} allowFontScaling maxFontSizeMultiplier={1.3}>
+                          {t(`componentsEvents.ticketsClosesIn_${deadline.unit}`, {
+                            count: deadline.value,
+                          })}
+                        </Text>
+                      </View>
+                    )}
+                    {isClosed && (
+                      <View style={[styles.soldOutPill, { backgroundColor: colors.gray100 }]}>
+                        <Text
+                          style={[styles.soldOutText, { color: colors.gray500 }]}
+                          allowFontScaling
+                          maxFontSizeMultiplier={1.3}
+                        >
+                          {saleState === 'not_started'
+                            ? t('componentsEvents.ticketsSaleNotStarted')
+                            : t('componentsEvents.ticketsSaleEnded')}
+                        </Text>
+                      </View>
+                    )}
+                    {isSoldOut && !isClosed && (
                       <View style={[styles.soldOutPill, { backgroundColor: colors.gray100 }]}>
                         <Text style={[styles.soldOutText, { color: colors.gray500 }]}>{t('componentsEvents.ticketsSoldOutPill')}</Text>
                       </View>
