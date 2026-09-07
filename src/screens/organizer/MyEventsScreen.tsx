@@ -664,6 +664,17 @@ export default function MyEventsScreen() {
 
     const sections: EventActionSection[] = [];
 
+    // ─── Pertinence des actions selon le TYPE d'événement ───
+    // Le menu mélangeait des actions n'ayant de sens que pour un type précis
+    // (billets/codes promo pour la billetterie ; RSVP/cagnotte/plan de table
+    // pour un mariage ; stands pour un salon). On les gâte donc par type et
+    // catégorie. `event_type` ne connaît que billetterie/inscription — c'est la
+    // CATÉGORIE qui distingue mariage / salon (cf. WeddingDashboard web).
+    const isBilletterie = event.event_type === 'billetterie';
+    const categorySignal = `${event.category?.slug || ''} ${event.category?.name || ''}`;
+    const isWedding = /mariage|wedding|celebration/i.test(categorySignal);
+    const isExpo = /salon|expo|foire|trade[\s-]?show|exhibition/i.test(categorySignal);
+
     // ─── Événement TERMINÉ : jeu d'actions réduit ───
     // Une fois la date de fin passée, la plupart des actions n'ont plus de sens
     // — scanner un billet, envoyer une invitation, programmer une récurrence ou
@@ -731,23 +742,29 @@ export default function MyEventsScreen() {
     // ─── Configuration : promo + médias ───
     const configActions: EventAction[] = [];
     if (event.status === 'validated' || event.status === 'draft') {
-      configActions.push(
-        {
-          label: t('organizer.myEvents.actions.discountCodes'),
-          icon: 'pricetag-outline',
-          onPress: () => navigation.navigate('DiscountManagement', { eventId: event.slug || event.id }),
-        },
-        {
-          label: t('organizer.myEvents.actions.linkSessions'),
-          icon: 'link-outline',
-          onPress: () => navigation.navigate('EventSessionsLink', { eventId: event.slug || event.id }),
-        },
-        {
-          label: t('organizer.myEvents.actions.addPhotos'),
-          icon: 'images-outline',
-          onPress: () => handleAddPhotos(event),
-        },
-      );
+      // Codes promo + liaison billets↔sessions : n'ont de sens qu'en
+      // billetterie (un événement sur inscription n'a pas de billets à réduire
+      // ni à lier). Réservés au type billetterie.
+      if (isBilletterie) {
+        configActions.push(
+          {
+            label: t('organizer.myEvents.actions.discountCodes'),
+            icon: 'pricetag-outline',
+            onPress: () => navigation.navigate('DiscountManagement', { eventId: event.slug || event.id }),
+          },
+          {
+            label: t('organizer.myEvents.actions.linkSessions'),
+            icon: 'link-outline',
+            onPress: () => navigation.navigate('EventSessionsLink', { eventId: event.slug || event.id }),
+          },
+        );
+      }
+      // Ajouter des photos : pertinent pour tout type d'événement.
+      configActions.push({
+        label: t('organizer.myEvents.actions.addPhotos'),
+        icon: 'images-outline',
+        onPress: () => handleAddPhotos(event),
+      });
     }
     // L'equipe (co-organisateurs, scanners, moderateurs) se constitue des la
     // phase de preparation — un co-organisateur aide a monter l'event avant
@@ -784,6 +801,7 @@ export default function MyEventsScreen() {
       });
     }
     if (event.status === 'validated') {
+      // Bénévoles + sponsors : pertinents pour tout type d'événement.
       configActions.push(
         {
           label: t('organizer.myEvents.actions.volunteers'),
@@ -795,40 +813,56 @@ export default function MyEventsScreen() {
           icon: 'briefcase-outline',
           onPress: () => navigation.navigate('SponsorManagement', { eventId: event.slug || event.id }),
         },
-        {
+      );
+
+      // Plan de placement numéroté (SeatingPlans) : billets à siège attribué
+      // (concert, théâtre) → billetterie. À ne pas confondre avec le plan de
+      // table mariage (WeddingTablesManage, nominatif) ci-dessous.
+      if (isBilletterie) {
+        configActions.push({
           label: t('organizer.myEvents.actions.seatingPlans'),
           icon: 'grid-outline',
           onPress: () => navigation.navigate('SeatingPlans', { eventId: event.slug || event.id }),
-        },
-        {
-          // Gestion mariage : invités/RSVP. Les endpoints organisateur exigent
-          // l'UUID de l'événement (pas le slug) — on passe event.id explicitement.
-          label: t('organizer.myEvents.actions.weddingGuests', { defaultValue: 'Invités & RSVP' }),
-          icon: 'people-outline',
-          onPress: () => navigation.navigate('WeddingGuestsManage', {
-            eventId: event.id, eventTitle: event.title,
-          }),
-        },
-        {
-          label: t('organizer.myEvents.actions.weddingGifts', { defaultValue: 'Cagnotte & cadeaux' }),
-          icon: 'gift-outline',
-          onPress: () => navigation.navigate('WeddingGiftsManage', {
-            eventId: event.id, eventTitle: event.title,
-          }),
-        },
-        {
-          label: t('organizer.myEvents.actions.weddingTables', { defaultValue: 'Plan de table' }),
-          icon: 'restaurant-outline',
-          onPress: () => navigation.navigate('WeddingTablesManage', {
-            eventId: event.id, eventTitle: event.title,
-          }),
-        },
-        {
+        });
+      }
+
+      // Gestion mariage : invités/RSVP, cagnotte, plan de table nominatif.
+      // Réservé aux événements de catégorie mariage. Les endpoints organisateur
+      // exigent l'UUID (pas le slug) → event.id explicite.
+      if (isWedding) {
+        configActions.push(
+          {
+            label: t('organizer.myEvents.actions.weddingGuests', { defaultValue: 'Invités & RSVP' }),
+            icon: 'people-outline',
+            onPress: () => navigation.navigate('WeddingGuestsManage', {
+              eventId: event.id, eventTitle: event.title,
+            }),
+          },
+          {
+            label: t('organizer.myEvents.actions.weddingGifts', { defaultValue: 'Cagnotte & cadeaux' }),
+            icon: 'gift-outline',
+            onPress: () => navigation.navigate('WeddingGiftsManage', {
+              eventId: event.id, eventTitle: event.title,
+            }),
+          },
+          {
+            label: t('organizer.myEvents.actions.weddingTables', { defaultValue: 'Plan de table' }),
+            icon: 'restaurant-outline',
+            onPress: () => navigation.navigate('WeddingTablesManage', {
+              eventId: event.id, eventTitle: event.title,
+            }),
+          },
+        );
+      }
+
+      // Exposants & stands : réservé aux salons / foires.
+      if (isExpo) {
+        configActions.push({
           label: t('organizer.myEvents.actions.exhibitors', { defaultValue: 'Exposants & stands' }),
           icon: 'storefront-outline',
           onPress: () => navigation.navigate('BoothManagement', { eventId: event.slug || event.id }),
-        },
-      );
+        });
+      }
     }
     if (configActions.length > 0) {
       sections.push({ title: t('organizer.myEvents.sectionConfig'), actions: configActions });

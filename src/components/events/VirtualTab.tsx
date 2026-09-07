@@ -176,6 +176,12 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
   };
 
   const isRoomActive = (room: VirtualRoom): boolean => {
+    // L'événement terminé prime sur le flag de la salle : une room peut rester
+    // `is_active=true` en base après la fin, ce qui laissait un bouton
+    // « Rejoindre » actif menant à un 403 `visio_ended`. `live.has_ended` (via
+    // useLiveStatus) ferme la porte pour tous — l'accès organisateur post-fin
+    // passe par l'écran détail, pas par ce bouton par-salle.
+    if (live?.has_ended) return false;
     return room.is_active === true || room.status === 'active' || room.status === 'live';
   };
 

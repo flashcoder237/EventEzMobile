@@ -260,6 +260,14 @@ export default function EventDetailsScreen() {
   // gardant status='validated' si le batch de complétion n'est pas passé.
   const isEventPast = !!event?.end_date && new Date(event.end_date).getTime() < Date.now();
 
+  // Rejoindre la visio : au DROIT d'accès (inscrit/organisateur) s'ajoute une
+  // garde de TEMPS. Un participant ne peut plus rejoindre une visio terminée —
+  // le bouton menait sinon à un 403 `visio_ended` du backend (mauvaise UX :
+  // bouton actif qui échoue au clic). L'ORGANISATEUR garde l'accès même après
+  // la fin (débrief, récupération d'enregistrement), aligné sur le backend qui
+  // ne borne pas le propriétaire.
+  const canJoinVisio = canAccessVisio && (!isEventPast || isOrganizer);
+
   // All hooks must be called before any early returns
   const scrollY = useSharedValue(0);
   // Lazy-load heavy below-the-fold sections (Reviews, Sponsors, Agenda, Location).
@@ -848,20 +856,31 @@ export default function EventDetailsScreen() {
                   {/* Bouton « Rejoindre » unifié : passe TOUJOURS par le flux
                       gaté event_join (vérif accès + JWT borné + WebView interne),
                       jamais par event.online_url en brut. Couvre la visio interne
-                      (eventez_visio, sans online_url) ET externe (Zoom/Meet). */}
-                  <TouchableOpacity
-                    style={styles.joinOnlineButton}
-                    onPress={handleJoinVisio}
-                    disabled={joiningVisio}
-                    activeOpacity={0.8}
-                  >
-                    {joiningVisio ? (
-                      <ActivityIndicator size="small" color={colors.white} />
-                    ) : (
-                      <Ionicons name="videocam" size={18} color={colors.white} />
-                    )}
-                    <Text style={styles.joinOnlineButtonText}>{t('eventDetails.joinEvent')}</Text>
-                  </TouchableOpacity>
+                      (eventez_visio, sans online_url) ET externe (Zoom/Meet).
+                      Masqué quand la visio est terminée (participant) — le
+                      backend renverrait un 403 `visio_ended`. L'organisateur
+                      garde l'accès (débrief/enregistrement). */}
+                  {canJoinVisio ? (
+                    <TouchableOpacity
+                      style={styles.joinOnlineButton}
+                      onPress={handleJoinVisio}
+                      disabled={joiningVisio}
+                      activeOpacity={0.8}
+                    >
+                      {joiningVisio ? (
+                        <ActivityIndicator size="small" color={colors.white} />
+                      ) : (
+                        <Ionicons name="videocam" size={18} color={colors.white} />
+                      )}
+                      <Text style={styles.joinOnlineButtonText}>{t('eventDetails.joinEvent')}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={[styles.onlineMeetingInfo, { backgroundColor: colors.gray50 }]}>
+                      <Text style={[styles.onlineLockedText, { color: colors.gray500 }]}>
+                        {t('eventDetails.visioEnded')}
+                      </Text>
+                    </View>
+                  )}
                   {/* Accès Q&A / sondages en direct (apps/live) — parité avec
                       l'onglet Live du web. Réservé aux inscrits. */}
                   {userRegistration && (
@@ -912,8 +931,9 @@ export default function EventDetailsScreen() {
               {/* Rejoindre la partie en ligne — via le flux gaté event_join
                   (jamais Linking.openURL brut, qui ouvrait le navigateur externe
                   sans gating ni token). Affiché aux inscrits ; l'accès est
-                  revérifié côté serveur au join. */}
-              {canAccessVisio && (
+                  revérifié côté serveur au join. Masqué quand la visio est
+                  terminée (participant) ; l'organisateur garde l'accès. */}
+              {canJoinVisio ? (
                 <TouchableOpacity
                   style={[styles.joinOnlineButton, { marginTop: Spacing.sm }]}
                   onPress={handleJoinVisio}
@@ -927,7 +947,11 @@ export default function EventDetailsScreen() {
                   )}
                   <Text style={styles.joinOnlineButtonText}>{t('eventDetails.joinOnline')}</Text>
                 </TouchableOpacity>
-              )}
+              ) : canAccessVisio && isEventPast ? (
+                <Text style={[styles.hybridOnlineText, { color: colors.gray500, marginTop: Spacing.sm }]}>
+                  {t('eventDetails.visioEnded')}
+                </Text>
+              ) : null}
             </View>
           ) : (
             <TouchableOpacity style={[styles.infoCard, { backgroundColor: colors.gray50 }]} activeOpacity={0.7}>
