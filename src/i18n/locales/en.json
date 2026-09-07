@@ -7545,6 +7545,10 @@
   "visio": {
     "expandCall": "Expand video call",
     "endCall": "End call",
-    "minimize": "Minimize"
+    "minimize": "Minimize",
+    "liveNow": "LIVE",
+    "join": "Join",
+    "view": "View",
+    "liveBannerA11y": "{{title}} is live, tap to join"
   }
 }

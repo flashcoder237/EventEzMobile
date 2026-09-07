@@ -32,6 +32,10 @@ export const registrationsAPI = {
   getMyRegistrations: () =>
     api.get('/registrations/my_registrations/'),
 
+  // Mes événements EN COURS maintenant (bannière « En direct » globale).
+  getMyLiveRegistrations: () =>
+    api.get('/registrations/live/'),
+
   // Recherche et filtres
   searchRegistrations: (params?: any) =>
     api.get('/registrations/search/', { params }),

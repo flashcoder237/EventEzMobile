@@ -7545,6 +7545,10 @@
   "visio": {
     "expandCall": "Agrandir la visio",
     "endCall": "Raccrocher",
-    "minimize": "Réduire"
+    "minimize": "Réduire",
+    "liveNow": "EN DIRECT",
+    "join": "Rejoindre",
+    "view": "Voir",
+    "liveBannerA11y": "{{title}} est en direct, appuyer pour rejoindre"
   }
 }

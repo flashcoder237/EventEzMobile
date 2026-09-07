@@ -77,6 +77,7 @@ import AnimatedSplash from './src/components/common/AnimatedSplash';
 import RootNavigator from './src/navigation/RootNavigator';
 import { VisioCallProvider } from './src/contexts/VisioCallContext';
 import VisioCallOverlay from './src/components/visio/VisioCallOverlay';
+import LiveEventBanner from './src/components/visio/LiveEventBanner';
 import VerificationGuardModal from './src/components/auth/VerificationGuardModal';
 import LockGate from './src/components/auth/LockGate';
 import { DEEP_LINK_SCHEME, WEB_BASE_URL, stripLocalePrefix } from './src/constants/urls';
@@ -384,6 +385,10 @@ function AppContent() {
                       </ForceUpdateGate>
                       <VerificationGuardModal />
                       <AnnouncementsModal />
+                      {/* Bannière « En direct » globale — filet de secours quand
+                          la push event_live est ratée : montre en haut de TOUT
+                          écran qu'un event inscrit est en cours + rejoindre 1 tap. */}
+                      <LiveEventBanner />
                       {/* Overlay visio PERSISTANT — sibling de RootNavigator :
                           la WebView Jitsi survit à la navigation (appel non
                           coupé), réductible en bulle flottante. */}
