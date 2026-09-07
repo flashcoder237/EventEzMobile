@@ -186,3 +186,94 @@ export function isThisWeekend(dateString: string): boolean {
 
   return eventDay >= saturday && eventDay <= sunday;
 }
+
+/** Deux instants tombent-ils le meme jour civil ? */
+function isSameCalendarDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear()
+    && a.getMonth() === b.getMonth()
+    && a.getDate() === b.getDate()
+  );
+}
+
+/**
+ * Plage complete d'un evenement : quand il commence ET quand il finit.
+ *
+ * Miroir de `eventez-frontend/src/lib/utils/dateUtils.ts` — garder les
+ * deux synchronises.
+ *
+ * Un evenement affiche avec sa seule date de debut induit en erreur : un
+ * salon sur deux jours ou un concert de quatre heures ne dit pas au
+ * visiteur jusqu'a quand il peut venir.
+ *
+ * LE PIEGE : concatener betement les deux dates produit « 12 mars –
+ * 12 mars » sur la majorite des evenements, ce qui est PIRE que
+ * n'afficher qu'une date. On distingue donc :
+ *   - meme jour        → « sam. 12 mars, 18:00 – 23:00 »
+ *   - jours differents → « sam. 12 mars, 18:00 → lun. 14 mars, 02:00 »
+ */
+export function formatEventDateRange(
+  startDate: string | Date | null | undefined,
+  endDate?: string | Date | null,
+  bcp47: string = 'fr-FR',
+  opts: { showTime?: boolean } = {},
+): string {
+  const { showTime = true } = opts;
+  if (!startDate) return '';
+
+  const start = new Date(startDate);
+  if (Number.isNaN(start.getTime())) return '';
+
+  const dateOpts: Intl.DateTimeFormatOptions = {
+    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+  };
+  const timeOpts: Intl.DateTimeFormatOptions = {
+    hour: '2-digit', minute: '2-digit',
+  };
+
+  const startDay = start.toLocaleDateString(bcp47, dateOpts);
+  const startTime = start.toLocaleTimeString(bcp47, timeOpts);
+
+  const end = endDate ? new Date(endDate) : null;
+  const hasEnd = end && !Number.isNaN(end.getTime());
+
+  if (!hasEnd) {
+    return showTime ? `${startDay}, ${startTime}` : startDay;
+  }
+
+  const endTime = end!.toLocaleTimeString(bcp47, timeOpts);
+
+  if (isSameCalendarDay(start, end!)) {
+    // Le jour n'est pas repete : il ne change pas.
+    return showTime ? `${startDay}, ${startTime} – ${endTime}` : startDay;
+  }
+
+  const endDay = end!.toLocaleDateString(bcp47, dateOpts);
+  return showTime
+    ? `${startDay}, ${startTime} → ${endDay}, ${endTime}`
+    : `${startDay} → ${endDay}`;
+}
+
+/**
+ * Nombre de jours civils couverts par un evenement (1 = mono-jour).
+ *
+ * Sert aux surfaces trop etroites pour une plage complete : sur une carte
+ * de liste, un discret « 3 jours » informe sans encombrer, et disparait
+ * de lui-meme sur les evenements d'une journee.
+ */
+export function getEventDaySpan(
+  startDate: string | Date | null | undefined,
+  endDate?: string | Date | null,
+): number {
+  if (!startDate || !endDate) return 1;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 1;
+
+  // Jours CIVILS, pas tranches de 24 h : un evenement de 20h a 2h du matin
+  // s'etale sur deux jours mais ne dure que six heures.
+  const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  const diff = Math.round((endDay.getTime() - startDay.getTime()) / 86400000);
+  return Math.max(1, diff + 1);
+}

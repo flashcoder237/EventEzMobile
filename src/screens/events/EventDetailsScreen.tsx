@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
+import { formatEventDateRange } from '../../lib/utils/dateFormatters';
 import ImageView from 'react-native-image-viewing';
 import { DEFAULT_BLUR_DATA_URL } from '../../utils/imageUtils';
 import { getSaleState } from '../../utils/ticketSaleWindow';
@@ -93,7 +94,7 @@ export default function EventDetailsScreen() {
   const { eventId, imageUrl: routeImageUrl, previewEvent, initialTab } = route.params;
   const { colors, isDark, gradients } = useTheme();
   const { requireAuth } = useAuthGuard();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
 
@@ -706,8 +707,17 @@ export default function EventDetailsScreen() {
           {/* Date pill — soft editorial */}
           <View style={[styles.datePill, { backgroundColor: colors.primaryBg, borderColor: colors.primary }]}>
             <Ionicons name="calendar-outline" size={14} color={colors.primary} />
-            <Text style={[styles.datePillText, { color: colors.primary }]}>
-              {formatDate(event.start_date)} · {formatTime(event.start_date)}
+            {/* La fin manquait : un salon de deux jours s'affichait comme
+                un événement d'une soirée. */}
+            <Text
+              style={[styles.datePillText, { color: colors.primary }]}
+              allowFontScaling
+              maxFontSizeMultiplier={1.5}
+            >
+              {formatEventDateRange(
+                event.start_date, event.end_date,
+                i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR',
+              )}
             </Text>
           </View>
 

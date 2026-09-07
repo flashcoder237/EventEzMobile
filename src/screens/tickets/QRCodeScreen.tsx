@@ -21,6 +21,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { formatEventDateRange } from '../../lib/utils/dateFormatters';
 import * as Print from 'expo-print';
 import { useSaveOrShareSheet } from '../../hooks/useSaveOrShareSheet';
 import QRCode from 'react-native-qrcode-svg';
@@ -50,7 +51,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type QRCodeRouteProp = RouteProp<RootStackParamList, 'QRCode'>;
 
 export default function QRCodeScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   // Écran QR : luminosité max + écran éveillé + anti-capture pendant l'affichage
   useTicketDisplayGuard();
   const navigation = useNavigation<NavigationProp>();
@@ -459,16 +460,22 @@ export default function QRCodeScreen() {
 
               {/* Meta chips : date, heure, lieu */}
               <View style={styles.metaChipsRow}>
+                {/* Une seule puce plutôt que date + heure séparées : sur un
+                    billet consulté à l'entrée, « jusqu'à quand » compte
+                    autant que « à partir de quand ». */}
                 {event?.start_date && (
                   <View style={[styles.metaChip, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
                     <Ionicons name="calendar-outline" size={12} color={colors.accent} />
-                    <Text style={[styles.metaChipText, { color: colors.gray700 }]}>{formatDate(event.start_date)}</Text>
-                  </View>
-                )}
-                {event?.start_date && (
-                  <View style={[styles.metaChip, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
-                    <Ionicons name="time-outline" size={12} color={colors.primary} />
-                    <Text style={[styles.metaChipText, { color: colors.gray700 }]}>{formatTime(event.start_date)}</Text>
+                    <Text
+                      style={[styles.metaChipText, { color: colors.gray700 }]}
+                      allowFontScaling
+                      maxFontSizeMultiplier={1.4}
+                    >
+                      {formatEventDateRange(
+                        event.start_date, (event as any).end_date,
+                        i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR',
+                      )}
+                    </Text>
                   </View>
                 )}
                 {isOnlineEvent && (
