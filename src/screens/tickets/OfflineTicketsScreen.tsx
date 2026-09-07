@@ -267,7 +267,14 @@ export default function OfflineTicketsScreen() {
   const renderTicketItem = ({ item }: { item: CachedTicket }) => {
     const isExpanded = expandedTicket === item.ticketId;
     const eventDate = item.eventDate ? new Date(item.eventDate) : null;
-    const isPast = !!eventDate && eventDate < new Date();
+    // On compare la FIN quand on l'a : sur le début, un billet de salon
+    // sur trois jours passait en « terminé » dès le deuxième jour — et
+    // sans réseau, impossible de vérifier ailleurs.
+    const eventEnd = item.eventEndDate ? new Date(item.eventEndDate) : null;
+    const pastReference = eventEnd && !Number.isNaN(eventEnd.getTime())
+      ? eventEnd
+      : eventDate;
+    const isPast = !!pastReference && pastReference < new Date();
     const tile = formatDateTile(item.eventDate);
     const eventTitle = item.eventTitle || t('tickets.eventFallback');
     const ticketType = item.ticketType || t('tickets.ticketFallback');

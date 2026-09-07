@@ -80,7 +80,7 @@ interface SuccessContent {
 export default function PaymentSuccessScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<PaymentSuccessRouteProp>();
-  const { eventType, approvalStatus, eventTitle, eventImage, registrationId, amount, currency, eventStartDate, eventId, eventSlug, referenceCode, paymentId, attendeeFormScope } = route.params;
+  const { eventType, approvalStatus, eventTitle, eventImage, registrationId, amount, currency, eventStartDate, eventEndDate, eventId, eventSlug, referenceCode, paymentId, attendeeFormScope } = route.params;
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -172,12 +172,18 @@ export default function PaymentSuccessScreen() {
     }
   }, [eventId, eventTitle, user?.id]);
 
-  // Construit l'URL Google Calendar à partir des params reçus (start +2h par défaut)
+  // Construit l'URL Google Calendar à partir des params reçus.
+  // On utilise la VRAIE fin de l'événement : le repli « début + 2 h »
+  // faisait atterrir un festival de trois jours dans l'agenda comme une
+  // réunion de deux heures. Il ne sert plus que si la fin manque.
   const handleAddToCalendar = useCallback(() => {
     if (!eventStartDate || !eventTitle) return;
     try {
       const start = new Date(eventStartDate);
-      const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+      const parsedEnd = eventEndDate ? new Date(eventEndDate) : null;
+      const end = parsedEnd && !Number.isNaN(parsedEnd.getTime()) && parsedEnd > start
+        ? parsedEnd
+        : new Date(start.getTime() + 2 * 60 * 60 * 1000);
       const fmt = (d: Date) =>
         d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
       const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
@@ -189,7 +195,7 @@ export default function PaymentSuccessScreen() {
     } catch {
       /* ignore parse errors */
     }
-  }, [eventStartDate, eventTitle]);
+  }, [eventStartDate, eventEndDate, eventTitle]);
 
   // Compte à rebours en jours jusqu'à l'événement (si date fournie)
   const daysUntil = useMemo(() => {

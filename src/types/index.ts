@@ -1761,6 +1761,10 @@ export type RootStackParamList = {
     /** Bannière/cover de l'event — sert de fond à la carte « story » partageable. */
     eventImage?: string | null;
     eventStartDate?: string;
+    /** Fin REELLE de l'evenement. Sans elle, l'ajout au calendrier
+     *  inventait un creneau de 2 h : un evenement de trois jours
+     *  atterrissait dans l'agenda comme une reunion. */
+    eventEndDate?: string;
     amount?: number;
     currency?: string;
     /** Reference code de l'inscription (Registration.reference_code) — affichée dans le récap */

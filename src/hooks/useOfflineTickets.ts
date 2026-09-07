@@ -48,6 +48,11 @@ interface CachedTicket {
   registrationId: string;
   eventTitle: string;
   eventDate: string;
+  /** Fin de l'evenement. Sans elle, `isPast` se calcule sur le DEBUT :
+   *  un billet de salon sur trois jours etait marque « passe » des le
+   *  lendemain de l'ouverture, alors que le salon battait son plein —
+   *  et sans reseau, impossible de verifier ailleurs. */
+  eventEndDate?: string;
   ticketType: string;
   quantity: number;
   referenceCode: string;
@@ -61,6 +66,7 @@ interface CachedTicketIndex {
     registrationId: string;
     eventTitle: string;
     eventDate: string;
+    eventEndDate?: string;
     cachedAt: number;
   };
 }
@@ -201,6 +207,7 @@ export function useOfflineTickets() {
         eventId: ticket.registration.event.slug || ticket.registration.event.id,
         eventTitle: ticket.registration.event.title,
         eventDate: ticket.registration.event.start_date,
+        eventEndDate: (ticket.registration.event as any).end_date,
         ticketType: ticket.ticket_type_name || 'Billet',
         quantity: ticket.quantity || 1,
         referenceCode: ticket.registration.reference_code,
@@ -228,6 +235,7 @@ export function useOfflineTickets() {
           registrationId: ticket.registration.id,
           eventTitle: ticket.registration.event.title,
           eventDate: ticket.registration.event.start_date,
+        eventEndDate: (ticket.registration.event as any).end_date,
           cachedAt: Date.now(),
         },
       };

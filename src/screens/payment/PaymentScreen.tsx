@@ -398,6 +398,7 @@ export default function PaymentScreen() {
         eventTitle: eventObj?.title,
         eventImage: (eventObj as any)?.banner_image || (eventObj as any)?.display_image || null,
         eventStartDate: (eventObj as any)?.start_date,
+        eventEndDate: (eventObj as any)?.end_date,
         amount: finalTotal,
         currency: eventCurrencyLabel,
         referenceCode: (registration as any)?.reference_code,
