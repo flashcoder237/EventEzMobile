@@ -7,6 +7,7 @@ import {
   ScrollView,
   RefreshControl,
   ActivityIndicator,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
@@ -44,6 +45,7 @@ import {
   TextStyles,
 } from '../../constants/theme';
 import { centeredContent } from '../../constants/layout';
+import { getOrganizerUrl } from '../../constants/urls';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -150,6 +152,33 @@ export default function ProfileScreen() {
     }
     return (user.email?.[0] || '?').toUpperCase();
   };
+
+  // Lien PUBLIC du profil organisateur — slug en priorité (le web redirige les
+  // id numériques en 308 vers le slug canonique). getOrganizerUrl existe déjà.
+  const organizerPublicId = user?.slug || (user?.id != null ? String(user.id) : '');
+
+  const handleShareOrganizerProfile = useCallback(async () => {
+    if (!organizerPublicId) return;
+    const url = getOrganizerUrl(organizerPublicId);
+    try {
+      await Share.share({
+        message: t('profile.shareOrganizerMessage', {
+          name: user?.company_name || user?.first_name || t('profile.labelOrganizer'),
+          url,
+          defaultValue: '{{name}} sur EventEz : {{url}}',
+        }),
+        url,
+        title: user?.company_name || t('profile.shareOrganizerTitle', { defaultValue: 'Mon profil organisateur' }),
+      });
+    } catch {
+      /* l'utilisateur a annulé le partage — no-op */
+    }
+  }, [organizerPublicId, user?.company_name, user?.first_name, t]);
+
+  const handleViewPublicProfile = useCallback(() => {
+    if (!organizerPublicId) return;
+    navigation.navigate('OrganizerProfile', { organizerId: organizerPublicId });
+  }, [organizerPublicId, navigation]);
 
   const handleLogout = () => {
     showConfirm(
@@ -282,6 +311,88 @@ export default function ProfileScreen() {
             ) : null}
           </ScrollView>
         </FadeInView>
+
+        {/* Vitrine organisateur — aperçu du profil PUBLIC (ce que voient les
+            autres) + partage. Les infos publiques viennent de user.organizer_profile
+            (déjà chargé via AuthContext) + champs User (company_name, bio). */}
+        {isOrganizer && (
+          <FadeInView delay={180} translateY={12}>
+            <View style={[styles.orgCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
+              <View style={styles.orgCardHeader}>
+                {user?.organizer_profile?.logo || user?.profile_picture || user?.image ? (
+                  <Image
+                    source={user.organizer_profile?.logo || user.profile_picture || user.image}
+                    style={styles.orgCardLogo}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={300}
+                  />
+                ) : (
+                  <View style={[styles.orgCardLogo, styles.orgCardLogoPlaceholder, { backgroundColor: colors.primary }]}>
+                    <Ionicons name="business" size={22} color="#FFFFFF" />
+                  </View>
+                )}
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text style={[styles.orgCardName, { color: colors.gray900 }]} numberOfLines={1}>
+                      {user?.company_name || `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || t('profile.labelOrganizer')}
+                    </Text>
+                    {user?.is_verified && (
+                      <Ionicons name="checkmark-circle" size={15} color={colors.primary} />
+                    )}
+                  </View>
+                  {/* Stats publiques : nb d'events + note (fallback si non alimentés) */}
+                  <View style={styles.orgCardStatsRow}>
+                    <Ionicons name="calendar-outline" size={12} color={colors.gray500} />
+                    <Text style={[styles.orgCardStat, { color: colors.gray500 }]}>
+                      {t('profile.orgEventsCount', {
+                        count: user?.organizer_profile?.computed_event_count ?? user?.organizer_profile?.event_count ?? 0,
+                        defaultValue: '{{count}} événements',
+                      })}
+                    </Text>
+                    {(user?.organizer_profile?.computed_rating_count ?? 0) > 0 && (
+                      <>
+                        <Text style={[styles.orgCardStat, { color: colors.gray300 }]}>·</Text>
+                        <Ionicons name="star" size={12} color={colors.accent} />
+                        <Text style={[styles.orgCardStat, { color: colors.gray500 }]}>
+                          {Number(user?.organizer_profile?.computed_rating ?? 0).toFixed(1)}
+                        </Text>
+                      </>
+                    )}
+                  </View>
+                </View>
+              </View>
+
+              {(user?.organizer_profile?.description || user?.bio) ? (
+                <Text style={[styles.orgCardDesc, { color: colors.gray600 }]} numberOfLines={3}>
+                  {user.organizer_profile?.description || user.bio}
+                </Text>
+              ) : null}
+
+              <View style={styles.orgCardActions}>
+                <TouchableOpacity
+                  style={[styles.orgCardBtnPrimary, { backgroundColor: colors.primary }]}
+                  onPress={handleShareOrganizerProfile}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('profile.shareOrganizerA11y', { defaultValue: 'Partager mon profil organisateur' })}
+                >
+                  <Ionicons name="share-social-outline" size={16} color="#FFFFFF" />
+                  <Text style={styles.orgCardBtnPrimaryText}>{t('profile.shareProfileButton', { defaultValue: 'Partager mon profil' })}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.orgCardBtnGhost, { borderColor: colors.gray200 }]}
+                  onPress={handleViewPublicProfile}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('profile.viewPublicProfileA11y', { defaultValue: 'Voir mon profil public' })}
+                >
+                  <Ionicons name="eye-outline" size={16} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </FadeInView>
+        )}
 
         {/* Banner "Pour vous" — suggestions context-aware (cache si rien a faire) */}
         <FadeInView delay={200} translateY={12}>
@@ -831,6 +942,77 @@ const styles = StyleSheet.create({
   becomeOrganizerSubtitle: {
     ...TextStyles.small,
     marginTop: 2,
+  },
+  // Vitrine organisateur (aperçu profil public + partage)
+  orgCard: {
+    marginTop: Spacing.md,
+    marginHorizontal: Spacing.lg,
+    padding: Spacing.md,
+    borderRadius: BorderRadius['2xl'],
+    borderWidth: 1,
+  },
+  orgCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  orgCardLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.lg,
+  },
+  orgCardLogoPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orgCardName: {
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: FontSizes.lg,
+    flexShrink: 1,
+  },
+  orgCardStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 3,
+  },
+  orgCardStat: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.xs,
+  },
+  orgCardDesc: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.sm,
+    lineHeight: FontSizes.sm * 1.45,
+    marginTop: Spacing.sm,
+  },
+  orgCardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  orgCardBtnPrimary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+  },
+  orgCardBtnPrimaryText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.sm,
+    color: '#FFFFFF',
+  },
+  orgCardBtnGhost: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   menuSection: {
     marginTop: Spacing.xl,

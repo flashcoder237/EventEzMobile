@@ -1445,7 +1445,14 @@
     "appVersion": "EventEz v{{version}}",
     "myQRTitle": "Mon QR Code",
     "refundsMenu": "Mes remboursements",
-    "refundsSubtitle": "Suivez où en est votre argent"
+    "refundsSubtitle": "Suivez où en est votre argent",
+    "shareProfileButton": "Partager mon profil",
+    "shareOrganizerMessage": "{{name}} sur EventEz : {{url}}",
+    "shareOrganizerTitle": "Mon profil organisateur",
+    "shareOrganizerA11y": "Partager mon profil organisateur",
+    "viewPublicProfileA11y": "Voir mon profil public",
+    "orgEventsCount_one": "{{count}} événement",
+    "orgEventsCount_other": "{{count}} événements"
   },
   "editProfile": {
     "title": "Modifier mon profil",
@@ -5879,7 +5886,9 @@
         "invite": "Inviter des invités",
         "inviteDescInviteOnly": "Seul moyen de donner accès à cet événement sur invitation",
         "duplicatePastDesc": "Repart d'une copie modifiable",
-        "remindInvites": "Relancer les invités"
+        "remindInvites": "Relancer les invités",
+        "weddingGuests": "Invités & RSVP",
+        "weddingGifts": "Cagnotte & cadeaux"
       },
       "emptyEyebrowResults": "AUCUN RÉSULTAT",
       "emptyEyebrowCatalog": "CATALOGUE VIDE",
@@ -6592,6 +6601,69 @@
       "attendanceSheetHint": "À faire signer à l'accueil — prête avant l'événement",
       "certificates": "Attestations de présence",
       "certificatesHint": "Après l'événement, pour les participants pointés"
+    },
+    "weddingGuests": {
+      "title": "Invités & RSVP",
+      "empty": "Aucun invité pour le moment.",
+      "remindOne": "Relancer",
+      "remindOneSent": "Relance envoyée",
+      "remindSent": "{{sent}} relance(s) envoyée(s)",
+      "remindSentWithSkipped": "{{sent}} envoyée(s), {{skipped}} ignorée(s)",
+      "remindError": "Impossible d'envoyer la relance",
+      "remindPending": "Relancer {{count}} en attente",
+      "editRsvp": "Modifier le RSVP",
+      "editRsvpTitle": "Modifier le RSVP",
+      "rsvpUpdated": "RSVP mis à jour",
+      "rsvpError": "Impossible d'enregistrer le RSVP",
+      "partySize": "Nombre d'accompagnants",
+      "dietary": "Régime alimentaire",
+      "dietaryPlaceholder": "Végétarien, sans gluten…",
+      "note": "Note",
+      "stats": {
+        "invited": "Invités",
+        "accepted": "Confirmés",
+        "pending": "En attente",
+        "headcount": "Couverts"
+      },
+      "status": {
+        "pending": "En attente",
+        "accepted": "Confirmé",
+        "declined": "Décliné",
+        "cancelled": "Annulé"
+      }
+    },
+    "weddingGifts": {
+      "title": "Cagnotte & cadeaux",
+      "noRegistry": "Aucune liste de cadeaux pour cet événement.",
+      "create": "Créer la liste",
+      "registryCreated": "Liste créée",
+      "registryUpdated": "Liste mise à jour",
+      "editRegistry": "Modifier la liste",
+      "registryTitle": "Titre de la liste",
+      "registryDescription": "Message aux invités",
+      "visible": "Liste visible",
+      "hidden": "Masquée",
+      "totalRaised": "Total récolté",
+      "share": "Partager",
+      "addItem": "Ajouter un cadeau",
+      "newItem": "Nouveau cadeau",
+      "editItem": "Modifier le cadeau",
+      "itemName": "Nom",
+      "itemKind": "Type",
+      "targetAmount": "Montant cible",
+      "externalUrl": "Lien externe (optionnel)",
+      "itemAdded": "Cadeau ajouté",
+      "itemUpdated": "Cadeau mis à jour",
+      "itemDeleted": "Cadeau supprimé",
+      "deleteItemTitle": "Supprimer ce cadeau",
+      "deleteItemMessage": "Supprimer « {{name}} » de la liste ?",
+      "reserved": "Réservé",
+      "noItems": "Aucun cadeau. Ajoutez-en un.",
+      "kind": {
+        "gift": "Cadeau (objet)",
+        "cash_fund": "Cagnotte"
+      },
+      "error": "Une erreur est survenue"
     }
   },
   "moderation": {

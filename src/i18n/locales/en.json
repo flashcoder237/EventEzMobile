@@ -1445,7 +1445,14 @@
     "appVersion": "EventEz v{{version}}",
     "myQRTitle": "My QR Code",
     "refundsMenu": "My refunds",
-    "refundsSubtitle": "Track where your money stands"
+    "refundsSubtitle": "Track where your money stands",
+    "shareProfileButton": "Share my profile",
+    "shareOrganizerMessage": "{{name}} on EventEz: {{url}}",
+    "shareOrganizerTitle": "My organizer profile",
+    "shareOrganizerA11y": "Share my organizer profile",
+    "viewPublicProfileA11y": "View my public profile",
+    "orgEventsCount_one": "{{count}} event",
+    "orgEventsCount_other": "{{count}} events"
   },
   "editProfile": {
     "title": "Edit profile",
@@ -5879,7 +5886,9 @@
         "invite": "Invite guests",
         "inviteDescInviteOnly": "The only way to grant access to this invite-only event",
         "duplicatePastDesc": "Start from an editable copy",
-        "remindInvites": "Remind guests"
+        "remindInvites": "Remind guests",
+        "weddingGuests": "Guests & RSVP",
+        "weddingGifts": "Registry & gifts"
       },
       "emptyEyebrowResults": "NO RESULTS",
       "emptyEyebrowCatalog": "EMPTY CATALOG",
@@ -6592,6 +6601,69 @@
       "attendanceSheetHint": "To sign at the front desk — ready before the event",
       "certificates": "Attendance certificates",
       "certificatesHint": "After the event, for checked-in attendees"
+    },
+    "weddingGuests": {
+      "title": "Guests & RSVP",
+      "empty": "No guests yet.",
+      "remindOne": "Remind",
+      "remindOneSent": "Reminder sent",
+      "remindSent": "{{sent}} reminder(s) sent",
+      "remindSentWithSkipped": "{{sent}} sent, {{skipped}} skipped",
+      "remindError": "Could not send reminder",
+      "remindPending": "Remind {{count}} pending",
+      "editRsvp": "Edit RSVP",
+      "editRsvpTitle": "Edit RSVP",
+      "rsvpUpdated": "RSVP updated",
+      "rsvpError": "Could not save RSVP",
+      "partySize": "Party size",
+      "dietary": "Dietary requirements",
+      "dietaryPlaceholder": "Vegetarian, gluten-free…",
+      "note": "Note",
+      "stats": {
+        "invited": "Invited",
+        "accepted": "Confirmed",
+        "pending": "Pending",
+        "headcount": "Headcount"
+      },
+      "status": {
+        "pending": "Pending",
+        "accepted": "Confirmed",
+        "declined": "Declined",
+        "cancelled": "Cancelled"
+      }
+    },
+    "weddingGifts": {
+      "title": "Registry & gifts",
+      "noRegistry": "No gift registry for this event.",
+      "create": "Create registry",
+      "registryCreated": "Registry created",
+      "registryUpdated": "Registry updated",
+      "editRegistry": "Edit registry",
+      "registryTitle": "Registry title",
+      "registryDescription": "Message to guests",
+      "visible": "Registry visible",
+      "hidden": "Hidden",
+      "totalRaised": "Total raised",
+      "share": "Share",
+      "addItem": "Add a gift",
+      "newItem": "New gift",
+      "editItem": "Edit gift",
+      "itemName": "Name",
+      "itemKind": "Type",
+      "targetAmount": "Target amount",
+      "externalUrl": "External link (optional)",
+      "itemAdded": "Gift added",
+      "itemUpdated": "Gift updated",
+      "itemDeleted": "Gift deleted",
+      "deleteItemTitle": "Delete this gift",
+      "deleteItemMessage": "Remove “{{name}}” from the registry?",
+      "reserved": "Reserved",
+      "noItems": "No gifts yet. Add one.",
+      "kind": {
+        "gift": "Gift (item)",
+        "cash_fund": "Cash fund"
+      },
+      "error": "Something went wrong"
     }
   },
   "moderation": {

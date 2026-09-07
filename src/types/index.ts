@@ -29,6 +29,8 @@ export interface User {
   phone_number?: string;
   role?: UserRole;
   organizer_type?: OrganizerType;
+  // Slug public unique (profil organisateur : /organizers/{slug}). Stable.
+  slug?: string;
   // Champs pour organisateurs de type organisation
   company_name?: string;
   registration_number?: string;
@@ -108,9 +110,13 @@ export interface OrganizerProfile {
   website?: string;
   // Statut
   verified_status: boolean;
-  // Statistiques
+  // Statistiques (rating/event_count stockés valent souvent 0 → préférer les
+  // properties calculées ci-dessous, exposées par OrganizerProfileSerializer).
   rating: number;
   event_count: number;
+  computed_rating?: number;
+  computed_rating_count?: number;
+  computed_event_count?: number;
   // ONG
   is_nonprofit?: boolean;
   // --- Client-side aliases (non renvoyes par le backend) ---
@@ -1824,6 +1830,10 @@ export type RootStackParamList = {
   WeddingRsvp: { token: string };
   // Mariage : liste de cadeaux publique (deep link events/{slug}/gift-registry)
   WeddingGiftRegistry: { slug: string };
+  // Mariage — écrans de GESTION organisateur (nav interne uniquement, JAMAIS
+  // deep link). eventId = UUID de l'événement (endpoints organisateur stricts).
+  WeddingGuestsManage: { eventId: string; eventTitle?: string };
+  WeddingGiftsManage: { eventId: string; eventTitle?: string };
   // Vue user-side : "Mes events en equipe" — events ou je suis staff actif
   MyTeamEvents: undefined;
   DiscountManagement: { eventId: string };
