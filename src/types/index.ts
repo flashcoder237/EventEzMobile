@@ -226,6 +226,11 @@ export interface Event {
   auto_approve_registrations?: boolean;
   fee_bearer?: 'participant' | 'organizer';
   max_participants?: number;
+  // Places restantes sur la jauge GLOBALE (SerializerMethodField).
+  // `null` = aucune limite fixée par l'organisateur (cas majoritaire).
+  // À ne pas confondre avec le stock d'un TicketType : c'est cette
+  // valeur-ci qui refuse l'achat au paiement quand elle est atteinte.
+  attendance_remaining?: number | null;
   // Prix (SerializerMethodField)
   ticket_price_range?: string;
   // Relations etendues (EventDetailSerializer)

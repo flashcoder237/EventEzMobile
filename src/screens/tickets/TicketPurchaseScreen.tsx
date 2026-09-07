@@ -46,6 +46,7 @@ import {
 } from '../../constants/theme';
 import { calculateServiceFee, getServiceFeeLabel } from '../../constants/payment';
 import { getSaleState } from '../../utils/ticketSaleWindow';
+import { getQuantityLimit } from '../../utils/ticketQuantityLimit';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
@@ -324,7 +325,18 @@ export default function TicketPurchaseScreen() {
     return Object.keys(errors).length === 0;
   };
 
-  const MAX_TICKETS_PER_TYPE = 10;
+  // Limite REELLE de ce tarif : plafond de l'organisateur, stock restant et
+  // jauge globale de l'evenement, la plus serree des trois. Remplace un `10`
+  // code en dur qui ignorait les trois — d'ou des refus au paiement quand
+  // l'organisateur autorisait moins, et des blocages injustifies quand il
+  // autorisait plus.
+  const limitFor = (ticketTypeId: string) => {
+    const tt = ticketTypes.find((x) => String(x.id) === ticketTypeId);
+    if (!tt) return { max: 0, min: 1, reason: 'per_order' as const };
+    return getQuantityLimit(tt as any, {
+      attendanceRemaining: event?.attendance_remaining ?? null,
+    });
+  };
   const handleGroupInquiry = () => {
     // Le user veut > 10 billets — on ouvre une conversation avec l'organisateur
     // pour qu'il négocie directement (tarif groupe, billets dédiés, etc.).
@@ -357,20 +369,31 @@ export default function TicketPurchaseScreen() {
     if (delta > 0 && !isTicketSaleOpen(ticketTypeId)) return;
     const current = selections.get(ticketTypeId) || 0;
     const intended = current + delta;
-    // Surface a clear message if the user tries to exceed the per-order cap
-    if (intended > MAX_TICKETS_PER_TYPE) {
+    const { max: maxQty, reason } = limitFor(ticketTypeId);
+    if (intended > maxQty) {
+      // Le message doit dire QUELLE contrainte bloque : proposer de
+      // « contacter l'organisateur » n'a de sens que s'il peut lever la
+      // limite lui-meme. Sur un stock epuise ou une salle pleine, c'est
+      // une fausse piste.
+      const negotiable = reason === 'per_order';
       showAlert(
         t('ticketPurchase.limitReachedTitle'),
-        t('ticketPurchase.limitReachedMessage', { max: MAX_TICKETS_PER_TYPE }),
-        [
-          { text: t('common.ok'), style: 'cancel' },
-          { text: t('ticketPurchase.contactOrganizer'), onPress: handleGroupInquiry },
-        ],
+        reason === 'event_capacity'
+          ? t('ticketPurchase.limitEventCapacity', { max: maxQty })
+          : reason === 'stock'
+            ? t('ticketPurchase.limitStock', { max: maxQty })
+            : t('ticketPurchase.limitReachedMessage', { max: maxQty }),
+        negotiable
+          ? [
+              { text: t('common.ok'), style: 'cancel' },
+              { text: t('ticketPurchase.contactOrganizer'), onPress: handleGroupInquiry },
+            ]
+          : [{ text: t('common.ok'), style: 'cancel' }],
         'warning',
       );
       return;
     }
-    const newQuantity = Math.max(0, Math.min(MAX_TICKETS_PER_TYPE, intended));
+    const newQuantity = Math.max(0, Math.min(maxQty, intended));
     const newSelections = new Map(selections);
 
     if (newQuantity === 0) {
@@ -389,10 +412,11 @@ export default function TicketPurchaseScreen() {
     // Meme garde que updateQuantity : hors fenetre de vente, seule la remise a
     // zero reste permise.
     if (parsed > 0 && !isTicketSaleOpen(ticketTypeId)) return;
-    if (parsed > MAX_TICKETS_PER_TYPE) {
+    const { max: maxQty } = limitFor(ticketTypeId);
+    if (parsed > maxQty) {
       showAlert(
         t('ticketPurchase.limitReachedTitle'),
-        t('ticketPurchase.limitReachedMessageShort', { max: MAX_TICKETS_PER_TYPE }),
+        t('ticketPurchase.limitReachedMessageShort', { max: maxQty }),
         undefined,
         'warning',
       );
@@ -1460,7 +1484,9 @@ export default function TicketPurchaseScreen() {
               accessibilityLabel={t('ticketPurchase.qtyModalInputA11y')}
             />
             <Text style={[styles.qtyModalHint, { color: colors.gray500 }]}>
-              {t('ticketPurchase.qtyModalHint', { max: MAX_TICKETS_PER_TYPE })}
+              {t('ticketPurchase.qtyModalHint', {
+                max: qtyModal ? limitFor(qtyModal.ticketTypeId).max : 0,
+              })}
             </Text>
             <View style={styles.qtyModalActions}>
               <TouchableOpacity

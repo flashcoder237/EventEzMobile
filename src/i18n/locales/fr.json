@@ -4408,7 +4408,9 @@
       "in_person": "Présentiel uniquement",
       "online": "Accès en ligne",
       "hybrid": "Présentiel + en ligne"
-    }
+    },
+    "limitStock": "Il ne reste que {{max}} billet(s) de ce type.",
+    "limitEventCapacity": "Il ne reste que {{max}} place(s) pour cet événement."
   },
   "registrationDetails": {
     "headerInscription": "Mon inscription",

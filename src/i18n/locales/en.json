@@ -4408,7 +4408,9 @@
       "in_person": "In person only",
       "online": "Online access",
       "hybrid": "In person + online"
-    }
+    },
+    "limitStock": "Only {{max}} ticket(s) of this type left.",
+    "limitEventCapacity": "Only {{max}} place(s) left for this event."
   },
   "registrationDetails": {
     "headerInscription": "My registration",
