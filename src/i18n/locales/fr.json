@@ -716,7 +716,8 @@
     "codeGateDesc": "Entrez le code pour voir les détails complets",
     "giftRegistryCta": "Liste de cadeaux",
     "giftRegistrySubtitle": "Découvrez la liste et participez si le cœur vous en dit",
-    "cancelReasonTitle": "Motif de l'annulation"
+    "cancelReasonTitle": "Motif de l'annulation",
+    "visioEnded": "La visioconférence de cet événement est terminée."
   },
   "events": {
     "videoBadge": "Vidéo",
@@ -4140,7 +4141,9 @@
     "tapToLoadImage": "Appuyer pour charger",
     "reply": "Répondre",
     "react": "Réagir",
-    "reactionToggleA11y": "Réaction {{emoji}}, {{count}}"
+    "reactionToggleA11y": "Réaction {{emoji}}, {{count}}",
+    "incompleteTemplateTitle": "Message incomplet",
+    "incompleteTemplateMessage": "Cette réponse rapide attend une suite. Complétez-la après les deux-points avant de l'envoyer — les participants ne verraient qu'une phrase inachevée."
   },
   "scanForm": {
     "loading": "Chargement...",

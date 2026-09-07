@@ -716,7 +716,8 @@
     "codeGateDesc": "Enter the code to see the full details",
     "giftRegistryCta": "Gift registry",
     "giftRegistrySubtitle": "See the list and chip in if you feel like it",
-    "cancelReasonTitle": "Reason for cancellation"
+    "cancelReasonTitle": "Reason for cancellation",
+    "visioEnded": "This event’s video conference has ended."
   },
   "events": {
     "videoBadge": "Video",
@@ -3799,7 +3800,9 @@
     "tapToLoadImage": "Tap to load",
     "reply": "Reply",
     "react": "React",
-    "reactionToggleA11y": "Reaction {{emoji}}, {{count}}"
+    "reactionToggleA11y": "Reaction {{emoji}}, {{count}}",
+    "incompleteTemplateTitle": "Unfinished message",
+    "incompleteTemplateMessage": "This quick reply is waiting to be completed. Add your answer after the colon before sending — attendees would only see an unfinished sentence."
   },
   "scanForm": {
     "loading": "Loading...",

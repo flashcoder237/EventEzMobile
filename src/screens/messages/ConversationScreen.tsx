@@ -60,6 +60,7 @@ import ImageView from 'react-native-image-viewing';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { downloadThenSaveToGallery } from '../../lib/media/mediaActions';
+import { hasUntouchedTemplate } from '../../lib/messaging/quickReplyGuard';
 import { useMessageState, AttachedFile } from '../../hooks/useMessageState';
 import { useOutboxUI } from '../../hooks/useOutboxUI';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
@@ -168,6 +169,22 @@ export default function ConversationScreen() {
   const { t, i18n } = useTranslation();
   const dateLocale = i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR';
 
+  // Reponses rapides de l'organisateur. Source UNIQUE : la bande de puces et
+  // le garde anti-envoi d'amorce incomplete lisent la meme liste, sinon
+  // ajouter une puce ouvrirait un trou dans le garde sans qu'on le voie.
+  const QUICK_REPLIES = useMemo(() => ([
+    { key: 'address', icon: 'location-outline' as const, label: t('conversation.quickReplyAddress'), tpl: t('conversation.quickReplyAddressTpl') },
+    { key: 'schedule', icon: 'time-outline' as const, label: t('conversation.quickReplySchedule'), tpl: t('conversation.quickReplyScheduleTpl') },
+    { key: 'agenda', icon: 'list-outline' as const, label: t('conversation.quickReplyAgenda'), tpl: t('conversation.quickReplyAgendaTpl') },
+    { key: 'dressCode', icon: 'shirt-outline' as const, label: t('conversation.quickReplyDressCode'), tpl: t('conversation.quickReplyDressCodeTpl') },
+    { key: 'parking', icon: 'car-outline' as const, label: t('conversation.quickReplyParking'), tpl: t('conversation.quickReplyParkingTpl') },
+    { key: 'thanks', icon: 'heart-outline' as const, label: t('conversation.quickReplyThanks'), tpl: t('conversation.quickReplyThanksTpl') },
+  ]), [t]);
+  const QUICK_REPLY_TEMPLATES = useMemo(
+    () => QUICK_REPLIES.map((q) => q.tpl),
+    [QUICK_REPLIES],
+  );
+
   // State centralisé
   const { state, actions } = useMessageState(initialConversationId, userName);
 
@@ -190,6 +207,16 @@ export default function ConversationScreen() {
   const currentPlayerMsgIdRef = useRef<string | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const draftSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Le brouillon n'est restaure qu'UNE fois par conversation. Sans ce garde,
+  // un rejeu de l'effet (changement de conversationId, remontage) ecrase ce
+  // que l'utilisateur est en train d'ecrire par un ancien brouillon.
+  const draftRestoredForRef = useRef<string | null>(null);
+  // Miroir synchrone du champ de saisie, lisible depuis une callback async
+  // sans dependre d'une closure perimee.
+  const newMessageRef = useRef('');
+  // Incremente a chaque insertion de reponse rapide : ouvre le clavier pour
+  // que l'organisateur complete l'amorce au lieu de l'envoyer telle quelle.
+  const [composerFocusSignal, setComposerFocusSignal] = useState(0);
   // Watchdogs d'envoi (un par message WS en attente d'ACK) — clearés au
   // démontage pour éviter setState/écriture SQLite sur écran mort.
   const watchdogTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
@@ -498,12 +525,45 @@ export default function ConversationScreen() {
     };
   }, []);
 
+  // Persistance du brouillon pilotee par la VALEUR du champ, pas par la
+  // frappe. L'ancienne version ne sauvegardait que depuis `onChangeText` :
+  // tout ce qui modifiait le champ autrement (puces de reponse rapide,
+  // vidage a l'envoi, edition d'un message) etait ignore. Consequence
+  // visible : apres envoi, le champ etait bien vide en memoire mais le
+  // brouillon restait en base et reapparaissait au retour sur l'ecran.
+  useEffect(() => {
+    newMessageRef.current = state.newMessage;
+    const convId = state.conversationId;
+    if (!convId) return;
+
+    if (draftSaveTimeoutRef.current) {
+      clearTimeout(draftSaveTimeoutRef.current);
+      draftSaveTimeoutRef.current = null;
+    }
+
+    if (!state.newMessage.trim()) {
+      // Champ vide (envoi, annulation d'edition…) : le brouillon doit
+      // disparaitre tout de suite, sans attendre le debounce.
+      AsyncStorage.removeItem(`draft:${convId}`).catch(() => {});
+      return;
+    }
+
+    const text = state.newMessage;
+    draftSaveTimeoutRef.current = setTimeout(() => {
+      AsyncStorage.setItem(`draft:${convId}`, `${Date.now()}|${text}`).catch(() => {});
+    }, 500);
+  }, [state.newMessage, state.conversationId]);
+
   // Restore draft on mount — avec TTL 24h pour eviter de remonter un brouillon
   // oublie depuis 3 jours quand l'user revient. Format stocke : "<timestamp>|<text>".
   // Fallback retro-compat : si pas de "|", on traite comme du legacy plain text.
   useEffect(() => {
     const convId = state.conversationId;
     if (!convId) return;
+    // Une seule restauration par conversation : un rejeu de cet effet
+    // ecraserait le texte en cours de saisie.
+    if (draftRestoredForRef.current === convId) return;
+    draftRestoredForRef.current = convId;
     const DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
     AsyncStorage.getItem(`draft:${convId}`)
       .then(raw => {
@@ -513,7 +573,12 @@ export default function ConversationScreen() {
           const ts = Number(raw.slice(0, sepIdx));
           const text = raw.slice(sepIdx + 1);
           if (Number.isFinite(ts) && Date.now() - ts < DRAFT_TTL_MS && text) {
-            actions.setNewMessage(text);
+            // Lecture asynchrone : l'utilisateur a pu commencer a taper (ou
+            // appuyer sur une puce de reponse rapide) avant qu'elle
+            // n'aboutisse. On ne remplace jamais un champ deja rempli.
+            if (!newMessageRef.current.trim()) {
+              actions.setNewMessage(text);
+            }
           } else {
             // Brouillon expire — on nettoie pour ne pas le refaire apparaitre
             AsyncStorage.removeItem(`draft:${convId}`).catch(() => {});
@@ -2590,6 +2655,25 @@ export default function ConversationScreen() {
     const hasContent = messageContent.length > 0 || effectiveFiles.length > 0;
     if (!hasContent) return;
 
+    // Les reponses rapides posent une AMORCE a completer (« 📍 Adresse : »),
+    // pas un message fini. Rien ne le disait : on appuyait, ca remplissait le
+    // champ, on envoyait — et la discussion de l'evenement recevait une
+    // phrase inachevee, visible de tous les participants.
+    // On ne bloque QUE les amorces reellement issues des puces (comparees
+    // aux gabarits), jamais un message de l'utilisateur qui finirait par
+    // « : » de son propre chef. Une piece jointe vaut completion : « Voici
+    // le programme : » + un PDF est un message parfaitement valide.
+    if (
+      !effectiveFiles.length
+      && hasUntouchedTemplate(messageContent, QUICK_REPLY_TEMPLATES)
+    ) {
+      showError(
+        t('conversation.incompleteTemplateTitle'),
+        t('conversation.incompleteTemplateMessage'),
+      );
+      return;
+    }
+
     // Lecture seule : on bloque l'envoi (filet de sécurité, l'UI désactive déjà
     // visuellement le toolbar).
     if (quotaState?.is_read_only) {
@@ -4036,23 +4120,19 @@ export default function ConversationScreen() {
                 contentContainerStyle={styles.quickRepliesStrip}
                 keyboardShouldPersistTaps="handled"
               >
-                {[
-                  { key: 'address', icon: 'location-outline' as const, label: t('conversation.quickReplyAddress'), tpl: t('conversation.quickReplyAddressTpl') },
-                  { key: 'schedule', icon: 'time-outline' as const, label: t('conversation.quickReplySchedule'), tpl: t('conversation.quickReplyScheduleTpl') },
-                  { key: 'agenda', icon: 'list-outline' as const, label: t('conversation.quickReplyAgenda'), tpl: t('conversation.quickReplyAgendaTpl') },
-                  { key: 'dressCode', icon: 'shirt-outline' as const, label: t('conversation.quickReplyDressCode'), tpl: t('conversation.quickReplyDressCodeTpl') },
-                  { key: 'parking', icon: 'car-outline' as const, label: t('conversation.quickReplyParking'), tpl: t('conversation.quickReplyParkingTpl') },
-                  { key: 'thanks', icon: 'heart-outline' as const, label: t('conversation.quickReplyThanks'), tpl: t('conversation.quickReplyThanksTpl') },
-                ].map((tpl) => (
+                {QUICK_REPLIES.map((tpl) => (
                   <TouchableOpacity
                     key={tpl.key}
                     style={[styles.quickReplyChip, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}30` }]}
                     onPress={() => {
-                      // Pré-remplit l'input avec le template. L'organizer
-                      // peut éditer avant d'envoyer (mode "smart template").
+                      // Insère une AMORCE à compléter, pas un message fini.
+                      // On ouvre donc le clavier dans la foulée : sans ça,
+                      // l'organisateur appuyait puis envoyait directement, et
+                      // la discussion recevait « 📍 Adresse : » sans adresse.
                       const current = state.newMessage.trim();
                       const next = current ? `${current}\n${tpl.tpl}` : tpl.tpl;
                       actions.setNewMessage(next);
+                      setComposerFocusSignal((n) => n + 1);
                     }}
                     activeOpacity={0.75}
                     accessibilityRole="button"
@@ -4097,22 +4177,13 @@ export default function ConversationScreen() {
             )}
             <InputToolbar
               value={state.newMessage}
+              focusSignal={composerFocusSignal}
               onChangeText={(text) => {
+                // La sauvegarde du brouillon est pilotee par l'effet sur
+                // `state.newMessage` : elle couvre ainsi TOUS les chemins qui
+                // modifient le champ, pas seulement la frappe.
                 actions.setNewMessage(text);
                 handleTyping();
-                if (draftSaveTimeoutRef.current) clearTimeout(draftSaveTimeoutRef.current);
-                const convId = state.conversationId;
-                if (convId) {
-                  // Si le champ devient vide, on supprime le brouillon
-                  // immediatement plutot que d'attendre 500ms.
-                  if (!text) {
-                    AsyncStorage.removeItem(`draft:${convId}`).catch(() => {});
-                  } else {
-                    draftSaveTimeoutRef.current = setTimeout(() => {
-                      AsyncStorage.setItem(`draft:${convId}`, `${Date.now()}|${text}`).catch(() => {});
-                    }, 500);
-                  }
-                }
               }}
               onSend={handleSend}
               sending={state.sending}

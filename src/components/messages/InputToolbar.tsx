@@ -86,6 +86,10 @@ interface InputToolbarProps {
   // Input state
   value: string;
   onChangeText: (text: string) => void;
+  /** Incrémenter pour donner le focus au champ. Sert aux réponses rapides :
+   *  elles insèrent une AMORCE que l'organisateur doit compléter, il faut
+   *  donc l'amener à écrire plutôt que le laisser devant un champ inerte. */
+  focusSignal?: number;
   onSend: () => void;
   sending: boolean;
 
@@ -117,6 +121,7 @@ interface InputToolbarProps {
 function InputToolbar({
   value,
   onChangeText,
+  focusSignal,
   onSend,
   sending,
   attachedFiles,
@@ -140,6 +145,14 @@ function InputToolbar({
   const reducedMotion = useReducedMotion();
   const { t } = useTranslation();
   const inputRef = useRef<TextInput>(null);
+
+  // Focus demande par l'exterieur (reponses rapides) : on ouvre le clavier
+  // et on place le curseur en fin de texte, la ou l'organisateur doit
+  // completer l'amorce.
+  useEffect(() => {
+    if (!focusSignal) return;
+    inputRef.current?.focus();
+  }, [focusSignal]);
   const recordingAnim = useRef(new Animated.Value(1)).current;
   // Bottom sheet pour le choix d'attachement (Photo / Document). Remplace
   // l'Alert natif qui ne supportait pas les icônes ni le theming custom.
