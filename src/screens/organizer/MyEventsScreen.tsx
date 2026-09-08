@@ -826,35 +826,6 @@ export default function MyEventsScreen() {
         });
       }
 
-      // Gestion mariage : invités/RSVP, cagnotte, plan de table nominatif.
-      // Réservé aux événements de catégorie mariage. Les endpoints organisateur
-      // exigent l'UUID (pas le slug) → event.id explicite.
-      if (isWedding) {
-        configActions.push(
-          {
-            label: t('organizer.myEvents.actions.weddingGuests', { defaultValue: 'Invités & RSVP' }),
-            icon: 'people-outline',
-            onPress: () => navigation.navigate('WeddingGuestsManage', {
-              eventId: event.id, eventTitle: event.title,
-            }),
-          },
-          {
-            label: t('organizer.myEvents.actions.weddingGifts', { defaultValue: 'Cagnotte & cadeaux' }),
-            icon: 'gift-outline',
-            onPress: () => navigation.navigate('WeddingGiftsManage', {
-              eventId: event.id, eventTitle: event.title,
-            }),
-          },
-          {
-            label: t('organizer.myEvents.actions.weddingTables', { defaultValue: 'Plan de table' }),
-            icon: 'restaurant-outline',
-            onPress: () => navigation.navigate('WeddingTablesManage', {
-              eventId: event.id, eventTitle: event.title,
-            }),
-          },
-        );
-      }
-
       // Exposants & stands : réservé aux salons / foires.
       if (isExpo) {
         configActions.push({
@@ -863,6 +834,38 @@ export default function MyEventsScreen() {
           onPress: () => navigation.navigate('BoothManagement', { eventId: event.slug || event.id }),
         });
       }
+    }
+
+    // Gestion mariage : invités/RSVP, cagnotte, plan de table nominatif.
+    // HORS du gate `validated` : un couple prépare sa liste d'invités, sa
+    // cagnotte et son plan de table AVANT la validation admin (c'est tout
+    // l'intérêt de préparer en amont). Les écrans weddingOrganizerAPI ne
+    // dépendent pas du statut. Réservé aux événements de catégorie mariage.
+    // Les endpoints organisateur exigent l'UUID (pas le slug) → event.id.
+    if (isWedding && event.status !== 'cancelled' && event.status !== 'completed') {
+      configActions.push(
+        {
+          label: t('organizer.myEvents.actions.weddingGuests', { defaultValue: 'Invités & RSVP' }),
+          icon: 'people-outline',
+          onPress: () => navigation.navigate('WeddingGuestsManage', {
+            eventId: event.id, eventTitle: event.title,
+          }),
+        },
+        {
+          label: t('organizer.myEvents.actions.weddingGifts', { defaultValue: 'Cagnotte & cadeaux' }),
+          icon: 'gift-outline',
+          onPress: () => navigation.navigate('WeddingGiftsManage', {
+            eventId: event.id, eventTitle: event.title,
+          }),
+        },
+        {
+          label: t('organizer.myEvents.actions.weddingTables', { defaultValue: 'Plan de table' }),
+          icon: 'restaurant-outline',
+          onPress: () => navigation.navigate('WeddingTablesManage', {
+            eventId: event.id, eventTitle: event.title,
+          }),
+        },
+      );
     }
     if (configActions.length > 0) {
       sections.push({ title: t('organizer.myEvents.sectionConfig'), actions: configActions });

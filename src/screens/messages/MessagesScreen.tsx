@@ -1159,11 +1159,18 @@ export default function MessagesScreen() {
   };
 
   const handleStartConversation = async (targetUser: User) => {
+    // On ne réutilise QU'UNE conversation DIRECTE 1-1 avec cette personne. Sans
+    // le filtre type='direct' + 2 participants, un groupe/event partagé avec la
+    // cible matchait → « Nouveau message » ouvrait le GROUPE au lieu du DM (et
+    // le message risquait de partir dans le mauvais fil).
+    const myId = String(user?.id ?? '');
+    const targetId = String(targetUser.id);
     const existingConv = conversations.find(conv => {
-      if (conv.participants && conv.participants.length > 0) {
-        return conv.participants.some(p => p.id === targetUser.id);
-      }
-      return false;
+      if (conv.conversation_type !== 'direct') return false;
+      const parts = conv.participants || [];
+      if (parts.length !== 2) return false;
+      const ids = parts.map((p: any) => String(p.id ?? p));
+      return ids.includes(targetId) && ids.includes(myId);
     });
 
     setShowNewModal(false);

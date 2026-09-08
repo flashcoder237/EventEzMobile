@@ -358,6 +358,11 @@ export default function EventDetailsScreen() {
         // Reload — le backend voit maintenant le token via l'interceptor
         // et renvoie les infos completes.
         navigation.replace('EventDetails', { eventId });
+      } else {
+        // Code refusé SANS exception (200 + { valid: false }) : sans ce else,
+        // l'utilisateur qui tape un mauvais code ne voyait AUCUN feedback (input
+        // inchangé, spinner désarmé) → impression que l'app ne répond pas.
+        showError(t('common.error'), t('eventDetails.invalidCode'));
       }
     } catch {
       showError(t('common.error'), t('eventDetails.invalidCode'));

@@ -26,6 +26,7 @@ import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { DEEP_LINK_SCHEME } from '../../constants/urls';
 import {
   BorderRadius,
@@ -109,8 +110,14 @@ export default function WeddingGiftRegistryScreen() {
       setAmount('');
       setName('');
       await load();
-    } catch {
-      showError(t('common.error'), t('wedding.giftError', { defaultValue: "Le paiement n'a pas pu démarrer." }));
+    } catch (e) {
+      // getApiErrorMessage mappe correctement 429 (rate-limit contribute) →
+      // « trop de tentatives » au lieu du message trompeur « paiement échoué »
+      // (qui poussait l'invité à réessayer en boucle, aggravant le throttle).
+      showError(
+        t('common.error'),
+        getApiErrorMessage(e, t, { fallbackKey: 'wedding.giftError' }).message,
+      );
     } finally {
       setPaying(false);
     }

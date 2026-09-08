@@ -3464,6 +3464,7 @@
     "giftMethod": "Payment method",
     "giftPay": "Contribute",
     "giftError": "Payment couldn't start.",
+    "rsvpSubmitError": "Your response couldn't be sent. Please try again.",
     "summaryTitle": "Your reply",
     "summaryAccepted": "You confirmed your attendance.",
     "summaryDeclined": "You declined the invitation.",
@@ -3869,7 +3870,8 @@
     "roleModerator": "Moderator",
     "roleAdmin": "Admin",
     "fallbackEvent": "Event",
-    "fallbackUnknownUser": "User"
+    "fallbackUnknownUser": "User",
+    "statusUnknown": "Unknown status"
   },
   "refundRequest": {
     "watermarkBack": "BACK",
@@ -4641,7 +4643,8 @@
     "statusPending": "Pending",
     "statusCancelled": "Cancelled",
     "statusValidated": "Validated",
-    "pdfOnline": "Online event"
+    "pdfOnline": "Online event",
+    "statusUnknown": "Unknown status"
   },
   "offlineTickets": {
     "headerTitle": "Offline",

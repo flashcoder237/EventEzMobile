@@ -3805,6 +3805,7 @@
     "giftMethod": "Moyen de paiement",
     "giftPay": "Contribuer",
     "giftError": "Le paiement n'a pas pu démarrer.",
+    "rsvpSubmitError": "Votre réponse n'a pas pu être envoyée. Veuillez réessayer.",
     "summaryTitle": "Votre réponse",
     "summaryAccepted": "Vous avez confirmé votre présence.",
     "summaryDeclined": "Vous avez décliné l'invitation.",
@@ -4210,7 +4211,8 @@
     "roleModerator": "Modérateur",
     "roleAdmin": "Admin",
     "fallbackEvent": "Événement",
-    "fallbackUnknownUser": "Utilisateur"
+    "fallbackUnknownUser": "Utilisateur",
+    "statusUnknown": "Statut inconnu"
   },
   "refundRequest": {
     "watermarkBack": "BACK",
@@ -4641,7 +4643,8 @@
     "statusPending": "En attente",
     "statusCancelled": "Annulé",
     "statusValidated": "Validé",
-    "pdfOnline": "Événement en ligne"
+    "pdfOnline": "Événement en ligne",
+    "statusUnknown": "Statut inconnu"
   },
   "offlineTickets": {
     "headerTitle": "Hors-ligne",

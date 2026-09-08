@@ -26,6 +26,7 @@ import { weddingsAPI } from '../../api';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import {
   BorderRadius,
   FontFamily,
@@ -47,6 +48,7 @@ export default function WeddingRsvpScreen() {
   const { token } = route.params;
   const { colors } = useTheme();
   const { t, i18n } = useTranslation();
+  const { showError } = useFeedback();
 
   const [phase, setPhase] = useState<Phase>('loading');
   const [info, setInfo] = useState<any>(null);
@@ -147,18 +149,38 @@ export default function WeddingRsvpScreen() {
     setSubmitting(true);
     try {
       if (attending) {
+        const parsedPartySize = Math.max(0, parseInt(partySize, 10) || 0);
         await weddingsAPI.respondByToken(token, 'accept', {
-          party_size: Math.max(0, parseInt(partySize, 10) || 0),
+          party_size: parsedPartySize,
           dietary_requirements: dietary,
           rsvp_note: note,
         });
+        // Fusionne LA SAISIE dans `info` : le récapitulatif (renderSummary) lit
+        // info.party_size/dietary_requirements. Sans ça, il affichait les
+        // valeurs pré-soumission (0, vide) → l'invité croyait sa saisie perdue.
+        setInfo((prev: any) => ({
+          ...(prev || {}),
+          status: 'accepted',
+          party_size: parsedPartySize,
+          dietary_requirements: dietary,
+          rsvp_note: note,
+        }));
       } else {
         await weddingsAPI.respondByToken(token, 'decline');
+        setInfo((prev: any) => ({ ...(prev || {}), status: 'declined' }));
       }
       setAcceptedFinal(attending);
       setPhase('done');
-    } catch {
-      // erreur silencieuse : on laisse l'utilisateur réessayer
+    } catch (e) {
+      // Feedback explicite : sans message, l'invité ne savait pas si sa réponse
+      // était partie (le bouton repassait juste de « Chargement » à normal) → il
+      // pouvait croire avoir confirmé alors que non (couvert non compté).
+      showError(
+        t('common.error'),
+        t('wedding.rsvpSubmitError', {
+          defaultValue: "Votre réponse n'a pas pu être envoyée. Veuillez réessayer.",
+        }),
+      );
     } finally {
       setSubmitting(false);
     }

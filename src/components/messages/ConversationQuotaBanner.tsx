@@ -101,9 +101,29 @@ export default function ConversationQuotaBanner({
           setState(res.data);
           onQuotaUpdate?.(res.data);
         }
-      } catch (err) {
-        if (!cancelled && __DEV__) {
-          console.warn('[ConversationQuotaBanner] fetch failed', err);
+      } catch (err: any) {
+        if (!cancelled) {
+          // FAIL-CLOSED sur 403 : le quota est refusé quand l'accès à la conv est
+          // perdu côté serveur (retiré du groupe, conv passée read-only). Sans
+          // ça, `state` restait null → le banner ET le gating read-only
+          // disparaissaient → l'input redevenait actif alors que la conv est
+          // verrouillée (message optimiste qui part puis échoue = bulle rouge
+          // inexpliquée). On pose un état read-only synthétique. Les autres
+          // erreurs (réseau, 5xx) ne verrouillent pas : la conv peut être OK.
+          const status = err?.response?.status;
+          if (status === 403) {
+            const synthetic: QuotaState = {
+              conversation_type: conversationType || 'group',
+              total_bytes: 0, max_bytes: null, percentage: null,
+              is_read_only: true, read_only_at: null,
+              auto_delete_at: null, days_until_delete: null, days_until_readonly: null,
+              event_id: null, can_post: false,
+            };
+            setState(synthetic);
+            onQuotaUpdate?.(synthetic);
+          } else if (__DEV__) {
+            console.warn('[ConversationQuotaBanner] fetch failed', err);
+          }
         }
       } finally {
         if (!cancelled) setLoading(false);
