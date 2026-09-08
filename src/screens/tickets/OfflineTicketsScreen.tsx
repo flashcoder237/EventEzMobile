@@ -37,6 +37,7 @@ import {
 } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { RootStackParamList } from '../../types';
+import { isRegistrationPresentable } from '../../utils/paymentSettled';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -92,7 +93,9 @@ export default function OfflineTicketsScreen() {
       const data = response.data?.results || response.data || [];
 
       const ticketsToCache = (data as any[])
-        .filter((r) => (r.status === 'confirmed' || r.status === 'completed') && r.tickets?.length > 0)
+        // Meme garde que MyTicketsScreen : un billet impaye ne descend pas
+        // dans le cache hors ligne.
+        .filter((r) => isRegistrationPresentable(r) && r.tickets?.length > 0)
         .flatMap((r) =>
           r.tickets
             .filter((tk: any) => tk.qr_code)

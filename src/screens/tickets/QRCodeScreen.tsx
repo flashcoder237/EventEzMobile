@@ -93,7 +93,15 @@ export default function QRCodeScreen() {
 
   // QR ticket-level : encode l'ID du TicketPurchase pour permettre un
   // check-in granulaire par billet (cf. AUDIT_QR_CODE_INSCRIPTION.md)
-  const verificationUrl = getTicketVerificationUrl(String(ticketId));
+  // On encode la valeur SIGNÉE fournie par le serveur (`qr_payload`), et non
+  // une URL reconstruite ici. L'ancien QR local ne portait pas la signature
+  // HMAC : l'id d'un billet étant un entier séquentiel, ces QR étaient
+  // énumérables — et le serveur, tolérant l'absence de signature pour ne pas
+  // invalider les billets déjà imprimés, les acceptait.
+  // Repli sur l'URL locale tant que l'API n'a pas répondu (ou pour un
+  // backend antérieur) : le billet reste affichable, simplement non signé.
+  const verificationUrl =
+    (ticket as any)?.qr_payload || getTicketVerificationUrl(String(ticketId));
 
   const getQrDataUrl = useCallback((): Promise<string | null> => {
     return new Promise((resolve) => {
@@ -335,7 +343,10 @@ export default function QRCodeScreen() {
       case 'checked_in':
         return { color: colors.success, bg: colors.successLight, label: t('qrCode.statusValidated'), icon: 'checkmark-done-circle' };
       default:
-        return { color: colors.success, bg: colors.successLight, label: t('qrCode.statusConfirmed'), icon: 'checkmark-circle' };
+        // Un statut inconnu ou absent n'est PAS une confirmation. Ce
+        // `default` renvoyait un badge vert « Confirmé » avec une coche —
+        // sur l'ecran meme que l'on presente au controle a l'entree.
+        return { color: colors.gray600, bg: colors.gray100, label: t('qrCode.statusUnknown'), icon: 'help-circle' };
     }
   };
 

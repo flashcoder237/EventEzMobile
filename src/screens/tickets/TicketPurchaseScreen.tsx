@@ -690,23 +690,17 @@ export default function TicketPurchaseScreen() {
       if (paymentRequired || totalPrice > 0) {
         navigation.navigate('Payment', { registrationId: finalRegistrationId });
       } else {
-        // Free event - confirm only if auto_approve is enabled
-        // Confirmer automatiquement SEULEMENT si auto_approve_registrations est true
-        // Sinon, laisser en pending_approval pour validation manuelle par l'organisateur
-        if (event?.auto_approve_registrations !== false) {
-          try {
-            await registrationsAPI.patchRegistration(finalRegistrationId, { status: 'confirmed' });
-          } catch (e) {
-            if (__DEV__) console.log('Could not auto-confirm:', e);
-          }
-        }
-        // Note: Si auto_approve_registrations=false, le backend a déjà mis status='pending_approval'
+        // La confirmation appartient au backend, qui applique
+        // `auto_approve_registrations` ET verifie qu'aucun paiement n'est du.
 
         navigation.navigate('PaymentSuccess', {
           paymentId: finalRegistrationId,
           eventType: event?.event_type,
           attendeeFormScope: event?.attendee_form_scope,
-          registrationStatus: 'confirmed',
+          // `registrationStatus: 'confirmed'` retire : affirmation CLIENT
+          // sur un etat qui appartient au serveur. Le parametre n'etait pas
+          // lu, mais il n'attendait qu'un branchement pour redevenir un
+          // faux positif.
           approvalStatus: event?.auto_approve_registrations === false ? 'pending' : 'approved',
           eventTitle: event?.title,
           eventImage: (event as any)?.banner_image || (event as any)?.display_image || null,

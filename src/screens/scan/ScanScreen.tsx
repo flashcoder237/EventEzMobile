@@ -828,14 +828,14 @@ function TicketResult({
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'confirmed': return { label: t('scanForm.statusConfirmed'), color: colors.success, bg: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5' };
-      case 'completed': return { label: t('scanForm.statusCompleted'), color: colors.success, bg: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5' };
-      case 'checked_in': return { label: t('scanForm.statusCheckedIn'), color: colors.success, bg: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5' };
-      case 'pending': return { label: t('scanForm.statusPending'), color: colors.warning, bg: isDark ? 'rgba(254,243,199,0.15)' : '#FEF3C7' };
-      case 'pending_approval': return { label: t('scanForm.statusPendingApproval'), color: colors.warning, bg: isDark ? 'rgba(254,243,199,0.15)' : '#FEF3C7' };
-      case 'cancelled': return { label: t('scanForm.statusCancelled'), color: colors.error, bg: isDark ? 'rgba(254,226,226,0.15)' : '#FEE2E2' };
-      case 'rejected': return { label: t('scanForm.statusRejected'), color: colors.error, bg: isDark ? 'rgba(254,226,226,0.15)' : '#FEE2E2' };
-      default: return { label: status, color: colors.gray500, bg: colors.gray100 };
+      case 'confirmed': return { label: t('scanForm.statusConfirmed'), color: colors.success, bg: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5', icon: 'checkmark-circle' as const };
+      case 'completed': return { label: t('scanForm.statusCompleted'), color: colors.success, bg: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5', icon: 'checkmark-circle' as const };
+      case 'checked_in': return { label: t('scanForm.statusCheckedIn'), color: colors.success, bg: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5', icon: 'checkmark-done-circle' as const };
+      case 'pending': return { label: t('scanForm.statusPending'), color: colors.warning, bg: isDark ? 'rgba(254,243,199,0.15)' : '#FEF3C7', icon: 'time' as const };
+      case 'pending_approval': return { label: t('scanForm.statusPendingApproval'), color: colors.warning, bg: isDark ? 'rgba(254,243,199,0.15)' : '#FEF3C7', icon: 'time' as const };
+      case 'cancelled': return { label: t('scanForm.statusCancelled'), color: colors.error, bg: isDark ? 'rgba(254,226,226,0.15)' : '#FEE2E2', icon: 'close-circle' as const };
+      case 'rejected': return { label: t('scanForm.statusRejected'), color: colors.error, bg: isDark ? 'rgba(254,226,226,0.15)' : '#FEE2E2', icon: 'close-circle' as const };
+      default: return { label: status || t('scanForm.statusUnknown'), color: colors.gray500, bg: colors.gray100, icon: 'help-circle' as const };
     }
   };
 
@@ -844,8 +844,10 @@ function TicketResult({
   return (
     <>
       <View style={styles.resultHeader}>
-        <View style={[styles.resultIconBg, { backgroundColor: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5' }]}>
-          <Ionicons name="qr-code" size={32} color={colors.success} />
+        {/* Le fond etait un vert fige : un billet impaye s'annoncait
+            en vert avant meme d'avoir lu son statut. */}
+        <View style={[styles.resultIconBg, { backgroundColor: statusInfo.bg }]}>
+          <Ionicons name="qr-code" size={32} color={statusInfo.color} />
         </View>
         <Text style={[styles.resultTitle, { color: colors.gray900 }]}>{t('scanForm.ticketTitle')}</Text>
       </View>
@@ -883,7 +885,10 @@ function TicketResult({
 
       {/* Status */}
       <View style={[styles.expirationBadge, { backgroundColor: statusInfo.bg }]}>
-        <Ionicons name="checkmark-circle" size={16} color={statusInfo.color} />
+        {/* L'icone etait `checkmark-circle` EN DUR : une coche de
+            validation s'affichait aussi pour « En attente », « Annulé » ou
+            un statut inconnu — lu a la volee a l'entree, ca dit « validé ». */}
+        <Ionicons name={statusInfo.icon} size={16} color={statusInfo.color} />
         <Text style={[styles.expirationText, { color: statusInfo.color }]}>
           {statusInfo.label}
         </Text>

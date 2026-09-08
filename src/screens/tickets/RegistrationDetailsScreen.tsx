@@ -924,7 +924,11 @@ export default function RegistrationDetailsScreen() {
             </View>
             {registration.tickets.map((ticket: any, index: number) => {
               const ticketType = typeof ticket.ticket_type === 'object' ? ticket.ticket_type : null;
-              const ticketStatus = ticket.status || 'confirmed';
+              // Pas de repli sur 'confirmed' : un statut absent est un
+              // statut INCONNU. Le `default` de getStatusConfig est neutre,
+              // ce repli le court-circuitait et transformait « je ne sais
+              // pas » en « payé et confirmé ».
+              const ticketStatus = ticket.status;
               const ticketStatusConfig = getStatusConfig(ticketStatus);
               const ticketName = ticketType?.name || ticket.ticket_type_name || t('registrationDetails.ticketFallback');
               const ticketQty = ticket.quantity || 1;

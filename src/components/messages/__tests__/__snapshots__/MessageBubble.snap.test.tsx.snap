@@ -77,6 +77,7 @@ exports[`MessageBubble snapshots renders deleted message placeholder 1`] = `
   <View
     style={
       {
+        "flexShrink": 1,
         "maxWidth": "75%",
       }
     }
@@ -86,6 +87,8 @@ exports[`MessageBubble snapshots renders deleted message placeholder 1`] = `
         [
           {
             "borderRadius": 12,
+            "flexShrink": 1,
+            "minWidth": 0,
             "padding": 12.5,
           },
           {
@@ -261,6 +264,7 @@ exports[`MessageBubble snapshots renders edited message with edited label 1`] = 
     <View
       style={
         {
+          "flexShrink": 1,
           "maxWidth": "75%",
         }
       }
@@ -270,6 +274,8 @@ exports[`MessageBubble snapshots renders edited message with edited label 1`] = 
           [
             {
               "borderRadius": 12,
+              "flexShrink": 1,
+              "minWidth": 0,
               "padding": 12.5,
             },
             [
@@ -293,6 +299,7 @@ exports[`MessageBubble snapshots renders edited message with edited label 1`] = 
             [
               {
                 "color": "#111827",
+                "flexShrink": 1,
                 "fontSize": 20,
                 "lineHeight": 24,
               },
@@ -309,6 +316,7 @@ exports[`MessageBubble snapshots renders edited message with edited label 1`] = 
             [
               {
                 "alignItems": "center",
+                "alignSelf": "flex-end",
                 "flexDirection": "row",
                 "gap": 4,
                 "justifyContent": "flex-end",
@@ -427,6 +435,7 @@ exports[`MessageBubble snapshots renders grouped message (avatar masque) 1`] = `
     <View
       style={
         {
+          "flexShrink": 1,
           "maxWidth": "75%",
         }
       }
@@ -436,6 +445,8 @@ exports[`MessageBubble snapshots renders grouped message (avatar masque) 1`] = `
           [
             {
               "borderRadius": 12,
+              "flexShrink": 1,
+              "minWidth": 0,
               "padding": 12.5,
             },
             [
@@ -459,6 +470,7 @@ exports[`MessageBubble snapshots renders grouped message (avatar masque) 1`] = `
             [
               {
                 "color": "#111827",
+                "flexShrink": 1,
                 "fontSize": 20,
                 "lineHeight": 24,
               },
@@ -475,6 +487,7 @@ exports[`MessageBubble snapshots renders grouped message (avatar masque) 1`] = `
             [
               {
                 "alignItems": "center",
+                "alignSelf": "flex-end",
                 "flexDirection": "row",
                 "gap": 4,
                 "justifyContent": "flex-end",
@@ -603,6 +616,7 @@ exports[`MessageBubble snapshots renders message with image attachment 1`] = `
     <View
       style={
         {
+          "flexShrink": 1,
           "maxWidth": "75%",
         }
       }
@@ -612,6 +626,8 @@ exports[`MessageBubble snapshots renders message with image attachment 1`] = `
           [
             {
               "borderRadius": 12,
+              "flexShrink": 1,
+              "minWidth": 0,
               "padding": 12.5,
             },
             [
@@ -710,6 +726,7 @@ exports[`MessageBubble snapshots renders message with image attachment 1`] = `
             [
               {
                 "color": "#111827",
+                "flexShrink": 1,
                 "fontSize": 20,
                 "lineHeight": 24,
               },
@@ -726,6 +743,7 @@ exports[`MessageBubble snapshots renders message with image attachment 1`] = `
             [
               {
                 "alignItems": "center",
+                "alignSelf": "flex-end",
                 "flexDirection": "row",
                 "gap": 4,
                 "justifyContent": "flex-end",
@@ -854,6 +872,7 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
     <View
       style={
         {
+          "flexShrink": 1,
           "maxWidth": "75%",
         }
       }
@@ -863,6 +882,8 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
           [
             {
               "borderRadius": 12,
+              "flexShrink": 1,
+              "minWidth": 0,
               "padding": 12.5,
             },
             [
@@ -886,6 +907,7 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
             [
               {
                 "color": "#111827",
+                "flexShrink": 1,
                 "fontSize": 20,
                 "lineHeight": 24,
               },
@@ -902,6 +924,7 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
             [
               {
                 "alignItems": "center",
+                "alignSelf": "flex-end",
                 "flexDirection": "row",
                 "gap": 4,
                 "justifyContent": "flex-end",
@@ -1205,6 +1228,7 @@ exports[`MessageBubble snapshots renders message with reply preview 1`] = `
     <View
       style={
         {
+          "flexShrink": 1,
           "maxWidth": "75%",
         }
       }
@@ -1214,6 +1238,8 @@ exports[`MessageBubble snapshots renders message with reply preview 1`] = `
           [
             {
               "borderRadius": 12,
+              "flexShrink": 1,
+              "minWidth": 0,
               "padding": 12.5,
             },
             [
@@ -1335,6 +1361,7 @@ exports[`MessageBubble snapshots renders message with reply preview 1`] = `
             [
               {
                 "color": "#111827",
+                "flexShrink": 1,
                 "fontSize": 20,
                 "lineHeight": 24,
               },
@@ -1351,6 +1378,7 @@ exports[`MessageBubble snapshots renders message with reply preview 1`] = `
             [
               {
                 "alignItems": "center",
+                "alignSelf": "flex-end",
                 "flexDirection": "row",
                 "gap": 4,
                 "justifyContent": "flex-end",
@@ -1479,6 +1507,7 @@ exports[`MessageBubble snapshots renders other user message (peer) 1`] = `
     <View
       style={
         {
+          "flexShrink": 1,
           "maxWidth": "75%",
         }
       }
@@ -1488,6 +1517,8 @@ exports[`MessageBubble snapshots renders other user message (peer) 1`] = `
           [
             {
               "borderRadius": 12,
+              "flexShrink": 1,
+              "minWidth": 0,
               "padding": 12.5,
             },
             [
@@ -1511,6 +1542,7 @@ exports[`MessageBubble snapshots renders other user message (peer) 1`] = `
             [
               {
                 "color": "#111827",
+                "flexShrink": 1,
                 "fontSize": 20,
                 "lineHeight": 24,
               },
@@ -1527,6 +1559,7 @@ exports[`MessageBubble snapshots renders other user message (peer) 1`] = `
             [
               {
                 "alignItems": "center",
+                "alignSelf": "flex-end",
                 "flexDirection": "row",
                 "gap": 4,
                 "justifyContent": "flex-end",
@@ -1620,6 +1653,7 @@ exports[`MessageBubble snapshots renders own message (mine) 1`] = `
     <View
       style={
         {
+          "flexShrink": 1,
           "maxWidth": "75%",
         }
       }
@@ -1629,6 +1663,8 @@ exports[`MessageBubble snapshots renders own message (mine) 1`] = `
           [
             {
               "borderRadius": 12,
+              "flexShrink": 1,
+              "minWidth": 0,
               "padding": 12.5,
             },
             [
@@ -1652,6 +1688,7 @@ exports[`MessageBubble snapshots renders own message (mine) 1`] = `
             [
               {
                 "color": "#111827",
+                "flexShrink": 1,
                 "fontSize": 20,
                 "lineHeight": 24,
               },
@@ -1668,6 +1705,7 @@ exports[`MessageBubble snapshots renders own message (mine) 1`] = `
             [
               {
                 "alignItems": "center",
+                "alignSelf": "flex-end",
                 "flexDirection": "row",
                 "gap": 4,
                 "justifyContent": "flex-end",

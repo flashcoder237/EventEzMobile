@@ -262,14 +262,23 @@ export default function EventRegistrationsScreen() {
     const ids = Array.from(selectedIds);
     setBulkLoading(true);
     try {
-      await registrationsAPI.bulkApprove(ids);
+      const res = await registrationsAPI.bulkApprove(ids);
+      // Le serveur peut en REFUSER une partie (inscription impayée) : on
+      // n'affiche « approuvée » que sur celles qu'il a réellement acceptées,
+      // sinon l'écran affirmerait une approbation qui n'a pas eu lieu.
+      const approvedIds: string[] = (res as any)?.data?.approved ?? ids;
+      const accepted = ids.filter(id => approvedIds.map(String).includes(String(id)));
       setRegistrations(prev =>
-        prev.map(r => ids.includes(r.id)
+        prev.map(r => accepted.includes(r.id)
           ? { ...r, approval_status: 'approved' as any, status: 'confirmed' as any }
           : r
         )
       );
-      toastSuccess(t('organizer.eventRegistrations.bulkApproveSuccess', { count: ids.length }));
+      if (accepted.length < ids.length) {
+        // Rechargement : les refusées gardent leur vrai statut serveur.
+        fetchRegistrations();
+      }
+      toastSuccess(t('organizer.eventRegistrations.bulkApproveSuccess', { count: accepted.length }));
       cancelSelection();
     } catch (error) {
       showError(t('common.error'), t('organizer.eventRegistrations.bulkApproveError'));
