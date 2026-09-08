@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -57,6 +57,28 @@ export default function EventCoverVideoModal({
     if (status.isLoaded && loading) setLoading(false);
   };
 
+  // B6 (fix) : réarmer le spinner à CHAQUE ouverture — le Modal reste monté, donc
+  // sans ça la 2e ouverture d'une vidéo lente affichait un écran noir sans loader.
+  useEffect(() => {
+    if (visible) setLoading(true);
+  }, [visible]);
+
+  // B3 (fix) : décharger explicitement le player natif à la fermeture. Se reposer
+  // sur le GC d'expo-av est peu fiable → l'audio pouvait continuer en fond.
+  useEffect(() => {
+    if (!visible && videoRef.current) {
+      videoRef.current.stopAsync?.().catch(() => {});
+      videoRef.current.unloadAsync?.().catch(() => {});
+    }
+  }, [visible]);
+
+  // Filet au démontage complet du composant.
+  useEffect(() => {
+    return () => {
+      videoRef.current?.unloadAsync?.().catch(() => {});
+    };
+  }, []);
+
   return (
     <Modal
       visible={visible}
@@ -71,8 +93,6 @@ export default function EventCoverVideoModal({
           <Video
             ref={videoRef}
             source={{ uri: videoUri! }}
-            posterSource={posterUri ? { uri: posterUri } : undefined}
-            usePoster={!!posterUri}
             shouldPlay
             isMuted={false}
             useNativeControls

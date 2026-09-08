@@ -102,6 +102,9 @@ export default function EventDetailsScreen() {
   const insets = useSafeAreaInsets();
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
   const [videoPlayerOpen, setVideoPlayerOpen] = useState(false);
+  // La cover video a échoué (onError) → on retombe sur l'image ET on réactive le
+  // tap galerie, sinon l'écran restait figé sans interaction (B5).
+  const [videoUnavailable, setVideoUnavailable] = useState(false);
   const { allowAutoplay: allowVideoAutoplay } = useCoverVideoAutoplay();
 
   const {
@@ -280,7 +283,8 @@ export default function EventDetailsScreen() {
   // écran (avec son) plutôt que d'ouvrir la galerie photo au tap sur la bannière.
   const coverVideoUri = event?.cover_video ? getMediaUrl(event.cover_video) : null;
   const coverVideoEmbed = event?.cover_video_embed || null;
-  const hasCoverVideo = !!coverVideoUri || !!coverVideoEmbed;
+  // Si la vidéo a planté, on la traite comme absente : image + tap galerie réactivé.
+  const hasCoverVideo = (!!coverVideoUri || !!coverVideoEmbed) && !videoUnavailable;
 
   // Événement TERMINÉ : end_date passée. On désactive les CTA d'action (acheter/
   // s'inscrire) — comme le statut 'completed', mais un event peut être passé en
@@ -614,6 +618,7 @@ export default function EventDetailsScreen() {
                 allowAutoplay={allowVideoAutoplay}
                 showControls
                 onExpand={() => setVideoPlayerOpen(true)}
+                onVideoUnavailable={() => setVideoUnavailable(true)}
                 style={{ width: '100%', height: '100%' }}
                 fallbackImageUri={getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)}
                 fallbackPlaceholder={event?.banner_placeholder || event?.category?.default_event_image_placeholder || DEFAULT_BLUR_DATA_URL}

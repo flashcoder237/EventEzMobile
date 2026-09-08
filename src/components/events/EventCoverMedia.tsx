@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { Video, ResizeMode, Audio, InterruptionModeIOS, InterruptionModeAndroid } from 'expo-av';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Event } from '../../types';
 import { getMediaUrl } from '../../api/config';
 import EventImage from './EventImage';
@@ -26,6 +27,9 @@ interface EventCoverMediaProps {
   allowAutoplay?: boolean;
   /** Callback « agrandir » → lecteur plein écran (fourni par le parent). */
   onExpand?: () => void;
+  /** Appelé quand la vidéo est en erreur et qu'on retombe sur l'image : permet
+   *  au parent de réactiver le tap galerie (sinon écran figé sans interaction). */
+  onVideoUnavailable?: () => void;
 }
 
 /**
@@ -48,39 +52,80 @@ function EventCoverMediaImpl({
   showControls = false,
   allowAutoplay = true,
   onExpand,
+  onVideoUnavailable,
 }: EventCoverMediaProps) {
+  const { t } = useTranslation();
   const videoRef = useRef<Video>(null);
   const [videoError, setVideoError] = useState(false);
   const [muted, setMuted] = useState(true);
   // Lecture in-place : autoplay muet SI autorisé ; sinon on attend un tap play.
   const [manualPlay, setManualPlay] = useState(false);
+  // Suit si CE composant a pris le focus audio, pour ne le relâcher qu'une fois.
+  const audioFocusHeldRef = useRef(false);
 
   const coverVideoUri = event.cover_video ? getMediaUrl(event.cover_video) : null;
   const coverVideoEmbed = event.cover_video_embed || '';
   const hasUploadedVideo = !!coverVideoUri && !videoError;
   const hasEmbedVideo = !hasUploadedVideo && !!coverVideoEmbed;
 
+  // B4 (fix) : si le réseau interdit l'autoplay (data éco), on ANNULE aussi le
+  // play manuel — sinon la vidéo continuait de streamer en 4G éco dès qu'on avait
+  // touché une fois. Et on re-mute (pas de son sur data coûteuse).
+  useEffect(() => {
+    if (!allowAutoplay) {
+      setManualPlay(false);
+      setMuted(true);
+    }
+  }, [allowAutoplay]);
+
   // La vidéo joue si : parent l'autorise (shouldPlay, ex. visible à l'écran) ET
   // (autoplay réseau/a11y autorisé OU l'utilisateur a tapé play).
   const playing = shouldPlay && (allowAutoplay || manualPlay);
 
   // Audio focus : en activant le son, on coupe la musique/podcast des autres
-  // apps (comportement propre, façon Instagram). Rétabli en re-mutant.
+  // apps (façon Instagram). B2 (fix) : on mémorise qu'on l'a pris et on le
+  // RELÂCHE au démontage — sinon playsInSilentModeIOS restait vissé globalement
+  // (mode silencieux iOS cassé pour toute l'app) et les autres apps jamais
+  // relâchées.
   const applyAudioFocus = async (takeFocus: boolean) => {
     try {
       await Audio.setAudioModeAsync({
         playsInSilentModeIOS: takeFocus,
-        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-        interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
-        shouldDuckAndroid: false,
+        interruptionModeIOS: takeFocus ? InterruptionModeIOS.DoNotMix : InterruptionModeIOS.MixWithOthers,
+        interruptionModeAndroid: takeFocus ? InterruptionModeAndroid.DoNotMix : InterruptionModeAndroid.DuckOthers,
+        shouldDuckAndroid: true,
       });
+      audioFocusHeldRef.current = takeFocus;
     } catch { /* best-effort */ }
   };
+
+  // Relâche le focus audio au démontage s'il était pris (B2).
+  useEffect(() => {
+    return () => {
+      if (audioFocusHeldRef.current) {
+        Audio.setAudioModeAsync({
+          playsInSilentModeIOS: false,
+          interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
+          interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+          shouldDuckAndroid: true,
+        }).catch(() => {});
+      }
+    };
+  }, []);
+
+  // Re-mute quand la vidéo cesse de jouer (scroll/plein écran) : évite que le
+  // son resurgisse à fond au retour (B1 côté in-place, complément du fix parent).
+  useEffect(() => {
+    if (!playing && !muted) {
+      setMuted(true);
+      if (audioFocusHeldRef.current) applyAudioFocus(false);
+    }
+  }, [playing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleMute = () => {
     setMuted(prev => {
       const next = !prev;
-      applyAudioFocus(!next); // son ON → prend le focus audio
+      applyAudioFocus(!next); // son ON → prend le focus audio ; son OFF → relâche
       if (!next && !manualPlay) setManualPlay(true); // activer le son démarre la lecture
       return next;
     });
@@ -130,27 +175,31 @@ function EventCoverMediaImpl({
             style={[StyleSheet.absoluteFill, imageStyle]}
           />
         )}
+        {/* B11 (fix) : pas de `usePoster` — l'image de fond ci-dessus (absoluteFill,
+            même URI) sert déjà de poster. En cumuler un 2e via la balise Video
+            ajoutait une couche qui se relaie (flou→image→poster→vidéo = clignotement). */}
         <Video
           ref={videoRef}
           source={{ uri: coverVideoUri! }}
-          posterSource={imageUri ? { uri: imageUri } : undefined}
-          usePoster
           shouldPlay={playing}
           isMuted={muted}
           isLooping
           resizeMode={ResizeMode.COVER}
-          onError={() => setVideoError(true)}
+          onError={() => { setVideoError(true); onVideoUnavailable?.(); }}
           style={StyleSheet.absoluteFill}
         />
 
         {/* Overlay play : quand l'autoplay est coupé (data éco / réduire les
-            animations) et que l'utilisateur n'a pas encore tapé play. */}
+            animations) et que l'utilisateur n'a pas encore tapé play.
+            B9 (fix) : play + SON d'un seul tap (comme TikTok) — inutile de taper
+            play puis son. */}
         {showControls && !playing && (
           <TouchableOpacity
             style={styles.playOverlay}
             activeOpacity={0.85}
-            onPress={() => setManualPlay(true)}
+            onPress={() => { setManualPlay(true); setMuted(false); applyAudioFocus(true); }}
             accessibilityRole="button"
+            accessibilityLabel={t('eventDetails.videoPlayA11y', { defaultValue: 'Lire la vidéo avec le son' })}
           >
             <View style={styles.playCircle}>
               <Ionicons name="play" size={26} color="#0F172A" />
@@ -158,25 +207,31 @@ function EventCoverMediaImpl({
           </TouchableOpacity>
         )}
 
-        {/* Contrôles in-place (son au tap + agrandir) — seulement en hero. */}
+        {/* Contrôles in-place (son au tap + agrandir) — seulement en hero.
+            B8 (fix) : placés en BAS-GAUCHE pour ne plus être collés à follow/share
+            (haut-droite), cibles 44×44 espacées. B7 (fix) : accessibilityLabel. */}
         {showControls && playing && (
           <View style={styles.controlsRow} pointerEvents="box-none">
             <TouchableOpacity
               style={styles.ctrlBtn}
               onPress={toggleMute}
               accessibilityRole="button"
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel={
+                muted
+                  ? t('eventDetails.videoUnmuteA11y', { defaultValue: 'Activer le son' })
+                  : t('eventDetails.videoMuteA11y', { defaultValue: 'Couper le son' })
+              }
             >
-              <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={18} color="#FFFFFF" />
+              <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={20} color="#FFFFFF" />
             </TouchableOpacity>
             {onExpand && (
               <TouchableOpacity
                 style={styles.ctrlBtn}
                 onPress={onExpand}
                 accessibilityRole="button"
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel={t('eventDetails.videoExpandA11y', { defaultValue: 'Agrandir la vidéo en plein écran' })}
               >
-                <Ionicons name="expand" size={18} color="#FFFFFF" />
+                <Ionicons name="expand" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             )}
           </View>
@@ -228,9 +283,9 @@ function EventCoverMediaImpl({
               style={styles.ctrlBtn}
               onPress={onExpand}
               accessibilityRole="button"
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel={t('eventDetails.videoExpandA11y', { defaultValue: 'Agrandir la vidéo en plein écran' })}
             >
-              <Ionicons name="expand" size={18} color="#FFFFFF" />
+              <Ionicons name="expand" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         )}
@@ -275,21 +330,22 @@ const styles = StyleSheet.create({
     // léger décalage optique du triangle play
     paddingLeft: 3,
   },
-  // Contrôles son + agrandir, en bas à droite de la vidéo hero. La position
-  // verticale exacte est gérée par le parent via le style du conteneur ; ici on
-  // se cale en haut-droite pour ne pas gêner le bloc contenu qui chevauche le bas.
+  // Contrôles son + agrandir : BAS-GAUCHE (loin de follow/share en haut-droite,
+  // qui provoquaient des confusions de tap). Relevés de 56px pour ne pas être
+  // masqués par le bloc de contenu qui chevauche le bas de la bannière.
   controlsRow: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    bottom: 56,
+    left: 12,
     flexDirection: 'row',
-    gap: 8,
+    gap: 12,
   },
+  // 44×44 : cible tactile accessible (recommandation WCAG / iOS HIG).
   ctrlBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -305,7 +361,8 @@ export const EventCoverMedia = memo(EventCoverMediaImpl, (prev, next) => {
     prev.shouldPlay === next.shouldPlay &&
     prev.showControls === next.showControls &&
     prev.allowAutoplay === next.allowAutoplay &&
-    prev.onExpand === next.onExpand
+    prev.onExpand === next.onExpand &&
+    prev.onVideoUnavailable === next.onVideoUnavailable
   );
 });
 
