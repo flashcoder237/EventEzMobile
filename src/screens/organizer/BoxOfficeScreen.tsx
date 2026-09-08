@@ -265,6 +265,16 @@ export default function BoxOfficeScreen() {
   if (!drawer) {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        {/* Sortie : cet état (avant ouverture de caisse) n'avait aucun retour. */}
+        <TouchableOpacity
+          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main'))}
+          style={styles.openBack}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back', { defaultValue: 'Retour' })}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
+        </TouchableOpacity>
         <ScrollView contentContainerStyle={styles.openWrap}>
           <Text style={styles.openTitle} allowFontScaling maxFontSizeMultiplier={1.6}>
             {t('organizer.boxOffice.openTitle')}
@@ -311,13 +321,28 @@ export default function BoxOfficeScreen() {
           currency,
         })}
       >
-        <Text style={styles.counterText} allowFontScaling maxFontSizeMultiplier={1.4}>
-          {t('organizer.boxOffice.counter', {
-            count: salesCount,
-            amount: drawer.expected_amount,
-            currency,
-          })}
-        </Text>
+        {/* Sortie : l'écran POS n'avait AUCUN moyen de sortir (coincé). Un back
+            discret permet de quitter la caisse ; la caisse reste OUVERTE côté
+            serveur (on ne la ferme que via « Clôturer »). Pas de bouton Accueil
+            ici : quitter une caisse ouverte vers le feed serait déroutant. */}
+        <View style={styles.counterLeft}>
+          <TouchableOpacity
+            onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main'))}
+            style={styles.counterBack}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back', { defaultValue: 'Retour' })}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.counterText} allowFontScaling maxFontSizeMultiplier={1.4}>
+            {t('organizer.boxOffice.counter', {
+              count: salesCount,
+              amount: drawer.expected_amount,
+              currency,
+            })}
+          </Text>
+        </View>
         <TouchableOpacity
           onPress={() =>
             navigation.navigate('CashDrawerClose', { drawerId: drawer.id })
@@ -524,7 +549,10 @@ const makeStyles = (colors: any) =>
       borderBottomWidth: 1,
       borderBottomColor: colors.gray200,
     },
-    counterText: { fontSize: 20, fontWeight: '800', color: colors.text },
+    openBack: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center', marginLeft: 8, marginTop: 4 },
+    counterLeft: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
+    counterBack: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' },
+    counterText: { fontSize: 20, fontWeight: '800', color: colors.text, flexShrink: 1 },
     closeLink: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 8 },
     closeLinkText: { fontSize: 17, fontWeight: '700', color: colors.primary },
 

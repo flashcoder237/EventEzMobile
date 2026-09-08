@@ -34,7 +34,7 @@ import { verificationAPI } from '../../api';
 import { getMediaUrl } from '../../api';
 import RoleGuard from '../../components/auth/RoleGuard';
 import Badge from '../../components/ui/Badge';
-import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import { EditorialCanvas, WatermarkNumeral, EditorialHeader } from '../../components/ui/editorial';
 import { FontFamily, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
@@ -224,10 +224,15 @@ function VerificationRequestsContent() {
     <EditorialCanvas edges={['top']}>
       <WatermarkNumeral>{t('admin.verifications.watermark')}</WatermarkNumeral>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('admin.verifications.eyebrow')}</Text>
-          <Text style={[styles.title, { color: colors.gray900 }]}>{t('admin.verifications.title')}</Text>
-        </View>
+        {/* EditorialHeader : ajoute le bouton retour (l'écran n'en avait AUCUN →
+            coincé sur Android) + bouton Accueil (écran admin profond). */}
+        <EditorialHeader
+          back
+          home
+          align="left"
+          eyebrow={t('admin.verifications.eyebrow')}
+          title={t('admin.verifications.title')}
+        />
         <FlatList
           data={requests}
           keyExtractor={(item) => String(item.id)}
