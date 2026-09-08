@@ -496,6 +496,72 @@ describe('useEventForm', () => {
       expect(mockedEventsAPI.submitForValidation).toHaveBeenCalledWith('evt-123');
     });
 
+    // ─── Soumission a la validation en EDITION ──────────────────────────────
+    // Cas reel : un evenement DUPLIQUE naît `draft`. On l'ouvre pour
+    // l'ajuster — donc en EDITION — et on valide : il restait brouillon,
+    // sans que rien ne le signale. Il fallait retourner dans « Mes
+    // evenements » et cliquer « Publier » sur la carte.
+
+    it('soumet a la validation en edition quand l evenement est encore brouillon', async () => {
+      const alerts = makeAlerts();
+      mockedEventsAPI.updateEvent.mockResolvedValueOnce({ data: { id: 'evt-9' } } as any);
+      mockedEventsAPI.submitForValidation.mockResolvedValueOnce({ data: {} } as any);
+
+      const { result } = renderHook(() => useEventForm(alerts, 'evt-9'));
+      setupValidForm(result);
+      act(() => { result.current.hydrateForm({ status: 'draft' } as any); });
+
+      await act(async () => { await result.current.handleSubmit(); });
+
+      expect(mockedEventsAPI.submitForValidation).toHaveBeenCalledWith('evt-9');
+    });
+
+    it('re-soumet un evenement rejete ou a corriger', async () => {
+      for (const status of ['rejected', 'changes_requested']) {
+        mockedEventsAPI.submitForValidation.mockClear();
+        mockedEventsAPI.updateEvent.mockResolvedValueOnce({ data: { id: 'evt-9' } } as any);
+        mockedEventsAPI.submitForValidation.mockResolvedValueOnce({ data: {} } as any);
+
+        const { result } = renderHook(() => useEventForm(makeAlerts(), 'evt-9'));
+        setupValidForm(result);
+        act(() => { result.current.hydrateForm({ status } as any); });
+
+        await act(async () => { await result.current.handleSubmit(); });
+
+        expect(mockedEventsAPI.submitForValidation).toHaveBeenCalledWith('evt-9');
+      }
+    });
+
+    it('ne re-soumet PAS un evenement deja publie', async () => {
+      const alerts = makeAlerts();
+      mockedEventsAPI.updateEvent.mockResolvedValueOnce({ data: { id: 'evt-9' } } as any);
+
+      const { result } = renderHook(() => useEventForm(alerts, 'evt-9'));
+      setupValidForm(result);
+      act(() => { result.current.hydrateForm({ status: 'validated' } as any); });
+
+      await act(async () => { await result.current.handleSubmit(); });
+
+      expect(mockedEventsAPI.submitForValidation).not.toHaveBeenCalled();
+    });
+
+    it('n echoue pas l enregistrement si la soumission rate', async () => {
+      const alerts = makeAlerts();
+      mockedEventsAPI.updateEvent.mockResolvedValueOnce({ data: { id: 'evt-9' } } as any);
+      mockedEventsAPI.submitForValidation.mockRejectedValueOnce(new Error('boom'));
+
+      const { result } = renderHook(() => useEventForm(alerts, 'evt-9'));
+      setupValidForm(result);
+      act(() => { result.current.hydrateForm({ status: 'draft' } as any); });
+
+      let id: string | null | undefined;
+      await act(async () => { id = await result.current.handleSubmit(); });
+
+      // L'evenement EST enregistre : un echec de soumission ne doit pas le
+      // faire passer pour perdu.
+      expect(id).toBe('evt-9');
+    });
+
     // ─── Couverture des sous-ressources selon event_type ────────────────────
     // Régression : le submit doit envoyer LES BONS appels API selon le type
     // d'event et les toggles. Un trou ici (billetterie + form fields non testé)

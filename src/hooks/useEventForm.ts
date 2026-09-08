@@ -136,6 +136,10 @@ export interface EventFormState {
   coverVideo: string | null; // chemin local (file://...) si nouveau, sinon URL serveur
   coverVideoUrl: string; // URL externe YouTube/Vimeo
   galleryImages: string[];
+  /** URL serveur -> id EventImage, pour pouvoir SUPPRIMER une photo existante. */
+  galleryImageIds: Record<string, number>;
+  /** Statut serveur ('draft', 'validated'…). Vide a la creation. */
+  status: string;
 
   // Step 2 - Date & Location
   startDate: Date;
@@ -358,6 +362,9 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
   const [coverVideo, setCoverVideo] = useState<string | null>(null);
   const [coverVideoUrl, setCoverVideoUrl] = useState<string>('');
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [galleryImageIds, setGalleryImageIds] = useState<Record<string, number>>({});
+  /** Statut serveur de l'evenement edite ('' a la creation). */
+  const [status, setStatus] = useState<string>('');
 
   // Step 2 - Date & Location
   const [startDate, setStartDate] = useState(new Date());
@@ -441,6 +448,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
   const form: EventFormState = {
     currentStep, loading, title, description, shortDescription, eventType, language,
     categoryId, selectedTagIds, customTags, bannerImage, coverVideo, coverVideoUrl, galleryImages,
+    galleryImageIds, status,
     startDate, endDate, registrationDeadline, hasRegistrationDeadline,
     locationType, locationName, locationCity, locationAddress, locationCountry,
     onlineUrl, onlinePlatform, onlineInstructions, onlineMeetingId, onlinePasscode,
@@ -1009,6 +1017,8 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
     if (data.coverVideo !== undefined) setCoverVideo(data.coverVideo);
     if (data.coverVideoUrl !== undefined) setCoverVideoUrl(data.coverVideoUrl);
     if (data.galleryImages !== undefined) setGalleryImages(data.galleryImages);
+    if ((data as any).galleryImageIds !== undefined) setGalleryImageIds((data as any).galleryImageIds);
+    if ((data as any).status !== undefined) setStatus((data as any).status);
     if (data.startDate !== undefined) setStartDate(data.startDate);
     if (data.endDate !== undefined) setEndDate(data.endDate);
     if (data.registrationDeadline !== undefined) setRegistrationDeadline(data.registrationDeadline);
@@ -1235,18 +1245,32 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
           // édition → l'organisateur croyait ses photos disparues. On charge les
           // URLs serveur (objets {id, image}). NB : seules les NOUVELLES images
           // (file://) sont ré-uploadées au submit (cf. uploadGalleryImages), donc
-          // pas de doublon. La suppression d'une photo existante n'est pas encore
-          // gérée ici (nécessite un endpoint delete dédié).
+          // pas de doublon.
           galleryImages: Array.isArray(event.gallery_images)
             ? event.gallery_images
                 .map((g: any) => (typeof g === 'string' ? g : g?.image))
                 .filter((u: any): u is string => !!u)
             : [],
+          // On conserve la correspondance URL -> id : sans elle, retirer une
+          // photo existante n'avait aucun effet (rien a envoyer au serveur)
+          // et elle reapparaissait apres enregistrement.
+          galleryImageIds: Array.isArray(event.gallery_images)
+            ? event.gallery_images.reduce((acc: Record<string, number>, g: any) => {
+                if (g && typeof g === 'object' && g.image && g.id != null) {
+                  acc[String(g.image)] = Number(g.id);
+                }
+                return acc;
+              }, {})
+            : {},
           maxParticipants: event.max_participants ? String(event.max_participants) : '',
           autoApproveRegistrations: event.auto_approve_registrations ?? true,
           feeBearer: event.fee_bearer || 'participant',
           visibility: event.visibility || 'public',
           accessCode: event.access_code || '',
+          // Statut serveur : sert a savoir s'il faut (re)soumettre a la
+          // validation apres edition. Un evenement DUPLIQUE naît `draft` et
+          // restait brouillon apres modification, sans rien signaler.
+          status: event.status || '',
         });
       } catch (error) {
         if (__DEV__) console.error('[useEventForm] Error loading event for edit:', error);

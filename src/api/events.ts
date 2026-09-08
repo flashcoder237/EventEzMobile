@@ -51,6 +51,10 @@ export const eventsAPI = {
   uploadImages: (id: string, formData: FormData) =>
     fetchUpload('POST', `/events/${id}/upload_images/`, formData),
 
+  /** Retire des photos de la galerie (detache, ne detruit pas le fichier). */
+  removeImages: (id: string, imageIds: number[]) =>
+    api.post(`/events/${id}/remove_images/`, { image_ids: imageIds }),
+
   publishEvent: (id: string) =>
     api.post(`/events/${id}/publish/`),
 

@@ -79,11 +79,17 @@ export default function OrganizerProfileScreen() {
       const response = await usersAPI.getUser(organizerId);
       setOrganizer(response.data);
 
+      // `organizerId` peut etre un SLUG (navigation depuis la decouverte) ou
+      // un id numerique (depuis un event, une conversation…). Le filtre
+      // `organizer` de l'API est une cle etrangere : il exige l'ID NUMERIQUE.
+      // Lui passer un slug renvoyait 400 et la liste restait vide.
+      const numericId = response.data?.id ?? organizerId;
+
       // Fetch organizer's events
       setIsLoadingEvents(true);
       try {
         const eventsResponse = await eventsAPI.getEvents({
-          organizer: organizerId,
+          organizer: numericId,
           status: 'validated',
           ordering: '-start_date',
           page_size: 10, // « événements récents » : on borne, pas toute la liste
@@ -349,12 +355,20 @@ export default function OrganizerProfileScreen() {
             {/* Action Buttons : Follow plein largeur + Contacter en icône */}
             <View style={styles.actionsRow}>
               <View style={{ flex: 1 }}>
-                <FollowUserButton
-                  userId={Number(organizerId)}
-                  variant="default"
-                  showFollowerCount
-                  initialFollowing={!!(organizer as any)?.is_following}
-                />
+                {/* `Number(organizerId)` donnait NaN quand on arrive par un
+                    SLUG (navigation depuis la decouverte) — d'ou les appels
+                    `/api/users/NaN/follow/` et l'erreur affichee. On prend
+                    l'id NUMERIQUE de l'organisateur charge ; tant qu'il n'est
+                    pas la, on n'affiche pas le bouton plutot que d'appeler
+                    l'API avec une valeur invalide. */}
+                {!!(organizer as any)?.id && (
+                  <FollowUserButton
+                    userId={Number((organizer as any).id)}
+                    variant="default"
+                    showFollowerCount
+                    initialFollowing={!!(organizer as any)?.is_following}
+                  />
+                )}
               </View>
               {/* Se connecter (source='manual') — masqué sur son propre profil.
                   Une connexion débloque le DM direct. */}

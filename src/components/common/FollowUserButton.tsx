@@ -17,6 +17,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { isValidNumericId } from '../../lib/utils/numericId';
 import {
   Colors,
   FontSizes,
@@ -74,14 +75,21 @@ function FollowUserButtonImpl({
     notify_new_event: true,
   });
 
+  // Un `userId` invalide (NaN quand l'appelant a fait `Number(slug)`, ou 0)
+  // produisait des appels `/api/users/NaN/...` — trois 404 par affichage, et
+  // une erreur affichee a l'utilisateur au clic. On ne tente rien tant que
+  // l'identifiant n'est pas exploitable.
+  const hasValidUserId = isValidNumericId(userId);
+
   useEffect(() => {
+    if (!hasValidUserId) return;
     if (user) {
       loadFollowStatus();
     }
     if (showFollowerCount) {
       loadFollowersCount();
     }
-  }, [userId, user]);
+  }, [userId, user, hasValidUserId]);
 
   // Sync avec initialFollowing quand le parent le met à jour (cas où
   // plusieurs instances du même bouton coexistent sur un écran et qu'une
@@ -119,6 +127,11 @@ function FollowUserButtonImpl({
   const handleToggleFollow = async () => {
     // Anti double-click : ignore les taps pendant qu'une requête tourne
     if (isLoading) return;
+
+    // Identifiant invalide : l'appel partait quand même vers
+    // `/api/users/NaN/follow/` et l'utilisateur voyait « une erreur est
+    // survenue » sans comprendre pourquoi.
+    if (!hasValidUserId) return;
 
     if (!user) {
       showWarning(t('componentsCommon.followLoginRequiredTitle'), t('componentsCommon.followLoginRequiredMsg'));

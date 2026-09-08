@@ -27,15 +27,11 @@ Ton : sobre / professionnel. À coller tel quel dans le champ dédié, par langu
 
 Nouveautés de cette version :
 
-• Messagerie repensée : elle fonctionne désormais hors connexion. Vos messages partent dès le retour du réseau.
-• Vendez des billets sur place, même sans connexion, avec clôture de caisse.
+• La messagerie fonctionne hors connexion : vos messages partent dès le retour du réseau.
+• Vendez vos billets sur place, même sans réseau, et faites votre caisse le soir.
 • Organisez un mariage : invités, réponses, plan de table et liste de cadeaux.
-• Imprimez badges, feuille d'émargement et attestations depuis votre téléphone.
-• Salons : les exposants enregistrent leurs contacts en scannant un badge, avec l'accord du visiteur.
-• Découvrez les organisateurs qui programment près de chez vous.
-• Application nettement plus rapide au démarrage, visuels affichés en entier.
-• Paiements plus fiables (Mobile Money et cartes).
-• Corrections de bugs et améliorations de performance.
+• Badges, émargement et attestations s'impriment depuis votre téléphone.
+• Démarrage plus rapide, paiements plus fiables, nombreuses corrections.
 
 ---
 
@@ -43,15 +39,11 @@ Nouveautés de cette version :
 
 What's new in this version:
 
-• Redesigned messaging that now works offline. Your messages send as soon as you're back online.
-• Sell tickets on site, even without a connection, with end-of-day cash reconciliation.
+• Messaging now works offline: your messages send as soon as you're back online.
+• Sell tickets on site, even with no signal, and cash up at the end of the day.
 • Plan a wedding: guests, RSVPs, seating chart and gift registry.
-• Print badges, attendance sheets and certificates straight from your phone.
-• Trade shows: exhibitors save contacts by scanning a badge, with the visitor's consent.
-• Discover organisers running events near you.
-• Noticeably faster app startup, and event images now display in full.
-• More reliable payments (Mobile Money and cards).
-• Bug fixes and performance improvements.
+• Print badges, attendance sheets and certificates from your phone.
+• Faster startup, more reliable payments, and many fixes.
 
 ---
 
@@ -59,6 +51,12 @@ What's new in this version:
 
 Contenu réel du build 1.3.0. **Deux cycles cumulés** : le contenu de 1.2.0
 (jamais publiée) puis les 25 commits qui ont suivi.
+
+> Le texte store ne reprend que 5 lignes : les magasins n'en affichent que
+> 3 à 4 avant le « plus », et c'est là que se joue la lecture. La capture de
+> contacts exposant et le rail d'organisateurs locaux en sont volontairement
+> absents — ils s'adressent à une minorité d'utilisateurs et diluaient le
+> reste. Ils restent documentés ci-dessous.
 
 ---
 

@@ -67,17 +67,41 @@ export function useEventFormSubmit(
       ]);
 
       await Promise.all([
-        uploadGalleryImages(eventId, form.galleryImages),
+        syncGalleryImages(eventId, form, !!editEventId),
         syncTicketTypes(eventId, form, editEventId ? syncRefs?.originalTicketIds.current : undefined),
         syncFormFields(eventId, form, !!editEventId),
         syncSessions(eventId, form.sessions, trackIdMap, speakerIdMap, editEventId ? syncRefs?.originalSessionIds.current : undefined),
       ]);
 
-      // Soumettre pour validation uniquement à la création (pas à l'édition).
-      // On soumet APRÈS le Promise.all pour garantir que tickets/sessions/images
-      // sont déjà créés quand le modérateur examine l'événement.
-      if (!editEventId) {
-        await eventsAPI.submitForValidation(eventId);
+      // Soumettre pour validation à la création, ET en édition quand
+      // l'événement n'a JAMAIS été soumis.
+      //
+      // Cas réel : un événement DUPLIQUÉ naît en `draft`. On l'ouvre pour
+      // l'ajuster — donc en ÉDITION — et on valide : il restait brouillon,
+      // sans que rien ne le dise. Il fallait retourner dans « Mes
+      // événements » et cliquer « Publier » sur la carte pour comprendre.
+      // Même piège après un rejet ou une demande de modification : on
+      // corrige, on enregistre, et rien ne repart en modération.
+      //
+      // On soumet APRÈS le Promise.all pour que billets, sessions et images
+      // soient déjà en place quand le modérateur examine l'événement.
+      // `publish` (dont `submitForValidation` est l'alias) n'accepte que
+      // `draft`, `rejected` et `changes_requested` : un événement déjà
+      // publié n'est donc pas affecté.
+      const needsSubmission =
+        !editEventId ||
+        ['draft', 'rejected', 'changes_requested'].includes(
+          String((form as any).status || '').toLowerCase(),
+        );
+      if (needsSubmission) {
+        try {
+          await eventsAPI.submitForValidation(eventId);
+        } catch (e) {
+          // L'événement EST enregistré : un échec de soumission ne doit pas
+          // le faire passer pour perdu. L'organisateur garde le bouton
+          // « Publier » sur sa carte.
+          if (__DEV__) console.log('[event] soumission non effectuée:', e);
+        }
       }
 
       return eventId;
@@ -94,7 +118,9 @@ export function useEventFormSubmit(
   return handleSubmit;
 }
 
-function buildFormData(form: EventFormState, isEdit = false): FormData {
+// Exportee pour les tests : c'est ici que se decide ce qui est envoye au
+// serveur, et donc ce qui est EFFACE en edition.
+export function buildFormData(form: EventFormState, isEdit = false): FormData {
   const formData = new FormData();
 
   formData.append('title', form.title);
@@ -150,7 +176,22 @@ function buildFormData(form: EventFormState, isEdit = false): FormData {
   // à chaque sauvegarde. Les transitions d'état sont gérées côté backend.
   if (!isEdit) formData.append('status', 'draft');
 
-  if (form.bannerImage) {
+  // Banniere. On distingue TROIS cas, et pas seulement deux :
+  //   - nouveau fichier local (file://)  -> on l'uploade ;
+  //   - banniere existante (https://…)   -> on n'envoie RIEN, sinon on
+  //     re-uploaderait une URL, ce qui echouerait ;
+  //   - champ VIDE en edition            -> on envoie '' pour EFFACER.
+  //
+  // Ce dernier cas manquait : `if (form.bannerImage)` ne s'executait pas
+  // quand l'utilisateur retirait l'image, donc le champ n'etait jamais
+  // envoye et le serveur conservait l'ancienne valeur. Retirer une image
+  // etait impossible.
+  // On teste « pas une URL serveur » plutot que « commence par file: » :
+  // `persistImageToDisk` retombe sur l'URI d'origine en cas d'echec, qui
+  // peut etre `content://` sur Android — elle serait alors ignoree a tort.
+  const _isRemote = (u?: string | null) => !!u && /^https?:\/\//i.test(u);
+
+  if (form.bannerImage && !_isRemote(form.bannerImage)) {
     const filename = form.bannerImage.split('/').pop() || 'banner.jpg';
     const match = /\.(\w+)$/.exec(filename);
     const type = match ? `image/${match[1]}` : 'image/jpeg';
@@ -159,10 +200,17 @@ function buildFormData(form: EventFormState, isEdit = false): FormData {
       name: filename,
       type,
     } as any);
+  } else if (isEdit && !form.bannerImage) {
+    formData.append('banner_image', '');
   }
 
-  // Cover video : fichier local OU URL externe (mutuellement exclusif)
-  if (form.coverVideo && form.coverVideo.startsWith('file://')) {
+  // Cover video : fichier local OU URL externe (mutuellement exclusif).
+  //
+  // Le cas « l'utilisateur RETIRE la video » manquait : aucune des deux
+  // branches ne s'executait, donc ni `cover_video` ni `cover_video_url`
+  // n'etait envoye — et le serveur, ne recevant rien, conservait l'ancienne
+  // valeur. La video revenait apres chaque enregistrement.
+  if (form.coverVideo && !_isRemote(form.coverVideo)) {
     const filename = form.coverVideo.split('/').pop() || 'cover.mp4';
     const match = /\.(\w+)$/.exec(filename);
     const ext = (match ? match[1] : 'mp4').toLowerCase();
@@ -175,9 +223,50 @@ function buildFormData(form: EventFormState, isEdit = false): FormData {
     formData.append('cover_video_url', '');
   } else if (form.coverVideoUrl) {
     formData.append('cover_video_url', form.coverVideoUrl);
+    // L'URL externe et le fichier s'excluent : poser l'une efface l'autre.
+    if (isEdit && !form.coverVideo) formData.append('cover_video', '');
+  } else if (isEdit) {
+    // Plus AUCUNE video : on efface explicitement les deux champs.
+    formData.append('cover_video_url', '');
+    if (!form.coverVideo) formData.append('cover_video', '');
   }
 
   return formData;
+}
+
+/**
+ * Synchronise la galerie : uploade les NOUVELLES photos, et RETIRE celles
+ * que l'utilisateur a enlevees.
+ *
+ * Le retrait manquait entierement : on n'uploadait que les nouveaux
+ * fichiers, donc enlever une photo existante n'avait aucun effet — elle
+ * reapparaissait apres enregistrement. Meme symptome que la video de
+ * couverture.
+ */
+async function syncGalleryImages(
+  eventId: string,
+  form: EventFormState,
+  isEdit: boolean,
+): Promise<void> {
+  if (isEdit) {
+    const known = (form as any).galleryImageIds as Record<string, number> | undefined;
+    if (known && Object.keys(known).length > 0) {
+      const stillThere = new Set(form.galleryImages || []);
+      const removedIds = Object.entries(known)
+        .filter(([url]) => !stillThere.has(url))
+        .map(([, id]) => id);
+      if (removedIds.length > 0) {
+        try {
+          await eventsAPI.removeImages(eventId, removedIds);
+        } catch (e) {
+          // Une suppression ratee ne doit pas faire echouer l'enregistrement
+          // de l'evenement : la photo reste, l'utilisateur peut reessayer.
+          if (__DEV__) console.log('[gallery] suppression echouee:', e);
+        }
+      }
+    }
+  }
+  await uploadGalleryImages(eventId, form.galleryImages);
 }
 
 async function uploadGalleryImages(eventId: string, galleryImages: string[]): Promise<void> {
