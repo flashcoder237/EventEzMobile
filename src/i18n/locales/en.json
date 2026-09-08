@@ -694,6 +694,7 @@
     "onlineInfoAfterRegistration": "Connection details will be available after you register",
     "alsoOnlineVia": "Also available online via {{platform}}",
     "imageEnlarge": "Enlarge",
+    "playCoverVideo": "Play video",
     "imagesCount": "{{current}} / {{total}}",
     "videoConference": "Video conferencing platform",
     "openLinkError": "Couldn't open the event link",

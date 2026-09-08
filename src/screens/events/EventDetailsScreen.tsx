@@ -41,6 +41,7 @@ import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows, TextStyl
 import BlurHeader from '../../components/ui/BlurHeader';
 import FollowEventButton from '../../components/events/FollowEventButton';
 import EventCoverMedia from '../../components/events/EventCoverMedia';
+import EventCoverVideoModal from '../../components/events/EventCoverVideoModal';
 import FollowUserButton from '../../components/common/FollowUserButton';
 import AddToCalendarButton from '../../components/events/AddToCalendarButton';
 import EventWeather from '../../components/events/EventWeather';
@@ -99,6 +100,7 @@ export default function EventDetailsScreen() {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
+  const [videoPlayerOpen, setVideoPlayerOpen] = useState(false);
 
   const {
     event,
@@ -271,6 +273,12 @@ export default function EventDetailsScreen() {
     setViewerImageIndex(index);
     setShowImageViewer(true);
   };
+
+  // Cover video présente (upload OU embed) → on propose un vrai lecteur plein
+  // écran (avec son) plutôt que d'ouvrir la galerie photo au tap sur la bannière.
+  const coverVideoUri = event?.cover_video ? getMediaUrl(event.cover_video) : null;
+  const coverVideoEmbed = event?.cover_video_embed || null;
+  const hasCoverVideo = !!coverVideoUri || !!coverVideoEmbed;
 
   // Événement TERMINÉ : end_date passée. On désactive les CTA d'action (acheter/
   // s'inscrire) — comme le statut 'completed', mais un event peut être passé en
@@ -587,7 +595,9 @@ export default function EventDetailsScreen() {
               <EventCoverMedia
                 event={event}
                 mode="hero"
-                shouldPlay
+                // Pause la vidéo de fond quand le lecteur plein écran est ouvert
+                // (évite le double décodage + le son du fond).
+                shouldPlay={!videoPlayerOpen}
                 style={{ width: '100%', height: '100%' }}
                 fallbackImageUri={getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)}
                 fallbackPlaceholder={event?.banner_placeholder || event?.category?.default_event_image_placeholder || DEFAULT_BLUR_DATA_URL}
@@ -646,6 +656,27 @@ export default function EventDetailsScreen() {
               {allImages.length > 1 ? t('eventDetails.imagesCount', { current: 1, total: allImages.length }) : t('eventDetails.imageEnlarge')}
             </Text>
           </View>
+
+          {/* 4bis. Bouton « Lire la vidéo » — visible seulement s'il y a une cover
+              video. Rendu APRÈS le Pressable (z-order dessus) → capte son propre
+              tap et ouvre le lecteur plein écran AVEC LE SON, au lieu de la
+              galerie photo. La vidéo de fond reste muette/décorative. */}
+          {hasCoverVideo && (
+            <View style={styles.playVideoWrap} pointerEvents="box-none">
+              <TouchableOpacity
+                style={styles.playVideoBtn}
+                onPress={() => setVideoPlayerOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t('eventDetails.playCoverVideo', { defaultValue: 'Lire la vidéo' })}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="play" size={22} color="#0F172A" />
+                <Text style={styles.playVideoText}>
+                  {t('eventDetails.playCoverVideo', { defaultValue: 'Lire la vidéo' })}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* 5. Header overlay — fades out as BlurHeader fades in.
               box-none : laisse passer les touches des zones vides vers le Pressable en dessous.
@@ -1634,6 +1665,16 @@ export default function EventDetailsScreen() {
           );
         }}
       />
+
+      {/* Lecteur plein écran de la cover video (avec son) — ouvert par le bouton
+          « Lire la vidéo » posé sur la bannière. */}
+      <EventCoverVideoModal
+        visible={videoPlayerOpen}
+        onClose={() => setVideoPlayerOpen(false)}
+        videoUri={coverVideoUri}
+        embedUrl={coverVideoEmbed}
+        posterUri={getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)}
+      />
     </View>
   );
 }
@@ -2377,6 +2418,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.white,
     letterSpacing: 0.3,
+  },
+  // Bouton « Lire la vidéo » centré sur la bannière
+  playVideoWrap: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playVideoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingLeft: 16,
+    paddingRight: 20,
+    paddingVertical: 12,
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  playVideoText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 14,
+    color: '#0F172A',
   },
   // Gallery section
   gallerySection: {

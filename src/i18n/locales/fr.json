@@ -694,6 +694,7 @@
     "onlineInfoAfterRegistration": "Les informations de connexion seront disponibles après votre inscription",
     "alsoOnlineVia": "Également disponible en ligne via {{platform}}",
     "imageEnlarge": "Agrandir",
+    "playCoverVideo": "Lire la vidéo",
     "imagesCount": "{{current}} / {{total}}",
     "videoConference": "Plateforme de visioconférence",
     "openLinkError": "Impossible d'ouvrir le lien de l'évenement",
