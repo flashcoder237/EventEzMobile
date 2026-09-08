@@ -14,8 +14,9 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { resetToMainTab } from '../../lib/navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -307,11 +308,22 @@ export default function PaymentSuccessScreen() {
   }, []);
 
   const handleViewTicket = async () => {
+    // Fin de parcours : on EFFONDRE toute la pile (Discover→Event→Achat→Paiement)
+    // et on repart sur l'onglet Billets. Le back depuis les détails ramène donc
+    // sur « Mes billets », pas dans la chaîne de paiement déjà terminée.
     if (!registrationId) {
-      navigation.replace('Main', { screen: 'MyTickets' } as any);
+      resetToMainTab(navigation as any, 'MyTickets');
       return;
     }
-    navigation.replace('RegistrationDetails', { registrationId });
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 1,
+        routes: [
+          { name: 'Main', params: { screen: 'MyTickets' } },
+          { name: 'RegistrationDetails', params: { registrationId } },
+        ],
+      })
+    );
   };
 
   const iconStyle = useAnimatedStyle(() => ({
@@ -680,7 +692,7 @@ export default function PaymentSuccessScreen() {
 
           <TouchableOpacity
             style={[styles.secondaryPill, { backgroundColor: colors.gray100 }]}
-            onPress={() => navigation.replace('Main', { screen: 'Discover' } as any)}
+            onPress={() => resetToMainTab(navigation as any, 'Discover')}
             activeOpacity={0.85}
             accessibilityLabel={t('payment.successHomeAccessibility')}
           >

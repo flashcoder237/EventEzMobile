@@ -11,6 +11,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
+import { resetToMainThen } from '../../lib/navigation';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -290,7 +291,7 @@ export default function EventCreateScreen() {
         [
           {
             text: t('organizer.eventCreate.viewMyEvents'),
-            onPress: () => navigation.navigate('MyEvents'),
+            onPress: () => resetToMainThen(navigation as any, 'MyEvents'),
           },
           {
             text: t('common.continue'),
@@ -307,7 +308,7 @@ export default function EventCreateScreen() {
         [
           {
             text: t('organizer.eventCreate.viewMyEvents'),
-            onPress: () => navigation.navigate('MyEvents'),
+            onPress: () => resetToMainThen(navigation as any, 'MyEvents'),
           },
           {
             text: t('organizer.eventCreate.createAnother'),

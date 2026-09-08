@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { resetToMainTab } from '../../../lib/navigation';
 import { editorial } from './editorialTokens';
 
 interface EditorialHeaderProps {
@@ -18,6 +19,13 @@ interface EditorialHeaderProps {
   onBack?: () => void;
   /** Right-side action (icon button, badge, etc.) */
   right?: React.ReactNode;
+  /**
+   * Affiche un bouton « Accueil » dans le slot droit (si aucun `right` fourni).
+   * Sur les écrans PROFONDS (organisateur, mariage, exposant, wallet…), le seul
+   * retour était une chaîne de goBack() : ce bouton effondre la pile et ramène
+   * à l'accueil en un tap. Ne pas activer sur les écrans peu profonds.
+   */
+  home?: boolean;
   /** Align title center (default) or flush-left */
   align?: 'center' | 'left';
   style?: StyleProp<ViewStyle>;
@@ -34,6 +42,7 @@ export default function EditorialHeader({
   back = true,
   onBack,
   right,
+  home = false,
   align = 'center',
   style,
 }: EditorialHeaderProps) {
@@ -48,6 +57,18 @@ export default function EditorialHeader({
       navigation.goBack();
     }
   };
+
+  // Bouton « Accueil » : effondre la pile et revient à l'onglet Découvrir.
+  const homeButton = home && !right ? (
+    <TouchableOpacity
+      onPress={() => resetToMainTab(navigation as any, 'Discover')}
+      accessibilityRole="button"
+      accessibilityLabel={t('common.home', { defaultValue: 'Accueil' })}
+      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+    >
+      <Ionicons name="home-outline" size={22} color={colors.gray900} />
+    </TouchableOpacity>
+  ) : null;
 
   return (
     <View style={[editorial.header, style]}>
@@ -87,7 +108,7 @@ export default function EditorialHeader({
         ) : null}
       </View>
 
-      <View style={editorial.headerRight}>{right || null}</View>
+      <View style={editorial.headerRight}>{right || homeButton}</View>
     </View>
   );
 }

@@ -148,3 +148,41 @@ export function resetToAuth(navigation: Navigation) {
 export function resetToMain(navigation: Navigation) {
   resetTo(navigation, 'Main');
 }
+
+/**
+ * Reset vers un ONGLET précis de l'écran principal (Discover/MyTickets/…), en
+ * EFFONDRANT toute la pile empilée au-dessus. À utiliser aux FINS DE PARCOURS
+ * (paiement réussi, création d'event, check-in) : sans reset, `navigate`/`replace`
+ * laissent Discover→Event→Achat empilés dessous et l'utilisateur peut y
+ * re-descendre par un back involontaire.
+ */
+export function resetToMainTab(
+  navigation: Navigation,
+  screen: 'Discover' | 'Saved' | 'MessagesTab' | 'MyTickets' | 'Profile' = 'Discover',
+) {
+  navigation.dispatch(
+    CommonActions.reset({
+      index: 0,
+      routes: [{ name: 'Main', params: { screen } }],
+    })
+  );
+}
+
+/**
+ * Reset la pile à [Main, <écran>] : effondre tout ce qui était empilé et pose
+ * un seul écran au-dessus de l'accueil. Le « retour » depuis cet écran ramène à
+ * l'accueil, pas dans l'ancienne chaîne. Idéal après création d'event
+ * (→ MyEvents) ou tout parcours qui doit finir sur un écran unique propre.
+ */
+export function resetToMainThen(
+  navigation: Navigation,
+  routeName: keyof RootStackParamList,
+  params?: object,
+) {
+  navigation.dispatch(
+    CommonActions.reset({
+      index: 1,
+      routes: [{ name: 'Main' }, { name: routeName as string, params }],
+    })
+  );
+}

@@ -112,7 +112,12 @@ export default function SimilarEventsSection({ eventId, limit = 5 }: Props) {
         renderItem={({ item }) => (
           <SimilarEventCard
             event={item}
-            onPress={() => navigation.push('EventDetails', { eventId: String(item.id) })}
+            // `replace` (et non `push`) : parcourir event → event similaire →
+            // event ne DOIT PAS empiler des dizaines d'EventDetails (pile qui
+            // explose, retour pénible). On remplace l'écran courant → la
+            // navigation event↔event reste à profondeur 1 ; le « retour » ramène
+            // là d'où l'utilisateur est vraiment venu.
+            onPress={() => navigation.replace('EventDetails', { eventId: String(item.id) })}
           />
         )}
         horizontal

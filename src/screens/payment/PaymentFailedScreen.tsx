@@ -9,6 +9,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { resetToMainTab } from '../../lib/navigation';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -137,7 +138,7 @@ export default function PaymentFailedScreen() {
 
           <TouchableOpacity
             style={[styles.secondaryPill, { backgroundColor: colors.gray100 }]}
-            onPress={() => navigation.replace('Main', { screen: 'Discover' } as any)}
+            onPress={() => resetToMainTab(navigation as any, 'Discover')}
             activeOpacity={0.85}
             accessibilityLabel={t('payment.failedHomeAccessibility')}
           >

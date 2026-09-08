@@ -345,7 +345,16 @@ export default function RootNavigator() {
       />
 
       {/* Event Screens (public — browsable without auth) */}
-      <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
+      {/* getId : deux navigate('EventDetails') vers le MÊME event réutilisent
+          l'écran au lieu d'en empiler un doublon (ex. depuis OrganizerProfile,
+          QRCode, RegistrationDetails). Un event DIFFÉRENT ouvre bien un nouvel
+          écran. Combiné au `replace` de SimilarEventsSection, la navigation
+          event↔event ne creuse plus la pile. */}
+      <Stack.Screen
+        name="EventDetails"
+        component={EventDetailsScreen}
+        getId={({ params }) => (params as any)?.eventId ? String((params as any).eventId) : undefined}
+      />
       <Stack.Screen
         name="Map"
         component={MapScreen}
