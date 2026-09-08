@@ -64,6 +64,7 @@ const SponsorsTab = React.lazy(() => import('../../components/events/SponsorsTab
 import SimilarEventsSection from '../../components/events/SimilarEventsSection';
 import { useEventDetails } from '../../hooks/useEventDetails';
 import { useUTMTracking } from '../../hooks/useUTMTracking';
+import { useCoverVideoAutoplay } from '../../hooks/useCoverVideoAutoplay';
 import { useFeedback } from '../../contexts/FeedbackContext';
 import { useAuthGuard } from '../../hooks/useAuthGuard';
 import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
@@ -101,6 +102,7 @@ export default function EventDetailsScreen() {
   const insets = useSafeAreaInsets();
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
   const [videoPlayerOpen, setVideoPlayerOpen] = useState(false);
+  const { allowAutoplay: allowVideoAutoplay } = useCoverVideoAutoplay();
 
   const {
     event,
@@ -308,11 +310,22 @@ export default function EventDetailsScreen() {
   // parallel API fetches + map mount on first render.
   const HEAVY_REVEAL_THRESHOLD = 600;
   const [heavyRevealed, setHeavyRevealed] = useState(false);
+  // Pause au scroll : la cover video ne joue que tant que la bannière est
+  // (majoritairement) à l'écran. Au-delà de ce seuil, on met en pause → économie
+  // batterie/data. On ne repasse en lecture qu'en revenant en haut.
+  const BANNER_VISIBLE_THRESHOLD = 280;
+  const [bannerVisible, setBannerVisible] = useState(true);
+  const bannerVisibleRef = useRef(true);
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
       scrollY.value = e.contentOffset.y;
       if (e.contentOffset.y > HEAVY_REVEAL_THRESHOLD) {
         runOnJS(setHeavyRevealed)(true);
+      }
+      const nowVisible = e.contentOffset.y < BANNER_VISIBLE_THRESHOLD;
+      if (nowVisible !== bannerVisibleRef.current) {
+        bannerVisibleRef.current = nowVisible;
+        runOnJS(setBannerVisible)(nowVisible);
       }
     },
   });
@@ -595,9 +608,12 @@ export default function EventDetailsScreen() {
               <EventCoverMedia
                 event={event}
                 mode="hero"
-                // Pause la vidéo de fond quand le lecteur plein écran est ouvert
-                // (évite le double décodage + le son du fond).
-                shouldPlay={!videoPlayerOpen}
+                // shouldPlay intègre : bannière visible (pause au scroll) ET
+                // lecteur plein écran fermé (pas de double décodage).
+                shouldPlay={bannerVisible && !videoPlayerOpen}
+                allowAutoplay={allowVideoAutoplay}
+                showControls
+                onExpand={() => setVideoPlayerOpen(true)}
                 style={{ width: '100%', height: '100%' }}
                 fallbackImageUri={getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)}
                 fallbackPlaceholder={event?.banner_placeholder || event?.category?.default_event_image_placeholder || DEFAULT_BLUR_DATA_URL}
@@ -637,15 +653,22 @@ export default function EventDetailsScreen() {
             pointerEvents="none"
           />
 
-          {/* 3. Couche tap (absoluteFill) — ouvre le viewer au tap sur la banniere */}
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => openViewer(0)}
-            accessibilityRole="button"
-            accessibilityLabel={t('eventDetails.viewPhotosFullscreenA11y')}
-          />
+          {/* 3. Couche tap (absoluteFill) — ouvre le viewer photo au tap.
+              DÉSACTIVÉE s'il y a une cover video : la vidéo possède ses PROPRES
+              contrôles (son / agrandir / play) qui doivent recevoir les taps.
+              Sinon le tap bannière rouvrait la galerie photo par-dessus la vidéo
+              (le bug d'origine). La galerie reste accessible via sa section. */}
+          {!hasCoverVideo && (
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={() => openViewer(0)}
+              accessibilityRole="button"
+              accessibilityLabel={t('eventDetails.viewPhotosFullscreenA11y')}
+            />
+          )}
 
-          {/* 4. Hint visuel "1/N" ou "Agrandir" — pointerEvents none pour laisser passer */}
+          {/* 4. Hint visuel "1/N" ou "Agrandir" (images seulement) */}
+          {!hasCoverVideo && (
           <View style={styles.imageZoomHint} pointerEvents="none">
             <Ionicons
               name={allImages.length > 1 ? 'images-outline' : 'expand-outline'}
@@ -656,26 +679,6 @@ export default function EventDetailsScreen() {
               {allImages.length > 1 ? t('eventDetails.imagesCount', { current: 1, total: allImages.length }) : t('eventDetails.imageEnlarge')}
             </Text>
           </View>
-
-          {/* 4bis. Bouton « Lire la vidéo » — visible seulement s'il y a une cover
-              video. Rendu APRÈS le Pressable (z-order dessus) → capte son propre
-              tap et ouvre le lecteur plein écran AVEC LE SON, au lieu de la
-              galerie photo. La vidéo de fond reste muette/décorative. */}
-          {hasCoverVideo && (
-            <View style={styles.playVideoWrap} pointerEvents="box-none">
-              <TouchableOpacity
-                style={styles.playVideoBtn}
-                onPress={() => setVideoPlayerOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel={t('eventDetails.playCoverVideo', { defaultValue: 'Lire la vidéo' })}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="play" size={22} color="#0F172A" />
-                <Text style={styles.playVideoText}>
-                  {t('eventDetails.playCoverVideo', { defaultValue: 'Lire la vidéo' })}
-                </Text>
-              </TouchableOpacity>
-            </View>
           )}
 
           {/* 5. Header overlay — fades out as BlurHeader fades in.
@@ -2418,32 +2421,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.white,
     letterSpacing: 0.3,
-  },
-  // Bouton « Lire la vidéo » centré sur la bannière
-  playVideoWrap: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  playVideoBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingLeft: 16,
-    paddingRight: 20,
-    paddingVertical: 12,
-    borderRadius: BorderRadius.full,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  playVideoText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 14,
-    color: '#0F172A',
   },
   // Gallery section
   gallerySection: {
