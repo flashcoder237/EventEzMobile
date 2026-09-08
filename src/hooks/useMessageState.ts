@@ -181,7 +181,19 @@ function messageReducer(state: MessageState, action: MessageAction): MessageStat
           const mSender = senderId(m.sender);
           if (mSender == null || mSender !== incomingSender) return false;
           const mContent = (m.content || '').trim();
-          if (mContent !== incomingContent) return false;
+          // Contenu : match EXACT, ou l'un préfixe de l'autre. Le préfixe couvre
+          // le cas où le tempMessage optimiste a été construit avec un contenu
+          // AMPUTÉ (course IME Android : le dernier mot n'était pas encore dans
+          // le ref au moment de bâtir la bulle) alors que le backend a bien reçu
+          // le texte COMPLET. Sans tolérance, la réconciliation échouait → la
+          // bulle tronquée restait affichée et ne se remplaçait jamais par la
+          // version serveur complète. Le message serveur (`incoming`) gagne
+          // toujours ci-dessous, donc le texte final affiché est le complet.
+          const contentMatches =
+            mContent === incomingContent ||
+            (mContent.length > 0 && incomingContent.startsWith(mContent)) ||
+            (incomingContent.length > 0 && mContent.startsWith(incomingContent));
+          if (!contentMatches) return false;
           // Match par compte d'attachments — robuste même si les ids diffèrent
           if ((m.attachments?.length || 0) !== incomingAttCount) return false;
           const dt = Math.abs(new Date(m.created_at).getTime() - incomingTime);

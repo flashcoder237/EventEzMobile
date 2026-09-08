@@ -125,6 +125,40 @@ describe('useMessageState', () => {
       expect(result.current.state.messages[0].id).toBe('999');
     });
 
+    it('reconciles a TRUNCATED tempMessage to the full server message (IME race)', () => {
+      // Cas réel : la bulle optimiste a été bâtie avec un contenu amputé
+      // ("Bonjour monsieur") par une course IME Android, alors que le backend a
+      // reçu le texte COMPLET ("Bonjour monsieur ndjanguee !"). Sans tolérance
+      // au préfixe, les deux ne se réconciliaient pas → la bulle tronquée restait.
+      const { result } = renderHook(() => useMessageState());
+      const tempCreatedAt = new Date('2026-01-01T10:00:00Z').toISOString();
+      const realCreatedAt = new Date('2026-01-01T10:00:20Z').toISOString();
+      act(() =>
+        result.current.actions.addMessage(
+          makeMessage({
+            id: 'temp-trunc',
+            content: 'Bonjour monsieur',
+            sender: 7,
+            created_at: tempCreatedAt,
+          }),
+        ),
+      );
+      act(() =>
+        result.current.actions.addMessage(
+          makeMessage({
+            id: '1000',
+            content: 'Bonjour monsieur ndjanguee !',
+            sender: 7,
+            created_at: realCreatedAt,
+          }),
+        ),
+      );
+      // Un seul message, et c'est la version SERVEUR COMPLÈTE qui gagne.
+      expect(result.current.state.messages).toHaveLength(1);
+      expect(result.current.state.messages[0].id).toBe('1000');
+      expect(result.current.state.messages[0].content).toBe('Bonjour monsieur ndjanguee !');
+    });
+
     it('keeps both messages if the temp/real time delta exceeds 60s', () => {
       const { result } = renderHook(() => useMessageState());
       act(() =>
