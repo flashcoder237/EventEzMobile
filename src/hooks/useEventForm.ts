@@ -1126,6 +1126,17 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
           bannerImage: event.banner_image || null,
           coverVideo: event.cover_video || null,
           coverVideoUrl: event.cover_video_url || '',
+          // Galerie existante : sans hydratation, la section apparaissait VIDE en
+          // édition → l'organisateur croyait ses photos disparues. On charge les
+          // URLs serveur (objets {id, image}). NB : seules les NOUVELLES images
+          // (file://) sont ré-uploadées au submit (cf. uploadGalleryImages), donc
+          // pas de doublon. La suppression d'une photo existante n'est pas encore
+          // gérée ici (nécessite un endpoint delete dédié).
+          galleryImages: Array.isArray(event.gallery_images)
+            ? event.gallery_images
+                .map((g: any) => (typeof g === 'string' ? g : g?.image))
+                .filter((u: any): u is string => !!u)
+            : [],
           maxParticipants: event.max_participants ? String(event.max_participants) : '',
           autoApproveRegistrations: event.auto_approve_registrations ?? true,
           feeBearer: event.fee_bearer || 'participant',

@@ -200,12 +200,17 @@ export function getDisplayName(user: User | null): string {
 /**
  * Obtient les initiales d'un utilisateur
  */
-export function getUserInitials(name: string): string {
-  const parts = name.split(' ');
+export function getUserInitials(name: string | null | undefined): string {
+  // Défensif : name peut être null/'' (compte sans nom complet renvoyé par
+  // l'API). Sans garde, split(null) jette et parts[0][0] déréférence undefined
+  // → crash du renderItem (liste de connexions inutilisable).
+  const safe = (name || '').trim();
+  if (!safe) return '?';
+  const parts = safe.split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
     return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
   }
-  return name.substring(0, 2).toUpperCase();
+  return safe.substring(0, 2).toUpperCase();
 }
 
 /**

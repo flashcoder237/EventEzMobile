@@ -43,7 +43,7 @@ export function useEventFormSubmit(
     if (!validateStep(form.currentStep)) return null;
 
     try {
-      const formData = buildFormData(form);
+      const formData = buildFormData(form, !!editEventId);
       // Événement satellite (exposant sous-organisateur) : rattacher au salon
       // hôte. Le backend refuse si l'exposant n'a pas de contrat de vente accepté.
       if (hostEventId && !editEventId) {
@@ -90,7 +90,7 @@ export function useEventFormSubmit(
   return handleSubmit;
 }
 
-function buildFormData(form: EventFormState): FormData {
+function buildFormData(form: EventFormState, isEdit = false): FormData {
   const formData = new FormData();
 
   formData.append('title', form.title);
@@ -141,7 +141,10 @@ function buildFormData(form: EventFormState): FormData {
   formData.append('fee_bearer', form.feeBearer);
   formData.append('visibility', form.visibility);
   if (form.accessCode) formData.append('access_code', form.accessCode);
-  formData.append('status', 'draft');
+  // status='draft' UNIQUEMENT à la création. En édition, ne JAMAIS renvoyer le
+  // statut : un event `validated` (publié) serait redéplublié/renvoyé en draft
+  // à chaque sauvegarde. Les transitions d'état sont gérées côté backend.
+  if (!isEdit) formData.append('status', 'draft');
 
   if (form.bannerImage) {
     const filename = form.bannerImage.split('/').pop() || 'banner.jpg';
@@ -174,9 +177,14 @@ function buildFormData(form: EventFormState): FormData {
 }
 
 async function uploadGalleryImages(eventId: string, galleryImages: string[]): Promise<void> {
-  if (galleryImages.length === 0) return;
+  // On n'uploade QUE les NOUVELLES images locales (file://). En édition, la
+  // galerie hydratée contient aussi les URLs serveur (https://) des photos
+  // existantes : les ré-uploader créerait des doublons (et échouerait, une URL
+  // https n'étant pas un fichier local). On les filtre donc.
+  const newLocal = galleryImages.filter(uri => typeof uri === 'string' && uri.startsWith('file:'));
+  if (newLocal.length === 0) return;
   const galleryFormData = new FormData();
-  galleryImages.forEach((uri, idx) => {
+  newLocal.forEach((uri, idx) => {
     const filename = uri.split('/').pop() || `gallery_${idx}.jpg`;
     const match = /\.(\w+)$/.exec(filename);
     const type = match ? `image/${match[1]}` : 'image/jpeg';

@@ -321,6 +321,40 @@ export async function patchLocalMessage(
 async function upsertMessagesTx(db: any, cid: string, messages: Message[]): Promise<void> {
   for (const m of messages) {
     const serverId = typeof m.id === 'number' ? m.id : Number.isFinite(Number(m.id)) ? Number(m.id) : null;
+
+    // Réconciliation SQLite temp↔serveur (P0-2) : quand un message que J'AI
+    // envoyé revient via `message.new` mais que l'ACK `message.sent`
+    // (client_temp_id) est PERDU (socket qui flappe après broadcast, avant ACK),
+    // reconcileSent() n'est jamais appelé → la ligne `temp-` reste en base ET la
+    // ligne serveur est insérée → DOUBLON au reload (bulle « Réessayer »
+    // fantôme à côté du vrai message). Avant d'insérer un message serveur, on
+    // purge donc les lignes `temp-` de la même conversation qui matchent par
+    // contenu + sender + fenêtre 60s (mêmes critères que la dédup mémoire
+    // ADD_MESSAGE). On ne purge que si m est un VRAI message serveur.
+    if (serverId != null) {
+      const content = (m.content || '').trim();
+      const senderId =
+        m.sender != null && typeof m.sender === 'object'
+          ? (m.sender as any).id
+          : m.sender;
+      const createdMs = new Date(m.created_at).getTime();
+      if (senderId != null && Number.isFinite(createdMs)) {
+        // sender du temp = id BRUT (payload `$.sender` scalaire), alors que le
+        // message serveur peut porter un objet `$.sender.id`. On matche les deux
+        // formes via COALESCE($.sender.id, $.sender).
+        await db.runAsync(
+          `DELETE FROM messages
+           WHERE conversation_id = ?
+             AND server_id IS NULL
+             AND id LIKE 'temp-%'
+             AND TRIM(COALESCE(json_extract(payload, '$.content'), '')) = ?
+             AND CAST(COALESCE(json_extract(payload, '$.sender.id'), json_extract(payload, '$.sender')) AS TEXT) = ?
+             AND ABS(CAST(strftime('%s', created_at) AS INTEGER) * 1000 - ?) < 60000`,
+          cid, content, String(senderId), createdMs,
+        );
+      }
+    }
+
     await db.runAsync(
       `INSERT INTO messages (id, conversation_id, server_id, payload, created_at, updated_at, is_deleted, send_state)
        VALUES (?, ?, ?, ?, ?, ?, ?, 'sent')

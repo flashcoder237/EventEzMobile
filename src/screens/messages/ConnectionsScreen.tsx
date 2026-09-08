@@ -35,6 +35,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import QRCode from 'react-native-qrcode-svg';
 import { connectionsAPI, type Connection, getMediaUrl } from '../../api';
+import { getUserInitials } from '../../lib/utils/messagingHelpers';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
@@ -135,12 +136,9 @@ export default function ConnectionsScreen() {
 
   const renderItem = ({ item }: { item: Connection }) => {
     const avatar = getMediaUrl(item.user.profile_picture);
-    const initials = item.user.full_name
-      .split(' ')
-      .map(s => s[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
+    // Helper défensif : full_name peut être null/'' (compte sans nom) → sinon
+    // split(null) crashait tout le renderItem (liste inutilisable). Repli email.
+    const initials = getUserInitials(item.user.full_name || item.user.email || '');
     const sourceLabel = SOURCE_LABELS[item.source];
     const sourceIcon = SOURCE_ICONS[item.source];
 
