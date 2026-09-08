@@ -689,6 +689,10 @@
     "shareWhatsappA11y": "Partager sur WhatsApp",
     "closePreviewA11y": "Fermer l'aperçu",
     "invalidCode": "Code d'accès invalide",
+    "accessButton": "Accéder",
+    "pendingPaymentBanner": "Finalisez votre paiement pour confirmer votre inscription",
+    "onlineInfoAfterRegistration": "Les informations de connexion seront disponibles après votre inscription",
+    "alsoOnlineVia": "Également disponible en ligne via {{platform}}",
     "imageEnlarge": "Agrandir",
     "imagesCount": "{{current}} / {{total}}",
     "videoConference": "Plateforme de visioconférence",
@@ -865,6 +869,9 @@
     "noPastMessage": "Tes événements passés apparaîtront ici",
     "scanQR": "Scanner le QR code",
     "showQR": "Afficher le QR code",
+    "viewQR": "Voir QR",
+    "receivedTransfers": "Transferts reçus",
+    "myTicketsFiltersActive": "Filtres ({{count}} actifs)",
     "qrTitle": "Ton QR code",
     "qrSubtitle": "Présente ce code à l'entrée",
     "ticketDetails": "Détails du billet",
@@ -5019,6 +5026,15 @@
     "virtualUnavailableNote": "EventEz Visio n'est pas encore activé pour cet événement. L'organisateur communiquera le lien de connexion.",
     "virtualWaitingHostTitle": "Direct pas encore démarré",
     "virtualWaitingHostNote": "Vous pourrez rejoindre dès que l'organisateur aura ouvert la salle.",
+    "viewCount": "{{count}} vue",
+    "viewCount_other": "{{count}} vues",
+    "roomType": {
+      "main": "Salle principale",
+      "session": "Session",
+      "breakout": "Sous-groupe",
+      "networking": "Networking",
+      "workshop": "Atelier"
+    },
     "waitlistPosition": "Position {{position}} dans la file",
     "ticketsClosesIn_days": "Ferme dans {{count}} j",
     "ticketsClosesIn_hours": "Ferme dans {{count}} h",
@@ -6265,6 +6281,8 @@
     "eventAnalytics": {
       "headerEyebrow": "TON IMPACT",
       "headerTitle": "Analytiques",
+      "errorTitle": "Analytics indisponibles",
+      "errorBody": "Impossible de charger les données. Vérifiez votre connexion et réessayez.",
       "eventLabel": "ÉVÉNEMENT",
       "kpiViews": "Vues",
       "kpiRegistrations": "Inscriptions",
@@ -7535,7 +7553,9 @@
     "count_plural": "{{count}} contacts enregistrés",
     "unnamed": "Contact sans nom",
     "emptyTitle": "Aucun contact pour l’instant",
-    "emptyBody": "Scannez le badge des visiteurs qui passent sur votre stand. Vous pourrez ensuite exporter la liste complète en CSV."
+    "emptyBody": "Scannez le badge des visiteurs qui passent sur votre stand. Vous pourrez ensuite exporter la liste complète en CSV.",
+    "errorTitle": "Chargement impossible",
+    "errorBody": "Vos contacts sont bien enregistrés. Vérifiez votre connexion et réessayez."
   },
   "myDataExhibitors": {
     "title": "Mes données chez les exposants",

@@ -35,6 +35,16 @@ type RouteProps = RouteProp<RootStackParamList, 'EventAnalytics'>;
 // grand écran (iPad en mode compat iPhone).
 const MAX_CONTENT_WIDTH = 520;
 
+// Convertit le statut backend (snake_case) en suffixe de clé i18n PascalCase
+// pour réutiliser les libellés `organizer.myEvents.status*` (ex.
+// 'changes_requested' → 'ChangesRequested' → statusChangesRequested).
+function statusI18nSuffix(status: string): string {
+  return status
+    .split('_')
+    .map(s => s.charAt(0).toUpperCase() + s.slice(1))
+    .join('');
+}
+
 export default function EventAnalyticsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
@@ -55,6 +65,7 @@ export default function EventAnalyticsScreen() {
   const [prediction, setPrediction] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -74,8 +85,13 @@ export default function EventAnalyticsScreen() {
       setEvent(eventRes.data);
       setAnalytics(analyticsRes.data);
       setPrediction(predictionRes.data);
+      setLoadError(false);
     } catch (error) {
+      // getEvent a échoué (403/404/réseau) : sans état d'erreur, l'écran
+      // s'affichait avec titre vide + KPIs à 0 → ressemblait à « event sans
+      // données ». On distingue l'échec pour proposer un vrai retry.
       if (__DEV__) console.error('Erreur chargement analytics:', error);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -100,6 +116,31 @@ export default function EventAnalyticsScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
         <View style={styles.loadingContainer}>
           <SkeletonList count={4} Component={StatCardSkeleton} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Échec de chargement de l'event (pas juste analytics vides) → écran d'erreur
+  // avec Réessayer, au lieu d'un écran « vide » trompeur.
+  if (loadError && !event) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        <View style={styles.loadingContainer}>
+          <Ionicons name="cloud-offline-outline" size={48} color={colors.gray400} />
+          <Text style={[styles.headerTitle, { color: colors.text, marginTop: Spacing.md, textAlign: 'center' }]}>
+            {t('organizer.eventAnalytics.errorTitle', { defaultValue: 'Analytics indisponibles' })}
+          </Text>
+          <Text style={[styles.eventEyebrow, { color: colors.gray500, marginTop: Spacing.sm, textAlign: 'center' }]}>
+            {t('organizer.eventAnalytics.errorBody', { defaultValue: 'Impossible de charger les données. Vérifiez votre connexion et réessayez.' })}
+          </Text>
+          <TouchableOpacity
+            onPress={() => { setLoading(true); fetchData(); }}
+            style={[styles.statusBadge, { backgroundColor: colors.primary, marginTop: Spacing.lg, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm }]}
+            accessibilityRole="button"
+          >
+            <Text style={[styles.statusText, { color: '#fff' }]}>{t('common.retry', { defaultValue: 'Réessayer' })}</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -149,7 +190,13 @@ export default function EventAnalyticsScreen() {
             {event?.title}
           </Text>
           <View style={[styles.statusBadge, { backgroundColor: `${colors.primary}15` }]}>
-            <Text style={[styles.statusText, { color: colors.primary }]}>{event?.status}</Text>
+            <Text style={[styles.statusText, { color: colors.primary }]}>
+              {/* Libellé traduit — pas l'enum brut (« validated », « submitted »)
+                  affiché tel quel, incohérent avec MyEventsScreen. */}
+              {event?.status
+                ? t(`organizer.myEvents.status${statusI18nSuffix(event.status)}`, { defaultValue: event.status })
+                : ''}
+            </Text>
           </View>
         </View>
 

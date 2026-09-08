@@ -16,7 +16,6 @@ import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from
 import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
-import { formatCount } from '../../lib/utils/numberFormatters';
 import { withJwt } from '../../lib/utils/visioUrl';
 import { useLiveStatus } from '../../hooks/useLiveStatus';
 import { useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
@@ -295,7 +294,11 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
                 )}
                 {room.room_type && (
                   <View style={[styles.roomTypeBadge, { backgroundColor: colors.primaryBg }]}>
-                    <Text style={[styles.roomTypeText, { color: colors.primary }]}>{room.room_type}</Text>
+                    {/* Libellé traduit — pas le slug d'énum brut (« Main_stage »,
+                        « Breakout ») affiché tel quel. */}
+                    <Text style={[styles.roomTypeText, { color: colors.primary }]}>
+                      {t(`componentsEvents.roomType.${room.room_type}`, { defaultValue: room.room_type })}
+                    </Text>
                   </View>
                 )}
                 {active && (
@@ -355,7 +358,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
                   <View style={styles.viewCountRow}>
                     <Ionicons name="eye-outline" size={12} color={colors.gray500} />
                     <Text style={[styles.viewCountText, { color: colors.gray500 }]} numberOfLines={1}>
-                      {formatCount(recording.view_count, 'vue')}
+                      {t('componentsEvents.viewCount', { count: recording.view_count, defaultValue: '{{count}} vue' })}
                     </Text>
                   </View>
                 )}

@@ -59,6 +59,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useOfflineTickets } from '../../hooks/useOfflineTickets';
 import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
 import CacheService from '../../services/CacheService';
+import { isRegistrationUnsettled, isRegistrationPresentable } from '../../utils/paymentSettled';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'upcoming' | 'past' | 'cancelled';
@@ -395,7 +396,10 @@ export default function MyTicketsScreen() {
   // par id), donc safe a appeler sur cache hit ET sur API hit.
   const refreshOfflineTicketCache = useCallback((data: any[]) => {
     const ticketsToCache = data
-      .filter((r: any) => r.status === 'confirmed' && r.tickets?.length > 0)
+      // Ne JAMAIS mettre en cache un billet non paye : le cache survit a
+      // la correction du statut cote serveur, et l'ecran hors ligne ne
+      // repasse pas par l'API — le billet fantome resterait presentable.
+      .filter((r: any) => isRegistrationPresentable(r) && r.tickets?.length > 0)
       .flatMap((r: any) =>
         r.tickets
           .filter((tk: any) => tk.qr_code)
@@ -711,8 +715,16 @@ export default function MyTicketsScreen() {
     const ticketInfo = getTicketInfo(item);
     const isInscription = ticketInfo.type === 'inscription';
     const isArchived = variant === 'archived';
-    const statusConfig = getStatusConfig(item.status);
-    const isPending = item.status === 'pending' || item.status === 'pending_approval';
+    // « Payé » ne se deduit PAS du seul statut. Une inscription pouvait
+    // porter `confirmed` sans qu'un centime soit encaisse : la carte
+    // affichait alors talon TIX + « Voir QR », soit un billet valide.
+    // On exige donc aussi une preuve de paiement quand il y a un montant du.
+    const isUnsettled = isRegistrationUnsettled(item);
+    const statusConfig = isUnsettled
+      ? { bg: colors.warning, fg: Colors.white, label: t('tickets.statusPendingFr') }
+      : getStatusConfig(item.status);
+    const isPending =
+      item.status === 'pending' || item.status === 'pending_approval' || isUnsettled;
     // Event EN COURS maintenant (source partagée). La reg live compacte porte le
     // slug + is_online pour le flux Rejoindre.
     const eventIdStr = event?.id != null ? String(event.id) : '';
@@ -1063,7 +1075,7 @@ export default function MyTicketsScreen() {
                       textTransform: 'uppercase',
                     }}
                   >
-                    Voir QR
+                    {t('tickets.viewQR', { defaultValue: 'Voir QR' })}
                   </Text>
                 </View>
               )}
@@ -1325,7 +1337,7 @@ export default function MyTicketsScreen() {
                   onPress={() => navigation.navigate('PendingTransfers')}
                   activeOpacity={0.7}
                   accessibilityRole="button"
-                  accessibilityLabel="Transferts reçus"
+                  accessibilityLabel={t('tickets.receivedTransfers', { defaultValue: 'Transferts reçus' })}
                 >
                   <Ionicons name="swap-horizontal-outline" size={18} color={colors.gray600} />
                   {pendingTransferCount > 0 && (
@@ -1357,7 +1369,7 @@ export default function MyTicketsScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={
                   activeFilterCount > 0
-                    ? `Filtres (${activeFilterCount} actifs)`
+                    ? t('tickets.myTicketsFiltersActive', { count: activeFilterCount, defaultValue: 'Filtres ({{count}} actifs)' })
                     : t('tickets.myTicketsFilters')
                 }
               >

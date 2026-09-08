@@ -689,6 +689,10 @@
     "shareWhatsappA11y": "Share on WhatsApp",
     "closePreviewA11y": "Close preview",
     "invalidCode": "Invalid access code",
+    "accessButton": "Enter",
+    "pendingPaymentBanner": "Complete your payment to confirm your registration",
+    "onlineInfoAfterRegistration": "Connection details will be available after you register",
+    "alsoOnlineVia": "Also available online via {{platform}}",
     "imageEnlarge": "Enlarge",
     "imagesCount": "{{current}} / {{total}}",
     "videoConference": "Video conferencing platform",
@@ -865,6 +869,9 @@
     "noPastMessage": "Your past events will appear here",
     "scanQR": "Scan QR code",
     "showQR": "Show QR code",
+    "viewQR": "View QR",
+    "receivedTransfers": "Received transfers",
+    "myTicketsFiltersActive": "Filters ({{count}} active)",
     "qrTitle": "Your QR code",
     "qrSubtitle": "Show this code at the entrance",
     "ticketDetails": "Ticket details",
@@ -5019,6 +5026,15 @@
     "virtualUnavailableNote": "EventEz Video is not active yet for this event. The organizer will share the join link.",
     "virtualWaitingHostTitle": "The live hasn't started yet",
     "virtualWaitingHostNote": "You'll be able to join as soon as the organizer opens the room.",
+    "viewCount": "{{count}} view",
+    "viewCount_other": "{{count}} views",
+    "roomType": {
+      "main": "Main room",
+      "session": "Session",
+      "breakout": "Breakout",
+      "networking": "Networking",
+      "workshop": "Workshop"
+    },
     "waitlistPosition": "Position {{position}} in the queue",
     "ticketsClosesIn_days": "Closes in {{count}}d",
     "ticketsClosesIn_hours": "Closes in {{count}}h",
@@ -6265,6 +6281,8 @@
     "eventAnalytics": {
       "headerEyebrow": "YOUR IMPACT",
       "headerTitle": "Analytics",
+      "errorTitle": "Analytics unavailable",
+      "errorBody": "Couldn't load the data. Check your connection and try again.",
       "eventLabel": "EVENT",
       "kpiViews": "Views",
       "kpiRegistrations": "Registrations",
@@ -7535,7 +7553,9 @@
     "count_plural": "{{count}} contacts saved",
     "unnamed": "Unnamed contact",
     "emptyTitle": "No contacts yet",
-    "emptyBody": "Scan the badge of visitors who stop by your booth. You can then export the full list as CSV."
+    "emptyBody": "Scan the badge of visitors who stop by your booth. You can then export the full list as CSV.",
+    "errorTitle": "Couldn't load",
+    "errorBody": "Your contacts are safely saved. Check your connection and try again."
   },
   "myDataExhibitors": {
     "title": "My data held by exhibitors",

@@ -65,6 +65,7 @@ export default function MyLeadsScreen() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const hairline = isDark ? colors.gray800 : colors.gray200;
 
@@ -72,8 +73,13 @@ export default function MyLeadsScreen() {
     try {
       const response = await exhibitorsAPI.getMyLeads({ event: eventId });
       setLeads((response.data?.results ?? []) as Lead[]);
+      setLoadError(false);
     } catch {
-      setLeads([]);
+      // Distinguer l'ÉCHEC RÉSEAU du cas légitime « 0 lead » : sinon un exposant
+      // qui a scanné 150 contacts et perd le réseau voit « aucun contact » et
+      // croit avoir TOUT perdu. On garde les leads déjà chargés et on signale
+      // l'erreur (avec Réessayer), comme MyBoothScreen.
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -203,6 +209,35 @@ export default function MyLeadsScreen() {
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : loadError && leads.length === 0 ? (
+        // Échec de chargement (pas « 0 lead ») : message d'erreur + Réessayer.
+        <View style={styles.emptyBox}>
+          <Ionicons name="cloud-offline-outline" size={44} color={colors.gray400} />
+          <Text
+            style={[styles.emptyTitle, { color: colors.text }]}
+            allowFontScaling
+            maxFontSizeMultiplier={1.6}
+          >
+            {t('myLeads.errorTitle', { defaultValue: 'Chargement impossible' })}
+          </Text>
+          <Text
+            style={[styles.emptyBody, { color: colors.gray500 }]}
+            allowFontScaling
+            maxFontSizeMultiplier={1.6}
+          >
+            {t('myLeads.errorBody', { defaultValue: 'Vos contacts sont bien enregistrés. Vérifiez votre connexion et réessayez.' })}
+          </Text>
+          <TouchableOpacity
+            onPress={() => { setLoading(true); load(); }}
+            style={[styles.cta, { backgroundColor: colors.primary }]}
+            accessibilityRole="button"
+          >
+            <Ionicons name="refresh-outline" size={18} color="#fff" />
+            <Text style={styles.ctaText} allowFontScaling maxFontSizeMultiplier={1.4}>
+              {t('common.retry', { defaultValue: 'Réessayer' })}
+            </Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList

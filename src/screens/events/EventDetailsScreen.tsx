@@ -382,7 +382,7 @@ export default function EventDetailsScreen() {
           <View style={{ marginTop: 24, flexDirection: 'row', alignSelf: 'stretch' }}>
             <EditorialPillCTA
               eyebrow={t('eyebrow.back')}
-              label="Revenir en arrière"
+              label={t('common.back', { defaultValue: 'Retour' })}
               icon="arrow-back"
               onPress={() => navigation.goBack()}
             />
@@ -411,7 +411,7 @@ export default function EventDetailsScreen() {
           <View style={{ marginTop: 16, flexDirection: 'row', alignSelf: 'stretch' }}>
             <EditorialPillCTA
               eyebrow={t('eyebrow.back')}
-              label="Revenir à l'accueil"
+              label={t('common.backHome', { defaultValue: "Retour à l'accueil" })}
               icon="arrow-back"
               onPress={() => navigation.goBack()}
             />
@@ -480,7 +480,7 @@ export default function EventDetailsScreen() {
             <View style={{ marginTop: 8, flexDirection: 'row' }}>
               <EditorialPillCTA
                 eyebrow={t('eyebrow.validate')}
-                label="Acceder"
+                label={t('eventDetails.accessButton', { defaultValue: 'Accéder' })}
                 icon="arrow-forward"
                 onPress={handleVerifyAccessCode}
                 loading={verifyingCode}
@@ -706,7 +706,7 @@ export default function EventDetailsScreen() {
                 <View style={styles.pendingPaymentTextContainer}>
                   <Text style={[styles.pendingPaymentTitle, { color: colors.warning }]}>{t('eventDetails.pendingPayment')}</Text>
                   <Text style={[styles.pendingPaymentDescription, { color: colors.gray600 }]}>
-                    Finalisez votre paiement pour confirmer votre inscription
+                    {t('eventDetails.pendingPaymentBanner', { defaultValue: 'Finalisez votre paiement pour confirmer votre inscription' })}
                   </Text>
                 </View>
               </View>
@@ -937,7 +937,7 @@ export default function EventDetailsScreen() {
                 <View style={[styles.onlineLockedInfo, { backgroundColor: colors.gray50 }]}>
                   <Ionicons name="lock-closed" size={20} color={colors.gray400} />
                   <Text style={[styles.onlineLockedText, { color: colors.gray500 }]}>
-                    Les informations de connexion seront disponibles apres votre inscription
+                    {t('eventDetails.onlineInfoAfterRegistration', { defaultValue: 'Les informations de connexion seront disponibles après votre inscription' })}
                   </Text>
                 </View>
               )}
@@ -964,7 +964,10 @@ export default function EventDetailsScreen() {
               <View style={[styles.hybridOnlineOption, { backgroundColor: colors.infoBg }]}>
                 <Ionicons name="videocam" size={18} color={colors.info} />
                 <Text style={[styles.hybridOnlineText, { color: colors.infoDark }]}>
-                  Egalement disponible en ligne via {event.online_platform || 'visioconference'}
+                  {t('eventDetails.alsoOnlineVia', {
+                    platform: event.online_platform || t('eventDetails.videoConferenceGeneric', { defaultValue: 'visioconférence' }),
+                    defaultValue: 'Également disponible en ligne via {{platform}}',
+                  })}
                 </Text>
               </View>
               {/* Rejoindre la partie en ligne — via le flux gaté event_join
