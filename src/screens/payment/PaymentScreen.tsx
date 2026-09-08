@@ -842,7 +842,12 @@ export default function PaymentScreen() {
     // Posé AVANT setProcessing pour ne pas bloquer le bouton si l'user annule.
     // Le 3DS / OTP du gateway viendra par-dessus pour les paiements carte.
     const confirmed = await biometric.confirm({
-      promptMessage: `Confirmer le paiement de ${finalTotal.toLocaleString()} ${eventCurrencyCode}`,
+      // eventCurrencyLabel (« FCFA ») et non le code ISO brut (« XAF »), aligné
+      // sur le reçu affiché — « XAF » n'est pas reconnu par le grand public.
+      promptMessage: t('payment.biometricConfirm', {
+        amount: `${finalTotal.toLocaleString()} ${eventCurrencyLabel}`,
+        defaultValue: 'Confirmer le paiement de {{amount}}',
+      }),
       category: 'payments',
     });
     if (!confirmed) return;
@@ -1318,7 +1323,7 @@ export default function PaymentScreen() {
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={[styles.headerEyebrowE, { color: colors.accent }]}>
-              ÉTAPE 3 / 3 • CHECKOUT
+              {t('payment.checkoutStep', { defaultValue: 'ÉTAPE 3 / 3 • PAIEMENT' })}
             </Text>
             <Text style={[styles.headerTitleE, { color: colors.text }]}>
               {processing ? t('payment.paymentProcessing') : t('payment.paymentTitle')}
@@ -1405,6 +1410,21 @@ export default function PaymentScreen() {
               attempt={pollingAttempt}
               maxAttempts={pollingMaxAttempts}
             />
+          )}
+
+          {/* Réassurance anti-double-débit VISIBLE : la protection (clé
+              d'idempotence) existe côté code, mais l'utilisateur ne la voit pas.
+              Pendant l'attente (jusqu'à 3 min), l'affirmer noir sur blanc enlève
+              la plus grosse peur ("j'ai payé deux fois ?"). */}
+          {isPolling && (
+            <View style={[styles.reassureRow, { backgroundColor: colors.gray50 }]}>
+              <Ionicons name="shield-checkmark-outline" size={16} color={colors.success} />
+              <Text style={[styles.reassureText, { color: colors.gray600 }]}>
+                {t('payment.noDoubleCharge', {
+                  defaultValue: "Vous ne serez débité(e) qu'une seule fois, même si l'écran tourne un moment.",
+                })}
+              </Text>
+            </View>
           )}
 
           {/* Instructions détaillées pour Mobile Money */}
@@ -2502,6 +2522,19 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.gray500,
     marginLeft: Spacing.xs,
+  },
+  reassureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 10,
+  },
+  reassureText: {
+    flex: 1,
+    fontSize: FontSizes.sm,
   },
   securityNote: {
     flexDirection: 'row',

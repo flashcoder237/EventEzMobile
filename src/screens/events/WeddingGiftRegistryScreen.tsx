@@ -246,6 +246,17 @@ export default function WeddingGiftRegistryScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+            {/* Réassurance AVANT la redirection navigateur : sans elle, l'invité
+                (surtout peu tech) était brutalement envoyé sur une page web et
+                croyait avoir cliqué au mauvais endroit. */}
+            <View style={styles.redirectNote}>
+              <Ionicons name="lock-closed" size={13} color={colors.gray500} />
+              <Text style={[styles.redirectNoteText, { color: colors.gray500 }]}>
+                {t('wedding.giftRedirectNote', {
+                  defaultValue: 'Vous allez être redirigé vers une page de paiement sécurisée. C\'est normal.',
+                })}
+              </Text>
+            </View>
             <TouchableOpacity
               activeOpacity={TOUCH_OPACITY}
               onPress={contribute}
@@ -319,4 +330,11 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   submitText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.md, color: '#FFFFFF' },
+  redirectNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.md,
+  },
+  redirectNoteText: { flex: 1, fontFamily: FontFamily.regular, fontSize: FontSizes.xs },
 });
