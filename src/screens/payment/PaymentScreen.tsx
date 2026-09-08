@@ -1964,13 +1964,17 @@ export default function PaymentScreen() {
               />
               <Text style={[styles.termsTextPay, { color: colors.gray600 }]}>
                 {t('payment.termsAcceptPrefix', { defaultValue: "J'accepte les " })}
+                {/* Toute la clause (CGV ET politique de remboursement) est un
+                    seul lien vers les documents légaux : sans ça, la phrase
+                    promettait « et la politique de remboursement » alors que
+                    seule « CGV » était cliquable (lien trompeur). */}
                 <Text
                   style={[styles.termsLinkPay, { color: colors.primary }]}
                   onPress={() => navigation.navigate('Terms' as never)}
                 >
-                  {t('payment.termsLink', { defaultValue: 'conditions générales de vente' })}
+                  {t('payment.termsLinkFull', { defaultValue: 'conditions générales de vente et la politique de remboursement' })}
                 </Text>
-                {t('payment.termsAcceptSuffix', { defaultValue: ' et la politique de remboursement.' })}
+                {t('payment.termsAcceptSuffixDot', { defaultValue: '.' })}
               </Text>
             </TouchableOpacity>
             </View>

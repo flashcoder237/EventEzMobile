@@ -290,6 +290,9 @@ export default function WeddingRsvpScreen() {
               <TouchableOpacity
                 activeOpacity={TOUCH_OPACITY}
                 onPress={() => setAttending(true)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: attending === true }}
+                accessibilityLabel={t('wedding.willAttend', { defaultValue: 'Je serai présent(e)' })}
                 style={[
                   styles.choice,
                   {
@@ -306,6 +309,9 @@ export default function WeddingRsvpScreen() {
               <TouchableOpacity
                 activeOpacity={TOUCH_OPACITY}
                 onPress={() => setAttending(false)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: attending === false }}
+                accessibilityLabel={t('wedding.wontAttend', { defaultValue: 'Je ne pourrai pas venir' })}
                 style={[
                   styles.choice,
                   {
@@ -326,10 +332,16 @@ export default function WeddingRsvpScreen() {
                 <Text style={[styles.label, { color: colors.text }]}>
                   {t('wedding.partySize', { defaultValue: "Nombre d'accompagnants" })}
                 </Text>
+                {/* Précision : « accompagnants » sans exemple faisait douter
+                    (est-ce que je me compte ?) → couverts faux. */}
+                <Text style={[styles.hint, { color: colors.gray500 }]}>
+                  {t('wedding.partySizeHint', { defaultValue: 'En plus de vous. Ex. : 2 si vous venez avec 2 personnes.' })}
+                </Text>
                 <TextInput
                   value={partySize}
                   onChangeText={setPartySize}
                   keyboardType="number-pad"
+                  accessibilityLabel={t('wedding.partySize', { defaultValue: "Nombre d'accompagnants" })}
                   style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.card }]}
                 />
                 <Text style={[styles.label, { color: colors.text }]}>
@@ -341,7 +353,7 @@ export default function WeddingRsvpScreen() {
                   style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.card }]}
                 />
                 <Text style={[styles.label, { color: colors.text }]}>
-                  {t('wedding.note', { defaultValue: 'Un mot pour les mariés' })}
+                  {t('wedding.noteOptional', { defaultValue: 'Un mot pour les mariés (facultatif)' })}
                 </Text>
                 <TextInput
                   value={note}
@@ -425,6 +437,7 @@ const styles = StyleSheet.create({
   choiceText: { fontFamily: FontFamily.medium, fontSize: FontSizes.sm },
   fields: { gap: Spacing.xs },
   label: { fontFamily: FontFamily.medium, fontSize: FontSizes.sm, marginTop: Spacing.sm },
+  hint: { fontFamily: FontFamily.regular, fontSize: FontSizes.xs, marginTop: 2, marginBottom: 2 },
   input: {
     borderWidth: 1,
     borderRadius: BorderRadius.md,

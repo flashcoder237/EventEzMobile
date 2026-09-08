@@ -10,6 +10,7 @@ import {
   PanResponder,
   Platform,
   AppState,
+  Alert,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -101,6 +102,21 @@ export default function VisioCallOverlay() {
     [pan],
   );
 
+  // Confirmation avant de raccrocher : les boutons hangup (plein écran + bulle)
+  // sont petits et proches du bouton redimensionner → un tap malheureux coupait
+  // l'appel (catastrophe pour un organisateur qui anime un direct devant du
+  // monde). On demande confirmation.
+  const confirmEndCall = () => {
+    Alert.alert(
+      t('visio.endCallConfirmTitle', { defaultValue: 'Quitter la visio ?' }),
+      t('visio.endCallConfirmMessage', { defaultValue: 'Vous allez quitter la réunion en cours.' }),
+      [
+        { text: t('common.cancel', { defaultValue: 'Annuler' }), style: 'cancel' },
+        { text: t('visio.endCall', { defaultValue: 'Raccrocher' }), style: 'destructive', onPress: () => endCall() },
+      ],
+    );
+  };
+
   if (!call) return null;
 
   const isBubble = call.mode === 'bubble';
@@ -173,7 +189,7 @@ export default function VisioCallOverlay() {
               {call.title || t('componentsCommon.webviewVisioTitle', { defaultValue: 'Visioconférence' })}
             </Text>
             <TouchableOpacity
-              onPress={endCall}
+              onPress={confirmEndCall}
               style={[styles.headerBtn, styles.hangupBtn]}
               hitSlop={10}
               accessibilityRole="button"
@@ -206,7 +222,7 @@ export default function VisioCallOverlay() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.bubbleHangup}
-            onPress={endCall}
+            onPress={confirmEndCall}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"
             accessibilityLabel={t('visio.endCall', { defaultValue: 'Raccrocher' })}

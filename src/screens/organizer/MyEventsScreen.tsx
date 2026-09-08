@@ -801,6 +801,21 @@ export default function MyEventsScreen() {
       });
     }
     if (event.status === 'validated') {
+      // « Démarrer le direct » pour les events en ligne / hybrides : un
+      // organisateur/animateur cherchait ce bouton et ne le trouvait pas (il
+      // fallait deviner qu'il faut passer par la fiche → « Rejoindre »). On
+      // l'amène directement sur la section visio (initialTab='virtual'), où le
+      // bouton de connexion l'attend — rejoindre en tant qu'hôte « ouvre » la
+      // salle pour les participants (garde-fou host-first).
+      if (event.location_type === 'online' || event.location_type === 'hybrid') {
+        configActions.push({
+          label: t('organizer.myEvents.actions.startLive', { defaultValue: 'Démarrer le direct' }),
+          icon: 'radio-outline',
+          onPress: () => navigation.navigate('EventDetails', {
+            eventId: event.slug || event.id, initialTab: 'virtual',
+          } as any),
+        });
+      }
       // Bénévoles + sponsors : pertinents pour tout type d'événement.
       configActions.push(
         {
