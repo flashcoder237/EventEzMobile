@@ -15,6 +15,8 @@ import type { EventFormState, AlertActions, TrackForm, SpeakerForm } from './use
 interface SyncRefs {
   originalTicketIds: MutableRefObject<string[]>;
   originalSessionIds: MutableRefObject<string[]>;
+  originalTrackIds: MutableRefObject<string[]>;
+  originalSpeakerIds: MutableRefObject<string[]>;
 }
 
 export function useEventFormSubmit(
@@ -54,12 +56,14 @@ export function useEventFormSubmit(
         : await eventsAPI.createEvent(formData);
       const eventId = response.data.id;
 
-      // Tracks et Speakers doivent etre crees AVANT les sessions (qui les
-      // referencent par UUID). On les fait en parallele pour gagner du temps,
-      // puis on resout les UUIDs et on POST les sessions.
+      // Tracks et Speakers doivent etre synchronises AVANT les sessions (qui les
+      // referencent par UUID). En EDITION : PUT existants / POST nouveaux /
+      // DELETE retires (comme billets/sessions) — sinon on recreait des
+      // DOUBLONS a chaque save. En CREATION : POST tout. On les fait en
+      // parallele, puis on resout les UUIDs et on synchronise les sessions.
       const [trackIdMap, speakerIdMap] = await Promise.all([
-        createTracks(eventId, form.tracks),
-        createSpeakers(eventId, form.speakers),
+        syncTracks(eventId, form.tracks, editEventId ? syncRefs?.originalTrackIds.current : undefined),
+        syncSpeakers(eventId, form.speakers, editEventId ? syncRefs?.originalSpeakerIds.current : undefined),
       ]);
 
       await Promise.all([
@@ -276,35 +280,63 @@ async function syncFormFields(eventId: string, form: EventFormState, isEdit: boo
 }
 
 /**
- * Cree les tracks de l'event en parallele et retourne un mapping
- * index_local → UUID serveur. Permet aux sessions de referencer le bon
- * track_id via leur `track_index` cote form state.
+ * Synchronise les tracks et retourne un mapping index_local → UUID serveur
+ * (pour que les sessions resolvent leur `track_index`).
+ *
+ * CREATION (originalIds undefined) : POST tout.
+ * EDITION : PUT ceux avec un id, POST les nouveaux, DELETE ceux retires du form.
+ * Sans ce sync id-aware, chaque save en edition RE-CREAIT tous les tracks
+ * (doublons) au lieu de mettre a jour les existants.
  */
-async function createTracks(eventId: string, tracks: TrackForm[]): Promise<Record<number, string>> {
-  if (tracks.length === 0) return {};
-  // On garde l'ordre via le couple (index, promise) pour pouvoir mapper apres.
-  const responses = await Promise.all(tracks.map((track, idx) =>
-    tracksAPI.createTrack({
+async function syncTracks(
+  eventId: string,
+  tracks: TrackForm[],
+  originalIds?: string[],
+): Promise<Record<number, string>> {
+  const isEdit = originalIds !== undefined;
+  const map: Record<number, string> = {};
+
+  const responses = await Promise.all(tracks.map((track, idx) => {
+    const payload = {
       event: eventId,
       name: track.name,
       description: track.description || '',
       color: track.color || '#4F46E5',
       order: idx,
-    }).then(res => ({ idx, id: String((res.data as any).id) }))
-  ));
-  const map: Record<number, string> = {};
+    };
+    if (isEdit && track.id) {
+      return tracksAPI.updateTrack(track.id, payload).then(() => ({ idx, id: track.id! }));
+    }
+    return tracksAPI.createTrack(payload).then(res => ({ idx, id: String((res.data as any).id) }));
+  }));
   for (const { idx, id } of responses) map[idx] = id;
+
+  // Suppressions : tracks presents a l'origine mais plus dans le form.
+  if (isEdit) {
+    const keptIds = new Set(tracks.map(t => t.id).filter(Boolean) as string[]);
+    const toDelete = (originalIds || []).filter(id => !keptIds.has(id));
+    await Promise.all(toDelete.map(id => tracksAPI.deleteTrack(id).catch((err) => {
+      if (__DEV__) console.warn('[Track] delete failed', id, err);
+    })));
+  }
   return map;
 }
 
 /**
- * Idem pour les speakers : POST en parallele + retour mapping
- * index_local → UUID serveur (pour speaker_indices et moderator_index).
+ * Idem pour les speakers : PUT/POST/DELETE + retour mapping index_local → UUID
+ * serveur (pour speaker_indices et moderator_index). Upload photo seulement pour
+ * les fichiers locaux (file://) — une URL serveur existante n'est pas ré-uploadée.
  */
-async function createSpeakers(eventId: string, speakers: SpeakerForm[]): Promise<Record<number, string>> {
-  if (speakers.length === 0) return {};
-  const responses = await Promise.all(speakers.map((speaker, idx) =>
-    speakersAPI.createSpeaker({
+async function syncSpeakers(
+  eventId: string,
+  speakers: SpeakerForm[],
+  originalIds?: string[],
+): Promise<Record<number, string>> {
+  const isEdit = originalIds !== undefined;
+  const map: Record<number, string> = {};
+
+  const responses = await Promise.all(speakers.map((speaker, idx) => {
+    const payload = {
       event: eventId,
       first_name: speaker.first_name,
       last_name: speaker.last_name,
@@ -317,20 +349,29 @@ async function createSpeakers(eventId: string, speakers: SpeakerForm[]): Promise
       linkedin: speaker.linkedin || '',
       twitter: speaker.twitter || '',
       order: idx,
-    }).then(res => ({ idx, id: String((res.data as any).id), speaker }))
-  ));
-
-  const map: Record<number, string> = {};
+    };
+    if (isEdit && speaker.id) {
+      return speakersAPI.updateSpeaker(speaker.id, payload).then(() => ({ idx, id: speaker.id!, speaker }));
+    }
+    return speakersAPI.createSpeaker(payload).then(res => ({ idx, id: String((res.data as any).id), speaker }));
+  }));
   for (const { idx, id } of responses) map[idx] = id;
 
-  // Upload photos en parallele apres creation. Une photo absente ou
-  // pre-existante (URL https) n'est pas re-uploadee. Un echec n'arrete
-  // pas le submit — le speaker est cree, juste sans photo.
+  // Suppressions : speakers presents a l'origine mais plus dans le form.
+  if (isEdit) {
+    const keptIds = new Set(speakers.map(s => s.id).filter(Boolean) as string[]);
+    const toDelete = (originalIds || []).filter(id => !keptIds.has(id));
+    await Promise.all(toDelete.map(id => speakersAPI.deleteSpeaker(id).catch((err) => {
+      if (__DEV__) console.warn('[Speaker] delete failed', id, err);
+    })));
+  }
+
+  // Upload photos : seulement les NOUVELLES (file://). Une URL serveur existante
+  // (edition) n'est pas re-uploadee. Un echec n'arrete pas le submit.
   await Promise.all(responses.map(({ id, speaker }) => {
     const uri = speaker.photo;
     if (!uri || !uri.startsWith('file:')) return Promise.resolve();
     const formData = new FormData();
-    // RN-style file payload : { uri, name, type }
     formData.append('photo', {
       uri,
       name: `speaker_${id}.jpg`,
@@ -349,6 +390,7 @@ function sessionPayload(
   session: EventFormState['sessions'][number],
   trackIdMap: Record<number, string>,
   speakerIdMap: Record<number, string>,
+  isEdit = false,
 ) {
   // Resoudre les refs locales → UUIDs serveur. `!= null` couvre null ET undefined.
   const trackId = session.track_index != null ? (trackIdMap[session.track_index] || null) : null;
@@ -377,10 +419,18 @@ function sessionPayload(
     tags: session.tags || [],
     level: session.level || 'all',
     language: session.language || 'fr',
-    // Liens agenda : seulement si non-null pour ne pas ecraser cote serveur.
-    ...(trackId ? { track: trackId } : {}),
-    ...(speakerIds.length > 0 ? { speakers: speakerIds } : {}),
-    ...(moderatorId ? { moderator: moderatorId } : {}),
+    // Liens agenda. En CRÉATION : n'envoyer que le non-null (pas de champ inutile).
+    // En ÉDITION : envoyer explicitement track:null / speakers:[] / moderator:null
+    // pour EFFACER un lien retiré (maintenant que les liens sont correctement
+    // reconstruits à l'hydratation — sinon retirer un intervenant ne le retirait
+    // jamais côté serveur).
+    ...(isEdit
+      ? { track: trackId, speakers: speakerIds, moderator: moderatorId }
+      : {
+          ...(trackId ? { track: trackId } : {}),
+          ...(speakerIds.length > 0 ? { speakers: speakerIds } : {}),
+          ...(moderatorId ? { moderator: moderatorId } : {}),
+        }),
   };
 }
 
@@ -400,9 +450,10 @@ async function syncSessions(
   const ops: Promise<any>[] = [];
 
   for (const session of sessions) {
-    const payload = sessionPayload(eventId, session, trackIdMap, speakerIdMap);
-    if (isEdit && session.id) {
-      ops.push(sessionsAPI.updateSession(session.id, payload));
+    const editingThis = isEdit && !!session.id;
+    const payload = sessionPayload(eventId, session, trackIdMap, speakerIdMap, editingThis);
+    if (editingThis) {
+      ops.push(sessionsAPI.updateSession(session.id!, payload));
     } else {
       ops.push(sessionsAPI.createSession(payload));
     }

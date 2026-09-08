@@ -41,9 +41,23 @@ jest.mock('../../api', () => ({
     deleteTicketType: jest.fn(() => Promise.resolve({ data: {} })),
   },
   sessionsAPI: {
+    getSessions: jest.fn(() => Promise.resolve({ data: { results: [] } })),
     createSession: jest.fn(() => Promise.resolve({ data: { id: 'ss1' } })),
     updateSession: jest.fn(() => Promise.resolve({ data: {} })),
     deleteSession: jest.fn(() => Promise.resolve({ data: {} })),
+  },
+  speakersAPI: {
+    getSpeakers: jest.fn(() => Promise.resolve({ data: { results: [] } })),
+    createSpeaker: jest.fn(() => Promise.resolve({ data: { id: 'sp1' } })),
+    updateSpeaker: jest.fn(() => Promise.resolve({ data: {} })),
+    deleteSpeaker: jest.fn(() => Promise.resolve({ data: {} })),
+    uploadPhoto: jest.fn(() => Promise.resolve({ data: {} })),
+  },
+  tracksAPI: {
+    getTracks: jest.fn(() => Promise.resolve({ data: { results: [] } })),
+    createTrack: jest.fn(() => Promise.resolve({ data: { id: 'tr1' } })),
+    updateTrack: jest.fn(() => Promise.resolve({ data: {} })),
+    deleteTrack: jest.fn(() => Promise.resolve({ data: {} })),
   },
   aiAssistAPI: {
     generate: jest.fn(),
@@ -97,6 +111,8 @@ import {
   eventsAPI,
   ticketTypesAPI,
   sessionsAPI,
+  speakersAPI,
+  tracksAPI,
   categoriesAPI,
   tagsAPI,
 } from '../../api';
@@ -744,6 +760,58 @@ describe('useEventForm', () => {
       expect(mockedTickets.deleteTicketType).toHaveBeenCalledWith('TK_DEL');
       // Anti-régression : on ne re-POST PAS le billet conservé.
       expect(mockedTickets.createTicketType).toHaveBeenCalledTimes(1);
+    });
+
+    it('edit mode: synchronise speakers/tracks (PUT existant, POST nouveau, DELETE retiré) — anti-doublon agenda', async () => {
+      const alerts = makeAlerts();
+      const mockedSpeakers = speakersAPI as jest.Mocked<typeof speakersAPI>;
+      const mockedTracks = tracksAPI as jest.Mocked<typeof tracksAPI>;
+
+      mockedEventsAPI.getEvent.mockResolvedValueOnce({
+        data: {
+          id: 'evt-ag', title: 'Conf', description: 'd', short_description: '',
+          event_type: 'billetterie', category: { id: 1 }, tags: [],
+          start_date: new Date('2026-09-01T09:00:00Z').toISOString(),
+          end_date: new Date('2026-09-01T18:00:00Z').toISOString(),
+          location_type: 'in_person', location_city: 'Douala', location_country: 'Cameroun',
+          visibility: 'public', fee_bearer: 'participant', auto_approve_registrations: true,
+          ticket_types: [], form_fields: [], sessions: [],
+        },
+      } as any);
+      // Agenda existant renvoyé par les endpoints dédiés.
+      mockedSpeakers.getSpeakers.mockResolvedValueOnce({
+        data: { results: [
+          { id: 'SP_KEEP', first_name: 'Ada', last_name: 'Lovelace', title: 'Keynote' },
+          { id: 'SP_DEL', first_name: 'Alan', last_name: 'Turing', title: 'Talk' },
+        ] },
+      } as any);
+      mockedTracks.getTracks.mockResolvedValueOnce({
+        data: { results: [{ id: 'TR_KEEP', name: 'Main', color: '#4F46E5' }] },
+      } as any);
+      mockedEventsAPI.updateEvent.mockResolvedValueOnce({ data: { id: 'evt-ag' } } as any);
+
+      const { result } = renderHook(() => useEventForm(alerts, 'evt-ag'));
+      // Attendre l'hydratation de l'agenda (2 speakers, 1 track).
+      await waitFor(() => expect(result.current.form.speakers).toHaveLength(2));
+      expect(result.current.form.tracks).toHaveLength(1);
+      expect(result.current.form.speakers[0].id).toBe('SP_KEEP');
+
+      // Édite SP_KEEP, supprime SP_DEL, ajoute un nouveau speaker.
+      act(() => result.current.updateSpeaker(0, 'company', 'Analytical Engine'));
+      act(() => result.current.removeSpeaker(1));
+      act(() => result.current.addSpeaker());
+      act(() => result.current.updateSpeaker(1, 'first_name', 'Grace'));
+
+      await act(async () => { await result.current.handleSubmit(); });
+
+      // SP_KEEP → PUT ; nouveau → POST ; SP_DEL → DELETE ; track conservé → PUT.
+      expect(mockedSpeakers.updateSpeaker).toHaveBeenCalledWith('SP_KEEP', expect.objectContaining({ company: 'Analytical Engine' }));
+      expect(mockedSpeakers.createSpeaker).toHaveBeenCalledWith(expect.objectContaining({ first_name: 'Grace' }));
+      expect(mockedSpeakers.deleteSpeaker).toHaveBeenCalledWith('SP_DEL');
+      expect(mockedTracks.updateTrack).toHaveBeenCalledWith('TR_KEEP', expect.objectContaining({ name: 'Main' }));
+      // Anti-régression : on ne re-POST PAS l'existant conservé.
+      expect(mockedSpeakers.createSpeaker).toHaveBeenCalledTimes(1);
+      expect(mockedTracks.createTrack).not.toHaveBeenCalled();
     });
 
     it('updates event + does NOT call submitForValidation in edit mode', async () => {

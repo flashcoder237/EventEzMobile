@@ -12,6 +12,8 @@ import {
   ticketTypesAPI,
   tagsAPI,
   sessionsAPI,
+  speakersAPI,
+  tracksAPI,
   aiAssistAPI,
   siteSettingsAPI,
 } from '../api';
@@ -88,12 +90,14 @@ export interface SessionForm {
 }
 
 export interface TrackForm {
+  id?: string;         // UUID serveur si track existant (édition), sinon undefined
   name: string;
   description: string;
   color: string;
 }
 
 export interface SpeakerForm {
+  id?: string;         // UUID serveur si speaker existant (édition), sinon undefined
   first_name: string;
   last_name: string;
   title: string;       // poste (CEO, Lead Designer, ...)
@@ -104,7 +108,7 @@ export interface SpeakerForm {
   website: string;
   linkedin: string;
   twitter: string;     // handle sans @
-  photo: string;       // URI local (file://...) → upload via PATCH au submit
+  photo: string;       // URI local (file://...) OU URL serveur (édition) → upload seulement si file://
 }
 
 export interface SessionResourceForm {
@@ -400,6 +404,8 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
   // suppressions (present à l'origine mais plus dans le form → DELETE serveur).
   const originalTicketIdsRef = useRef<string[]>([]);
   const originalSessionIdsRef = useRef<string[]>([]);
+  const originalTrackIdsRef = useRef<string[]>([]);
+  const originalSpeakerIdsRef = useRef<string[]>([]);
 
   // Step validation errors — populated when goToNextStep fails. Les
   // components Step1/2/3 lisent ce map pour appliquer un border rouge sur
@@ -453,6 +459,8 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
   const handleSubmit = useEventFormSubmit(form, validateStep, showError, editEventId, hostEventId, {
     originalTicketIds: originalTicketIdsRef,
     originalSessionIds: originalSessionIdsRef,
+    originalTrackIds: originalTrackIdsRef,
+    originalSpeakerIds: originalSpeakerIdsRef,
   });
 
   // Wrap handleSubmit with loading state
@@ -1054,37 +1062,106 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
           order: f.order ?? i,
         }));
 
-        // Sessions existantes → format SessionForm (les liens track/speaker par
-        // index ne sont pas reconstruits, on repart sur les défauts pour eux).
-        const sessions: SessionForm[] = (event.sessions || []).map((s: any) => ({
-          id: s.id ? String(s.id) : undefined,
-          title: s.title || '',
-          description: s.description || '',
-          session_type: s.session_type || 'talk',
-          start_time: s.start_time ? new Date(s.start_time) : null,
-          end_time: s.end_time ? new Date(s.end_time) : null,
-          location: s.location || '',
-          room: s.room || '',
-          max_capacity: s.max_capacity != null ? String(s.max_capacity) : '',
-          is_virtual: !!s.is_virtual,
-          virtual_link: s.virtual_link || '',
-          requires_registration: s.requires_registration ?? true,
-          is_featured: !!s.is_featured,
-          slides_url: s.slides_url || '',
-          recording_url: s.recording_url || '',
-          resources: Array.isArray(s.resources) ? s.resources : [],
-          tags: Array.isArray(s.tags) ? s.tags : [],
-          level: s.level || 'all',
-          language: s.language || 'fr',
-          track_index: null,
-          speaker_indices: [],
-          moderator_index: null,
+        // AGENDA (tracks + speakers + sessions) : chargé via les endpoints
+        // dédiés (l'event detail n'embarque pas tracks/sessions complets, et
+        // `speakers` y est MINIMAL sans email/bio). Sans cette hydratation, la
+        // section agenda apparaissait vide en édition → l'organisateur ne voyait
+        // pas ses intervenants et en re-créait des DOUBLONS au save.
+        // L'organisateur est privilégié → getSpeakers renvoie email/phone/bio.
+        const [tracksRes, speakersRes, sessionsRes] = await Promise.all([
+          tracksAPI.getTracks({ event: editEventId }).catch(() => ({ data: null })),
+          speakersAPI.getSpeakers({ event: editEventId }).catch(() => ({ data: null })),
+          sessionsAPI.getSessions({ event: editEventId }).catch(() => ({ data: null })),
+        ]);
+        const trackList: any[] = tracksRes.data?.results || tracksRes.data || [];
+        const speakerList: any[] = speakersRes.data?.results || speakersRes.data || [];
+        // Source sessions : l'endpoint dédié (plus complet) s'il renvoie quelque
+        // chose ; sinon repli sur les sessions embarquées dans l'event detail.
+        const sessionsFromApi: any[] = sessionsRes.data?.results || sessionsRes.data || [];
+        const sessionList: any[] = sessionsFromApi.length > 0
+          ? sessionsFromApi
+          : (Array.isArray(event.sessions) ? event.sessions : []);
+
+        // Tracks/speakers → format form (avec id serveur pour la synchro).
+        const tracks: TrackForm[] = trackList.map((tr: any) => ({
+          id: tr.id ? String(tr.id) : undefined,
+          name: tr.name || '',
+          description: tr.description || '',
+          color: tr.color || '#4F46E5',
         }));
+        const speakers: SpeakerForm[] = speakerList.map((sp: any) => ({
+          id: sp.id ? String(sp.id) : undefined,
+          first_name: sp.first_name || '',
+          last_name: sp.last_name || '',
+          title: sp.title || '',
+          company: sp.company || '',
+          bio: sp.bio || '',
+          email: sp.email || '',
+          phone: sp.phone || '',
+          website: sp.website || '',
+          linkedin: sp.linkedin || '',
+          twitter: sp.twitter || '',
+          photo: sp.photo || '',   // URL serveur : non ré-uploadée (garde !startsWith file:)
+        }));
+
+        // Maps UUID→index pour reconstruire les liens des sessions.
+        const trackIdxById = new Map<string, number>();
+        tracks.forEach((tr, i) => { if (tr.id) trackIdxById.set(tr.id, i); });
+        const speakerIdxById = new Map<string, number>();
+        speakers.forEach((sp, i) => { if (sp.id) speakerIdxById.set(sp.id, i); });
+
+        // Sessions existantes → format SessionForm AVEC liens agenda reconstruits.
+        // Les FK viennent en UUID (`track`, `speakers[]`, `moderator`) ; on les
+        // remappe en index locaux attendus par le form / le submit.
+        const sessions: SessionForm[] = sessionList.map((s: any) => {
+          const trackUuid = s.track != null
+            ? (typeof s.track === 'object' ? s.track.id : s.track)
+            : null;
+          const speakerUuids: string[] = Array.isArray(s.speakers)
+            ? s.speakers.map((sp: any) => (typeof sp === 'object' ? sp.id : sp)).map(String)
+            : [];
+          const moderatorUuid = s.moderator != null
+            ? (typeof s.moderator === 'object' ? s.moderator.id : s.moderator)
+            : null;
+          const trackIdx = trackUuid != null && trackIdxById.has(String(trackUuid))
+            ? trackIdxById.get(String(trackUuid))! : null;
+          const speakerIndices = speakerUuids
+            .map(u => speakerIdxById.get(u))
+            .filter((i): i is number => i !== undefined);
+          const moderatorIdx = moderatorUuid != null && speakerIdxById.has(String(moderatorUuid))
+            ? speakerIdxById.get(String(moderatorUuid))! : null;
+          return {
+            id: s.id ? String(s.id) : undefined,
+            title: s.title || '',
+            description: s.description || '',
+            session_type: s.session_type || 'talk',
+            start_time: s.start_time ? new Date(s.start_time) : null,
+            end_time: s.end_time ? new Date(s.end_time) : null,
+            location: s.location || '',
+            room: s.room || '',
+            max_capacity: s.max_capacity != null ? String(s.max_capacity) : '',
+            is_virtual: !!s.is_virtual,
+            virtual_link: s.virtual_link || '',
+            requires_registration: s.requires_registration ?? true,
+            is_featured: !!s.is_featured,
+            slides_url: s.slides_url || '',
+            recording_url: s.recording_url || '',
+            resources: Array.isArray(s.resources) ? s.resources : [],
+            tags: Array.isArray(s.tags) ? s.tags : [],
+            level: s.level || 'all',
+            language: s.language || 'fr',
+            track_index: trackIdx,
+            speaker_indices: speakerIndices,
+            moderator_index: moderatorIdx,
+          };
+        });
 
         // Mémorise les IDs d'origine pour la synchro au submit (détection des
         // suppressions). Reset à chaque (re)chargement d'un event à éditer.
         originalTicketIdsRef.current = ticketTypes.map(t => t.id).filter((id): id is string => !!id);
         originalSessionIdsRef.current = sessions.map(s => s.id).filter((id): id is string => !!id);
+        originalTrackIdsRef.current = tracks.map(t => t.id).filter((id): id is string => !!id);
+        originalSpeakerIdsRef.current = speakers.map(s => s.id).filter((id): id is string => !!id);
 
         // Un billet à 0 (ou l'absence de billet payant) → événement gratuit.
         const isFree = ticketTypes.length > 0 && ticketTypes.every(t => parseFloat(t.price) === 0);
@@ -1098,6 +1175,8 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
           ticketTypes,
           formFields,
           sessions,
+          tracks,
+          speakers,
           isFree,
           showFormFieldsForBilletterie: (event.event_type === 'billetterie') && formFields.length > 0,
           attendeeFormScope: event.attendee_form_scope || 'order',
