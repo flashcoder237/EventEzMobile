@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, ImageStyle, ViewStyle, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ImageStyle, ViewStyle, TouchableOpacity, AppState } from 'react-native';
 import { Image } from 'expo-image';
 import { Video, ResizeMode, Audio, InterruptionModeIOS, InterruptionModeAndroid } from 'expo-av';
 import { WebView } from 'react-native-webview';
@@ -78,9 +78,20 @@ function EventCoverMediaImpl({
     }
   }, [allowAutoplay]);
 
+  // App en arrière-plan (home / changement d'app) : on met la vidéo en PAUSE.
+  // Sans ça, l'écran n'étant PAS démonté, la vidéo continuait de décoder en fond
+  // (batterie/data) et gardait le focus audio. Repris au retour au premier plan.
+  const [appActive, setAppActive] = useState(true);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (s) => {
+      setAppActive(s === 'active');
+    });
+    return () => sub.remove();
+  }, []);
+
   // La vidéo joue si : parent l'autorise (shouldPlay, ex. visible à l'écran) ET
-  // (autoplay réseau/a11y autorisé OU l'utilisateur a tapé play).
-  const playing = shouldPlay && (allowAutoplay || manualPlay);
+  // app au premier plan ET (autoplay réseau/a11y autorisé OU l'utilisateur a tapé play).
+  const playing = appActive && shouldPlay && (allowAutoplay || manualPlay);
 
   // Audio focus : en activant le son, on coupe la musique/podcast des autres
   // apps (façon Instagram). B2 (fix) : on mémorise qu'on l'a pris et on le
@@ -99,9 +110,17 @@ function EventCoverMediaImpl({
     } catch { /* best-effort */ }
   };
 
-  // Relâche le focus audio au démontage s'il était pris (B2).
+  // Au démontage (ex. on QUITTE la fiche via back) :
+  //  1. arrêter/décharger EXPLICITEMENT le player vidéo — se reposer sur le GC
+  //     d'expo-av est peu fiable : la vidéo pouvait continuer à décoder (et un
+  //     bout d'audio à traîner) quelques secondes après la sortie de l'écran.
+  //  2. relâcher le focus audio s'il était pris (B2) — sinon playsInSilentModeIOS
+  //     restait vissé pour toute l'app et les autres apps jamais relâchées.
   useEffect(() => {
+    const ref = videoRef;
     return () => {
+      ref.current?.stopAsync?.().catch(() => {});
+      ref.current?.unloadAsync?.().catch(() => {});
       if (audioFocusHeldRef.current) {
         Audio.setAudioModeAsync({
           playsInSilentModeIOS: false,
