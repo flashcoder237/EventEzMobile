@@ -51,7 +51,7 @@ export default function WeddingGiftRegistryScreen() {
   const { slug } = route.params;
   const { colors } = useTheme();
   const { t } = useTranslation();
-  const { showError } = useFeedback();
+  const { showError, toastSuccess } = useFeedback();
 
   const [registry, setRegistry] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -99,7 +99,10 @@ export default function WeddingGiftRegistryScreen() {
         showError(t('common.error'), t('wedding.giftError', { defaultValue: "Le paiement n'a pas pu démarrer." }));
         return;
       }
-      const returnUrl = `${DEEP_LINK_SCHEME}://payment-success/${contributionId}`;
+      // Fallback si l'API n'a pas renvoyé d'id : returnUrl sans segment `undefined`.
+      const returnUrl = contributionId
+        ? `${DEEP_LINK_SCHEME}://payment-success/${contributionId}`
+        : `${DEEP_LINK_SCHEME}://payment-success`;
       await WebBrowser.openAuthSessionAsync(url, returnUrl, {
         dismissButtonStyle: 'close',
         presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
@@ -110,6 +113,9 @@ export default function WeddingGiftRegistryScreen() {
       setAmount('');
       setName('');
       await load();
+      // Confirmation : sans elle, l'invité voyait juste la liste se recharger et
+      // doutait que son don soit passé (contrairement au flux billet).
+      toastSuccess(t('wedding.giftThanks', { defaultValue: 'Merci pour votre participation !' }));
     } catch (e) {
       // getApiErrorMessage mappe correctement 429 (rate-limit contribute) →
       // « trop de tentatives » au lieu du message trompeur « paiement échoué »

@@ -248,12 +248,14 @@ export default function TeamManagementScreen() {
               {target}
             </Text>
             <Text style={[styles.memberRole, { color: colors.gray500 }]}>
-              {item.role_display}
+              {/* Libellé traduit côté mobile ; repli sur *_display backend (qui
+                  peut être dans la langue du serveur) si rôle inconnu. */}
+              {t(`teamManagement.role_${item.role}`, { defaultValue: item.role_display })}
             </Text>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: statusColor.bg }]}>
             <Text style={[styles.statusBadgeText, { color: statusColor.text }]}>
-              {item.status_display}
+              {t(`teamManagement.status_${item.invitation_status}`, { defaultValue: item.status_display })}
             </Text>
           </View>
         </View>

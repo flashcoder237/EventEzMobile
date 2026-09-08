@@ -3779,7 +3779,16 @@
     "perm_view_analytics": "Voir les analytics",
     "perm_view_registrations": "Voir la liste des inscrits",
     "perm_edit_event": "Éditer l'événement",
-    "perm_manage_team": "Inviter d'autres membres d'équipe"
+    "perm_manage_team": "Inviter d'autres membres d'équipe",
+    "role_co_organizer": "Co-organisateur",
+    "role_moderator": "Modérateur",
+    "role_scanner": "Contrôleur",
+    "role_analyst": "Analyste",
+    "status_pending": "En attente",
+    "status_accepted": "Actif",
+    "status_declined": "Refusé",
+    "status_revoked": "Révoqué",
+    "status_expired": "Expiré"
   },
   "myTeamEvents": {
     "eyebrow": "EN COULISSE",
@@ -3811,6 +3820,7 @@
     "giftYourName": "Votre nom",
     "giftMethod": "Moyen de paiement",
     "giftPay": "Contribuer",
+    "giftThanks": "Merci pour votre participation !",
     "giftError": "Le paiement n'a pas pu démarrer.",
     "rsvpSubmitError": "Votre réponse n'a pas pu être envoyée. Veuillez réessayer.",
     "summaryTitle": "Votre réponse",

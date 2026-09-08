@@ -67,8 +67,10 @@ export default function ConversationQuotaBanner({
   onQuotaUpdate,
 }: Props) {
   const { colors, isDark } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { showSuccess, showError } = useAlert();
+  // Locale d'affichage des dates dérivée de la langue courante (pas fr-FR figé).
+  const dateLocale = (i18n.language || 'fr').split('-')[0] === 'en' ? 'en-US' : 'fr-FR';
   const [state, setState] = useState<QuotaState | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -164,7 +166,7 @@ export default function ConversationQuotaBanner({
   const barTrack = pct >= 90 ? '#fee2e2' : pct >= 70 ? '#fed7aa' : colors.gray100 || '#f3f4f6';
 
   const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString('fr-FR', {
+    new Date(iso).toLocaleDateString(dateLocale, {
       day: 'numeric',
       month: 'long',
       year: 'numeric',

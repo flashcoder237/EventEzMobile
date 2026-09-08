@@ -3438,7 +3438,16 @@
     "perm_view_analytics": "View analytics",
     "perm_view_registrations": "View registrations list",
     "perm_edit_event": "Edit the event",
-    "perm_manage_team": "Invite other team members"
+    "perm_manage_team": "Invite other team members",
+    "role_co_organizer": "Co-organizer",
+    "role_moderator": "Moderator",
+    "role_scanner": "Scanner",
+    "role_analyst": "Analyst",
+    "status_pending": "Pending",
+    "status_accepted": "Active",
+    "status_declined": "Declined",
+    "status_revoked": "Revoked",
+    "status_expired": "Expired"
   },
   "myTeamEvents": {
     "eyebrow": "BEHIND THE SCENES",
@@ -3470,6 +3479,7 @@
     "giftYourName": "Your name",
     "giftMethod": "Payment method",
     "giftPay": "Contribute",
+    "giftThanks": "Thank you for your contribution!",
     "giftError": "Payment couldn't start.",
     "rsvpSubmitError": "Your response couldn't be sent. Please try again.",
     "summaryTitle": "Your reply",

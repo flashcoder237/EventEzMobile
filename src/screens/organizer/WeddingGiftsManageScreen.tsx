@@ -138,8 +138,10 @@ export default function WeddingGiftsManageScreen() {
   const handleCreateRegistry = async () => {
     setCreating(true);
     try {
-      const res = await weddingOrganizerAPI.createRegistry({ event: eventId });
-      setRegistry(res.data || null);
+      await weddingOrganizerAPI.createRegistry({ event: eventId });
+      // Ne PAS faire setRegistry(res.data) ici : le POST peut renvoyer un objet
+      // incomplet (sans currency/items) → fenêtre de rendu où `${currency}` =
+      // undefined. fetchData() est la source unique (le loader reste affiché).
       toastSuccess(t('organizer.weddingGifts.registryCreated'));
       await fetchData();
     } catch (error: any) {
