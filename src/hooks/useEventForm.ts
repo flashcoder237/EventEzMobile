@@ -392,7 +392,14 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
   const [showFormFieldsForBilletterie, setShowFormFieldsForBilletterie] = useState(false);
 
   // Visibility
-  const [visibility, setVisibility] = useState<'public' | 'unlisted' | 'invite_only'>('public');
+  const [visibility, setVisibilityState] = useState<'public' | 'unlisted' | 'invite_only'>('public');
+  // Suit si l'utilisateur a CHOISI lui-même la visibilité. Sert à ne pas écraser
+  // son choix avec la suggestion auto « mariage → privé » (cf. effet plus bas).
+  const visibilityTouchedRef = useRef(false);
+  const setVisibility = useCallback((v: 'public' | 'unlisted' | 'invite_only') => {
+    visibilityTouchedRef.current = true;
+    setVisibilityState(v);
+  }, []);
   const [accessCode, setAccessCode] = useState('');
 
   // Step 4 - Sessions + agenda entities
@@ -924,6 +931,25 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
   useEffect(() => { clearFieldError('title'); }, [title, clearFieldError]);
   useEffect(() => { clearFieldError('description'); }, [description, clearFieldError]);
   useEffect(() => { clearFieldError('categoryId'); }, [categoryId, clearFieldError]);
+
+  // Suggestion « mariage = privé par défaut ». Un mariage ne doit pas se
+  // retrouver dans la découverte publique. Quand l'organisateur choisit une
+  // catégorie mariage (et n'a pas déjà réglé la visibilité lui-même), on
+  // bascule sur invite_only. Uniquement à la CRÉATION (pas d'écrasement en
+  // édition), et jamais si l'utilisateur a explicitement choisi (touchedRef).
+  useEffect(() => {
+    if (editEventId) return;
+    if (visibilityTouchedRef.current) return;
+    if (categoryId == null) return;
+    const catName = categories.find(c => c.id === categoryId)?.name || '';
+    const catSlug = (categories.find(c => c.id === categoryId) as any)?.slug || '';
+    const isWeddingCat = /mariage|wedding|celebration/i.test(`${catSlug} ${catName}`);
+    // setVisibilityState (et non setVisibility) : suggestion auto, on ne marque
+    // pas « touché » pour laisser l'utilisateur reprendre la main librement.
+    // On ne force QUE le passage en privé pour un mariage ; on ne repasse pas
+    // en public pour les autres catégories (éviter une surprise en changeant).
+    if (isWeddingCat) setVisibilityState('invite_only');
+  }, [categoryId, categories, editEventId]);
   useEffect(() => { clearFieldError('coverVideoUrl'); }, [coverVideoUrl, clearFieldError]);
   useEffect(() => { clearFieldError('startDate'); }, [startDate, clearFieldError]);
   useEffect(() => { clearFieldError('endDate'); }, [endDate, clearFieldError]);

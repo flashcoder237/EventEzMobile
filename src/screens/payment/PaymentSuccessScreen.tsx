@@ -896,7 +896,9 @@ const styles = StyleSheet.create({
   },
   infoEyebrow: {
     fontFamily: FontFamily.bold,
-    fontSize: 9,
+    // 11 (et non 9) : un eyebrow à 9px est sous le seuil de lisibilité et,
+    // codé en dur, grossit à peine avec les réglages « gros texte » du système.
+    fontSize: 11,
     letterSpacing: 1.5,
     marginBottom: 2,
   },
@@ -979,7 +981,7 @@ const styles = StyleSheet.create({
   },
   primaryPillEyebrow: {
     fontFamily: FontFamily.bold,
-    fontSize: 9,
+    fontSize: 11,
     letterSpacing: 1.6,
     color: 'rgba(255,255,255,0.7)',
     textTransform: 'uppercase',
@@ -1061,7 +1063,7 @@ const styles = StyleSheet.create({
   },
   upgradeBannerEyebrow: {
     fontFamily: FontFamily.bold,
-    fontSize: 9,
+    fontSize: 11,
     letterSpacing: 1.2,
   },
   upgradeBannerTitle: {
@@ -1094,7 +1096,7 @@ const styles = StyleSheet.create({
   },
   upgradeDismiss: {
     fontFamily: FontFamily.medium,
-    fontSize: 10,
+    fontSize: 11,
     textDecorationLine: 'underline',
   },
   // Upgrade modal
@@ -1113,7 +1115,7 @@ const styles = StyleSheet.create({
   },
   upgradeEyebrow: {
     fontFamily: FontFamily.bold,
-    fontSize: 10,
+    fontSize: 11,
     letterSpacing: 1.5,
     marginBottom: 6,
   },
