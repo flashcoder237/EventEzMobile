@@ -22,6 +22,7 @@ import {
   TextInput,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -70,6 +71,7 @@ export default function WeddingTablesManageScreen() {
   const { eventId, eventTitle } = route.params;
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const { showError, showConfirm } = useAlert();
   const { toastSuccess } = useFeedback();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -358,7 +360,7 @@ export default function WeddingTablesManageScreen() {
       {/* Modal création/édition table */}
       <Modal visible={tableModalOpen} transparent animationType="slide" onRequestClose={() => setTableModalOpen(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+          <View style={[styles.modalCard, { paddingBottom: insets.bottom + Spacing.lg,  backgroundColor: colors.card }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>
               {editTableId ? t('organizer.weddingTables.editTable') : t('organizer.weddingTables.newTable')}
             </Text>
@@ -396,7 +398,7 @@ export default function WeddingTablesManageScreen() {
       {/* Modal choix de table pour un invité */}
       <Modal visible={!!assignGuest} transparent animationType="slide" onRequestClose={() => setAssignGuest(null)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+          <View style={[styles.modalCard, { paddingBottom: insets.bottom + Spacing.lg,  backgroundColor: colors.card }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]} numberOfLines={1}>
               {assignGuest ? t('organizer.weddingTables.assignTo', { name: guestLabel(assignGuest) }) : ''}
             </Text>

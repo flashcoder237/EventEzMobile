@@ -26,6 +26,7 @@ import {
   Switch,
   Share,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -79,6 +80,7 @@ export default function WeddingGiftsManageScreen() {
   const { eventId, eventTitle } = route.params;
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const { showError, showConfirm } = useAlert();
   const { toastSuccess } = useFeedback();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -439,7 +441,7 @@ export default function WeddingGiftsManageScreen() {
       {/* Modal édition en-tête */}
       <Modal visible={editHeaderOpen} transparent animationType="slide" onRequestClose={() => setEditHeaderOpen(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+          <View style={[styles.modalCard, { paddingBottom: insets.bottom + Spacing.lg,  backgroundColor: colors.card }]}>
             <ScrollView keyboardShouldPersistTaps="handled">
               <Text style={[styles.modalTitle, { color: colors.text }]}>{t('organizer.weddingGifts.editRegistry')}</Text>
               <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.weddingGifts.registryTitle')}</Text>
@@ -471,7 +473,7 @@ export default function WeddingGiftsManageScreen() {
       {/* Modal item (create/edit) */}
       <Modal visible={itemModalOpen} transparent animationType="slide" onRequestClose={() => setItemModalOpen(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+          <View style={[styles.modalCard, { paddingBottom: insets.bottom + Spacing.lg,  backgroundColor: colors.card }]}>
             <ScrollView keyboardShouldPersistTaps="handled">
               <Text style={[styles.modalTitle, { color: colors.text }]}>
                 {editItemId ? t('organizer.weddingGifts.editItem') : t('organizer.weddingGifts.newItem')}

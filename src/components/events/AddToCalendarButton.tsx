@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -33,6 +34,7 @@ interface AddToCalendarButtonProps {
 
 function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState<'google' | 'ical' | null>(null);
@@ -158,7 +160,7 @@ function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
           activeOpacity={1}
           onPress={() => setShowModal(false)}
         >
-          <View style={[styles.sheet, { backgroundColor: colors.card }]}>
+          <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom + Spacing.md, Spacing['3xl']),  backgroundColor: colors.card }]}>
             <View style={[styles.handle, { backgroundColor: colors.gray300 }]} />
             <Text style={[styles.sheetEyebrow, { color: colors.accent }]}>{t('componentsEvents.calendarSheetEyebrow')}</Text>
             <Text style={[styles.sheetTitle, { color: colors.gray900 }]}>

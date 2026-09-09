@@ -716,6 +716,11 @@ export default function PaymentSuccessScreen() {
             style={[styles.upgradeCard, { backgroundColor: colors.card }]}
             onPress={(e) => e.stopPropagation()}
           >
+            <ScrollView
+              bounces={false}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
             <Text style={[styles.upgradeEyebrow, { color: colors.primary }]}>{t('payment.successUpgradeEyebrow')}</Text>
             <Text style={[styles.upgradeTitle, { color: colors.text }]}>
               {t('payment.successUpgradeModalTitle')}
@@ -816,6 +821,7 @@ export default function PaymentSuccessScreen() {
                 )}
               </TouchableOpacity>
             </View>
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -1124,6 +1130,10 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     borderRadius: BorderRadius['2xl'],
     padding: Spacing.lg,
+    // Borne de precaution : ni hauteur maximale ni defilement. Clavier
+    // ouvert ou grande taille de police, la carte pouvait deborder le
+    // fond et mordre les barres systeme.
+    maxHeight: '88%',
   },
   upgradeEyebrow: {
     fontFamily: FontFamily.bold,

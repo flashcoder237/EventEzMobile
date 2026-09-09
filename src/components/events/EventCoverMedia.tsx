@@ -60,6 +60,10 @@ function EventCoverMediaImpl({
   const [muted, setMuted] = useState(true);
   // Lecture in-place : autoplay muet SI autorisé ; sinon on attend un tap play.
   const [manualPlay, setManualPlay] = useState(false);
+  // Pause EXPLICITE de l'utilisateur. Un simple `manualPlay=false` ne
+  // suffisait pas : quand l'autoplay est autorise, `playing` reste vrai
+  // quoi qu'il arrive — la pause n'aurait eu aucun effet.
+  const [userPaused, setUserPaused] = useState(false);
   // Suit si CE composant a pris le focus audio, pour ne le relâcher qu'une fois.
   const audioFocusHeldRef = useRef(false);
 
@@ -91,7 +95,7 @@ function EventCoverMediaImpl({
 
   // La vidéo joue si : parent l'autorise (shouldPlay, ex. visible à l'écran) ET
   // app au premier plan ET (autoplay réseau/a11y autorisé OU l'utilisateur a tapé play).
-  const playing = appActive && shouldPlay && (allowAutoplay || manualPlay);
+  const playing = appActive && shouldPlay && !userPaused && (allowAutoplay || manualPlay);
 
   // Audio focus : en activant le son, on coupe la musique/podcast des autres
   // apps (façon Instagram). B2 (fix) : on mémorise qu'on l'a pris et on le
@@ -216,7 +220,7 @@ function EventCoverMediaImpl({
           <TouchableOpacity
             style={styles.playOverlay}
             activeOpacity={0.85}
-            onPress={() => { setManualPlay(true); setMuted(false); applyAudioFocus(true); }}
+            onPress={() => { setUserPaused(false); setManualPlay(true); setMuted(false); applyAudioFocus(true); }}
             accessibilityRole="button"
             accessibilityLabel={t('eventDetails.videoPlayA11y', { defaultValue: 'Lire la vidéo avec le son' })}
           >
@@ -231,6 +235,23 @@ function EventCoverMediaImpl({
             (haut-droite), cibles 44×44 espacées. B7 (fix) : accessibilityLabel. */}
         {showControls && playing && (
           <View style={styles.controlsRow} pointerEvents="box-none">
+            {/* PAUSE. Il n'y en avait aucune : `setManualPlay(true)` existait,
+                jamais `false`. Une fois lancée, la vidéo ne pouvait plus être
+                arrêtée — le bouton play disparaissait et la barre n'offrait
+                que le son et le plein écran. */}
+            <TouchableOpacity
+              style={styles.ctrlBtn}
+              onPress={() => {
+                setUserPaused(true);
+                // On relâche le focus audio : sans ça, la vidéo est en pause
+                // mais l'app garde la main sur le son du téléphone.
+                applyAudioFocus(false);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={t('eventDetails.videoPauseA11y', { defaultValue: 'Mettre la vidéo en pause' })}
+            >
+              <Ionicons name="pause" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.ctrlBtn}
               onPress={toggleMute}

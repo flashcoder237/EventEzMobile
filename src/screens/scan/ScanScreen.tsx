@@ -12,6 +12,7 @@ import {
   Animated,
   Easing,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -180,6 +181,7 @@ export default function ScanScreen() {
   const { user: currentUser } = useAuth();
   const { showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
   const dateLocale = i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR';
 
@@ -596,7 +598,11 @@ export default function ScanScreen() {
         onRequestClose={handleReset}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+          {/* Feuille ancree en bas : le bouton « Scanner un autre »
+              est fixe hors du ScrollView, donc toujours colle au bas.
+              Sans `insets.bottom` il passait sous la barre de
+              navigation Android. */}
+          <View style={[styles.modalContent, { backgroundColor: colors.card, paddingBottom: insets.bottom + Spacing.md }]}>
             <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
               {/* Transfer result */}
               {result?.type === 'transfer' && result.transfer && result.transferToken && (

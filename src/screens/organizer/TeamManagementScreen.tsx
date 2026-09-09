@@ -22,6 +22,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -75,6 +76,7 @@ export default function TeamManagementScreen() {
   const route = useRoute<RouteProps>();
   const { eventId, eventTitle } = route.params;
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { toastSuccess, showError, showConfirm } = useFeedback();
 
@@ -445,7 +447,9 @@ export default function TeamManagementScreen() {
       {/* Invite Modal */}
       <Modal visible={inviteOpen} animationType="slide" transparent onRequestClose={() => setInviteOpen(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContainer, { backgroundColor: colors.card }]}>
+          {/* Le bouton « Envoyer l'invitation » termine le ScrollView :
+              sans inset bas il passait sous la barre de navigation. */}
+          <View style={[styles.modalContainer, { backgroundColor: colors.card, paddingBottom: insets.bottom }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
               <Text style={[styles.modalTitle, { color: colors.gray900 }]}>
                 {t('teamManagement.inviteTitle', { defaultValue: 'Inviter un membre' })}

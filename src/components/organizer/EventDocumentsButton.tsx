@@ -20,6 +20,7 @@ import { useState } from 'react';
 import {
   ActivityIndicator, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
@@ -67,6 +68,7 @@ export default function EventDocumentsButton({
   eventTitle?: string;
 }) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { exportData, loading } = useExport();
   const [open, setOpen] = useState(false);
@@ -97,7 +99,7 @@ export default function EventDocumentsButton({
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
           <Pressable
-            style={[styles.sheet, { backgroundColor: colors.card }]}
+            style={[styles.sheet, { paddingBottom: insets.bottom + Spacing.xl,  backgroundColor: colors.card }]}
             onPress={(e) => e.stopPropagation()}
           >
             <Text style={[styles.sheetTitle, { color: colors.gray900 }]}>

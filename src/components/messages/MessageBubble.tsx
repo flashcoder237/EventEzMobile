@@ -1477,6 +1477,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: Spacing.sm,
     alignItems: 'flex-end',
+    // LE maillon manquant de la chaîne de largeur.
+    //
+    // `bubbleContainer` porte `maxWidth: '75%'` — un pourcentage, donc
+    // calculé contre la largeur du PARENT. Or cette ligne n'avait aucune
+    // largeur définie : en flex, elle se dimensionnait à son contenu, et
+    // « 75 % d'une largeur indéterminée » ne contraignait plus rien. La
+    // bulle était alors mesurée à sa largeur « idéale » et le texte rogné
+    // au bord de l'écran — le contenu stocké restant complet (le
+    // copier/coller le prouve).
+    //
+    // `flexShrink` sur le conteneur, la bulle et le Text (posés
+    // précédemment) ne pouvaient pas suffire : ils font rétrécir vers une
+    // borne… qui n'existait pas.
+    width: '100%',
   },
   messageRowMine: {
     flexDirection: 'row-reverse',

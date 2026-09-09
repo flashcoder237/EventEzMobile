@@ -26,7 +26,7 @@ import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useTicketDisplayGuard } from '../../hooks/useTicketDisplayGuard';
 import { Registration, RootStackParamList } from '../../types';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
-import { withJwt } from '../../lib/utils/visioUrl';
+import { withJwt, withJitsiUi } from '../../lib/utils/visioUrl';
 import { TransferTicketModal } from '../../components/tickets';
 import { useOfflineTickets, useEventReminders } from '../../hooks';
 import { isPaymentSuccess, isPaymentFailed } from '../../hooks/usePaymentVerification';
@@ -251,9 +251,11 @@ export default function RegistrationDetailsScreen() {
       }
       // Accès TOUJOURS par JWT. withJwt insère le token dans la query, avant tout
       // fragment #config… (une concat naïve casserait l'URL → JWT ignoré).
-      const finalUrl = data.provider === 'jaas' && data.token
-        ? withJwt(data.url, data.token)
-        : data.url;
+      const finalUrl = withJitsiUi(
+        data.provider === 'jaas' && data.token
+          ? withJwt(data.url, data.token)
+          : data.url,
+      );
       navigation.navigate('Browser', { url: finalUrl, roomId: data.room_id });
     } catch (error: any) {
       const code = error?.response?.status;

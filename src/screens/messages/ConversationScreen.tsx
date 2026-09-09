@@ -4429,7 +4429,17 @@ export default function ConversationScreen() {
               animationType="slide"
               onRequestClose={() => setMediaGalleryVisible(false)}
             >
-              <View style={[styles.mediaGalleryCard, { backgroundColor: colors.background }]}>
+              {/* Zone sure REELLE, pas un nombre magique : cette carte est
+                  `flex:1` dans une modale transparente, donc elle remplit
+                  l'ecran. Le `paddingTop: 44` en dur ne correspondait a
+                  aucun appareil — l'en-tete passait sous l'heure — et le
+                  bas n'etait pas traite du tout : la grille photos etait
+                  coupee par la barre de navigation. */}
+              <View style={[styles.mediaGalleryCard, {
+                backgroundColor: colors.background,
+                paddingTop: insets.top,
+                paddingBottom: insets.bottom,
+              }]}>
                 <View style={[styles.mediaGalleryHeader, { borderBottomColor: hairline }]}>
                   <TouchableOpacity
                     onPress={() => setMediaGalleryVisible(false)}
@@ -4936,7 +4946,7 @@ const styles = StyleSheet.create({
   // Media gallery — modal plein écran
   mediaGalleryCard: {
     flex: 1,
-    paddingTop: 44, // safe area approximative
+    // paddingTop/paddingBottom appliques inline depuis `insets`.
   },
   mediaGalleryHeader: {
     flexDirection: 'row',

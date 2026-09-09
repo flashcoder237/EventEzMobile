@@ -211,3 +211,73 @@ describe('MessageBubble snapshots', () => {
     expect(tree).toMatchSnapshot();
   });
 });
+
+// ─── Chaine de contrainte de LARGEUR ────────────────────────────────────────
+// Bug recurrent, corrige a trois reprises : un message long s'affichait
+// tronque (« Voila retestons » rendu « Voila »), alors que le contenu stocke
+// etait COMPLET — le copier/coller restituait tout le message.
+//
+// La contrainte doit descendre sur TOUTE la chaine :
+//   messageRow (width 100%)  ← la base contre laquelle le % est calcule
+//     bubbleContainer (maxWidth 75%, flexShrink 1)
+//       bubble (flexShrink 1, minWidth 0)
+//         Text (flexShrink 1)
+//
+// `messageRow` etait le maillon manquant : sans largeur, elle se
+// dimensionnait a son contenu, et « 75 % d'une largeur indeterminee » ne
+// contraignait plus rien. Les `flexShrink` poses en dessous faisaient
+// retrecir vers une borne qui n'existait pas.
+
+describe('MessageBubble — contrainte de largeur', () => {
+  const flatten = (style: any): any =>
+    Array.isArray(style)
+      ? style.filter(Boolean).reduce((acc, s) => ({ ...acc, ...flatten(s) }), {})
+      : style || {};
+
+  const longMessage = {
+    ...baseMessage,
+    content: 'Voila retestons ce message volontairement assez long pour depasser la largeur de la bulle',
+  };
+
+  it.each([
+    ['mine', true],
+    ['peer', false],
+  ])('la ligne de message impose une largeur de reference (%s)', (_label, isMine) => {
+    const tree: any = render(
+      <MessageBubble message={longMessage} isMine={isMine} onLongPress={noop} />,
+    ).toJSON();
+
+    // La ligne porte flexDirection row / row-reverse.
+    const row = tree.children.find((c: any) => {
+      const s = flatten(c.props?.style);
+      return s.flexDirection === 'row' || s.flexDirection === 'row-reverse';
+    });
+    expect(row).toBeTruthy();
+    expect(flatten(row.props.style).width).toBe('100%');
+  });
+
+  it('le conteneur de bulle reste borne a 75 % et peut retrecir', () => {
+    const tree: any = render(
+      <MessageBubble message={longMessage} isMine onLongPress={noop} />,
+    ).toJSON();
+
+    const row = tree.children.find((c: any) => {
+      const s = flatten(c.props?.style);
+      return s.flexDirection === 'row' || s.flexDirection === 'row-reverse';
+    });
+    const container = flatten(row.children[0].props.style);
+
+    expect(container.maxWidth).toBe('75%');
+    expect(container.flexShrink).toBe(1);
+  });
+
+  it('le texte n\'est jamais tronque par numberOfLines', () => {
+    const { getByText } = render(
+      <MessageBubble message={longMessage} isMine onLongPress={noop} />,
+    );
+    // Le contenu doit etre rendu EN ENTIER, sans limite de lignes : c'est
+    // ce que le copier/coller prouvait cote utilisateur.
+    const node: any = getByText(longMessage.content);
+    expect(node.props.numberOfLines).toBeUndefined();
+  });
+});

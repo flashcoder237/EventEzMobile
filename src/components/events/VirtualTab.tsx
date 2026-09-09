@@ -16,7 +16,7 @@ import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from
 import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
-import { withJwt } from '../../lib/utils/visioUrl';
+import { withJwt, withJitsiUi } from '../../lib/utils/visioUrl';
 import { useLiveStatus } from '../../hooks/useLiveStatus';
 import { useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { useVisioCall } from '../../contexts/VisioCallContext';
@@ -116,9 +116,13 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
       // ajoute le token). withJwt place le param AVANT tout fragment #config… —
       // une concaténation naïve `?jwt=` casserait l'URL si une query/fragment
       // existe déjà (le JWT serait ignoré → prejoin/accès refusé).
-      const finalUrl = data.provider === 'jaas' && data.token
-        ? withJwt(data.url, data.token)
-        : data.url;
+      // `withJitsiUi` masque l'en-tête de Jitsi : l'app affiche déjà son
+      // propre titre et son bouton de sortie, les deux se superposaient.
+      const finalUrl = withJitsiUi(
+        data.provider === 'jaas' && data.token
+          ? withJwt(data.url, data.token)
+          : data.url,
+      );
 
       // Permissions caméra + micro demandées AVANT d'ouvrir la WebView Jitsi.
       // Sur Android, le WebChromeClient n'accorde getUserMedia à la page QUE si

@@ -21,6 +21,7 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { messagesAPI } from '../../api';
@@ -71,6 +72,7 @@ export default function GroupAdminPanel({
   onMutationApplied,
 }: GroupAdminPanelProps) {
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { showSuccess, showError, showConfirm } = useAlert();
   const { toastSuccess } = useFeedback();
@@ -291,7 +293,11 @@ export default function GroupAdminPanel({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={[styles.sheet, { backgroundColor: colors.card }]}>
+        {/* `paddingBottom: 16` en dur ne couvrait pas la barre a trois
+            boutons Android (~48 dp) : la derniere ligne participant et
+            son bouton « retirer » — action destructive — etaient sous la
+            barre, donc non cliquables. */}
+        <View style={[styles.sheet, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16 }]}>
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
             <View style={styles.headerLeft}>

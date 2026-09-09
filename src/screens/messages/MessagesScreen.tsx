@@ -19,6 +19,7 @@ import {
   ScrollView,
   useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
@@ -101,6 +102,7 @@ const ConversationCard = memo(function ConversationCard({
   onLongPress,
 }: ConversationCardProps) {
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const otherUser = conversation.participants?.find(p => p.id !== currentUserId) || conversation.participants?.[0];
   const conversationType = (conversation as any).conversation_type;
@@ -574,6 +576,7 @@ const swipeStyles = StyleSheet.create({
 
 export default function MessagesScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { refreshMessageBadgeFromLocal } = useUnreadCounts();
   const { showConfirm, showError } = useAlert();
@@ -1957,6 +1960,9 @@ export default function MessagesScreen() {
                 {
                   backgroundColor: colors.card,
                   borderColor: isDark ? colors.gray200 : 'rgba(0,0,0,0.06)',
+                  // Feuille ancree en bas : la liste d'utilisateurs et le
+                  // bouton « Connecter » de l'etat vide etaient rognes.
+                  paddingBottom: insets.bottom,
                 },
                 Shadows.lg,
               ]}

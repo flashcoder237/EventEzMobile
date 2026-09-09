@@ -13,6 +13,7 @@ import {
   TextInput,
   FlatList,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -82,6 +83,7 @@ export default function WalletScreen() {
   const { showAlert, showSuccess, showError } = useAlert();
   const { toastSuccess } = useFeedback();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const tabs: { key: TabType; label: string }[] = React.useMemo(() => ([
     { key: 'overview', label: t('organizer.wallet.tabOverview') },
     { key: 'transactions', label: t('organizer.wallet.tabTransactions') },
@@ -1001,7 +1003,8 @@ export default function WalletScreen() {
       >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: softBorder }, Shadows.dramatic]}>
+          {/* Meme raison : le bouton « Retirer » est le dernier element. */}
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: softBorder, paddingBottom: Spacing.xl + insets.bottom }, Shadows.dramatic]}>
             <View style={styles.modalHeaderE}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.modalEyebrow, { color: colors.accent }]}>{t('organizer.wallet.modalPayoutEyebrow')}</Text>
@@ -1188,7 +1191,14 @@ export default function WalletScreen() {
       >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <View style={styles.modalOverlay}>
-          <ScrollView style={styles.bankModalScroll} keyboardShouldPersistTaps="handled">
+          {/* Sans `contentContainerStyle`, le bouton « Enregistrer » qui
+              termine ce ScrollView passait sous la barre de navigation :
+              impossible de valider son RIB, donc de se faire payer. */}
+          <ScrollView
+            style={styles.bankModalScroll}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
+          >
             <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: softBorder }, Shadows.dramatic]}>
               <View style={styles.modalHeaderE}>
                 <View style={{ flex: 1 }}>

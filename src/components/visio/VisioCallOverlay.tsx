@@ -37,6 +37,9 @@ import { enterPip, isPipSupported } from '../../../modules/eventez-pip/src';
 const MARGIN = 12;
 const BUBBLE_SMALL = { w: 120, h: 160 };
 const BUBBLE_LARGE = { w: 190, h: 250 };
+/** Duree d'affichage de la mention d'enregistrement (consentement).
+ *  Assez long pour etre lu, assez court pour ne pas gener la reunion. */
+const NOTICE_VISIBLE_MS = 7000;
 
 export default function VisioCallOverlay() {
   const { call, endCall, minimize, maximize } = useVisioCall();
@@ -46,6 +49,13 @@ export default function VisioCallOverlay() {
   const webViewRef = useRef<WebView>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [bubbleLarge, setBubbleLarge] = useState(false);
+  // Mention d'enregistrement : TEMPORAIRE. Affichee en permanence, elle
+  // recouvrait l'interface Jitsi (nom de salle, vignette camera) et
+  // devenait illisible autant qu'elle rendait le reste illisible.
+  // C'est une information de CONSENTEMENT : elle doit etre vue a
+  // l'entree, pas rester affichee toute la reunion.
+  const [showRecordingNotice, setShowRecordingNotice] = useState(true);
+  const noticeOpacity = useRef(new Animated.Value(1)).current;
 
   const screen = Dimensions.get('window');
   const bubbleSize = bubbleLarge ? BUBBLE_LARGE : BUBBLE_SMALL;
@@ -65,6 +75,22 @@ export default function VisioCallOverlay() {
     const timer = setTimeout(() => setIsLoading(false), 6000);
     return () => clearTimeout(timer);
   }, [call, isLoading]);
+
+  // La mention reparait a CHAQUE entree en salle (nouvelle URL), puis
+  // s'efface en fondu au bout de quelques secondes.
+  useEffect(() => {
+    if (!call?.recordingNotice) return;
+    setShowRecordingNotice(true);
+    noticeOpacity.setValue(1);
+    const hide = setTimeout(() => {
+      Animated.timing(noticeOpacity, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }).start(() => setShowRecordingNotice(false));
+    }, NOTICE_VISIBLE_MS);
+    return () => clearTimeout(hide);
+  }, [call?.url, call?.recordingNotice, noticeOpacity]);
 
   // Quand l'app part en arrière-plan pendant un appel : on remet la visio en
   // PLEIN ÉCRAN *avant* de déclencher le PiP système Android.
@@ -199,11 +225,18 @@ export default function VisioCallOverlay() {
             </TouchableOpacity>
           </View>
 
-          {call.recordingNotice ? (
-            <View style={[styles.recordingNotice, { top: insets.top + 52 }]} pointerEvents="none">
+          {call.recordingNotice && showRecordingNotice ? (
+            <Animated.View
+              style={[
+                styles.recordingNotice,
+                { top: insets.top + 52, opacity: noticeOpacity },
+              ]}
+              pointerEvents="none"
+              accessibilityLiveRegion="polite"
+            >
               <Ionicons name="radio-button-on" size={12} color="#FF6B6B" />
-              <Text style={styles.recordingNoticeText} numberOfLines={2}>{call.recordingNotice}</Text>
-            </View>
+              <Text style={styles.recordingNoticeText} numberOfLines={3}>{call.recordingNotice}</Text>
+            </Animated.View>
           ) : null}
         </>
       )}

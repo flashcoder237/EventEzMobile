@@ -727,7 +727,8 @@
     "giftRegistryCta": "Gift registry",
     "giftRegistrySubtitle": "See the list and chip in if you feel like it",
     "cancelReasonTitle": "Reason for cancellation",
-    "visioEnded": "This event’s video conference has ended."
+    "visioEnded": "This event’s video conference has ended.",
+    "videoPauseA11y": "Pause video"
   },
   "events": {
     "videoBadge": "Video",

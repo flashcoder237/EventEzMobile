@@ -3,7 +3,7 @@ import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registrationsAPI } from '../api/registrations';
 import { virtualRoomsAPI } from '../api/content';
-import { withJwt } from '../lib/utils/visioUrl';
+import { withJwt, withJitsiUi } from '../lib/utils/visioUrl';
 import { useAuth } from './AuthContext';
 import { useVisioCall } from './VisioCallContext';
 
@@ -119,7 +119,9 @@ export function LiveRegistrationsProvider({ children }: { children: ReactNode })
         onNavigateDetail(target);
         return 'navigated';
       }
-      const finalUrl = data.provider === 'jaas' && data.token ? withJwt(data.url, data.token) : data.url;
+      const finalUrl = withJitsiUi(
+        data.provider === 'jaas' && data.token ? withJwt(data.url, data.token) : data.url,
+      );
       startCall({
         url: finalUrl,
         roomId: data.room_id,

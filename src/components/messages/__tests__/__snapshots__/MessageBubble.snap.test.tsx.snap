@@ -36,6 +36,7 @@ exports[`MessageBubble snapshots renders deleted message placeholder 1`] = `
       "flexDirection": "row",
       "marginBottom": 8.5,
       "opacity": 1,
+      "width": "100%",
     }
   }
 >
@@ -223,6 +224,7 @@ exports[`MessageBubble snapshots renders edited message with edited label 1`] = 
         "flexDirection": "row",
         "marginBottom": 8.5,
         "opacity": 1,
+        "width": "100%",
       }
     }
   >
@@ -421,6 +423,7 @@ exports[`MessageBubble snapshots renders grouped message (avatar masque) 1`] = `
         "flexDirection": "row",
         "marginBottom": 2,
         "opacity": 1,
+        "width": "100%",
       }
     }
   >
@@ -575,6 +578,7 @@ exports[`MessageBubble snapshots renders message with image attachment 1`] = `
         "flexDirection": "row",
         "marginBottom": 8.5,
         "opacity": 1,
+        "width": "100%",
       }
     }
   >
@@ -831,6 +835,7 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
         "flexDirection": "row",
         "marginBottom": 8.5,
         "opacity": 1,
+        "width": "100%",
       }
     }
   >
@@ -1187,6 +1192,7 @@ exports[`MessageBubble snapshots renders message with reply preview 1`] = `
         "flexDirection": "row",
         "marginBottom": 8.5,
         "opacity": 1,
+        "width": "100%",
       }
     }
   >
@@ -1466,6 +1472,7 @@ exports[`MessageBubble snapshots renders other user message (peer) 1`] = `
         "flexDirection": "row",
         "marginBottom": 8.5,
         "opacity": 1,
+        "width": "100%",
       }
     }
   >
@@ -1647,6 +1654,7 @@ exports[`MessageBubble snapshots renders own message (mine) 1`] = `
         "flexDirection": "row-reverse",
         "marginBottom": 8.5,
         "opacity": 1,
+        "width": "100%",
       }
     }
   >

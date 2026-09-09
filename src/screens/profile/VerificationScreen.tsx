@@ -11,6 +11,7 @@ import {
   Pressable,
   useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -57,6 +58,7 @@ export default function VerificationScreen() {
   const { user } = useAuth();
   const { showAlert, showError } = useAlert();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   // Preview plein écran RÉACTIVE (suit rotation/resize iPad) plutôt qu'une taille
   // figée au chargement du module.
@@ -519,7 +521,7 @@ export default function VerificationScreen() {
             />
           )}
           <TouchableOpacity
-            style={styles.zoomCloseBtn}
+            style={[styles.zoomCloseBtn, { top: insets.top + 12 }]}
             onPress={() => setZoomedImageUri(null)}
             hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
           >

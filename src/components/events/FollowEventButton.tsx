@@ -9,6 +9,7 @@ import {
   Modal,
   Switch,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { eventsAPI } from '../../api';
@@ -65,6 +66,7 @@ function FollowEventButtonImpl({
   const { toastError } = useFeedback();
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [isFollowing, setIsFollowing] = useState(initialFollowing);
   const [isLoading, setIsLoading] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
@@ -351,7 +353,11 @@ function FollowEventButtonImpl({
       >
         <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
           {/* Header tile */}
-          <View style={[styles.modalHeaderE, { backgroundColor: colors.background, borderBottomColor: 'rgba(0,0,0,0.06)' }]}>
+          {/* `presentationStyle="pageSheet"` n'a AUCUN effet sur Android :
+              la modale s'ouvre plein ecran et se glissait SOUS la barre
+              d'etat — l'eyebrow « NOTIFICATIONS · EVENT » chevauchait
+              l'heure et les icones systeme. On applique l'inset haut. */}
+          <View style={[styles.modalHeaderE, { backgroundColor: colors.background, borderBottomColor: 'rgba(0,0,0,0.06)', paddingTop: insets.top + Spacing.md }]}>
             <View style={styles.modalHeaderTopRow}>
               <TouchableOpacity
                 onPress={() => setShowPreferences(false)}
@@ -509,7 +515,9 @@ function FollowEventButtonImpl({
           </View>
 
           {/* === FOOTER CTA === */}
-          <View style={[styles.modalFooter, { backgroundColor: colors.background, borderTopColor: 'rgba(0,0,0,0.06)' }]}>
+          {/* Meme raison en bas : le bouton d'enregistrement passait sous
+              la barre de navigation gestuelle. */}
+          <View style={[styles.modalFooter, { backgroundColor: colors.background, borderTopColor: 'rgba(0,0,0,0.06)', paddingBottom: insets.bottom + Spacing.xl }]}>
             <TouchableOpacity
               style={[styles.modalSavePill, isLoading && { opacity: 0.5 }, Shadows.buttonPrimary]}
               onPress={handleUpdatePreferences}

@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Modal,
   Pressable,
+  ScrollView,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -763,6 +764,11 @@ export default function LoginScreen() {
             style={[styles.guestModalCard, { backgroundColor: colors.card }]}
             onPress={(e) => e.stopPropagation()}
           >
+            <ScrollView
+              bounces={false}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
             <Text style={[styles.guestModalEyebrow, { color: colors.accent }]}>
               {t('auth.guestModalEyebrow')}
             </Text>
@@ -844,6 +850,7 @@ export default function LoginScreen() {
                 )}
               </TouchableOpacity>
             </View>
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -1175,6 +1182,10 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     borderRadius: BorderRadius['2xl'],
     padding: Spacing.lg,
+    // Borne de precaution : cette carte n'avait ni hauteur maximale ni
+    // defilement. Clavier ouvert ou grande taille de police, elle pouvait
+    // deborder les 20 dp du fond et mordre les barres systeme.
+    maxHeight: '88%',
   },
   guestModalEyebrow: {
     fontFamily: FontFamily.bold,

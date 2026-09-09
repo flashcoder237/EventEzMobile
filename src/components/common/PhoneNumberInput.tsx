@@ -249,6 +249,9 @@ export default function PhoneNumberInput({
             data={filtered}
             keyExtractor={(c) => c.code}
             keyboardShouldPersistTaps="handled"
+            // Le haut est deja traite (`insets.top`), pas le bas : le
+            // dernier pays de la liste passait sous la barre de navigation.
+            contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.md }}
             initialNumToRender={20}
             renderItem={({ item }) => {
               const active = item.code === country.code;

@@ -23,6 +23,7 @@ import {
   TextInput,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -82,6 +83,7 @@ export default function WeddingGuestsManageScreen() {
   const { eventId, eventTitle } = route.params;
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const { showError } = useAlert();
   const { toastSuccess } = useFeedback();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -375,7 +377,7 @@ export default function WeddingGuestsManageScreen() {
       {/* Modal édition RSVP */}
       <Modal visible={!!editGuest} transparent animationType="slide" onRequestClose={() => setEditGuest(null)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+          <View style={[styles.modalCard, { paddingBottom: insets.bottom + Spacing.lg,  backgroundColor: colors.card }]}>
             <ScrollView keyboardShouldPersistTaps="handled">
               <Text style={[styles.modalTitle, { color: colors.text }]}>
                 {t('organizer.weddingGuests.editRsvpTitle')}

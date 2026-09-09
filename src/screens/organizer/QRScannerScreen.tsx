@@ -14,6 +14,7 @@ import {
   Easing,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -81,6 +82,7 @@ export default function QRScannerScreen() {
   const { eventId } = route.params;
   const { showError } = useAlert();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const tour = useTour();
 
@@ -979,7 +981,11 @@ export default function QRScannerScreen() {
         onRequestClose={handleContinueScan}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+          {/* Feuille ancree en bas : le bouton « Scanner un autre »
+              est fixe hors du ScrollView, donc toujours colle au bas.
+              Sans `insets.bottom` il passait sous la barre de
+              navigation Android. */}
+          <View style={[styles.modalContent, { backgroundColor: colors.card, paddingBottom: insets.bottom + Spacing.md }]}>
             <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
               {scanResult?.success ? (
                 <>

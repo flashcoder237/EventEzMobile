@@ -730,7 +730,10 @@ export default function EventRegistrationsScreen() {
             onRequestClose={() => setShowDetailModal(false)}
           >
             <View style={styles.modalOverlay}>
-              <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+              {/* Feuille ancree en bas : sans `insets.bottom`, le pied
+                  Rejeter / Approuver passait sous la barre de navigation —
+                  deux boutons de decision partiellement inatteignables. */}
+              <View style={[styles.modalContent, { backgroundColor: colors.card, paddingBottom: insets.bottom }]}>
                 {selectedRegistration && (
                   <>
                     <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>

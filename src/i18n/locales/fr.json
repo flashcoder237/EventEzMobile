@@ -727,7 +727,8 @@
     "giftRegistryCta": "Liste de cadeaux",
     "giftRegistrySubtitle": "Découvrez la liste et participez si le cœur vous en dit",
     "cancelReasonTitle": "Motif de l'annulation",
-    "visioEnded": "La visioconférence de cet événement est terminée."
+    "visioEnded": "La visioconférence de cet événement est terminée.",
+    "videoPauseA11y": "Mettre la vidéo en pause"
   },
   "events": {
     "videoBadge": "Vidéo",

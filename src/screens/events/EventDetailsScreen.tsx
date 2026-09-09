@@ -87,7 +87,7 @@ import {
 import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
 import { centeredContent, WIDE_MAX } from '../../constants/layout';
-import { withJwt } from '../../lib/utils/visioUrl';
+import { withJwt, withJitsiUi } from '../../lib/utils/visioUrl';
 
 type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
 
@@ -190,7 +190,9 @@ export default function EventDetailsScreen() {
       // un fragment `#config…` (flags Jitsi). Un `?` ajouté après le `#` fait
       // partie du fragment — le JWT serait ignoré et l'accès refusé.
       const finalUrl: string =
-        data.provider === 'jaas' && data.token ? withJwt(data.url, data.token) : data.url;
+        withJitsiUi(
+          data.provider === 'jaas' && data.token ? withJwt(data.url, data.token) : data.url,
+        );
 
       // Permissions caméra/micro AVANT d'ouvrir la WebView Jitsi (Android :
       // getUserMedia bloqué sinon → écran blanc).
