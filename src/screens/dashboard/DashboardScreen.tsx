@@ -374,7 +374,10 @@ export default function DashboardScreen() {
 
               <TouchableOpacity
                 style={[styles.organizerActionCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}
-                onPress={() => navigation.navigate('MyEvents')}
+                // La carte « Analytics » naviguait vers MyEvents : le libellé
+                // promettait les statistiques, le tap ouvrait la liste
+                // d'événements. AnalyticsDashboard ne prend aucun paramètre.
+                onPress={() => navigation.navigate('AnalyticsDashboard')}
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel={t('dashboard.analyticsTitle')}

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { utmAPI } from '../api';
+import { getEventUrl } from '../constants/urls';
 
 /**
  * Capture l'attribution UTM a l'ouverture d'une fiche evenement.
@@ -71,12 +72,25 @@ export function useUTMTracking(eventId?: string, params?: UTMParams) {
           utm_campaign: params?.utm_campaign || '',
           utm_term: params?.utm_term || '',
           utm_content: params?.utm_content || '',
-          landing_page: `eventez://events/${eventId}`,
+          // URL **web** et non `eventez://` : le backend stocke ce champ dans
+          // un `URLField`, qui refuse les schemas custom (« Saisissez une URL
+          // valide »). L'equivalent web designe la meme ressource, reste
+          // ouvrable depuis le tableau de bord organisateur, et se compare
+          // directement aux visites venues du site.
+          landing_page: getEventUrl(eventId),
         });
         await AsyncStorage.setItem(key, today);
-      } catch {
+      } catch (err) {
         // L'attribution est de la donnee analytique : son echec ne doit
         // jamais remonter a l'utilisateur ni bloquer l'affichage.
+        //
+        // Mais il ne doit pas non plus etre INVISIBLE au developpeur : ce
+        // `catch` muet a laissé un 400 systematique (slug envoye a la place
+        // de l'UUID, schema `eventez://` refuse par l'URLField) passer
+        // inapercu, et aucune visite mobile n'etait attribuee.
+        if (__DEV__) {
+          console.warn('[useUTMTracking] attribution non enregistree', err);
+        }
       }
     };
 

@@ -9,6 +9,7 @@ import {
   Modal,
   ActivityIndicator,
   Switch,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
@@ -18,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { pushNotificationService } from '../../services/pushNotificationService';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useLiveRegistrations } from '../../contexts/LiveRegistrationsContext';
@@ -584,6 +586,45 @@ export default function SettingsScreen() {
     handleUpdateSetting(key, value);
   };
 
+  /**
+   * Le push n'est pas un simple booleen serveur : il exige AUSSI la
+   * permission OS et un device token enregistre. La colonne
+   * `push_notifications` etant partagee web/mobile, un utilisateur qui
+   * coupait le push depuis le web ne pouvait plus le reactiver nulle part
+   * — le toggle mobile etait `disabled`, et le web ne demande aucune
+   * permission OS. Le mobile est le seul client capable de la demander.
+   */
+  const handleTogglePush = async (value: boolean) => {
+    if (!value) {
+      setPushNotifications(false);
+      handleUpdateSetting('push_notifications', false);
+      // Best-effort : le serveur ne doit plus viser ce device.
+      pushNotificationService.unregisterDevice().catch(() => {});
+      return;
+    }
+
+    const granted = await pushNotificationService.requestPermissions();
+    if (!granted) {
+      // La permission a ete refusee au niveau OS : le reglage in-app n'y
+      // peut plus rien, il faut passer par les Reglages systeme.
+      setPushNotifications(false);
+      showConfirm(
+        t('settings.pushPermissionTitle'),
+        t('settings.pushPermissionMessage'),
+        () => { Linking.openSettings().catch(() => {}); },
+      );
+      return;
+    }
+
+    setPushNotifications(true);
+    handleUpdateSetting('push_notifications', true);
+    try {
+      await pushNotificationService.initialize();
+    } catch {
+      // L'enregistrement du token retente au prochain demarrage.
+    }
+  };
+
   // SettingsScreen est un ecran de stack pousse PAR-DESSUS Main. Contrairement
   // a ProfileScreen (dans l'onglet Profile, dont le wrapper bascule vers
   // AuthGuardScreen quand isAuthenticated devient false), SettingsScreen reste
@@ -920,13 +961,17 @@ export default function SettingsScreen() {
             }
           />
           )}
-          {matchesQuery(searchQuery, [t('settings.notificationsSectionEyebrow'), t('settings.rowPushNotifs'), t('eyebrow.pushSoon')]) && (
+          {matchesQuery(searchQuery, [t('settings.notificationsSectionEyebrow'), t('settings.rowPushNotifs'), t('eyebrow.push')]) && (
           <OptionCard
             icon="phone-portrait-outline"
-            eyebrow={t('eyebrow.pushSoon')}
+            eyebrow={t('eyebrow.push')}
             title={t('settings.rowPushNotifs')}
-            disabled
-            right={<SoftToggle value={pushNotifications} onToggle={() => {}} disabled />}
+            right={
+              <SoftToggle
+                value={pushNotifications}
+                onToggle={handleTogglePush}
+              />
+            }
           />
           )}
           {matchesQuery(searchQuery, [t('settings.notificationsSectionEyebrow'), t('settings.rowSmsNotifs'), t('eyebrow.smsSoon')]) && (

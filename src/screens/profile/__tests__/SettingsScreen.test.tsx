@@ -18,6 +18,15 @@ const mockReset = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate, goBack: mockGoBack, reset: mockReset }),
   useRoute: () => ({ params: {} }),
+  // SettingsScreen importe pushNotificationService (toggle push), qui tire
+  // navigationRef.ts → createNavigationContainerRef. Absent du mock, le
+  // module entier échouait au chargement.
+  createNavigationContainerRef: () => ({
+    isReady: () => false,
+    navigate: mockNavigate,
+    goBack: mockGoBack,
+    reset: mockReset,
+  }),
 }));
 
 let lastShowAlertButtons: any[] | undefined;

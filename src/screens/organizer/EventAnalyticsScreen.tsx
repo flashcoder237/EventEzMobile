@@ -298,6 +298,8 @@ export default function EventAnalyticsScreen() {
               <Text style={[styles.actionText, { color: colors.text }]}>{t('organizer.eventAnalytics.actionRegistrations')}</Text>
             </TouchableOpacity>
 
+            {/* Masquee sur un evenement 100 % en ligne : rien a scanner. */}
+            {event?.location_type !== 'online' && (
             <TouchableOpacity
               style={[styles.actionCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
               onPress={() => navigation.navigate('QRScanner', { eventId })}
@@ -308,6 +310,7 @@ export default function EventAnalyticsScreen() {
               </View>
               <Text style={[styles.actionText, { color: colors.text }]}>{t('organizer.eventAnalytics.actionScanner')}</Text>
             </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={[styles.actionCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}

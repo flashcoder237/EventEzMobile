@@ -35,6 +35,8 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { MyEventsScreenSkeleton } from '../../components/ui/Skeleton';
+import { ErrorState } from '../../components/ui/ErrorState';
+import { isWeddingEvent, isExhibitionEvent } from '../../lib/utils/eventKind';
 import { StaggeredItem } from '../../components/ui/Animations';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import {
@@ -137,6 +139,10 @@ export default function MyEventsScreen() {
   const inputBg = isDark ? colors.gray100 : colors.gray50;
 
   const [events, setEvents] = useState<Event[]>([]);
+  // Distingue « aucun événement » de « le chargement a échoué ». Sans ça, une
+  // micro-coupure réseau affichait l'empty state : l'organisateur croyait
+  // avoir tout perdu, sans aucun moyen de réessayer.
+  const [loadFailed, setLoadFailed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<FilterStatus>('all');
@@ -401,11 +407,19 @@ export default function MyEventsScreen() {
       const response = await eventsAPI.getMyEvents();
       const data = response.data?.results || response.data || [];
       setEvents(data);
+      setLoadFailed(false);
       if (user?.id) {
         CacheService.set(cacheKey, data, 2 * 60 * 1000);
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement événements:', error);
+      // Le cache a pu servir des données juste avant : on ne bascule en
+      // erreur que si l'écran est réellement vide, sinon on garde la liste
+      // affichée (données périmées valent mieux que rien pendant un event).
+      setEvents((prev) => {
+        setLoadFailed(prev.length === 0);
+        return prev;
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -671,9 +685,8 @@ export default function MyEventsScreen() {
     // catégorie. `event_type` ne connaît que billetterie/inscription — c'est la
     // CATÉGORIE qui distingue mariage / salon (cf. WeddingDashboard web).
     const isBilletterie = event.event_type === 'billetterie';
-    const categorySignal = `${event.category?.slug || ''} ${event.category?.name || ''}`;
-    const isWedding = /mariage|wedding|celebration/i.test(categorySignal);
-    const isExpo = /salon|expo|foire|trade[\s-]?show|exhibition/i.test(categorySignal);
+    const isWedding = isWeddingEvent(event);
+    const isExpo = isExhibitionEvent(event);
 
     // ─── Événement TERMINÉ : jeu d'actions réduit ───
     // Une fois la date de fin passée, la plupart des actions n'ont plus de sens
@@ -719,12 +732,17 @@ export default function MyEventsScreen() {
       },
     ];
     if (event.status === 'validated') {
-      trackingActions.push(
-        {
+      // On ne scanne PAS un evenement 100 % en ligne : il n'y a pas de porte,
+      // donc pas de controle d'acces physique. L'entree est bien reelle en
+      // HYBRIDE, qui a un lieu en plus de la visio.
+      if (event.location_type !== 'online') {
+        trackingActions.push({
           label: t('organizer.myEvents.actions.scanQR'),
           icon: 'qr-code-outline',
           onPress: () => navigation.navigate('QRScanner', { eventId: event.slug || event.id }),
-        },
+        });
+      }
+      trackingActions.push(
         {
           label: t('organizer.myEvents.actions.stats'),
           icon: 'stats-chart-outline',
@@ -1206,7 +1224,9 @@ export default function MyEventsScreen() {
 
           {/* === ACTIONS === */}
           <View style={styles.actionsRow}>
-            {item.status === 'validated' && (
+            {/* Bouton Scanner : masque sur un evenement 100 % EN LIGNE — il
+                n'y a pas de porte a controler. Reste present en hybride. */}
+            {item.status === 'validated' && item.location_type !== 'online' && (
               <>
                 <TouchableOpacity
                   style={[styles.primaryActionPill, Shadows.buttonPrimary]}
@@ -1411,6 +1431,21 @@ export default function MyEventsScreen() {
   );
 
   const renderEmpty = () => (
+    // Échec de chargement ≠ absence d'événements. Afficher l'empty state
+    // « Démarre ton aventure » après une coupure réseau fait croire à
+    // l'organisateur que ses événements ont disparu.
+    loadFailed ? (
+      <View style={styles.emptyContainer}>
+        <ErrorState
+          withCard
+          message={t('organizer.myEvents.loadError')}
+          onRetry={() => {
+            setLoading(true);
+            fetchEvents(true);
+          }}
+        />
+      </View>
+    ) : (
     <View style={styles.emptyContainer}>
       <AnimatedIllustration entry="fadeIn" idle="sway">
         <EventsIllustration color={colors.primary} size={160} />
@@ -1450,6 +1485,7 @@ export default function MyEventsScreen() {
         </TouchableOpacity>
       )}
     </View>
+    )
   );
 
   if (loading) {

@@ -58,6 +58,8 @@ interface TeamEvent {
     start_date: string | null;
     end_date: string | null;
     banner_url: string | null;
+    /** Sert a masquer le scan sur un evenement 100 % en ligne. */
+    location_type?: string;
   };
   role: EventStaffRole;
   role_display: string;
@@ -116,7 +118,10 @@ export default function MyTeamEventsScreen() {
   };
 
   const renderItem = ({ item }: { item: TeamEvent }) => {
-    const canScan = item.permissions.includes('scan_tickets');
+    // On ne scanne PAS un evenement 100 % en ligne : pas de porte, donc
+    // pas de controle d'acces physique. L'hybride, lui, a un lieu.
+    const canScan = item.permissions.includes('scan_tickets')
+      && item.event?.location_type !== 'online';
     const canModerate = item.permissions.includes('moderate_chat');
     const canViewAnalytics = item.permissions.includes('view_analytics');
 

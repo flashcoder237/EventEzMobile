@@ -115,12 +115,19 @@ export function navigateToMessages(navigation: Navigation) {
 }
 
 /**
- * Retourne a l'ecran precedent
+ * Retourne a l'ecran precedent, ou a l'ACCUEIL s'il n'y a pas d'historique.
+ *
+ * Sans le repli, `canGoBack()` faux signifiait « on ne fait rien » : un ecran
+ * ouvert a la racine du stack (restauration de session, deep link, ou
+ * notification) laissait l'utilisateur BLOQUE — le bouton retour ne menait
+ * nulle part et plus aucun chemin ne ramenait a l'accueil.
  */
 export function goBack(navigation: Navigation) {
   if (navigation.canGoBack()) {
     navigation.goBack();
+    return;
   }
+  resetTo(navigation, 'Main');
 }
 
 /**

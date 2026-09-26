@@ -47,6 +47,9 @@ export interface OutboxAttachment {
   type: 'image' | 'voice' | 'document';
 }
 
+/** Operation a rejouer. L'outbox etait send-only avant le schema v3. */
+export type OutboxOp = 'send' | 'delete';
+
 export interface OutboxEntry {
   temp_id: string;
   conversation_id: string;
@@ -56,6 +59,9 @@ export interface OutboxEntry {
   state: 'pending' | 'sending' | 'failed';
   retry_count: number;
   created_at: string;
+  op: OutboxOp;
+  /** Ids des messages vises par une suppression (op === 'delete'). */
+  target_ids: string[];
 }
 
 interface OutboxRow {
@@ -67,12 +73,17 @@ interface OutboxRow {
   state: 'pending' | 'sending' | 'failed';
   retry_count: number;
   created_at: string;
+  op: OutboxOp | null;
+  target_ids: string | null;
 }
 
 function rowToEntry(row: OutboxRow): OutboxEntry {
   return {
     ...row,
     attachments: row.attachments ? JSON.parse(row.attachments) : [],
+    // Les lignes anterieures au schema v3 n'ont pas d'`op` : ce sont des envois.
+    op: row.op || 'send',
+    target_ids: row.target_ids ? JSON.parse(row.target_ids) : [],
   };
 }
 
@@ -109,8 +120,8 @@ export async function enqueueOutbox(entry: {
     ? await Promise.all(entry.attachments.map(persistAttachment))
     : [];
   await db.runAsync(
-    `INSERT INTO outbox (temp_id, conversation_id, content, reply_to, attachments, state, retry_count, created_at)
-     VALUES (?, ?, ?, ?, ?, 'pending', 0, ?)
+    `INSERT INTO outbox (temp_id, conversation_id, content, reply_to, attachments, state, retry_count, created_at, op)
+     VALUES (?, ?, ?, ?, ?, 'pending', 0, ?, 'send')
      ON CONFLICT(temp_id) DO UPDATE SET
        content = excluded.content, attachments = excluded.attachments, state = 'pending'`,
     entry.tempId,
@@ -119,6 +130,34 @@ export async function enqueueOutbox(entry: {
     entry.replyTo != null ? String(entry.replyTo) : null,
     persisted.length ? JSON.stringify(persisted) : null,
     new Date().toISOString(),
+  );
+}
+
+/**
+ * Met une SUPPRESSION en file, pour rejeu a la reconnexion.
+ *
+ * Sans ca, une suppression faite hors-ligne n'atteignait jamais le serveur :
+ * l'UI affichait « supprime », puis le delta-sync restaurait les messages.
+ *
+ * `temp_id` sert de cle primaire : on derive un id stable de la liste visee
+ * pour qu'un double appui n'empile pas deux entrees identiques.
+ */
+export async function enqueueDeletion(
+  conversationId: string | number,
+  messageIds: Array<string | number>,
+): Promise<void> {
+  if (messageIds.length === 0) return;
+  const db = await getDatabase();
+  const ids = messageIds.map(String);
+  const key = `del-${conversationId}-${ids.slice().sort().join('_')}`;
+  await db.runAsync(
+    `INSERT INTO outbox (temp_id, conversation_id, content, reply_to, attachments, state, retry_count, created_at, op, target_ids)
+     VALUES (?, ?, NULL, NULL, NULL, 'pending', 0, ?, 'delete', ?)
+     ON CONFLICT(temp_id) DO UPDATE SET state = 'pending', target_ids = excluded.target_ids`,
+    key,
+    String(conversationId),
+    new Date().toISOString(),
+    JSON.stringify(ids),
   );
 }
 

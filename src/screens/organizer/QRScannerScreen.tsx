@@ -76,6 +76,11 @@ interface ScanResult {
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SCAN_AREA_SIZE = SCREEN_WIDTH * 0.7;
 
+// Fenetre pendant laquelle un MEME code est ignore. Couvre le temps qu'une
+// personne s'ecarte du champ apres validation, sans jamais bloquer un billet
+// different (la garde est indexee sur le contenu du QR, pas sur le temps seul).
+const RESCAN_GUARD_MS = 3000;
+
 export default function QRScannerScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
@@ -94,10 +99,12 @@ export default function QRScannerScreen() {
   const [showResult, setShowResult] = useState(false);
   const [stats, setStats] = useState({ scanned: 0, success: 0, failed: 0 });
   const [autoCheckIn, setAutoCheckIn] = useState(true);
+  // Dernier code lu + horodatage, pour ignorer le meme QR reste dans le cadre.
+  const lastScanRef = useRef<{ code: string | null; at: number }>({ code: null, at: 0 });
   const sessionStartedAtRef = useRef<number>(Date.now());
   const [event, setEvent] = useState<Event | null>(null);
   const { play: playSound } = useSoundEffect();
-  const { enqueue: enqueueOfflineScan, flush: flushQueue, pendingCount, isFlushing, isOnline } = useCheckinQueue();
+  const { enqueue: enqueueOfflineScan, flush: flushQueue, pendingCount, isFlushing, isOnline, lastRejected, acknowledgeRejected } = useCheckinQueue();
   // Manifeste de check-in offline : validation LOCALE des billets ticket-level.
   const manifest = useCheckinManifest(eventId);
 
@@ -200,6 +207,45 @@ export default function QRScannerScreen() {
       })
       .catch(() => { /* ignore */ });
   }, []);
+
+  // Scans acceptés hors-ligne puis REFUSÉS par le serveur. Ces personnes sont
+  // déjà entrées : c'est la seule occasion de le signaler à l'organisateur.
+  // Vaut pour le flush manuel comme pour l'auto-flush au retour de connexion.
+  useEffect(() => {
+    if (lastRejected.length === 0) return;
+    const alreadyUsed = lastRejected.filter((r) => r.reason === 'already_used').length;
+    const notFound = lastRejected.filter((r) => r.reason === 'not_found').length;
+    const unresolved = lastRejected.filter((r) => r.reason === 'max_attempts').length;
+    const details = [
+      alreadyUsed > 0 ? t('organizer.qrScanner.rejectedAlreadyUsed', { count: alreadyUsed }) : null,
+      notFound > 0 ? t('organizer.qrScanner.rejectedNotFound', { count: notFound }) : null,
+      unresolved > 0 ? t('organizer.qrScanner.rejectedUnresolved', { count: unresolved }) : null,
+    ].filter(Boolean).join('\n');
+    showError(
+      t('organizer.qrScanner.rejectedTitle', { count: lastRejected.length }),
+      `${details}\n\n${t('organizer.qrScanner.rejectedHint')}`,
+    );
+    acknowledgeRejected();
+  }, [lastRejected, acknowledgeRejected, t, showError]);
+
+  // Conflits remontés par la synchronisation du manifeste : le scanner a
+  // affiché VERT à la porte, le serveur refuse. Presque toujours un billet
+  // déjà scanné par un autre agent — c'est LE signal de double-scan.
+  useEffect(() => {
+    const report = manifest.lastSyncConflicts;
+    if (!report) return;
+    const conflicts = report.conflicts.length;
+    const notFound = report.notFound.length;
+    const details = [
+      conflicts > 0 ? t('organizer.qrScanner.conflictDuplicate', { count: conflicts }) : null,
+      notFound > 0 ? t('organizer.qrScanner.conflictNotFound', { count: notFound }) : null,
+    ].filter(Boolean).join('\n');
+    showError(
+      t('organizer.qrScanner.conflictTitle', { count: conflicts + notFound }),
+      `${details}\n\n${t('organizer.qrScanner.conflictHint')}`,
+    );
+    manifest.acknowledgeSyncConflicts();
+  }, [manifest.lastSyncConflicts, manifest.acknowledgeSyncConflicts, t, showError]);
 
   // Mode économie batterie : abaisse la fréquence d'autofocus + désactive
   // les optimisations gourmandes. À activer pour les events > 1h sans charger.
@@ -535,6 +581,20 @@ export default function QRScannerScreen() {
 
   const handleBarCodeScanned = async ({ data }: { type: string; data: string }) => {
     if (scanned || processing) return;
+
+    // Garde anti-re-scan : apres `handleContinueScan()` la camera reprend
+    // immediatement, et le QR de la personne PRECEDENTE est souvent encore
+    // dans le cadre. Sans cette fenetre, il est re-scanne et remonte comme
+    // « deja valide » — un faux conflit a chaque passage.
+    const now = Date.now();
+    if (
+      lastScanRef.current.code === data &&
+      now - lastScanRef.current.at < RESCAN_GUARD_MS
+    ) {
+      return;
+    }
+    lastScanRef.current = { code: data, at: now };
+
     setScanned(true);
 
     const info = extractScanInfo(data);
@@ -883,6 +943,24 @@ export default function QRScannerScreen() {
                     : t('organizer.qrScanner.offlineReady', { count: manifest.count })}
                 </Text>
               </View>
+            )}
+            {/* Mode manuel = 1 tap par personne. La preference est persistee
+                (AsyncStorage) et survit au redemarrage : sans ce rappel, un
+                effleurement du toggle degrade le debit de scan pour toutes
+                les sessions suivantes, sans que rien ne l'indique. */}
+            {!autoCheckIn && (
+              <TouchableOpacity
+                style={[styles.hintChip, styles.hintChipWarning]}
+                onPress={toggleAutoCheckIn}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={t('organizer.qrScanner.manualModeA11y')}
+              >
+                <Ionicons name="hand-left" size={14} color="#fff" />
+                <Text style={styles.hintChipText}>
+                  {t('organizer.qrScanner.manualModeBanner')}
+                </Text>
+              </TouchableOpacity>
             )}
             {(!isOnline || pendingCount > 0) && (
               <TouchableOpacity
@@ -1476,6 +1554,10 @@ const styles = StyleSheet.create({
   hintChipDanger: {
     backgroundColor: 'rgba(220, 38, 38, 0.85)',
     borderColor: 'rgba(220, 38, 38, 0.9)',
+  },
+  hintChipWarning: {
+    backgroundColor: 'rgba(217, 119, 6, 0.9)',
+    borderColor: 'rgba(217, 119, 6, 0.95)',
   },
   hintChipReady: {
     backgroundColor: 'rgba(16, 185, 129, 0.16)',

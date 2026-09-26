@@ -20,6 +20,25 @@ import { registrationsAPI, sessionsAPI, exhibitorsAPI } from '../api';
 const QUEUE_KEY = 'eventez:checkin_queue:v1';
 
 /**
+ * Nombre maximum de tentatives de flush pour une entree avant abandon.
+ * Sans plafond, une entree qui 5xx en boucle reste indefiniment en queue et
+ * gonfle le compteur « scans en attente » sans jamais se resoudre.
+ */
+const MAX_FLUSH_ATTEMPTS = 5;
+
+/**
+ * Un scan accepte a la porte mais REFUSE par le serveur au flush.
+ * Remonte a l'appelant pour affichage : ces entrees correspondent a des
+ * personnes qui sont entrees sur un billet invalide ou deja utilise.
+ */
+export interface RejectedCheckin {
+  localId: string;
+  registrationId: string;
+  scannedAt: string;
+  reason: 'not_found' | 'already_used' | 'max_attempts';
+}
+
+/**
  * Discriminant pour router la requête au flush :
  * - 'registration' : QR legacy → POST /registrations/verify_and_check_in/
  * - 'ticket_purchase' : QR ticket-level → POST /registrations/verify_and_check_in_ticket/
@@ -78,6 +97,12 @@ export function useCheckinQueue() {
   const [isFlushing, setIsFlushing] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const flushingRef = useRef(false);
+  /**
+   * Scans refuses par le serveur lors du dernier flush. Expose en ETAT (et
+   * pas seulement en valeur de retour) parce que l'auto-flush au retour de
+   * connexion n'a pas d'appelant capable d'afficher quoi que ce soit.
+   */
+  const [lastRejected, setLastRejected] = useState<RejectedCheckin[]>([]);
 
   // Hydrate count au mount + écoute changements de connexion
   useEffect(() => {
@@ -120,16 +145,17 @@ export function useCheckinQueue() {
   );
 
   const flush = useCallback(async () => {
-    if (flushingRef.current) return { synced: 0, failed: 0 };
+    if (flushingRef.current) return { synced: 0, failed: 0, rejected: [] };
     flushingRef.current = true;
     setIsFlushing(true);
     try {
       let queue = await readQueue();
       if (queue.length === 0) {
-        return { synced: 0, failed: 0 };
+        return { synced: 0, failed: 0, rejected: [] };
       }
 
       const remaining: CheckinQueueEntry[] = [];
+      const rejected: RejectedCheckin[] = [];
       let synced = 0;
       let failed = 0;
 
@@ -148,20 +174,42 @@ export function useCheckinQueue() {
           synced += 1;
         } catch (error: any) {
           const status = error?.response?.status;
-          // 404 (not found) ou 400 (déjà utilisé) = échec définitif → drop
+          // 404 (not found) ou 400 (déjà utilisé) = échec définitif → drop.
+          // On RETIENT le motif : ces entrées correspondent à des personnes
+          // qui ont entendu « validé » à la porte. Les perdre en silence
+          // (l'ancien `console.warn` sous __DEV__ était muet en production)
+          // rendait toute fraude au double-scan invisible.
           if (status === 404 || status === 400) {
             failed += 1;
-            if (__DEV__) console.warn(`[CheckinQueue] Drop entry ${entry.localId}: HTTP ${status}`);
+            rejected.push({
+              localId: entry.localId,
+              registrationId: entry.registrationId,
+              scannedAt: entry.scannedAt,
+              reason: status === 404 ? 'not_found' : 'already_used',
+            });
             continue;
           }
-          // Réseau / 5xx → garde en queue avec compteur
-          remaining.push({ ...entry, attempts: entry.attempts + 1 });
+          // Réseau / 5xx → garde en queue avec compteur, mais PLAFONNÉ :
+          // sans borne, une entrée qui 5xx en boucle reste indéfiniment.
+          const attempts = entry.attempts + 1;
+          if (attempts >= MAX_FLUSH_ATTEMPTS) {
+            failed += 1;
+            rejected.push({
+              localId: entry.localId,
+              registrationId: entry.registrationId,
+              scannedAt: entry.scannedAt,
+              reason: 'max_attempts',
+            });
+            continue;
+          }
+          remaining.push({ ...entry, attempts });
         }
       }
 
       await writeQueue(remaining);
       setPendingCount(remaining.length);
-      return { synced, failed };
+      if (rejected.length > 0) setLastRejected(rejected);
+      return { synced, failed, rejected };
     } finally {
       flushingRef.current = false;
       setIsFlushing(false);
@@ -196,10 +244,14 @@ export function useCheckinQueue() {
     setPendingCount(0);
   }, []);
 
+  const acknowledgeRejected = useCallback(() => setLastRejected([]), []);
+
   return {
     enqueue,
     flush,
     clear,
+    lastRejected,
+    acknowledgeRejected,
     pendingCount,
     isFlushing,
     isOnline,

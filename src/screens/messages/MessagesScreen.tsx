@@ -30,6 +30,7 @@ import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
+import { resolveConversationAvatar } from '../../utils/conversationAvatar';
 import { messagesAPI, usersAPI, connectionsAPI, getMediaUrl } from '../../api';
 import CacheService from '../../services/CacheService';
 import {
@@ -116,14 +117,16 @@ const ConversationCard = memo(function ConversationCard({
   // qui n'ont pas accès au request (signaux, WS) — sans ça, expo-image
   // ne sait pas quoi faire de "/media/..." et le tap-out tombe sur le
   // placeholder initiales.
-  const groupAvatar = getMediaUrl((conversation as any).avatar);
-  const directAvatar = getMediaUrl(otherUser?.profile_picture || (otherUser as any)?.image);
   // Garde par TYPE : une conversation groupe/event porte l'identité de
-  // l'événement (avatar dérivé du banner, désormais fourni en secours par le
-  // backend), JAMAIS la photo d'un participant. Sans cette garde, un event sans
-  // avatar retombait sur `directAvatar` = la tête d'un invité. Si l'avatar
-  // event manque encore, on laisse tomber sur les initiales du groupe.
-  const avatar = isGroupOrEvent ? groupAvatar : (directAvatar || groupAvatar);
+  // l'événement, JAMAIS la photo d'un participant. La règle vit désormais dans
+  // resolveConversationAvatar(), partagée avec le header de ConversationScreen
+  // — elle n'était appliquée qu'ici, et le header affichait donc encore la
+  // tête d'un invité.
+  const avatar = resolveConversationAvatar({
+    conversationType,
+    conversationAvatar: (conversation as any).avatar,
+    participantAvatar: otherUser?.profile_picture || (otherUser as any)?.image,
+  });
   const initials = getUserInitials(displayName);
   const hasUnread = conversation.unread_count > 0;
 

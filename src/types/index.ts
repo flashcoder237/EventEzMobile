@@ -1907,6 +1907,10 @@ export type AuthStackParamList = {
 export type MainTabParamList = {
   Discover: { category?: number } | undefined;
   Saved: undefined;
+  // Onglet CONTEXTUEL : occupe le slot de `Saved` pour les utilisateurs qui
+  // ont du travail d'organisation (proprietaire ou membre d'equipe). Les deux
+  // ne sont jamais rendus ensemble — le dock tient 5 slots.
+  Organize: undefined;
   MessagesTab: undefined;
   MyTickets: undefined;
   Profile: undefined;

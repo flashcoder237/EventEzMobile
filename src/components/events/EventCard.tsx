@@ -472,7 +472,9 @@ function EventCardComponent({
         style={[
           styles.gridCard,
           { backgroundColor: colors.card, borderColor: hairline },
-          Shadows.sm,
+          // Pas d'ombre : la bordure `hairline` suffit a detacher la carte du
+          // fond. Empilees sur une grille de resultats, les ombres creaient un
+          // bruit visuel permanent et faisaient flotter chaque vignette.
         ]}
         animationType="both"
         scaleValue={0.98}
@@ -551,7 +553,8 @@ function EventCardComponent({
         styles.defaultCard,
         fullWidth && { width: '100%' },
         { backgroundColor: colors.card, borderColor: hairline },
-        Shadows.lg,
+        // Idem grid : `Shadows.lg` sur une liste verticale de resultats
+        // donnait une pile de cartes ombrees les unes sur les autres.
       ]}
       animationType="both"
       scaleValue={0.97}
@@ -820,7 +823,10 @@ const styles = StyleSheet.create({
   // ============================================================
   defaultCard: {
     width: CARD_REF_WIDTH * 0.82,
-    borderRadius: 24,
+    // 14 au lieu de 24 : a ce rayon la carte lisait comme une pastille, et
+    // l'image heros perdait ses angles. 14 garde la douceur sans arrondir
+    // l'objet au point de lui faire perdre sa forme de carte.
+    borderRadius: 14,
     borderWidth: 1,
     overflow: 'hidden',
   },
@@ -1029,7 +1035,8 @@ const styles = StyleSheet.create({
   // GRID CARD (2-col masonry with floating overlays)
   // ============================================================
   gridCard: {
-    borderRadius: 20,
+    // Aligne sur defaultCard : meme ecran, meme grammaire de rayon.
+    borderRadius: 14,
     borderWidth: 1,
     overflow: 'hidden',
     marginBottom: Spacing.base,

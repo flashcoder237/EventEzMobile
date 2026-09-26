@@ -190,25 +190,31 @@ export const editorial = StyleSheet.create({
     color: Colors.accent,
     marginBottom: Spacing.xs,
   },
+  // GRANDS TITRES — adoucis.
+  // Ils etaient en `displayExtraBold` (800) a 30 px avec un interlignage de
+  // 32 et un resserrement de -0.9 : tres dense, presque agressif a l'ecran.
+  // On descend d'une graisse, on relache le resserrement et on donne de
+  // l'air entre les lignes. Les tailles ne bougent PAS : la hierarchie de
+  // l'interface reste identique, seule la texture change.
   sectionTitle: {
-    fontFamily: FontFamily.displayExtraBold,
+    fontFamily: FontFamily.displayBold,
     fontSize: 30,
-    lineHeight: 32,
-    letterSpacing: -0.9,
+    lineHeight: 38,
+    letterSpacing: -0.4,
     marginBottom: Spacing.xs,
   },
   sectionTitleLg: {
-    fontFamily: FontFamily.displayExtraBold,
+    fontFamily: FontFamily.displayBold,
     fontSize: 30,
     lineHeight: 42,
-    letterSpacing: -1.2,
+    letterSpacing: -0.5,
     marginBottom: Spacing.xs,
   },
   sectionTitleSm: {
-    fontFamily: FontFamily.displayBold,
+    fontFamily: FontFamily.displaySemiBold,
     fontSize: 22,
-    lineHeight: 26,
-    letterSpacing: -0.5,
+    lineHeight: 30,
+    letterSpacing: -0.2,
     marginBottom: Spacing.xs,
   },
   sectionDescription: {

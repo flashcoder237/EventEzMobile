@@ -527,6 +527,36 @@ function MessageBubble({
     transform: [{ translateX: translateX.value }],
   }));
 
+  // L'indice n'existe QUE pendant le geste : il apparaît progressivement avec
+  // le déplacement et atteint son plein rendu au seuil de déclenchement —
+  // l'utilisateur voit ainsi quand le relâchement va déclencher la réponse.
+  // Au repos (translateX = 0) il est totalement invisible.
+  const swipeHintStyle = useAnimatedStyle(() => {
+    const progress = Math.min(1, Math.abs(translateX.value) / REPLY_THRESHOLD);
+    return {
+      opacity: progress,
+      transform: [{ scale: 0.7 + progress * 0.3 }],
+    };
+  });
+
+  // `width: '100%'` sur cette Animated.View — LE maillon manquant, en amont de
+  // tous les correctifs precedents.
+  //
+  // La chaine de largeur est une cascade de pourcentages : `bubbleContainer`
+  // porte `maxWidth: '75%'`, `messageRow` porte `width: '100%'`. Un pourcentage
+  // se resout contre le PARENT. Or ce parent-ci (wrapper d'animation du swipe)
+  // ne portait que `transform` : en flex, il se dimensionnait a son contenu.
+  // « 100 % d'une largeur indeterminee » ne contraint rien — la bulle etait
+  // donc mesuree a sa largeur « ideale » et le dernier mot rogne au bord de
+  // l'ecran (« ok on reste encore » affiche « ok on reste »), alors que le
+  // contenu stocke est complet (l'apercu de la liste des conversations, lui,
+  // affiche le message entier).
+  //
+  // Les `flexShrink` poses plus bas (messageRow, bubbleContainer, bubble,
+  // messageText) ne pouvaient pas suffire : ils font retrecir vers une borne
+  // qui n'existait pas encore a ce niveau.
+  const swipeWrapperStyle = useMemo(() => [{ width: '100%' as const }, swipeAnimStyle], [swipeAnimStyle]);
+
   // Bulle interlocuteur : surface neutre issue des TOKENS (gray100), pas un rose
   // inventé en dur. L'ancien duo indigo-plein / rose-bonbon #FFE4EC (hors charte)
   // faisait « Saint-Valentin 2014 » et cassait l'identité EventEz. Le neutre
@@ -1196,15 +1226,24 @@ function MessageBubble({
 
   return (
     <GestureDetector gesture={composedGesture}>
-      <Animated.View style={swipeAnimStyle}>
-        {/* Indice visuel de swipe→répondre : icône qui se révèle en tirant. */}
+      <Animated.View style={swipeWrapperStyle}>
+        {/* Indice de swipe→répondre.
+            Il ne se RÉVÈLE que pendant le geste (opacité pilotée par
+            `translateX`). Auparavant il était peint en permanence à
+            `opacity: 0.6`, collé au bord de l'écran : une flèche grise sur
+            chaque ligne de la conversation, loin de sa bulle, sans rapport
+            visible avec une action. Bruit pur au repos. */}
         {!!onSwipeReply && (
-          <View
+          <Animated.View
             pointerEvents="none"
-            style={[styles.swipeReplyHint, isMine ? styles.swipeReplyHintMine : styles.swipeReplyHintPeer]}
+            style={[
+              styles.swipeReplyHint,
+              isMine ? styles.swipeReplyHintMine : styles.swipeReplyHintPeer,
+              swipeHintStyle,
+            ]}
           >
-            <Ionicons name="arrow-undo" size={16} color={colors.gray400} />
-          </View>
+            <Ionicons name="arrow-undo" size={18} color={colors.primary} />
+          </Animated.View>
         )}
         <TouchableOpacity
           style={[styles.messageRow, isMine && styles.messageRowMine, isGrouped && styles.messageRowGrouped]}
@@ -1664,17 +1703,61 @@ const styles = StyleSheet.create({
 
   // Message Text
   messageText: {
-    // Idem : sans `flexShrink`, le Text impose sa largeur de contenu à la
-    // bulle et le wrap ne se déclenche jamais.
-    flexShrink: 1,
+    // `flexShrink: 1` RETIRÉ ici — il était la cause du dernier mot rogné.
+    //
+    // Mesure à l'appui (sonde onLayout) : bulle 161x65, texte 140x23. La
+    // bulle réservait bien la hauteur de plusieurs lignes (65px) mais le
+    // texte restait sur UNE ligne (23px) de 140px — soit ~6px de plus que
+    // la zone interne de la bulle (161 - 2x13.3 ≈ 134). Le texte débordait
+    // donc horizontalement et le dernier mot était coupé.
+    //
+    // Pourquoi flexShrink faisait ça : sur un `Text`, il autorise le nœud à
+    // être mesuré PLUS ÉTROIT que son contenu sans pour autant forcer le
+    // re-wrap. Le moteur mesure alors une ligne unique, la comprime sous sa
+    // largeur naturelle, et ce qui dépasse est rogné. Sans flexShrink, le
+    // `Text` déclare sa largeur réelle, le parent (déjà borné à 75 % via
+    // `bubbleContainer`) le contraint, et le retour à la ligne se produit
+    // normalement.
+    //
+    // La contrainte de largeur reste portée par `bubbleContainer`
+    // (maxWidth 75% + flexShrink) et `bubble` (flexShrink + minWidth 0) :
+    // c'est le bon niveau pour l'appliquer, pas le nœud texte lui-même.
     // Corps de message = surface de lecture PRINCIPALE de l'app. base (ms(15)
     // ≈12.5px après shrink 0.83) était jugé trop petit par les 3 juges (esthète,
     // senior, a11y). lg (ms(17) ≈14px) rapproche du standard messagerie sans
-    // toucher au GLOBAL_SHRINK global (app-wide, hors périmètre). lineHeight
-    // suit la taille (~1.45).
+    // toucher au GLOBAL_SHRINK global (app-wide, hors périmètre).
     fontSize: FontSizes.lg,
     color: Colors.gray900,
-    lineHeight: 24,
+    // `fontFamily` EXPLICITE — indispensable, et voici pourquoi.
+    //
+    // App.tsx patche `Text.render` pour injecter `Montserrat_400Regular` dans
+    // tout <Text> qui ne declare pas de fontFamily. Ce style injecte est place
+    // AVANT le style utilisateur, mais il change les metriques de la police
+    // APRES que le moteur ait choisi comment mesurer le noeud.
+    //
+    // Sur Android, une police custom dont les metriques depassent la boite
+    // mesuree fait rogner la fin du texte au lieu de le renvoyer a la ligne :
+    // c'est la cause native du « dernier mot coupe » (« Ok on reste encore »
+    // affiche « Ok on reste »), invisible cote JS — le rendu React contient
+    // bien la chaine complete (cf. MessageBubbleContent.test.tsx).
+    //
+    // Declarer la police ici la rend deterministe des la mesure.
+    fontFamily: FontFamily.regular,
+    // Android ajoute un padding vertical issu des metriques de la police, qui
+    // fausse la hauteur de ligne des polices custom et aggrave le rognage.
+    includeFontPadding: false,
+    // `lineHeight` DOIT suivre `fontSize`. Une valeur figée (24) était calculée
+    // pour un écran de référence : sur un appareil où le texte est scalé vers
+    // le haut, la police dépassait son interligne et la dernière ligne se
+    // retrouvait rognée par la hauteur de la bulle — le contenu stocké restant
+    // complet (le copier/coller le prouve).
+    //
+    // À noter : la police est scalée par FONT_SHRINK (0.92) alors que les
+    // paddings/dimensions de la bulle le sont par GLOBAL_SHRINK (0.83). Le
+    // texte est donc ~11 % plus grand, relativement à sa boîte, que ce que la
+    // géométrie suppose. Dériver l'interligne de la taille réelle absorbe cet
+    // écart au lieu de le subir.
+    lineHeight: Math.round(FontSizes.lg * 1.45),
   },
   messageTextMine: {
     color: Colors.white,
@@ -1978,13 +2061,27 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     justifyContent: 'center',
-    opacity: 0.6,
+    // Pas d'`opacity` figée ici : elle est pilotée par le geste
+    // (`swipeHintStyle`). L'ancienne valeur 0.6 peignait la flèche en
+    // permanence.
   },
+  // L'indice se loge dans la gouttiere laissee libre PAR LA BULLE (celle-ci
+  // occupe au plus 75 % de la ligne), du cote vers lequel on tire.
+  //
+  // `25%` le colle contre le bord de la bulle plutot qu'a l'extremite de
+  // l'ecran : ainsi il accompagne le message au lieu de flotter seul tout au
+  // bord, sans rapport visible avec lui.
+  //
+  // Le geste va vers la gauche pour mes messages, vers la droite pour ceux
+  // recus (cf. `bounded` dans panGesture) : l'icone se revele donc du cote
+  // que la bulle decouvre en glissant.
   swipeReplyHintMine: {
-    right: 8,
+    left: '25%',
+    marginLeft: 8,
   },
   swipeReplyHintPeer: {
-    left: 8,
+    right: '25%',
+    marginRight: 8,
   },
   retryText: {
     fontSize: 12,

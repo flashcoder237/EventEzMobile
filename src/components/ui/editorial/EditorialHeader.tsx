@@ -55,6 +55,11 @@ export default function EditorialHeader({
       onBack();
     } else if (navigation.canGoBack()) {
       navigation.goBack();
+    } else {
+      // Sans historique, ne RIEN faire laissait l'utilisateur bloque : un
+      // ecran ouvert a la racine du stack (deep link, notification,
+      // restauration de session) n'avait plus aucun chemin de sortie.
+      resetToMainTab(navigation as any, 'Discover');
     }
   };
 

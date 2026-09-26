@@ -461,7 +461,8 @@
     "saved": "Saved",
     "messages": "Messages",
     "tickets": "Tickets",
-    "profile": "Profile"
+    "profile": "Profile",
+    "organize": "Organize"
   },
   "languagePicker": {
     "eyebrow": "WELCOME",
@@ -588,7 +589,7 @@
     "organizersTitleWithCity": "Organising in {{city}}",
     "organizerVerified": "Verified organiser",
     "organizerEventCount": "{{count}} event",
-    "organizerEventCount_plural": "{{count}} events"
+    "organizerEventCount_other": "{{count}} events"
   },
   "pricingTiers": {
     "title": "Price tiers",
@@ -1696,7 +1697,9 @@
     "shortcutHelp": "Help",
     "rowMyDataAtExhibitors": "My data held by exhibitors",
     "rowLiveBanner": "Live events banner",
-    "rowLiveBannerSubtitle": "Show a banner to join an event that is currently live."
+    "rowLiveBannerSubtitle": "Show a banner to join an event that is currently live.",
+    "pushPermissionTitle": "Notifications are off for this device",
+    "pushPermissionMessage": "Your system settings block EventEz notifications. Open system settings to allow them."
   },
   "messages": {
     "title": "Messages",
@@ -3836,7 +3839,12 @@
     "tapToLoadImage": "Tap to load",
     "reply": "Reply",
     "react": "React",
-    "reactionToggleA11y": "Reaction {{emoji}}, {{count}}"
+    "reactionToggleA11y": "Reaction {{emoji}}, {{count}}",
+    "readOnlyLockMessageShort": "Read-only conversation.",
+    "headerCollapseA11y": "Hide banner",
+    "headerExpandA11y": "Show banner",
+    "headerCollapseLabel": "Hide",
+    "headerExpandLabel": "Event details"
   },
   "scanForm": {
     "loading": "Loading...",
@@ -5461,7 +5469,8 @@
     "tabSaved": "02 · SAVED",
     "tabMessages": "03 · MESSAGES",
     "tabTickets": "04 · TICKETS",
-    "tabProfile": "05 · PROFILE"
+    "tabProfile": "05 · PROFILE",
+    "push": "Push"
   },
   "organizer": {
     "common": {
@@ -5472,7 +5481,7 @@
     },
     "bulkAction": {
       "selectedCount": "{{count}} selected",
-      "selectedCount_plural": "{{count}} selected",
+      "selectedCount_other": "{{count}} selected",
       "approve": "Approve",
       "reject": "Reject",
       "checkIn": "Check-in"
@@ -6012,7 +6021,8 @@
       "remindNone": "No guest to remind right now.",
       "remindErrorTitle": "Reminder failed",
       "remindErrorMessage": "The reminders couldn't be sent. Please try again.",
-      "remindPendingProgress": "Sending reminders…"
+      "remindPendingProgress": "Sending reminders…",
+      "loadError": "Couldn't load your events. Check your connection."
     },
     "volunteer": {
       "tabReceived": "Received ({{count}})",
@@ -6283,7 +6293,25 @@
       "manualCodeInvalid": "Invalid code: expected UUID or reference code (8-20 characters A-Z/0-9).",
       "sessionRecapTitle": "Session summary",
       "sessionRecapBody": "{{scanned}} scan(s) in {{minutes}} min\n✓ {{success}} validated\n✗ {{failed}} failed",
-      "sessionRecapQueue": "\n⏳ {{count}} queued offline"
+      "sessionRecapQueue": "\n⏳ {{count}} queued offline",
+      "manualModeBanner": "Manual mode — 1 tap per person",
+      "manualModeA11y": "Manual mode on. Tap to turn automatic check-in back on.",
+      "rejectedTitle_one": "{{count}} scan rejected on sync",
+      "rejectedTitle_other": "{{count}} scans rejected on sync",
+      "rejectedAlreadyUsed_one": "• {{count}} ticket already checked in (duplicate entry)",
+      "rejectedAlreadyUsed_other": "• {{count}} tickets already checked in (duplicate entry)",
+      "rejectedNotFound_one": "• {{count}} ticket not found or invalid",
+      "rejectedNotFound_other": "• {{count}} tickets not found or invalid",
+      "rejectedUnresolved_one": "• {{count}} scan still unsynced after several attempts",
+      "rejectedUnresolved_other": "• {{count}} scans still unsynced after several attempts",
+      "rejectedHint": "These people entered while the network was down. Check with your team.",
+      "conflictTitle_one": "{{count}} entry conflict",
+      "conflictTitle_other": "{{count}} entry conflicts",
+      "conflictDuplicate_one": "• {{count}} ticket already scanned elsewhere (double entry)",
+      "conflictDuplicate_other": "• {{count}} tickets already scanned elsewhere (double entry)",
+      "conflictNotFound_one": "• {{count}} ticket unknown to the server",
+      "conflictNotFound_other": "• {{count}} tickets unknown to the server",
+      "conflictHint": "Accepted offline by this phone, rejected on sync. If another agent was scanning at the same time, these people got in twice."
     },
     "liveOps": {
       "live": "LIVE",
@@ -7577,7 +7605,7 @@
   "myLeads": {
     "title": "My contacts",
     "count": "{{count}} contact saved",
-    "count_plural": "{{count}} contacts saved",
+    "count_other": "{{count}} contacts saved",
     "unnamed": "Unnamed contact",
     "emptyTitle": "No contacts yet",
     "emptyBody": "Scan the badge of visitors who stop by your booth. You can then export the full list as CSV.",
@@ -7587,7 +7615,7 @@
   "myDataExhibitors": {
     "title": "My data held by exhibitors",
     "intro": "{{count}} company holds your contact details from a badge scan.",
-    "intro_plural": "{{count}} companies hold your contact details from a badge scan.",
+    "intro_other": "{{count}} companies hold your contact details from a badge scan.",
     "capturedOn": "Scanned on {{date}}",
     "erase": "Erase",
     "eraseAll": "Erase all",
@@ -7616,5 +7644,27 @@
     "liveMultiTitle": "{{count}} events in progress",
     "liveBannerMultiA11y": "{{count}} live events, tap for the list",
     "resizeBubble": "Resize"
+  },
+  "organize": {
+    "eyebrow": "Organizer space",
+    "title": "Organize",
+    "liveNow": "Live now",
+    "nextEvent": "Next event",
+    "registered": "registered",
+    "scan": "Scan",
+    "scanA11y": "Scan tickets for this event",
+    "boxOffice": "Box office",
+    "boxOfficeA11y": "Open the box office for this event",
+    "viewStats": "View stats",
+    "availableBalance": "Available balance",
+    "walletA11y": "Open my wallet",
+    "noActiveEvent": "No event running",
+    "noActiveEventHint": "Create an event or publish a draft to see it here.",
+    "noStaffEventHint": "Events where you're part of the team will show up here.",
+    "createEvent": "Create an event",
+    "myEvents": "My events",
+    "teamEvents": "Events I staff",
+    "analytics": "Analytics",
+    "loadError": "Couldn't load your space. Check your connection."
   }
 }

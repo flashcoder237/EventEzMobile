@@ -48,6 +48,7 @@ import {
   PendingEarning,
   RootStackParamList,
 } from '../../types';
+import { formatPriceAmount, displayCurrency } from '../../lib/utils/priceFormatters';
 import {
   Colors,
   FontFamily,
@@ -262,7 +263,7 @@ export default function WalletScreen() {
   const handleCancelPayout = async (payout: Payout) => {
     showAlert(
       t('organizer.wallet.cancelPayoutTitle'),
-      t('organizer.wallet.cancelPayoutMessage', { amount: formatPrice(payout.amount), currency: wallet?.currency || 'XAF' }),
+      t('organizer.wallet.cancelPayoutMessage', { amount: formatPrice(payout.amount), currency: displayCurrency(wallet?.currency) }),
       [
         { text: t('organizer.wallet.keepRequest'), style: 'cancel' },
         {
@@ -308,7 +309,7 @@ export default function WalletScreen() {
     }
 
     if (amount < wallet.minimum_payout) {
-      showError(t('common.error'), t('organizer.wallet.minPayout', { amount: formatPrice(wallet.minimum_payout), currency: wallet?.currency || 'XAF' }));
+      showError(t('common.error'), t('organizer.wallet.minPayout', { amount: formatPrice(wallet.minimum_payout), currency: displayCurrency(wallet?.currency) }));
       return;
     }
 
@@ -316,7 +317,7 @@ export default function WalletScreen() {
     // standard banking. Catégorie 'payments' : si l'user a désactivé cette
     // catégorie dans Settings, le hook renvoie true sans prompter.
     const confirmed = await biometric.confirm({
-      promptMessage: t('organizer.wallet.biometricPayoutPrompt', { amount: formatPrice(amount), currency: wallet?.currency || 'XAF' }),
+      promptMessage: t('organizer.wallet.biometricPayoutPrompt', { amount: formatPrice(amount), currency: displayCurrency(wallet?.currency) }),
       category: 'payments',
     });
     if (!confirmed) {
@@ -383,9 +384,12 @@ export default function WalletScreen() {
     }
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('fr-FR').format(price);
-  };
+  // Montant SANS devise : l'UI du wallet affiche `wallet.currency` dans un
+  // <Text> separe. On passe par le helper partage pour garantir le meme
+  // rendu que le reste de l'app (separateur d'espace, zero decimale).
+  // Intl.NumberFormat('fr-FR') rendait "125 000,5" pour 125000.50 et
+  // divergeait du formatage utilise partout ailleurs.
+  const formatPrice = (price: number) => formatPriceAmount(Number(price) || 0);
 
   const getTransactionIcon = (type: string): keyof typeof Ionicons.glyphMap => {
     switch (type) {
@@ -485,7 +489,7 @@ export default function WalletScreen() {
               {formatPrice(Math.abs(transaction.amount))}
             </Text>
             <Text style={[styles.txnCurrency, { color: colors.gray500 }]}>
-              {wallet?.currency || 'XAF'}
+              {displayCurrency(wallet?.currency)}
             </Text>
           </View>
         </View>
@@ -531,7 +535,7 @@ export default function WalletScreen() {
               {formatPrice(payout.amount)}
             </Text>
             <Text style={[styles.payoutAmountCurrency, { color: colors.gray500 }]}>
-              {wallet?.currency || 'XAF'}
+              {displayCurrency(wallet?.currency)}
             </Text>
           </View>
 
@@ -614,7 +618,7 @@ export default function WalletScreen() {
               {formatPrice(earning.amount)}
             </Text>
             <Text style={[styles.pendingCurrencyE, { color: colors.gray500 }]}>
-              {wallet?.currency || 'XAF'}
+              {displayCurrency(wallet?.currency)}
             </Text>
           </View>
         </View>
@@ -715,9 +719,18 @@ export default function WalletScreen() {
 
             <View style={styles.creditCardBody}>
               <Text style={styles.creditCardCaption}>{t('organizer.wallet.fundsAvailable')}</Text>
-              <Text style={styles.creditCardBalance} numberOfLines={1} adjustsFontSizeToFit>
-                {formatPrice(wallet?.available_balance || 0)}
-              </Text>
+              {/* La devise doit etre LISIBLE : le filigrane `cardCurrencyMark`
+                  est a 6% d'opacite, c'est un element graphique, pas une
+                  information. Un solde sans devise est inexploitable des
+                  qu'un organisateur a un wallet non-XAF. */}
+              <View style={styles.creditCardBalanceRow}>
+                <Text style={styles.creditCardBalance} numberOfLines={1} adjustsFontSizeToFit>
+                  {formatPrice(wallet?.available_balance || 0)}
+                </Text>
+                <Text style={styles.creditCardBalanceCurrency}>
+                  {displayCurrency(wallet?.currency)}
+                </Text>
+              </View>
               {/* Card number-like dots for deco */}
               <View style={styles.cardDotsRow}>
                 <View style={styles.cardDot} />
@@ -742,7 +755,7 @@ export default function WalletScreen() {
             ]}
             onPress={() => wallet?.can_withdraw ? setShowPayoutModal(true) : showAlert(
               t('organizer.wallet.payoutImpossibleTitle'),
-              t('organizer.wallet.payoutImpossibleMessage', { amount: formatPrice(wallet?.minimum_payout || 10000), currency: wallet?.currency || 'XAF' }),
+              t('organizer.wallet.payoutImpossibleMessage', { amount: formatPrice(wallet?.minimum_payout || 10000), currency: displayCurrency(wallet?.currency) }),
               undefined,
               'warning'
             )}
@@ -809,7 +822,7 @@ export default function WalletScreen() {
                 {t('organizer.wallet.instantCardSubtitle', {
                   amount: formatPrice(Number(wallet?.instant_payout_eligible || 0)),
                   pct: Math.round(Number(wallet?.instant_payout_fee_rate || 0.02) * 100),
-                  currency: wallet?.currency || 'XAF',
+                  currency: displayCurrency(wallet?.currency),
                 })}
               </Text>
             </View>
@@ -1025,12 +1038,12 @@ export default function WalletScreen() {
               <Text style={[styles.balancePillLabel, { color: colors.primary }]}>{t('organizer.wallet.balanceAvailable')}</Text>
               <View style={{ flex: 1 }} />
               <Text style={[styles.balancePillValue, { color: colors.text }]}>
-                {formatPrice(wallet?.available_balance || 0)} {wallet?.currency || 'XAF'}
+                {formatPrice(wallet?.available_balance || 0)} {displayCurrency(wallet?.currency)}
               </Text>
             </View>
 
             <View style={styles.inputGroupE}>
-              <Text style={[styles.inputLabelE, { color: colors.gray600 }]}>{t('organizer.wallet.amountLabel', { currency: wallet?.currency || 'XAF' })}</Text>
+              <Text style={[styles.inputLabelE, { color: colors.gray600 }]}>{t('organizer.wallet.amountLabel', { currency: displayCurrency(wallet?.currency) })}</Text>
               <TextInput
                 style={[
                   styles.inputE,
@@ -1511,12 +1524,25 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     marginBottom: 4,
   },
+  creditCardBalanceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+  },
   creditCardBalance: {
+    flexShrink: 1,
     fontFamily: FontFamily.displayExtraBold,
     fontSize: 44,
     lineHeight: 48,
     letterSpacing: -2,
     color: '#FFFFFF',
+  },
+  creditCardBalanceCurrency: {
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: 18,
+    lineHeight: 22,
+    letterSpacing: -0.4,
+    color: 'rgba(255,255,255,0.82)',
   },
   cardDotsRow: {
     flexDirection: 'row',

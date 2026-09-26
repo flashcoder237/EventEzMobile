@@ -75,7 +75,7 @@ describe('flush — routage par kind', () => {
     await act(async () => { res = await result.current.flush(); });
 
     expect(mockVerifyAndCheckIn).toHaveBeenCalledWith('reg-1', true);
-    expect(res).toEqual({ synced: 1, failed: 0 });
+    expect(res).toEqual({ synced: 1, failed: 0, rejected: [] });
     expect(await readQueue()).toEqual([]);
     await waitFor(() => expect(result.current.pendingCount).toBe(0));
   });
@@ -112,7 +112,12 @@ describe('flush — gestion des erreurs', () => {
     let res: any;
     await act(async () => { res = await result.current.flush(); });
 
-    expect(res).toEqual({ synced: 0, failed: 1 });
+    expect(res.synced).toBe(0);
+    expect(res.failed).toBe(1);
+    // Le MOTIF doit remonter : ces personnes sont deja entrees.
+    expect(res.rejected).toEqual([
+      expect.objectContaining({ registrationId: 'reg-x', reason: 'not_found' }),
+    ]);
     expect(await readQueue()).toEqual([]); // droppé
   });
 
@@ -133,7 +138,7 @@ describe('flush — gestion des erreurs', () => {
     let res: any;
     await act(async () => { res = await result.current.flush(); });
 
-    expect(res).toEqual({ synced: 0, failed: 0 });
+    expect(res).toEqual({ synced: 0, failed: 0, rejected: [] });
     const q = await readQueue();
     expect(q).toHaveLength(1);
     expect(q[0].attempts).toBe(1);
@@ -158,11 +163,45 @@ describe('flush — gestion des erreurs', () => {
     expect(q[0].registrationId).toBe('reg-net');
   });
 
-  it('flush sur queue vide → { synced: 0, failed: 0 }', async () => {
+  it('flush sur queue vide → { synced: 0, failed: 0, rejected: [] }', async () => {
     const { result } = renderHook(() => useCheckinQueue());
     let res: any;
     await act(async () => { res = await result.current.flush(); });
-    expect(res).toEqual({ synced: 0, failed: 0 });
+    expect(res).toEqual({ synced: 0, failed: 0, rejected: [] });
+  });
+
+  it('5xx répété → abandon au bout de MAX_FLUSH_ATTEMPTS, pas de boucle infinie', async () => {
+    mockVerifyAndCheckIn.mockRejectedValue({ response: { status: 503 } });
+    const { result } = renderHook(() => useCheckinQueue());
+    await act(async () => { await result.current.enqueue('reg-loop', true); });
+
+    // 5 tentatives : la 5e atteint le plafond et abandonne l'entrée.
+    let res: any;
+    for (let i = 0; i < 5; i++) {
+      await act(async () => { res = await result.current.flush(); });
+    }
+
+    expect(await readQueue()).toEqual([]);
+    expect(res.failed).toBe(1);
+    expect(res.rejected).toEqual([
+      expect.objectContaining({ registrationId: 'reg-loop', reason: 'max_attempts' }),
+    ]);
+  });
+
+  it('expose les rejets en ÉTAT — l\'auto-flush au retour réseau n\'a pas d\'appelant', async () => {
+    mockVerifyAndCheckIn.mockRejectedValue({ response: { status: 400 } });
+    const { result } = renderHook(() => useCheckinQueue());
+    await act(async () => { await result.current.enqueue('reg-state', true); });
+    await act(async () => { await result.current.flush(); });
+
+    await waitFor(() => expect(result.current.lastRejected).toHaveLength(1));
+    expect(result.current.lastRejected[0]).toEqual(
+      expect.objectContaining({ registrationId: 'reg-state', reason: 'already_used' }),
+    );
+
+    // Acquittement : l'alerte ne doit pas se rejouer au flush suivant.
+    await act(async () => { result.current.acknowledgeRejected(); });
+    await waitFor(() => expect(result.current.lastRejected).toHaveLength(0));
   });
 });
 

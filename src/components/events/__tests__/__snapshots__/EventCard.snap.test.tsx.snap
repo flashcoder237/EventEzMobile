@@ -301,7 +301,7 @@ exports[`EventCard snapshots renders default variant 1`] = `
   style={
     [
       {
-        "borderRadius": 24,
+        "borderRadius": 14,
         "borderWidth": 1,
         "overflow": "hidden",
         "width": 426.4,
@@ -310,16 +310,6 @@ exports[`EventCard snapshots renders default variant 1`] = `
       {
         "backgroundColor": "#FFFFFF",
         "borderColor": "rgba(0,0,0,0.06)",
-      },
-      {
-        "elevation": 4,
-        "shadowColor": "#000",
-        "shadowOffset": {
-          "height": 4,
-          "width": 0,
-        },
-        "shadowOpacity": 0.05,
-        "shadowRadius": 12,
       },
     ]
   }
@@ -728,7 +718,7 @@ exports[`EventCard snapshots renders default variant with free event + soon (J-2
   style={
     [
       {
-        "borderRadius": 24,
+        "borderRadius": 14,
         "borderWidth": 1,
         "overflow": "hidden",
         "width": 426.4,
@@ -737,16 +727,6 @@ exports[`EventCard snapshots renders default variant with free event + soon (J-2
       {
         "backgroundColor": "#FFFFFF",
         "borderColor": "rgba(0,0,0,0.06)",
-      },
-      {
-        "elevation": 4,
-        "shadowColor": "#000",
-        "shadowOffset": {
-          "height": 4,
-          "width": 0,
-        },
-        "shadowOpacity": 0.05,
-        "shadowRadius": 12,
       },
     ]
   }
@@ -1198,7 +1178,7 @@ exports[`EventCard snapshots renders default variant with isFeatured + isLiked 1
   style={
     [
       {
-        "borderRadius": 24,
+        "borderRadius": 14,
         "borderWidth": 1,
         "overflow": "hidden",
         "width": 426.4,
@@ -1207,16 +1187,6 @@ exports[`EventCard snapshots renders default variant with isFeatured + isLiked 1
       {
         "backgroundColor": "#FFFFFF",
         "borderColor": "rgba(0,0,0,0.06)",
-      },
-      {
-        "elevation": 4,
-        "shadowColor": "#000",
-        "shadowOffset": {
-          "height": 4,
-          "width": 0,
-        },
-        "shadowOpacity": 0.05,
-        "shadowRadius": 12,
       },
     ]
   }
@@ -2119,7 +2089,7 @@ exports[`EventCard snapshots renders grid variant with online location 1`] = `
   style={
     [
       {
-        "borderRadius": 20,
+        "borderRadius": 14,
         "borderWidth": 1,
         "marginBottom": 17,
         "overflow": "hidden",
@@ -2127,16 +2097,6 @@ exports[`EventCard snapshots renders grid variant with online location 1`] = `
       {
         "backgroundColor": "#FFFFFF",
         "borderColor": "rgba(0,0,0,0.06)",
-      },
-      {
-        "elevation": 1,
-        "shadowColor": "#000",
-        "shadowOffset": {
-          "height": 1,
-          "width": 0,
-        },
-        "shadowOpacity": 0.03,
-        "shadowRadius": 5,
       },
     ]
   }

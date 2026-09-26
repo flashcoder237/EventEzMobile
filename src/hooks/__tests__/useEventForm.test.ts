@@ -736,6 +736,61 @@ describe('useEventForm', () => {
       expect(alerts.showError).toHaveBeenCalled();
     });
 
+    it("edit mode: bloc questions MASQUE -> aucun clear_existing (anti-effacement)", async () => {
+      // Regression : `syncFormFields` envoyait TOUJOURS
+      // `clear_existing: true` en edition. Quand l'organisateur decochait
+      // « questions personnalisees » sur une billetterie, le bloc disparaissait
+      // de l'ecran, `formFields` n'etait plus alimente, et l'enregistrement
+      // partait avec une liste VIDE : toutes les questions deja configurees
+      // etaient supprimees, sans confirmation ni message.
+      const alerts = makeAlerts();
+      mockedEventsAPI.getEvent.mockResolvedValueOnce({
+        data: {
+          id: 'evt-hidden', title: 'Gala', description: 'd', short_description: '',
+          event_type: 'billetterie',
+          category: { id: 2, name: 'Musique' }, tags: [],
+          start_date: new Date('2026-09-01T18:00:00Z').toISOString(),
+          end_date: new Date('2026-09-01T22:00:00Z').toISOString(),
+          location_type: 'in_person', location_city: 'Yaoundé', location_country: 'Cameroun',
+          visibility: 'public', fee_bearer: 'participant', auto_approve_registrations: true,
+          ticket_types: [
+            { name: 'Standard', description: '', price: '5000', quantity_total: '100',
+              is_visible: true, max_per_order: 5, min_per_order: 1 },
+          ],
+          form_fields: [
+            { label: 'Régime alimentaire', field_type: 'text', required: false, order: 0 },
+          ],
+          sessions: [],
+        },
+      } as any);
+
+      mockedEventsAPI.updateEvent.mockResolvedValueOnce({
+        data: { id: 'evt-hidden' },
+      } as any);
+
+      const { result } = renderHook(() => useEventForm(alerts, 'evt-hidden'));
+
+      await waitFor(() => expect(result.current.form.title).toBe('Gala'));
+      // L'event a bien des questions, donc le bloc est affiche a l'ouverture.
+      expect(result.current.form.showFormFieldsForBilletterie).toBe(true);
+
+      // L'organisateur decoche l'option : le bloc est masque.
+      await act(async () => {
+        result.current.setShowFormFieldsForBilletterie(false);
+      });
+
+      let submitted: string | null | undefined;
+      await act(async () => { submitted = await result.current.handleSubmit(); });
+      // Garde-fou du test lui-meme : si la soumission echoue en amont, le
+      // "not.toHaveBeenCalled" passerait pour une mauvaise raison.
+      expect(submitted).toBe('evt-hidden');
+      expect(mockedEventsAPI.updateEvent).toHaveBeenCalled();
+
+      // Les questions existantes doivent survivre : on ne touche pas a ce que
+      // l'organisateur ne voit pas.
+      expect(mockedEventsAPI.updateFormFields).not.toHaveBeenCalled();
+    });
+
     it('edit mode: charge billets + form fields + sessions depuis getEvent (régression)', async () => {
       const alerts = makeAlerts();
       mockedEventsAPI.getEvent.mockResolvedValueOnce({

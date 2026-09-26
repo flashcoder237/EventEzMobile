@@ -63,6 +63,12 @@ const NEVER_RESTORE_TOP: ReadonlySet<string> = new Set([
   'PaymentFailed',
   // Maintenance — géré par MaintenanceGate
   'Maintenance',
+  // Notifications — écran CONSULTATIF, pas un contexte à reprendre.
+  // Restauré, il s'ouvrait à chaque lancement de l'app, et comme il se
+  // retrouvait alors à la RACINE du stack, son bouton retour ne menait
+  // nulle part : l'utilisateur était bloqué, sans moyen de revenir à
+  // l'accueil.
+  'Notifications',
 ]);
 
 type AnyState = NavigationState | PartialState<NavigationState>;

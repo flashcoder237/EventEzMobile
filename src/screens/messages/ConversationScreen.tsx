@@ -48,6 +48,7 @@ import {
 } from 'expo-audio';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { resolveConversationAvatar, isGroupOrEventConversation } from '../../utils/conversationAvatar';
 import { messagesAPI, eventsAPI, connectionsAPI, getMediaUrl } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -107,6 +108,8 @@ import EventActionsSheet, {
   EventAction,
 } from '../../components/organizer/EventActionsSheet';
 import CacheService from '../../services/CacheService';
+import { enqueueDeletion } from '../../db/outboxRepository';
+import { bannerNeedsAttention } from '../../components/messages/ConversationQuotaBanner';
 import {
   getMessages as getLocalMessages,
   getMessagesPage as getLocalMessagesPage,
@@ -114,6 +117,8 @@ import {
   reconcileSent as reconcileLocalSent,
   insertPending as insertLocalPending,
   patchLocalMessage,
+  markMessagesPendingDelete,
+  clearPendingOp,
   deleteLocalMessage,
   getMessageSendState,
   markFailed as markLocalFailed,
@@ -917,6 +922,70 @@ export default function ConversationScreen() {
   // PrimaryKeyRelatedField (UUID seul) — pas le détail. Affiché en bannière
   // au-dessus des messages + en sous-titre du header.
   const [eventContext, setEventContext] = useState<{ id: string; slug?: string; title: string; banner?: string | null } | null>(null);
+  // Bandeaux de tête (carte événement + quota) repliables à la demande.
+  //
+  // Même affichés à bon escient, ils mangent le haut de l'écran d'une
+  // messagerie — où le contenu devrait primer. Le choix est PERSISTÉ par
+  // conversation : quelqu'un qui replie ne veut pas recommencer à chaque
+  // ouverture. `null` = pas encore chargé, on n'affiche rien pour éviter un
+  // flash déplié→replié au montage.
+  const [headerCollapsed, setHeaderCollapsed] = useState<boolean | null>(null);
+  const headerCollapsedKey = state.conversationId ? `convHeaderCollapsed:${state.conversationId}` : null;
+
+  useEffect(() => {
+    if (!headerCollapsedKey) return;
+    let cancelled = false;
+    AsyncStorage.getItem(headerCollapsedKey)
+      .then((v) => {
+        if (cancelled) return;
+        // REPLIÉ PAR DÉFAUT. Dans une messagerie, les messages priment : un
+        // bandeau de contexte n'a pas à occuper le haut de l'écran à chaque
+        // ouverture. Il reste dépliable d'un tap, et le choix est mémorisé.
+        //
+        // '0' = déplié explicitement par l'utilisateur ; toute autre valeur
+        // (dont `null`, jamais ouvert) => replié.
+        //
+        // Exception : un bandeau qui demande une ACTION (lecture seule,
+        // échéance proche, quota saturé) force l'ouverture — cf. l'effet
+        // ci-dessous, qui s'applique même si l'utilisateur avait replié.
+        setHeaderCollapsed(v !== '0');
+      })
+      .catch(() => { if (!cancelled) setHeaderCollapsed(true); });
+    return () => { cancelled = true; };
+  }, [headerCollapsedKey]);
+
+  // Force l'ouverture quand le bandeau porte une information ACTIONNABLE.
+  //
+  // `computeBannerVisibility` ne rend le bandeau quota visible que dans ces
+  // cas precis (lecture seule, echeance <= 7j, quota >= 70 %). S'il a quelque
+  // chose a dire, le replier reviendrait a masquer un avertissement — d'ou
+  // ce deblocage, qui prime sur la preference.
+  //
+  // On ne PERSISTE pas cette ouverture : elle est circonstancielle. Une fois
+  // la situation revenue a la normale, la preference de l'utilisateur
+  // reprend la main.
+  const needsAttention = !!quotaState && bannerNeedsAttention({
+    percentage: quotaState.percentage,
+    daysUntilDelete: quotaState.days_until_delete,
+    isReadOnly: quotaState.is_read_only,
+    isMuted: (quotaState as any).is_muted,
+  });
+
+  useEffect(() => {
+    if (needsAttention) setHeaderCollapsed(false);
+  }, [needsAttention]);
+
+  const toggleHeaderCollapsed = useCallback(() => {
+    setHeaderCollapsed((prev) => {
+      const next = !prev;
+      if (headerCollapsedKey) {
+        // '0' est la seule valeur qui signifie « déplié » à la relecture :
+        // l'absence de clé vaut replié (cf. l'effet de chargement).
+        AsyncStorage.setItem(headerCollapsedKey, next ? '1' : '0').catch(() => {});
+      }
+      return next;
+    });
+  }, [headerCollapsedKey]);
   // Modale détaillée des messages en échec (failed après 3 retries). Permet
   // retry/delete unitaire au lieu de la perte silencieuse précédente.
   const [failedMessagesModalVisible, setFailedMessagesModalVisible] = useState(false);
@@ -977,15 +1046,32 @@ export default function ConversationScreen() {
           ? `${otherParticipant.first_name} ${otherParticipant.last_name}`
           : otherParticipant?.email?.split('@')[0] || t('conversation.conversationFallback'));
 
-      // getMediaUrl() résout les paths relatifs (`/media/...`) en URLs
-      // absolues. Le backend renvoie maintenant des URLs absolues quand le
-      // request est dispo, mais on garde le wrap par sécurité (cas WS qui
-      // n'a pas de request, ancien backend, etc.).
-      const rawAvatar = otherParticipant?.profile_picture || otherParticipant?.image || null;
-      const avatar = getMediaUrl(rawAvatar);
+      // Avatar du header : une conversation groupe/event porte l'identité de
+      // l'ÉVÉNEMENT, jamais la photo d'un participant. Sans cette garde, le
+      // `find(p.id !== moi)` ci-dessus renvoyait un invité ARBITRAIRE (le
+      // premier inscrit de la liste) et sa tête servait d'identité au groupe.
+      //
+      // La règle vivait déjà dans l'inbox (MessagesScreen) mais n'avait jamais
+      // été appliquée ici — d'où un header faux alors que l'inbox était juste.
+      // Elle est maintenant partagée via resolveConversationAvatar().
+      //
+      // Si l'avatar serveur manque, le repli sur la bannière de l'event est
+      // posé plus bas par un effet : `eventContext` est chargé de façon
+      // ASYNCHRONE juste au-dessus, il n'est pas encore disponible ici.
+      const avatar = resolveConversationAvatar({
+        conversationType: ctype,
+        conversationAvatar: (conversation as any).avatar,
+        participantAvatar: otherParticipant?.profile_picture || otherParticipant?.image,
+      });
 
       actions.setConversationTitle(title);
-      actions.setOtherUser(avatar, otherParticipant?.id || null);
+      // `otherUserId` reste null pour un groupe/event : il sert à ouvrir le
+      // profil au tap sur le header, et pointer vers un invité arbitraire
+      // n'aurait aucun sens.
+      actions.setOtherUser(
+        avatar,
+        isGroupOrEventConversation(ctype) ? null : (otherParticipant?.id || null),
+      );
 
       setupHeader(title, avatar);
     } catch (error) {
@@ -2309,19 +2395,35 @@ export default function ConversationScreen() {
       t('conversation.deleteMessageTitle'),
       t('conversation.deleteMessageConfirm'),
       async () => {
+        // Meme traitement que la suppression groupee : la suppression est
+        // d'abord PERSISTEE en SQLite avec un tombstone, sinon elle ne survit
+        // ni au remount ni au delta-sync (cf. markMessagesPendingDelete).
+        await markMessagesPendingDelete([messageId]).catch(() => {});
+        actions.updateMessage(messageId, {
+          is_deleted: true,
+          content: '',
+          attachments: [],
+        });
+
         try {
           if (isConnected && isAuthenticated) {
             wsDeleteMessage(messageId);
+            // Le WS ne renvoie pas d'accuse exploitable ici : on leve le
+            // tombstone, l'echo `message.deleted` confirmera.
+            await clearPendingOp([messageId]).catch(() => {});
           } else {
             await messagesAPI.deleteMessage(messageId);
+            await clearPendingOp([messageId]).catch(() => {});
           }
-          // Soft delete: update message in place
-          actions.updateMessage(messageId, {
-            is_deleted: true,
-            content: '',
-            attachments: [],
-          });
-        } catch {
+        } catch (err: any) {
+          const isNetwork = !err?.response;
+          if (isNetwork) {
+            // Hors-ligne : on met en file, le tombstone tient jusqu'au rejeu.
+            await enqueueDeletion(state.conversationId ?? '', [messageId]).catch(() => {});
+            return;
+          }
+          // Refus serveur : on annule le marquage local pour rester honnete.
+          await clearPendingOp([messageId]).catch(() => {});
           showError(t('common.error'), t('conversation.deleteMessageError'));
         }
       },
@@ -2393,20 +2495,47 @@ export default function ConversationScreen() {
       t('conversation.bulkDeleteConfirmTitle', { count: ownIds.length }),
       t('conversation.bulkDeleteConfirmMessage', { count: ownIds.length }),
       async () => {
+        // 1. PERSISTE d'abord la suppression en SQLite, avec un tombstone.
+        //
+        // L'ancien chemin ne mutait que le state React : la suppression
+        // disparaissait au moindre remount, et le delta-sync la reecrasait de
+        // toute facon (le serveur, jamais prevenu hors-ligne, renvoyait les
+        // messages vivants). D'ou le bug « je supprime, je me reconnecte,
+        // tout revient ».
+        await markMessagesPendingDelete(ownIds).catch(() => {});
+
+        // 2. UI optimiste.
+        for (const id of ownIds) {
+          actions.updateMessage(String(id), {
+            is_deleted: true,
+            content: '',
+            attachments: [],
+          });
+        }
+        exitSelectionMode();
+
+        // 3. Reseau — avec repli sur l'outbox.
         try {
           await messagesAPI.bulkDeleteMessages(ownIds);
-          // Optimistic : on tag is_deleted dans le state local. Le WS arrivera
-          // confirmer mais l'UI est deja a jour.
-          for (const id of ownIds) {
-            actions.updateMessage(String(id), {
-              is_deleted: true,
-              content: '',
-              attachments: [],
-            });
-          }
+          // Confirme : on leve le tombstone, la ligne redevient pilotable par
+          // le sync (qui renverra bien `is_deleted`).
+          await clearPendingOp(ownIds).catch(() => {});
           toastSuccess(t('conversation.bulkDeleteSuccess', { count: ownIds.length }));
-          exitSelectionMode();
         } catch (err: any) {
+          // Hors-ligne (ou serveur injoignable) : on met la suppression en
+          // file. Elle partira a la reconnexion, et le tombstone protege les
+          // lignes du delta-sync entre-temps. Pour l'utilisateur, l'action a
+          // bien eu lieu — inutile de lui afficher une erreur.
+          const isNetwork = !err?.response;
+          if (isNetwork) {
+            await enqueueDeletion(state.conversationId ?? '', ownIds)
+              .catch(() => {});
+            toastSuccess(t('conversation.bulkDeleteSuccess', { count: ownIds.length }));
+            return;
+          }
+          // Refus explicite du serveur (403, 400...) : la suppression n'aura
+          // pas lieu. On annule le marquage local pour ne pas mentir.
+          await clearPendingOp(ownIds).catch(() => {});
           const { message } = getApiErrorMessage(err, t, {
             fallbackKey: 'conversation.bulkDeleteError',
           });
@@ -3402,7 +3531,21 @@ export default function ConversationScreen() {
     );
 
     return (
-      <View>
+      // `width: '100%'` — racine de la chaine de largeur des bulles.
+      //
+      // Toute la cascade en dessous est en pourcentages : ce wrapper ->
+      // Animated.View du swipe (width 100%) -> messageRow (width 100%) ->
+      // bubbleContainer (maxWidth 75%). Un pourcentage se resout contre le
+      // parent ; cette View-ci n'ayant aucun style, elle se dimensionnait a
+      // son contenu et servait de reference indeterminee a tout le reste.
+      // Resultat : la bulle etait mesuree a sa largeur « ideale » et le
+      // DERNIER MOT rogne (« ok on reste encore » -> « ok on reste »), le
+      // contenu stocke restant complet (l'apercu de l'inbox l'affiche en
+      // entier).
+      //
+      // Les flexShrink/minWidth poses en aval ne pouvaient rien : ils font
+      // retrecir vers une borne qui n'existait pas a la racine.
+      <View style={styles.messageRowWrapper}>
         {showDate && (
           <View style={styles.dateContainer}>
             <Text style={[styles.dateText, { color: colors.gray500, backgroundColor: colors.card }]}>{formatMessageDate(item.created_at)}</Text>
@@ -3529,7 +3672,15 @@ export default function ConversationScreen() {
   };
 
   const headerTitle = state.conversationTitle || userName || '';
-  const headerAvatar = state.otherUserAvatar;
+  // Repli sur la bannière de l'event quand le backend n'a pas d'avatar pour
+  // la conversation : il ne le dérive que depuis `banner_image`, donc un event
+  // qui n'a qu'une `display_image` n'en a aucun. `eventContext` la porte déjà
+  // (chargé en asynchrone par fetchConversationDetails), d'où ce repli ici
+  // plutôt que dans le fetch où il n'est pas encore résolu.
+  // Sans ça, on retombait sur les initiales alors que l'image existe.
+  const headerAvatar =
+    state.otherUserAvatar
+    || (isGroupOrEventConversation(conversationType) ? eventContext?.banner || null : null);
   // Pour les conversations directes, on récupère l'autre participant depuis
   // conversationDetails pour exposer son statut de présence + last_seen +
   // badge organizer vérifié. Conv groupe : on ne montre pas ces infos
@@ -3688,14 +3839,12 @@ export default function ConversationScreen() {
             >
               {presenceLabel}
             </Text>
-          ) : eventContext ? (
-            <Text
-              style={[styles.headerSubtitle, { color: colors.accent }]}
-              numberOfLines={1}
-            >
-              {t('conversation.fromEvent', { name: eventContext.title })}
-            </Text>
           ) : null}
+          {/* Le sous-titre « Depuis · <event> » a ete retire : la carte
+              « EVENEMENT LIE » juste en dessous affiche deja le meme nom, avec
+              en plus la vignette et l'acces a la fiche. Deux lignes pour la
+              meme information, l'une sous l'autre. On garde la carte (elle est
+              actionnable) et on libere la ligne du header. */}
         </View>
       </TouchableOpacity>
       <TouchableOpacity
@@ -3826,11 +3975,11 @@ export default function ConversationScreen() {
       {/* Bannière event source — affichée quand la conv est liée à un event,
           peu importe le type. Donne le contexte instantanément et permet de
           retourner à l'event en un tap (use case organizer fréquent). */}
-      {eventContext && (
+      {eventContext && headerCollapsed === false && (
         <TouchableOpacity
           style={[
             styles.eventBanner,
-            { backgroundColor: colors.card, borderColor: hairline },
+            { backgroundColor: colors.card, borderBottomColor: hairline },
           ]}
           onPress={() => navigation.navigate('EventDetails', { eventId: eventContext.slug || eventContext.id })}
           activeOpacity={0.85}
@@ -3861,13 +4010,49 @@ export default function ConversationScreen() {
         </TouchableOpacity>
       )}
 
-      {/* Banner quota / cycle de vie (groupes / event uniquement) */}
+      {/* Banner quota / cycle de vie (groupes / event uniquement).
+          Monté même replié : c'est lui qui charge `quotaState`, dont dépend
+          le verrouillage de la saisie (lecture seule / muet). Le masquer
+          vraiment rouvrirait la saisie sur une conversation gelée. */}
       {state.conversationId && conversationType && conversationType !== 'direct' && (
-        <ConversationQuotaBanner
-          conversationId={state.conversationId}
-          conversationType={conversationType}
-          onQuotaUpdate={(s) => setQuotaState(s)}
-        />
+        <View style={headerCollapsed ? styles.collapsedAway : undefined}>
+          <ConversationQuotaBanner
+            conversationId={state.conversationId}
+            conversationType={conversationType}
+            onQuotaUpdate={(s) => setQuotaState(s)}
+          />
+        </View>
+      )}
+
+      {/* Poignée de repli — dès qu'il y a quelque chose à replier : la carte
+          événement OU un bandeau quota visible. Sans cette seconde condition,
+          une conversation de groupe SANS événement lié affichait un bandeau
+          replié sans aucun moyen de le rouvrir. */}
+      {(eventContext || quotaState) && headerCollapsed !== null && (
+        <TouchableOpacity
+          style={[styles.headerCollapseToggle, { borderBottomColor: hairline }]}
+          onPress={toggleHeaderCollapsed}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: !headerCollapsed }}
+          accessibilityLabel={
+            headerCollapsed
+              ? t('conversation.headerExpandA11y')
+              : t('conversation.headerCollapseA11y')
+          }
+          hitSlop={{ top: 6, bottom: 6, left: 20, right: 20 }}
+        >
+          <Ionicons
+            name={headerCollapsed ? 'chevron-down' : 'chevron-up'}
+            size={13}
+            color={colors.gray500}
+          />
+          <Text style={[styles.headerCollapseLabel, { color: colors.gray500 }]}>
+            {headerCollapsed
+              ? t('conversation.headerExpandLabel')
+              : t('conversation.headerCollapseLabel')}
+          </Text>
+        </TouchableOpacity>
       )}
 
       <KeyboardAvoidingView
@@ -3908,7 +4093,13 @@ export default function ConversationScreen() {
             windowSize={7}
             maxToRenderPerBatch={8}
             initialNumToRender={12}
-            removeClippedSubviews
+            // PAS de `removeClippedSubviews` ici : sur une liste `inverted`, RN
+            // calcule le clipping sur des coordonnees retournees et rogne des
+            // vues pourtant visibles. Sur des bulles a hauteur variable, ca
+            // coupait le texte du message qu'on vient d'envoyer (l'item est
+            // monte et mesure pendant que la liste se decale). Les trois props
+            // au-dessus portent deja l'essentiel du gain de virtualisation.
+            // MessagesScreen peut le garder : sa liste n'est pas inversee.
           />
 
           {/* Scroll to bottom button */}
@@ -4045,9 +4236,24 @@ export default function ConversationScreen() {
             alignItems: 'center',
           }}>
             <Ionicons name="lock-closed" size={18} color={colors.gray500} />
-            <Text style={{ color: colors.gray600, fontSize: 12, marginTop: 4, textAlign: 'center' }}>
+            {/* `fontFamily` explicite : sans elle, le patch global d'App.tsx
+                injecte Montserrat APRES la mesure et la fin du texte est
+                rognee (« Pensez a » au lieu de « Pensez a sauvegarder. »). */}
+            <Text style={{
+              color: colors.gray600,
+              fontFamily: FontFamily.regular,
+              fontSize: 12,
+              marginTop: 4,
+              textAlign: 'center',
+            }}>
+              {/* Version COURTE en lecture seule : le bandeau du haut porte
+                  deja la date de suppression et le bouton « Sauvegarder ».
+                  Repeter « Pensez a sauvegarder » en bas d'ecran faisait deux
+                  alertes pour un seul etat, aux deux extremites de l'ecran.
+                  Les cas « mute » / « verrouille » n'ont PAS de bandeau en
+                  haut : leur message complet reste necessaire ici. */}
               {quotaState?.is_read_only
-                ? t('conversation.readOnlyLockMessage')
+                ? t('conversation.readOnlyLockMessageShort')
                 : (quotaState as any)?.is_muted
                   ? t('conversation.mutedLockMessage')
                   : t('conversation.postingLockMessage')}
@@ -5103,16 +5309,20 @@ const styles = StyleSheet.create({
 
   // Event source banner — affiché au-dessus des messages quand la conv est
   // liée à un event. Click → EventDetails.
+  // Bandeau de tete PLEINE LARGEUR, comme le bandeau quota et la poignee.
+  //
+  // C'etait une carte flottante (marges laterales, coins arrondis, bordure sur
+  // 4 cotes) empilee au-dessus d'un bandeau pleine largeur puis d'une poignee :
+  // trois traitements visuels differents en trois bandes successives, d'ou
+  // l'impression de bricolage. Une seule grammaire pour toute la zone de tete :
+  // pleine largeur, separateur en bas, pas de coins.
   eventBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   eventBannerThumb: {
     width: 38,
@@ -5137,10 +5347,39 @@ const styles = StyleSheet.create({
   },
 
   // Messages List
+  // Replie SANS demonter : le composant continue de fournir `quotaState`
+  // (verrouillage de la saisie), il n'occupe simplement plus d'espace.
+  // `height: 0` + overflow hidden plutot que `display:'none'` pour rester
+  // previsible sur les deux plateformes.
+  collapsedAway: {
+    height: 0,
+    overflow: 'hidden',
+  },
+  // Poignee de repli : un chevron seul de 14px etait quasi invisible et ne
+  // disait pas ce qu'il faisait. Chevron + libelle, en ligne, sur une bande
+  // assez haute pour se voir et se viser.
+  headerCollapseToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 7,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  headerCollapseLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
+  },
   messagesList: {
     padding: Spacing.md,
     paddingBottom: Spacing.sm,
     flexGrow: 1,
+  },
+  // Racine de la chaine de largeur d'une ligne de message : sans largeur ici,
+  // tous les pourcentages en aval (swipe wrapper, messageRow, bubbleContainer)
+  // se resolvent contre une largeur indeterminee et le dernier mot est rogne.
+  messageRowWrapper: {
+    width: '100%',
   },
 
   // Date

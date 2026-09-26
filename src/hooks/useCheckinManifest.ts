@@ -24,6 +24,17 @@ import { registrationsAPI } from '../api';
 
 export type LocalVerifyStatus = 'valid' | 'already' | 'unknown';
 
+/**
+ * Billets valides a la porte (manifeste local) mais REFUSES par le serveur
+ * au moment de la synchronisation. Un `conflict` signifie le plus souvent
+ * qu'un autre agent a deja scanne le meme billet : c'est le signal de
+ * double-scan, et il doit remonter a un humain.
+ */
+export interface SyncConflictReport {
+  conflicts: Array<{ ticket_id: string; checked_in_at?: string | null; error?: string }>;
+  notFound: string[];
+}
+
 export interface LocalVerifyResult {
   status: LocalVerifyStatus;
   holderName?: string;
@@ -68,6 +79,9 @@ export function useCheckinManifest(eventId?: string) {
   const [downloadedAt, setDownloadedAt] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  // Exposé en état : `syncNow` est aussi déclenché automatiquement au retour
+  // du réseau, sans appelant capable d'afficher quoi que ce soit.
+  const [lastSyncConflicts, setLastSyncConflicts] = useState<SyncConflictReport | null>(null);
 
   // Sources de vérité en mémoire (miroir de l'AsyncStorage) pour un lookup O(1)
   // synchrone dans `verifyTicket` (appelé dans le flux de scan, pas d'await).
@@ -171,8 +185,17 @@ export function useCheckinManifest(eventId?: string) {
     syncingRef.current = true;
     try {
       const checkins = entries.map(([ticket_id, checked_in_at]) => ({ ticket_id, checked_in_at }));
-      await registrationsAPI.syncCheckins(eventId, checkins);
-      // 200 = tout traité (applied ou conflicts, tous deux "terminés" côté serveur).
+      const response = await registrationsAPI.syncCheckins(eventId, checkins);
+      // 200 = tout traité côté serveur, MAIS `conflicts` et `not_found`
+      // décrivent des personnes qui sont passées sur un billet que le serveur
+      // refuse : déjà validé ailleurs (double-scan, souvent deux agents en
+      // parallèle), remboursé, impayé, ou inexistant. Les jeter rendait toute
+      // fraude invisible alors que le backend la détecte explicitement.
+      const conflicts = Array.isArray(response?.data?.conflicts) ? response.data.conflicts : [];
+      const notFound = Array.isArray(response?.data?.not_found) ? response.data.not_found : [];
+      if (conflicts.length > 0 || notFound.length > 0) {
+        setLastSyncConflicts({ conflicts, notFound });
+      }
       localRef.current = {};
       setPendingSyncCount(0);
       await writeJSON(localKey(eventId), {});
@@ -199,12 +222,16 @@ export function useCheckinManifest(eventId?: string) {
     return () => unsub();
   }, [syncNow]);
 
+  const acknowledgeSyncConflicts = useCallback(() => setLastSyncConflicts(null), []);
+
   return {
     ready,
     count,
     downloadedAt,
     isDownloading,
     pendingSyncCount,
+    lastSyncConflicts,
+    acknowledgeSyncConflicts,
     download,
     verifyTicket,
     recordCheckin,

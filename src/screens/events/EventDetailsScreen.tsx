@@ -37,6 +37,7 @@ import Animated, {
 
 // Wrapper anime autour d'expo-image pour garder parallax + placeholder LQIP
 import { RootStackParamList } from '../../types';
+import { isWeddingEvent } from '../../lib/utils/eventKind';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows, TextStyles } from '../../constants/theme';
 import BlurHeader from '../../components/ui/BlurHeader';
 import FollowEventButton from '../../components/events/FollowEventButton';
@@ -154,7 +155,12 @@ export default function EventDetailsScreen() {
   // etait absent du tableau de bord UTM (le client existait mais n'etait
   // branche nulle part), et l'organisateur en concluait que son
   // application ne convertissait pas.
-  useUTMTracking(eventId);
+  // On passe `event.id` (UUID) et NON `eventId` de la route, qui peut etre un
+  // SLUG (`form-9-202608-784c12`) selon d'ou l'on navigue. Le backend attend
+  // un UUID pour la FK : le slug provoquait un 400 silencieux a chaque
+  // ouverture de fiche, et aucune visite n'etait donc attribuee.
+  // `event` est nul le temps du chargement — le hook ne fait rien sans id.
+  useUTMTracking(event?.id);
   const { toastError } = useFeedback();
   const { showAlert } = useAlert();
   const [joiningVisio, setJoiningVisio] = useState(false);
@@ -305,9 +311,7 @@ export default function EventDetailsScreen() {
   // repli). Les éléments spécifiques mariage (bouton cagnotte/liste de cadeaux)
   // ne doivent apparaître QUE pour un mariage — même signal que le web et le
   // menu organisateur (MyEventsScreen).
-  const isWedding = /mariage|wedding|celebration/i.test(
-    `${event?.category?.slug || ''} ${event?.category?.name || ''}`,
-  );
+  const isWedding = isWeddingEvent(event);
 
   // All hooks must be called before any early returns
   const scrollY = useSharedValue(0);

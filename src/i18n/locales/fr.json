@@ -461,7 +461,8 @@
     "saved": "Favoris",
     "messages": "Messages",
     "tickets": "Billets",
-    "profile": "Profil"
+    "profile": "Profil",
+    "organize": "Organiser"
   },
   "languagePicker": {
     "eyebrow": "BIENVENUE",
@@ -588,7 +589,7 @@
     "organizersTitleWithCity": "Ils organisent à {{city}}",
     "organizerVerified": "Organisateur vérifié",
     "organizerEventCount": "{{count}} événement",
-    "organizerEventCount_plural": "{{count}} événements"
+    "organizerEventCount_other": "{{count}} événements"
   },
   "pricingTiers": {
     "title": "Paliers de prix",
@@ -1696,7 +1697,9 @@
     "shortcutHelp": "Aide",
     "rowMyDataAtExhibitors": "Mes données chez les exposants",
     "rowLiveBanner": "Bannière des événements en direct",
-    "rowLiveBannerSubtitle": "Affiche un bandeau pour rejoindre un événement en cours."
+    "rowLiveBannerSubtitle": "Affiche un bandeau pour rejoindre un événement en cours.",
+    "pushPermissionTitle": "Notifications désactivées sur cet appareil",
+    "pushPermissionMessage": "Android/iOS bloque les notifications d'EventEz. Ouvrez les réglages système pour les autoriser."
   },
   "messages": {
     "title": "Messages",
@@ -4177,7 +4180,12 @@
     "tapToLoadImage": "Appuyer pour charger",
     "reply": "Répondre",
     "react": "Réagir",
-    "reactionToggleA11y": "Réaction {{emoji}}, {{count}}"
+    "reactionToggleA11y": "Réaction {{emoji}}, {{count}}",
+    "readOnlyLockMessageShort": "Discussion en lecture seule.",
+    "headerCollapseA11y": "Masquer le bandeau",
+    "headerExpandA11y": "Afficher le bandeau",
+    "headerCollapseLabel": "Masquer",
+    "headerExpandLabel": "Détails de l'événement"
   },
   "scanForm": {
     "loading": "Chargement...",
@@ -5461,7 +5469,8 @@
     "tabSaved": "02 · FAVORIS",
     "tabMessages": "03 · MESSAGES",
     "tabTickets": "04 · BILLETS",
-    "tabProfile": "05 · PROFIL"
+    "tabProfile": "05 · PROFIL",
+    "push": "Push"
   },
   "organizer": {
     "common": {
@@ -5472,7 +5481,7 @@
     },
     "bulkAction": {
       "selectedCount": "{{count}} sélectionné",
-      "selectedCount_plural": "{{count}} sélectionnés",
+      "selectedCount_other": "{{count}} sélectionnés",
       "approve": "Approuver",
       "reject": "Rejeter",
       "checkIn": "Check-in"
@@ -6012,7 +6021,8 @@
       "remindNone": "Aucun invité à relancer pour le moment.",
       "remindErrorTitle": "Relance impossible",
       "remindErrorMessage": "Les relances n'ont pas pu être envoyées. Réessayez.",
-      "remindPendingProgress": "Envoi des relances…"
+      "remindPendingProgress": "Envoi des relances…",
+      "loadError": "Impossible de charger vos événements. Vérifiez votre connexion."
     },
     "volunteer": {
       "tabReceived": "Reçues ({{count}})",
@@ -6283,7 +6293,25 @@
       "manualCodeInvalid": "Code invalide : attendu UUID ou code de référence (8-20 caractères A-Z/0-9).",
       "sessionRecapTitle": "Bilan de la session",
       "sessionRecapBody": "{{scanned}} scan(s) en {{minutes}} min\n✓ {{success}} validé(s)\n✗ {{failed}} échoué(s)",
-      "sessionRecapQueue": "\n⏳ {{count}} en queue offline"
+      "sessionRecapQueue": "\n⏳ {{count}} en queue offline",
+      "manualModeBanner": "Mode manuel — 1 validation par personne",
+      "manualModeA11y": "Mode manuel actif. Toucher pour réactiver le check-in automatique.",
+      "rejectedTitle_one": "{{count}} scan refusé à la synchronisation",
+      "rejectedTitle_other": "{{count}} scans refusés à la synchronisation",
+      "rejectedAlreadyUsed_one": "• {{count}} billet déjà validé (double passage)",
+      "rejectedAlreadyUsed_other": "• {{count}} billets déjà validés (double passage)",
+      "rejectedNotFound_one": "• {{count}} billet introuvable ou invalide",
+      "rejectedNotFound_other": "• {{count}} billets introuvables ou invalides",
+      "rejectedUnresolved_one": "• {{count}} scan non synchronisé après plusieurs tentatives",
+      "rejectedUnresolved_other": "• {{count}} scans non synchronisés après plusieurs tentatives",
+      "rejectedHint": "Ces personnes sont entrées pendant la coupure réseau. Vérifiez auprès de votre équipe.",
+      "conflictTitle_one": "{{count}} entrée en conflit",
+      "conflictTitle_other": "{{count}} entrées en conflit",
+      "conflictDuplicate_one": "• {{count}} billet déjà scanné ailleurs (double entrée)",
+      "conflictDuplicate_other": "• {{count}} billets déjà scannés ailleurs (double entrée)",
+      "conflictNotFound_one": "• {{count}} billet inconnu du serveur",
+      "conflictNotFound_other": "• {{count}} billets inconnus du serveur",
+      "conflictHint": "Validés hors-ligne par ce téléphone, refusés à la synchronisation. Si un autre agent scannait en parallèle, ces personnes sont entrées deux fois."
     },
     "liveOps": {
       "live": "EN DIRECT",
@@ -7577,7 +7605,7 @@
   "myLeads": {
     "title": "Mes contacts",
     "count": "{{count}} contact enregistré",
-    "count_plural": "{{count}} contacts enregistrés",
+    "count_other": "{{count}} contacts enregistrés",
     "unnamed": "Contact sans nom",
     "emptyTitle": "Aucun contact pour l’instant",
     "emptyBody": "Scannez le badge des visiteurs qui passent sur votre stand. Vous pourrez ensuite exporter la liste complète en CSV.",
@@ -7587,7 +7615,7 @@
   "myDataExhibitors": {
     "title": "Mes données chez les exposants",
     "intro": "{{count}} entreprise détient vos coordonnées suite à un scan de badge.",
-    "intro_plural": "{{count}} entreprises détiennent vos coordonnées suite à un scan de badge.",
+    "intro_other": "{{count}} entreprises détiennent vos coordonnées suite à un scan de badge.",
     "capturedOn": "Scanné le {{date}}",
     "erase": "Effacer",
     "eraseAll": "Tout effacer",
@@ -7616,5 +7644,27 @@
     "liveMultiTitle": "{{count}} événements en cours",
     "liveBannerMultiA11y": "{{count}} événements en direct, appuyer pour la liste",
     "resizeBubble": "Redimensionner"
+  },
+  "organize": {
+    "eyebrow": "Espace organisateur",
+    "title": "Organiser",
+    "liveNow": "En cours",
+    "nextEvent": "Prochain événement",
+    "registered": "inscrits",
+    "scan": "Scanner",
+    "scanA11y": "Scanner les billets de cet événement",
+    "boxOffice": "Guichet",
+    "boxOfficeA11y": "Ouvrir le guichet de cet événement",
+    "viewStats": "Voir les statistiques",
+    "availableBalance": "Solde disponible",
+    "walletA11y": "Ouvrir mon portefeuille",
+    "noActiveEvent": "Aucun événement en cours",
+    "noActiveEventHint": "Créez un événement ou publiez un brouillon pour le voir apparaître ici.",
+    "noStaffEventHint": "Vous verrez ici les événements où vous faites partie de l'équipe.",
+    "createEvent": "Créer un événement",
+    "myEvents": "Mes événements",
+    "teamEvents": "Événements où je suis staff",
+    "analytics": "Statistiques",
+    "loadError": "Impossible de charger votre espace. Vérifiez votre connexion."
   }
 }

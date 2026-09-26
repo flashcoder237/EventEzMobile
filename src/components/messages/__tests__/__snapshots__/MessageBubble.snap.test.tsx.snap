@@ -171,7 +171,14 @@ exports[`MessageBubble snapshots renders deleted message placeholder 1`] = `
 exports[`MessageBubble snapshots renders edited message with edited label 1`] = `
 <View
   collapsable={false}
-  style={{}}
+  style={
+    [
+      {
+        "width": "100%",
+      },
+      {},
+    ]
+  }
 >
   <View
     accessibilityActions={
@@ -301,9 +308,10 @@ exports[`MessageBubble snapshots renders edited message with edited label 1`] = 
             [
               {
                 "color": "#111827",
-                "flexShrink": 1,
+                "fontFamily": "Montserrat_400Regular",
                 "fontSize": 20,
-                "lineHeight": 24,
+                "includeFontPadding": false,
+                "lineHeight": 29,
               },
               {
                 "color": "#111827",
@@ -370,7 +378,14 @@ exports[`MessageBubble snapshots renders edited message with edited label 1`] = 
 exports[`MessageBubble snapshots renders grouped message (avatar masque) 1`] = `
 <View
   collapsable={false}
-  style={{}}
+  style={
+    [
+      {
+        "width": "100%",
+      },
+      {},
+    ]
+  }
 >
   <View
     accessibilityActions={
@@ -473,9 +488,10 @@ exports[`MessageBubble snapshots renders grouped message (avatar masque) 1`] = `
             [
               {
                 "color": "#111827",
-                "flexShrink": 1,
+                "fontFamily": "Montserrat_400Regular",
                 "fontSize": 20,
-                "lineHeight": 24,
+                "includeFontPadding": false,
+                "lineHeight": 29,
               },
               {
                 "color": "#111827",
@@ -525,7 +541,14 @@ exports[`MessageBubble snapshots renders grouped message (avatar masque) 1`] = `
 exports[`MessageBubble snapshots renders message with image attachment 1`] = `
 <View
   collapsable={false}
-  style={{}}
+  style={
+    [
+      {
+        "width": "100%",
+      },
+      {},
+    ]
+  }
 >
   <View
     accessibilityActions={
@@ -730,9 +753,10 @@ exports[`MessageBubble snapshots renders message with image attachment 1`] = `
             [
               {
                 "color": "#111827",
-                "flexShrink": 1,
+                "fontFamily": "Montserrat_400Regular",
                 "fontSize": 20,
-                "lineHeight": 24,
+                "includeFontPadding": false,
+                "lineHeight": 29,
               },
               {
                 "color": "#111827",
@@ -782,7 +806,14 @@ exports[`MessageBubble snapshots renders message with image attachment 1`] = `
 exports[`MessageBubble snapshots renders message with reactions 1`] = `
 <View
   collapsable={false}
-  style={{}}
+  style={
+    [
+      {
+        "width": "100%",
+      },
+      {},
+    ]
+  }
 >
   <View
     accessibilityActions={
@@ -912,9 +943,10 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
             [
               {
                 "color": "#111827",
-                "flexShrink": 1,
+                "fontFamily": "Montserrat_400Regular",
                 "fontSize": 20,
-                "lineHeight": 24,
+                "includeFontPadding": false,
+                "lineHeight": 29,
               },
               {
                 "color": "#111827",
@@ -1139,7 +1171,14 @@ exports[`MessageBubble snapshots renders message with reactions 1`] = `
 exports[`MessageBubble snapshots renders message with reply preview 1`] = `
 <View
   collapsable={false}
-  style={{}}
+  style={
+    [
+      {
+        "width": "100%",
+      },
+      {},
+    ]
+  }
 >
   <View
     accessibilityActions={
@@ -1367,9 +1406,10 @@ exports[`MessageBubble snapshots renders message with reply preview 1`] = `
             [
               {
                 "color": "#111827",
-                "flexShrink": 1,
+                "fontFamily": "Montserrat_400Regular",
                 "fontSize": 20,
-                "lineHeight": 24,
+                "includeFontPadding": false,
+                "lineHeight": 29,
               },
               {
                 "color": "#111827",
@@ -1419,7 +1459,14 @@ exports[`MessageBubble snapshots renders message with reply preview 1`] = `
 exports[`MessageBubble snapshots renders other user message (peer) 1`] = `
 <View
   collapsable={false}
-  style={{}}
+  style={
+    [
+      {
+        "width": "100%",
+      },
+      {},
+    ]
+  }
 >
   <View
     accessibilityActions={
@@ -1549,9 +1596,10 @@ exports[`MessageBubble snapshots renders other user message (peer) 1`] = `
             [
               {
                 "color": "#111827",
-                "flexShrink": 1,
+                "fontFamily": "Montserrat_400Regular",
                 "fontSize": 20,
-                "lineHeight": 24,
+                "includeFontPadding": false,
+                "lineHeight": 29,
               },
               {
                 "color": "#111827",
@@ -1601,7 +1649,14 @@ exports[`MessageBubble snapshots renders other user message (peer) 1`] = `
 exports[`MessageBubble snapshots renders own message (mine) 1`] = `
 <View
   collapsable={false}
-  style={{}}
+  style={
+    [
+      {
+        "width": "100%",
+      },
+      {},
+    ]
+  }
 >
   <View
     accessibilityActions={
@@ -1696,9 +1751,10 @@ exports[`MessageBubble snapshots renders own message (mine) 1`] = `
             [
               {
                 "color": "#111827",
-                "flexShrink": 1,
+                "fontFamily": "Montserrat_400Regular",
                 "fontSize": 20,
-                "lineHeight": 24,
+                "includeFontPadding": false,
+                "lineHeight": 29,
               },
               {
                 "color": "#FFFFFF",

@@ -1,11 +1,19 @@
 /**
  * ConversationQuotaBanner (mobile) — version React Native du composant web.
  *
- * Affiche en haut d'une conversation `group` ou `event` :
- *   - Une barre de quota cumulée (vert / orange / rouge).
- *   - L'échéance de suppression (event uniquement).
- *   - Un encart rouge "lecture seule" + bouton sauvegarder en évidence.
- *   - Un bouton "Sauvegarder" toujours dispo.
+ * Affichage PROGRESSIF en haut d'une conversation `group` ou `event` : le
+ * bandeau reste silencieux tant qu'il n'y a rien à faire, et se dévoile par
+ * paliers à l'approche d'une limite.
+ *
+ *   < 70 % et > 7 jours   → rien (cas nominal)
+ *   ≥ 70 %                → barre de quota seule
+ *   ≤ 7 jours             → échéance de suppression + bouton "Sauvegarder"
+ *   lecture seule         → encart ambre seul (la jauge est masquée : la
+ *                           conversation est gelée, le quota n'informe plus)
+ *
+ * Il était auparavant permanent : jauge à 0 %, compte à rebours décrémentant
+ * chaque jour et bouton "Sauvegarder" affichés en continu. Bruyant et
+ * anxiogène, pour une information non actionnable 95 % du temps.
  *
  * Pour les conversations `direct` → le composant rend `null`.
  */
@@ -17,6 +25,7 @@ import { useTranslation } from 'react-i18next';
 import { messagesAPI } from '../../api';
 import { downloadConversationBackup, getLastExportAt } from '../../lib/utils/conversationExport';
 import { formatBytes } from '../../constants/messaging';
+import { FontFamily } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
@@ -59,6 +68,72 @@ function formatRelativeFr(iso: string, t: (k: string, opts?: any) => string): st
   if (diffJ < 7) return t('componentsMessages.relativeDays', { count: diffJ });
   if (diffJ < 30) return t('componentsMessages.relativeWeeks', { count: Math.floor(diffJ / 7) });
   return t('componentsMessages.relativeMonths', { count: Math.floor(diffJ / 30) });
+}
+
+/** Seuil de quota (%) a partir duquel la jauge devient visible. */
+export const QUOTA_VISIBLE_PCT = 70;
+/** Nombre de jours avant suppression a partir duquel on previent. */
+export const DEADLINE_VISIBLE_DAYS = 7;
+
+/**
+ * Que faut-il afficher, compte tenu de l'etat du quota ?
+ *
+ * Extrait du composant pour etre testable : c'est la regle qui evite que le
+ * bandeau squatte l'ecran en permanence.
+ */
+export function computeBannerVisibility(input: {
+  percentage: number | null;
+  daysUntilDelete: number | null;
+  autoDeleteAt: string | null;
+  maxBytes: number | null;
+  isReadOnly: boolean;
+}): {
+  visible: boolean;
+  showBar: boolean;
+  showDeadline: boolean;
+  showSaveButton: boolean;
+} {
+  const pct = input.percentage ?? 0;
+  const days = input.daysUntilDelete;
+
+  const quotaNear = pct >= QUOTA_VISIBLE_PCT;
+  const deadlineNear = days != null && days >= 0 && days <= DEADLINE_VISIBLE_DAYS;
+
+  // Lecture seule : la conversation est bloquee, on le dit quoi qu'il arrive.
+  const visible = input.isReadOnly || quotaNear || deadlineNear;
+
+  return {
+    visible,
+    // En lecture seule, la jauge ne sert plus a rien : la conversation est
+    // gelee, plus personne n'y ecrira. Afficher « 0 o / 500 Mo » sous un
+    // bandeau d'archivage ajoute du bruit sans informer.
+    showBar: input.maxBytes != null && quotaNear && !input.isReadOnly,
+    showDeadline: input.autoDeleteAt != null && !input.isReadOnly && deadlineNear,
+    showSaveButton: !input.isReadOnly && (quotaNear || deadlineNear),
+  };
+}
+
+/**
+ * Le bandeau porte-t-il une information ACTIONNABLE ?
+ *
+ * Sert a forcer l'ouverture de la zone de tete, qui est repliee par defaut :
+ * replier un avertissement reviendrait a le masquer. Aligne sur les memes
+ * seuils que `computeBannerVisibility` — les deux doivent bouger ensemble.
+ */
+export function bannerNeedsAttention(input: {
+  percentage: number | null;
+  daysUntilDelete: number | null;
+  isReadOnly: boolean;
+  isMuted?: boolean;
+}): boolean {
+  const pct = input.percentage ?? 0;
+  const days = input.daysUntilDelete;
+  return (
+    input.isReadOnly
+    || !!input.isMuted
+    || (days != null && days >= 0 && days <= DEADLINE_VISIBLE_DAYS)
+    || pct >= QUOTA_VISIBLE_PCT
+  );
 }
 
 export default function ConversationQuotaBanner({
@@ -162,6 +237,16 @@ export default function ConversationQuotaBanner({
   if (state.conversation_type === 'direct') return null;
 
   const pct = state.percentage ?? 0;
+
+  // Regle d'affichage progressif (voir computeBannerVisibility ci-dessus).
+  const { visible, showBar, showDeadline, showSaveButton } = computeBannerVisibility({
+    percentage: state.percentage,
+    daysUntilDelete: state.days_until_delete,
+    autoDeleteAt: state.auto_delete_at,
+    maxBytes: state.max_bytes,
+    isReadOnly: state.is_read_only,
+  });
+  if (!visible) return null;
   const barColor = pct >= 90 ? '#ef4444' : pct >= 70 ? '#f97316' : '#10b981';
   const barTrack = pct >= 90 ? '#fee2e2' : pct >= 70 ? '#fed7aa' : colors.gray100 || '#f3f4f6';
 
@@ -177,7 +262,7 @@ export default function ConversationQuotaBanner({
       {/* Bandeau read-only — priorité visuelle */}
       {state.is_read_only && (
         <View style={styles.readOnlyBanner}>
-          <Ionicons name="lock-closed" size={18} color="#b91c1c" style={{ marginTop: 2 }} />
+          <Ionicons name="lock-closed" size={18} color="#92400e" style={{ marginTop: 2 }} />
           <View style={{ flex: 1 }}>
             <Text style={styles.readOnlyTitle}>{t('componentsMessages.quotaReadOnlyTitle')}</Text>
             <Text style={styles.readOnlyText}>
@@ -211,13 +296,13 @@ export default function ConversationQuotaBanner({
       {/* Barre de quota + meta */}
       <View style={styles.row}>
         <View style={{ flex: 1, gap: 6 }}>
-          {state.max_bytes != null && (
+          {showBar && (
             <>
               <View style={styles.barLabelRow}>
                 <Text style={[styles.barLabel, { color: colors.gray500 }]}>
-                  {formatBytes(state.total_bytes)} / {formatBytes(state.max_bytes)}
+                  {formatBytes(state.total_bytes)} / {formatBytes(state.max_bytes ?? 0)}
                 </Text>
-                {pct >= 70 && (
+                {pct >= QUOTA_VISIBLE_PCT && (
                   <Text style={[styles.barPct, { color: pct >= 90 ? '#dc2626' : '#ea580c' }]}>
                     {pct.toFixed(0)} %
                   </Text>
@@ -234,7 +319,7 @@ export default function ConversationQuotaBanner({
             </>
           )}
 
-          {state.auto_delete_at && !state.is_read_only && state.days_until_delete != null && (
+          {showDeadline && (
             <View
               style={[
                 styles.metaPill,
@@ -269,7 +354,7 @@ export default function ConversationQuotaBanner({
           )}
         </View>
 
-        {!state.is_read_only && (
+        {showSaveButton && (
           <Pressable
             onPress={handleExport}
             disabled={exporting}
@@ -300,9 +385,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   readOnlyBanner: {
-    backgroundColor: '#fee2e2',
+    // Ambre, pas rouge : une conversation archivee n'est pas une ERREUR, c'est
+    // un etat de fin de vie normal. Le rouge sature dramatisait un evenement
+    // attendu, et banalisait la couleur reservee aux vraies erreurs.
+    backgroundColor: '#fef3c7',
     borderBottomWidth: 1,
-    borderBottomColor: '#fecaca',
+    borderBottomColor: '#fde68a',
     paddingHorizontal: 14,
     paddingVertical: 12,
     flexDirection: 'row',
@@ -310,14 +398,16 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   readOnlyTitle: {
+    fontFamily: FontFamily.bold,
     fontSize: 13,
     fontWeight: '700',
-    color: '#7f1d1d',
+    color: '#78350f',
     marginBottom: 2,
   },
   readOnlyText: {
+    fontFamily: FontFamily.regular,
     fontSize: 11,
-    color: '#991b1b',
+    color: '#92400e',
     lineHeight: 16,
   },
   row: {
@@ -333,9 +423,11 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
   },
   barLabel: {
+    fontFamily: FontFamily.regular,
     fontSize: 11,
   },
   barPct: {
+    fontFamily: FontFamily.bold,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -359,6 +451,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   metaPillText: {
+    fontFamily: FontFamily.medium,
     fontSize: 10,
     fontWeight: '500',
   },
@@ -366,12 +459,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#dc2626',
+    backgroundColor: '#b45309',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
   },
   actionButtonPrimaryText: {
+    fontFamily: FontFamily.bold,
     color: '#fff',
     fontSize: 11,
     fontWeight: '700',
@@ -386,6 +480,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   actionButtonSecondaryText: {
+    fontFamily: FontFamily.medium,
     fontSize: 11,
     fontWeight: '500',
   },

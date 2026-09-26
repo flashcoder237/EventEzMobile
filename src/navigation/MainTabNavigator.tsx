@@ -22,6 +22,7 @@ import * as Haptics from 'expo-haptics';
 import { MainTabParamList } from '../types';
 import { FontFamily, Spacing, Shadows } from '../constants/theme';
 import { useAuth } from '../contexts/AuthContext';
+import { useOrganizerRole } from '../hooks/useOrganizerRole';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUnreadCounts } from '../contexts/NotificationContext';
 import { useTranslation } from 'react-i18next';
@@ -40,6 +41,7 @@ import FollowingEventsScreen from '../screens/dashboard/FollowingEventsScreen';
 import MyTicketsScreen from '../screens/dashboard/MyTicketsScreen';
 import MessagesScreen from '../screens/messages/MessagesScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
+import OrganizeTabScreen from '../screens/organizer/OrganizeTabScreen';
 
 // Auth-guarded tab wrappers — title/subtitle viennent désormais d'i18n
 // (authGuard.* dans fr.json/en.json), il suffit de passer `illustration`.
@@ -65,6 +67,14 @@ function TicketsTabScreen() {
     return <AuthGuardScreen illustration="ticket" />;
   }
   return <MyTicketsScreen />;
+}
+
+function OrganizeTabWrapper() {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) {
+    return <AuthGuardScreen illustration="profile" />;
+  }
+  return <OrganizeTabScreen />;
 }
 
 function ProfileTabScreen() {
@@ -139,10 +149,7 @@ function computeDockLayout(screenWidth: number) {
   };
 }
 
-type TabName = 'Discover' | 'Saved' | 'MessagesTab' | 'MyTickets' | 'Profile';
-
-// Tabs ordonnées — sert au calcul du gradient (couleur courante → suivante)
-const TAB_ORDER: TabName[] = ['Discover', 'Saved', 'MessagesTab', 'MyTickets', 'Profile'];
+type TabName = 'Discover' | 'Saved' | 'Organize' | 'MessagesTab' | 'MyTickets' | 'Profile';
 
 // Icônes : on utilise UNIQUEMENT la version filled (pas d'outline) pour un
 // rendu plus bold et solide. La distinction actif/inactif passe par la
@@ -152,6 +159,7 @@ const TAB_ORDER: TabName[] = ['Discover', 'Saved', 'MessagesTab', 'MyTickets', '
 const tabConfig: Record<TabName, { icon: keyof typeof Ionicons.glyphMap; labelKey: string }> = {
   Discover: { icon: 'compass', labelKey: 'tabs.discover' },
   Saved: { icon: 'bookmark', labelKey: 'tabs.saved' },
+  Organize: { icon: 'grid', labelKey: 'tabs.organize' },
   MessagesTab: { icon: 'chatbubble', labelKey: 'tabs.messages' },
   MyTickets: { icon: 'ticket', labelKey: 'tabs.tickets' },
   Profile: { icon: 'person', labelKey: 'tabs.profile' },
@@ -163,6 +171,7 @@ const tabConfig: Record<TabName, { icon: keyof typeof Ionicons.glyphMap; labelKe
 const TAB_PILL_COLORS_LIGHT: Record<TabName, string> = {
   Discover: '#4F46E5', // indigo
   Saved: '#FF6B6B',    // corail
+  Organize: '#FF6B6B', // corail — occupe le meme slot que Favoris
   MessagesTab: '#06B6D4', // cyan
   MyTickets: '#A855F7', // violet
   Profile: '#F59E0B',   // ambre
@@ -170,6 +179,7 @@ const TAB_PILL_COLORS_LIGHT: Record<TabName, string> = {
 const TAB_PILL_COLORS_DARK: Record<TabName, string> = {
   Discover: '#818CF8',
   Saved: '#FCA5A5',
+  Organize: '#FCA5A5',
   MessagesTab: '#67E8F9',
   MyTickets: '#C084FC',
   Profile: '#FBBF24',
@@ -522,10 +532,13 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
           const routeName = route.name as TabName;
           const pillColor = palette[routeName];
           // Couleur de fin du gradient = couleur de la tab suivante (wrap-around).
-          // Indépendant de l'ordre des routes du Navigator pour rester déterministe.
-          const orderIdx = TAB_ORDER.indexOf(routeName);
-          const nextTabName = TAB_ORDER[(orderIdx + 1) % TAB_ORDER.length];
-          const nextTabColor = palette[nextTabName];
+          //
+          // On lit `state.routes` et NON `TAB_ORDER` : depuis que « Organiser »
+          // et « Favoris » se partagent le même slot (mutuellement exclusifs),
+          // l'ordre théorique contient toujours un onglet qui n'est pas rendu.
+          // S'y fier ferait pointer le gradient vers une tab absente.
+          const nextRoute = state.routes[(index + 1) % state.routes.length];
+          const nextTabColor = palette[nextRoute.name as TabName];
 
           // Closure stable par index — recréée seulement si l'index focused change.
           // (On ne peut pas useCallback ici car on est dans un map ; mais comme
@@ -563,6 +576,9 @@ export default function MainTabNavigator() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const tour = useTour();
+  // Propriétaire OU membre d'équipe : un bénévole chargé du scan a exactement
+  // le même besoin qu'un organisateur, et `user.role` le classait en 'user'.
+  const { hasOrganizerWork } = useOrganizerRole();
 
   // Auto-start the feature tour on the first authenticated MainTab mount.
   // The seenKey persists in AsyncStorage — won't re-trigger on subsequent boots.
@@ -585,7 +601,17 @@ export default function MainTabNavigator() {
       }}
     >
       <Tab.Screen name="Discover" component={DiscoverScreen} options={{ tabBarLabel: 'Découvrir' }} />
-      <Tab.Screen name="Saved" component={SavedTabScreen} options={{ tabBarLabel: 'Favoris' }} />
+      {/* Onglet CONTEXTUEL : « Organiser » remplace « Favoris » pour qui a du
+          travail d'organisation (propriétaire OU membre d'équipe). On REMPLACE
+          plutôt qu'on n'ajoute — le dock est dimensionné pour 5 slots, un 6e
+          casserait les écrans < 360px. Favoris reste dans Profil.
+          Tant que la détection staff n'a pas répondu, on garde Favoris : un
+          onglet qui apparaît puis disparaît est pire que l'attendre. */}
+      {hasOrganizerWork ? (
+        <Tab.Screen name="Organize" component={OrganizeTabWrapper} options={{ tabBarLabel: t('tabs.organize') }} />
+      ) : (
+        <Tab.Screen name="Saved" component={SavedTabScreen} options={{ tabBarLabel: 'Favoris' }} />
+      )}
       <Tab.Screen name="MessagesTab" component={MessagesTabScreen} options={{ tabBarLabel: 'Messages' }} />
       <Tab.Screen name="MyTickets" component={TicketsTabScreen} options={{ tabBarLabel: 'Billets' }} />
       <Tab.Screen name="Profile" component={ProfileTabScreen} options={{ tabBarLabel: 'Profil' }} />

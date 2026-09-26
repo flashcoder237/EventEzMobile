@@ -317,6 +317,52 @@ export async function patchLocalMessage(
   });
 }
 
+/**
+ * Marque des messages comme supprimés LOCALEMENT et de façon persistante, en
+ * posant un tombstone `pending_op = 'delete'`.
+ *
+ * Indispensable hors-ligne : l'ancien chemin ne faisait que muter le state
+ * React, donc la suppression disparaissait au moindre remount, et le
+ * delta-sync la réécrasait de toute façon. Le tombstone survit aux deux :
+ * `upsertMessagesTx` refuse de ressusciter une ligne qui en porte un.
+ *
+ * Il est levé par `clearPendingOp` une fois le serveur confirmé.
+ */
+export async function markMessagesPendingDelete(ids: Array<string | number>): Promise<void> {
+  if (ids.length === 0) return;
+  const db = await getDatabase();
+  const keys = ids.map(String);
+  await runExclusive(async () => {
+    const placeholders = keys.map(() => '?').join(',');
+    await db.runAsync(
+      `UPDATE messages
+         SET is_deleted = 1,
+             pending_op = 'delete',
+             payload = json_set(payload, '$.is_deleted', json('true'))
+       WHERE id IN (${placeholders})`,
+      ...keys,
+    );
+  });
+}
+
+/**
+ * Lève le tombstone après confirmation serveur : la ligne redevient pilotable
+ * par le delta-sync. `is_deleted` reste à 1 — le serveur est désormais
+ * d'accord, il renverra la même chose.
+ */
+export async function clearPendingOp(ids: Array<string | number>): Promise<void> {
+  if (ids.length === 0) return;
+  const db = await getDatabase();
+  const keys = ids.map(String);
+  await runExclusive(async () => {
+    const placeholders = keys.map(() => '?').join(',');
+    await db.runAsync(
+      `UPDATE messages SET pending_op = NULL WHERE id IN (${placeholders})`,
+      ...keys,
+    );
+  });
+}
+
 // Helper interne : upsert dans une transaction déjà ouverte.
 async function upsertMessagesTx(db: any, cid: string, messages: Message[]): Promise<void> {
   for (const m of messages) {
@@ -355,12 +401,25 @@ async function upsertMessagesTx(db: any, cid: string, messages: Message[]): Prom
       }
     }
 
+    // Garde TOMBSTONE : une ligne portant `pending_op = 'delete'` a ete
+    // supprimee localement mais le serveur ne le sait pas encore (suppression
+    // faite hors-ligne, pas encore rejouee par l'outbox). Sans cette garde, le
+    // delta-sync renvoie le message comme vivant et le RESSUSCITE — le bug
+    // « je supprime, je me reconnecte, tout revient ».
+    //
+    // On preserve donc `is_deleted` et `pending_op` tant que l'outbox n'a pas
+    // confirme. Le reste du payload est mis a jour normalement : si le message
+    // a ete edite ailleurs entre-temps, on garde la derniere version, juste
+    // toujours marquee supprimee localement.
     await db.runAsync(
-      `INSERT INTO messages (id, conversation_id, server_id, payload, created_at, updated_at, is_deleted, send_state)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'sent')
+      `INSERT INTO messages (id, conversation_id, server_id, payload, created_at, updated_at, is_deleted, send_state, pending_op)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'sent', NULL)
        ON CONFLICT(id) DO UPDATE SET
          payload = excluded.payload, server_id = excluded.server_id,
-         updated_at = excluded.updated_at, is_deleted = excluded.is_deleted, send_state = 'sent'`,
+         updated_at = excluded.updated_at,
+         is_deleted = CASE WHEN messages.pending_op = 'delete' THEN 1 ELSE excluded.is_deleted END,
+         pending_op = messages.pending_op,
+         send_state = 'sent'`,
       String(m.id), cid, serverId, JSON.stringify(m),
       m.created_at, m.updated_at ?? m.created_at, m.is_deleted ? 1 : 0,
     );

@@ -13,7 +13,7 @@ const DB_NAME = 'eventez.db';
 
 // Version de schéma courante. Incrémenter à chaque changement de structure et
 // ajouter le bloc de migration correspondant dans `migrate()`.
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 let _db: SQLite.SQLiteDatabase | null = null;
 let _openPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -107,6 +107,27 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
         created_at      TEXT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_outbox_conv ON outbox(conversation_id);
+    `);
+    await db.execAsync(`PRAGMA user_version = 2;`);
+  }
+
+  if (current < 3) {
+    // L'outbox etait SEND-ONLY : sa structure ne pouvait representer qu'un
+    // envoi. Une suppression faite hors-ligne n'etait donc jamais rejouee a
+    // la reconnexion, et le delta-sync restaurait les messages « supprimes ».
+    //
+    // `op` discrimine l'operation a rejouer ; `target_ids` porte la liste des
+    // messages vises par une suppression (JSON). Les lignes existantes sont
+    // des envois — d'ou le DEFAULT 'send', qui les migre sans les toucher.
+    //
+    // Cote `messages`, `pending_op` est un TOMBSTONE : il marque une mutation
+    // locale pas encore confirmee par le serveur. Le delta-sync doit refuser
+    // d'ecraser une ligne qui en porte un, sinon le serveur (qui ignore
+    // encore la suppression) la ressuscite.
+    await db.execAsync(`
+      ALTER TABLE outbox ADD COLUMN op TEXT DEFAULT 'send';
+      ALTER TABLE outbox ADD COLUMN target_ids TEXT;
+      ALTER TABLE messages ADD COLUMN pending_op TEXT;
     `);
     await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION};`);
   }

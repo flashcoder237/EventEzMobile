@@ -131,6 +131,16 @@
               "scheme": "https",
               "host": "eventez.online",
               "path": "/dashboard/payments"
+            },
+            {
+              "scheme": "https",
+              "host": "eventez.online",
+              "pathPrefix": "/dashboard/registrations/"
+            },
+            {
+              "scheme": "https",
+              "host": "eventez.online",
+              "pathPrefix": "/dashboard/events/"
             }
           ],
           "category": [

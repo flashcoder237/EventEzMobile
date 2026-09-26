@@ -61,3 +61,7 @@ eventez-*-*.json
 .agents/
 .mcp.json
 .aidesigner/
+
+# Artefacts de build des modules natifs locaux (generes, jamais versionnes).
+# Sans cette regle, `git add -A` indexe ~110 fichiers binaires (.dex, .jar, .bin).
+modules/*/android/build/

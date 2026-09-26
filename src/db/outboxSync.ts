@@ -7,7 +7,7 @@
  * en cours ('sending') n'est pas reprise par un rejeu concurrent.
  */
 import { messagesAPI } from '../api/messages';
-import { reconcileSent } from './messageRepository';
+import { reconcileSent, clearPendingOp } from './messageRepository';
 import {
   getPendingOutbox,
   markOutboxSending,
@@ -69,6 +69,21 @@ async function _flushOutboxInner(): Promise<number> {
 
     await markOutboxSending(entry.temp_id);
     try {
+      // ── Rejeu d'une SUPPRESSION faite hors-ligne ──────────────────────
+      // L'outbox etait send-only : une suppression hors-ligne n'atteignait
+      // jamais le serveur, et le delta-sync restaurait les messages a la
+      // reconnexion. On rejoue ici, puis on leve le tombstone local
+      // (`pending_op`) qui protegeait les lignes du sync entre-temps.
+      if (entry.op === 'delete') {
+        if (entry.target_ids.length > 0) {
+          await messagesAPI.bulkDeleteMessages(entry.target_ids);
+          await clearPendingOp(entry.target_ids);
+        }
+        await removeOutbox(entry.temp_id);
+        sent += 1;
+        continue;
+      }
+
       // 1. Upload des attachments locaux → ids serveur.
       const attachmentIds: string[] = [];
       for (const att of entry.attachments) {

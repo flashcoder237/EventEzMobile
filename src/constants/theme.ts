@@ -455,26 +455,29 @@ export const SafeArea = {
 // Règle: Funnel Display pour titres (h1, h2), Montserrat pour le reste
 export const TextStyles = {
   // Editorial - Hero & Display styles
+  // GRANDS TITRES adoucis : une graisse en dessous, resserrement relache
+  // et interlignage plus aere. Les TAILLES ne bougent pas — la hierarchie
+  // de l'interface reste la meme, seule la texture change.
   hero: {
-    fontFamily: FontFamily.displayExtraBold,
+    fontFamily: FontFamily.displayBold,
     fontSize: ms(56),
     color: Colors.gray900,
-    lineHeight: ms(58),
-    letterSpacing: -2,
+    lineHeight: ms(64),
+    letterSpacing: -1.2,
   },
   heroSm: {
-    fontFamily: FontFamily.displayExtraBold,
+    fontFamily: FontFamily.displayBold,
     fontSize: ms(40),
     color: Colors.gray900,
-    lineHeight: ms(44),
-    letterSpacing: -1.5,
+    lineHeight: ms(48),
+    letterSpacing: -0.8,
   },
   editorial: {
-    fontFamily: FontFamily.displayBold,
+    fontFamily: FontFamily.displaySemiBold,
     fontSize: ms(32),
     color: Colors.gray900,
-    lineHeight: ms(36),
-    letterSpacing: -1,
+    lineHeight: ms(40),
+    letterSpacing: -0.4,
   },
   eyebrow: {
     fontFamily: FontFamily.semiBold,
@@ -486,18 +489,18 @@ export const TextStyles = {
 
   // Headings - Funnel Display (bolder, larger — Eventbrite style)
   h1: {
-    fontFamily: FontFamily.displayExtraBold,
+    fontFamily: FontFamily.displayBold,
     fontSize: ms(40),
     color: Colors.gray900,
-    lineHeight: ms(46),
-    letterSpacing: -1,
+    lineHeight: ms(50),
+    letterSpacing: -0.5,
   },
   h2: {
-    fontFamily: FontFamily.displayBold,
+    fontFamily: FontFamily.displaySemiBold,
     fontSize: ms(28),
     color: Colors.gray900,
-    lineHeight: ms(34),
-    letterSpacing: -0.5,
+    lineHeight: ms(36),
+    letterSpacing: -0.2,
   },
   h3: {
     fontFamily: FontFamily.displaySemiBold,

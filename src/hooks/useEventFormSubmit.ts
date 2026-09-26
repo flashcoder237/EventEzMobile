@@ -359,6 +359,12 @@ async function syncFormFields(eventId: string, form: EventFormState, isEdit: boo
   }));
 
   if (isEdit) {
+    // Le bloc « questions personnalisées » est MASQUÉ (billetterie sans
+    // l'option activée) : `form.formFields` n'a alors jamais été hydraté,
+    // et envoyer `clear_existing: true` avec une liste vide supprimait
+    // silencieusement toutes les questions déjà configurées. On ne touche
+    // à rien tant que l'organisateur ne voit pas ce qu'il modifie.
+    if (!wantsFields) return;
     // Remplace l'ensemble (y compris le cas "l'organisateur a tout retiré").
     await eventsAPI.updateFormFields(eventId, { clear_existing: true, fields });
     return;

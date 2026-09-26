@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { getAvatarColor } from '../../utils/avatarColor';
+import { getUserInitials } from '../../lib/utils/messagingHelpers';
 import {
   View,
   Text,
@@ -973,6 +975,17 @@ export default function DiscoverScreen() {
   // Carte organisateur : l'identité d'abord (photo + nom), la preuve
   // ensuite (nombre d'événements, note). Le badge vérifié porte un libellé
   // accessible — un pictogramme seul ne dit rien à qui ne le voit pas.
+  // Le pays distingue-t-il les cartes, ou est-il le meme partout ?
+  // Repete a l'identique sur chaque carte, il devient du bruit : on le masque
+  // alors au profit de la ville. Calcule ici (pas dans le renderer) pour ne
+  // pas rebalayer la liste a chaque carte rendue.
+  const countryIsDistinctive = useMemo(() => {
+    const countries = new Set(
+      (localOrganizers || []).map((o: any) => o?.country).filter(Boolean),
+    );
+    return countries.size > 1;
+  }, [localOrganizers]);
+
   const renderOrganizerCard = ({ item, index }: { item: any; index: number }) => {
     const name = (item.company_name || `${item.first_name || ''} ${item.last_name || ''}`).trim();
     // getMediaUrl peut renvoyer null : on résout ici pour que le repli
@@ -981,7 +994,14 @@ export default function DiscoverScreen() {
     const avatar = getMediaUrl(item.profile_picture || item.organizer_profile?.logo);
     const eventCount = Number(item.organizer_profile?.event_count || 0);
     const rating = Number(item.organizer_profile?.rating || 0);
-    const place = [item.city, item.country].filter(Boolean).join(', ');
+    // Le pays n'est affiche que s'il DISTINGUE la carte. Quand tous les
+    // organisateurs visibles sont du meme pays (cas courant : « Cameroun »
+    // repete sur chaque carte), il n'apporte rien et occupe autant de place
+    // que la note. On garde alors la ville seule ; s'il n'y a pas de ville,
+    // le pays reprend sa place plutot que de laisser un vide.
+    const place = countryIsDistinctive
+      ? [item.city, item.country].filter(Boolean).join(', ')
+      : (item.city || item.country || '');
     return (
       <StaggeredItem index={index} staggerDelay={70}>
         <AnimatedPressable
@@ -991,17 +1011,34 @@ export default function DiscoverScreen() {
           accessibilityLabel={name}
           style={[styles.organizerCard, { backgroundColor: colors.card, borderColor: colors.border }]}
         >
-          <View style={[styles.organizerAvatar, { backgroundColor: colors.gray100 }]}>
+          {/* Repli = initiales sur fond colore derive du nom, PAS une icone
+              generique : trois cartes sans logo montraient trois silhouettes
+              « immeuble » grises identiques, donc indistinguables. La couleur
+              est stable pour un organisateur donne (hash du nom), ce qui en
+              fait un repere et non une decoration. */}
+          <View
+            style={[
+              styles.organizerAvatar,
+              { backgroundColor: avatar ? colors.gray100 : getAvatarColor(name) },
+            ]}
+          >
             {avatar ? (
               <Image source={{ uri: avatar }} style={styles.organizerAvatarImg} />
             ) : (
-              <Ionicons name="business" size={22} color={colors.gray400} />
+              <Text style={styles.organizerAvatarInitials} allowFontScaling={false}>
+                {getUserInitials(name)}
+              </Text>
             )}
           </View>
           <View style={styles.organizerNameRow}>
+            {/* 2 lignes : la carte fait 168px, dont ~120 utiles apres padding
+                et badge verifie. Sur une seule ligne, la plupart des noms
+                d'organisateurs etaient tronques des le 12e caractere
+                (« Kribi Beach Ev… »), ce qui les rend indistinguables entre
+                eux — l'inverse du but d'une carte d'identite. */}
             <Text
               style={[styles.organizerName, { color: colors.text }]}
-              numberOfLines={1}
+              numberOfLines={2}
               allowFontScaling
               maxFontSizeMultiplier={1.4}
             >
@@ -1035,10 +1072,14 @@ export default function DiscoverScreen() {
               {t('discover.organizerEventCount', { count: eventCount })}
             </Text>
             {rating > 0 && (
+              // La note est le seul signal de QUALITE de la carte : elle sort
+              // du gris uniforme ou tout se valait (nom, pays, compte, note au
+              // meme poids). Etoile un peu plus grande, valeur en gras et en
+              // couleur de texte pleine.
               <View style={styles.organizerRating}>
-                <Ionicons name="star" size={11} color="#F59E0B" />
+                <Ionicons name="star" size={12} color="#F59E0B" />
                 <Text
-                  style={[styles.organizerMeta, { color: colors.gray500 }]}
+                  style={[styles.organizerRatingText, { color: colors.text }]}
                   allowFontScaling
                   maxFontSizeMultiplier={1.3}
                 >
@@ -2601,7 +2642,9 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   heroCard: {
-    borderRadius: 24,
+    // Aligne sur les cartes de l'ecran de recherche (14) : meme objet
+    // « carte d'evenement », meme rayon d'un ecran a l'autre.
+    borderRadius: 14,
     borderWidth: 1,
     overflow: 'hidden',
   },
@@ -2718,14 +2761,25 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   organizerAvatarImg: { width: '100%', height: '100%' },
-  organizerNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  organizerName: { flex: 1, fontFamily: FontFamily.bold, fontSize: 14, letterSpacing: -0.2 },
+  // `flex-start` : avec un nom sur 2 lignes, un badge centre verticalement
+  // flotterait au milieu du bloc. Il reste accroche a la premiere ligne.
+  organizerNameRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4 },
+  organizerName: { flex: 1, fontFamily: FontFamily.bold, fontSize: 14, letterSpacing: -0.2, lineHeight: 18 },
+  // `allowFontScaling={false}` cote JSX : le cercle a une taille fixe, un
+  // texte mis a l'echelle deborderait au lieu d'agrandir le conteneur.
+  organizerAvatarInitials: {
+    fontFamily: FontFamily.bold,
+    fontSize: 17,
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
   organizerMeta: { fontFamily: FontFamily.regular, fontSize: 11.5 },
   organizerStats: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
-  organizerRating: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  organizerRating: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  organizerRatingText: { fontFamily: FontFamily.bold, fontSize: 12 },
   nearbyCard: {
     width: 220,
-    borderRadius: 20,
+    borderRadius: 14,
     borderWidth: 1,
     overflow: 'hidden',
   },

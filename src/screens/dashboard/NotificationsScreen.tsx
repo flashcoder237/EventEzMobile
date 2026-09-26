@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
+import { goBack as goBackOrHome } from '../../lib/navigation';
 import { notificationsAPI } from '../../api';
 import CacheService from '../../services/CacheService';
 import { Notification, RootStackParamList } from '../../types';
@@ -523,7 +524,10 @@ export default function NotificationsScreen() {
           <View style={styles.headerInner}>
           <View style={styles.headerTopRow}>
             <TouchableOpacity
-              onPress={() => navigation.goBack()}
+              // Repli vers l'accueil quand il n'y a pas d'historique :
+              // cet ecran peut s'ouvrir a la RACINE du stack (deep link,
+              // notification), et le bouton ne menait alors nulle part.
+              onPress={() => goBackOrHome(navigation as any)}
               style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
               activeOpacity={0.7}
               accessibilityRole="button"

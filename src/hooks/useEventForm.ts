@@ -23,6 +23,7 @@ import { useOrganizerWallet } from './useOrganizerWallet';
 import { useEventFormValidation } from './useEventFormValidation';
 import { useEventFormSubmit } from './useEventFormSubmit';
 import { displayCurrency } from '../lib/utils/priceFormatters';
+import { findWeddingCategory } from '../lib/utils/eventKind';
 
 // Re-export constants from dedicated file
 export { STEPS, LOCATION_TYPES, FIELD_TYPES, SESSION_TYPES } from './useEventFormConstants';
@@ -949,9 +950,8 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
     if (editEventId) return;
     if (visibilityTouchedRef.current) return;
     if (categoryId == null) return;
-    const catName = categories.find(c => c.id === categoryId)?.name || '';
-    const catSlug = (categories.find(c => c.id === categoryId) as any)?.slug || '';
-    const isWeddingCat = /mariage|wedding|celebration/i.test(`${catSlug} ${catName}`);
+    const selected = categories.find(c => c.id === categoryId);
+    const isWeddingCat = !!selected && findWeddingCategory([selected as any]) !== undefined;
     // setVisibilityState (et non setVisibility) : suggestion auto, on ne marque
     // pas « touché » pour laisser l'utilisateur reprendre la main librement.
     // On ne force QUE le passage en privé pour un mariage ; on ne repasse pas

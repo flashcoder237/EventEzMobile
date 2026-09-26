@@ -19,6 +19,28 @@ RNTextInput.defaultProps.maxFontSizeMultiplier = MAX_FONT_SIZE_MULTIPLIER;
 // On patch Text.render pour injecter le style AVANT le style user (donc user override possible).
 // Le style injecte ne s'applique que si le style user n'a pas de fontFamily.
 const DEFAULT_FONT_FAMILY = 'Montserrat_400Regular';
+
+// `includeFontPadding: false` injecte AVEC la police — et c'est essentiel.
+//
+// Android derive un padding vertical des metriques de la police. Quand une
+// police custom (Montserrat) remplace la police systeme, ses metriques sont
+// plus larges que celles pour lesquelles le noeud a ete mesure : la fin du
+// texte est alors ROGNEE au lieu de passer a la ligne. Symptome observe :
+// « Ok on reste encore » affiche « Ok on reste », « 500.0 Mo » affiche
+// « 500.0 », « Pensez a sauvegarder. » affiche « Pensez a ».
+//
+// Le bug touchait 234 styles repartis dans 50 fichiers (dont des ecrans de
+// paiement et de billetterie). Le corriger ici plutot que style par style :
+//  - couvre tout l'existant d'un coup,
+//  - couvre tout code FUTUR qui omettrait `fontFamily`,
+//  - reste surchargeable localement (le style user passe apres).
+//
+// Sur iOS la propriete est ignoree : aucun effet de bord.
+const DEFAULT_TEXT_STYLE = {
+  fontFamily: DEFAULT_FONT_FAMILY,
+  includeFontPadding: false,
+};
+
 const patchDefaultFont = (Component: any) => {
   const orig = Component.render;
   if (!orig || Component.__fontPatched) return;
@@ -27,7 +49,7 @@ const patchDefaultFont = (Component: any) => {
     const element = orig.apply(this, args);
     if (!element || !element.props) return element;
     return React.cloneElement(element, {
-      style: [{ fontFamily: DEFAULT_FONT_FAMILY }, element.props.style],
+      style: [DEFAULT_TEXT_STYLE, element.props.style],
     });
   };
 };
@@ -83,6 +105,7 @@ import LiveBannerSpacer from './src/components/visio/LiveBannerSpacer';
 import VerificationGuardModal from './src/components/auth/VerificationGuardModal';
 import LockGate from './src/components/auth/LockGate';
 import { DEEP_LINK_SCHEME, WEB_BASE_URL, stripLocalePrefix } from './src/constants/urls';
+import { rewriteDashboardPath } from './src/lib/utils/dashboardRewrites';
 import { captureReferralFromPath } from './src/lib/referral';
 import { buildSearchState } from './src/lib/deeplinks/searchDeepLink';
 import { RootStackParamList } from './src/types';
@@ -126,31 +149,6 @@ try {
 
 // Keep native splash visible while we load fonts
 SplashScreen.preventAutoHideAsync().catch(() => {});
-
-// Réécrit les chemins web `/dashboard/*` (envoyés dans les emails backend)
-// vers les routes mobiles équivalentes. Les liens email pointent vers l'espace
-// web (/dashboard/tickets, /dashboard/registrations…) ; sur mobile ces sections
-// vivent sous d'autres noms d'écran. Sans cette réécriture, un lien email
-// ouvrait le navigateur au lieu de l'app même quand l'universal link est capté.
-// Cf. backend apps/notifications/*, email_automation.py (FRONTEND_URL/dashboard/*).
-const DASHBOARD_REWRITES: Array<[RegExp, string]> = [
-  [/^\/dashboard\/tickets\/?$/, '/tickets'],
-  // Les inscriptions sont regroupées avec les billets côté mobile (MyTickets).
-  [/^\/dashboard\/registrations\/?$/, '/tickets'],
-  [/^\/dashboard\/events\/?$/, '/my-events'],
-  [/^\/dashboard\/payments\/?$/, '/my-payments'],
-];
-
-function rewriteDashboardPath(path: string): string {
-  // On ne réécrit que le pathname ; on préserve la query string (ex: ?event=…).
-  const [pathname, query] = path.split('?');
-  for (const [pattern, replacement] of DASHBOARD_REWRITES) {
-    if (pattern.test(pathname)) {
-      return query ? `${replacement}?${query}` : replacement;
-    }
-  }
-  return path;
-}
 
 const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [
@@ -235,6 +233,16 @@ const linking: LinkingOptions<RootStackParamList> = {
       // MyEvents/MyPayments sont des écrans du RootNavigator (organisateur).
       MyEvents: 'my-events',
       MyPayments: 'my-payments',
+      // Détail d'une inscription : cible de l'email de CONFIRMATION, le lien
+      // le plus cliqué du produit. Sans cette entrée, la réécriture
+      // aboutissait à un chemin que `config.screens` ne savait pas résoudre.
+      RegistrationDetails: 'registrations/:registrationId',
+      // Liste des participants d'un événement (vue organisateur), cible de
+      // `/dashboard/registrations?event={id}` — qui atterrissait jusqu'ici
+      // sur la liste des billets ACHETÉS.
+      EventRegistrations: 'event-registrations/:eventId',
+      // Édition d'un événement : cible de l'email « modifications demandées ».
+      EventEdit: 'events/:eventId/edit',
       Main: {
         screens: {
           Discover: 'discover',
@@ -271,6 +279,17 @@ function AppContent() {
     let cancelled = false;
     (async () => {
       try {
+        // DEEP LINK PRIORITAIRE. `initialState` etait passe
+        // INCONDITIONNELLEMENT : React Navigation restaurait d'abord l'etat
+        // persiste, PUIS appliquait le lien — l'utilisateur voyait donc
+        // l'ecran precedent (souvent Notifications) clignoter avant la page
+        // demandee. Si l'app s'ouvre via un lien, la destination est
+        // explicite : on ne restaure rien.
+        const openedFromLink = await Linking.getInitialURL();
+        if (openedFromLink) {
+          if (!cancelled) setInitialNavState(undefined);
+          return;
+        }
         const state = await loadNavigationState();
         if (!cancelled) setInitialNavState(state);
       } finally {

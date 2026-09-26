@@ -234,3 +234,25 @@ describe('Robustesse', () => {
     expect(restored).toBeUndefined();
   });
 });
+
+// ─── Ecran Notifications : ne doit JAMAIS etre restaure ─────────────────────
+// CAS REEL : l'ecran Notifications s'ouvrait a chaque lancement de l'app.
+// Restaure a la RACINE du stack, son bouton retour ne menait nulle part —
+// l'utilisateur etait bloque, sans aucun moyen de revenir a l'accueil. Et
+// depuis l'accueil, le retour materiel y ramenait.
+//
+// C'est un ecran CONSULTATIF : on le consulte, on en sort. Rien a reprendre.
+
+describe('Notifications n est pas restaure', () => {
+  it('jette l etat quand Notifications est au sommet', async () => {
+    await saveNavigationState(makeState('Notifications'));
+    expect(await loadNavigationState()).toBeUndefined();
+  });
+
+  it('restaure toujours un ecran legitime', async () => {
+    // Non-regression : la persistance garde son interet (reprendre un
+    // paiement interrompu, une fiche event…).
+    await saveNavigationState(makeState('EventDetails'));
+    expect(await loadNavigationState()).toBeDefined();
+  });
+});
