@@ -4,12 +4,30 @@ import {
   isAuthError,
   isNetworkError,
   isValidationError,
+  getApiErrorCode,
+  getRetryAfterSeconds,
 } from '../errorHandling';
 
 describe('extractErrorMessage', () => {
   it('returns data.detail when present', () => {
     const err = { response: { data: { detail: 'Identifiants invalides' } } };
     expect(extractErrorMessage(err)).toBe('Identifiants invalides');
+  });
+
+  it('prioritises data.message over {success:false} noise (429 anti-fraude)', () => {
+    // Regression : avant, la boucle "premiere cle" renvoyait la valeur de
+    // `success` (=> "false") au lieu du vrai message actionnable.
+    const err = {
+      response: {
+        status: 429,
+        data: {
+          success: false,
+          error: 'too_many_failed_payments',
+          message: 'Paiements par carte bloques pendant ~24h.',
+        },
+      },
+    };
+    expect(extractErrorMessage(err)).toBe('Paiements par carte bloques pendant ~24h.');
   });
 
   it('returns first field error (email)', () => {
@@ -71,6 +89,34 @@ describe('extractErrorMessage', () => {
 
   it('returns generic message for empty error', () => {
     expect(extractErrorMessage({})).toMatch(/erreur/i);
+  });
+});
+
+describe('getApiErrorCode', () => {
+  it('reads data.error', () => {
+    const err = { response: { data: { error: 'too_many_failed_payments' } } };
+    expect(getApiErrorCode(err)).toBe('too_many_failed_payments');
+  });
+  it('falls back to data.code', () => {
+    const err = { response: { data: { code: 'event_ended' } } };
+    expect(getApiErrorCode(err)).toBe('event_ended');
+  });
+  it('returns undefined when absent', () => {
+    expect(getApiErrorCode({ response: { data: {} } })).toBeUndefined();
+  });
+});
+
+describe('getRetryAfterSeconds', () => {
+  it('reads retry_after from body', () => {
+    const err = { response: { data: { retry_after: 3600 } } };
+    expect(getRetryAfterSeconds(err)).toBe(3600);
+  });
+  it('reads Retry-After header when body absent', () => {
+    const err = { response: { data: {}, headers: { 'retry-after': '120' } } };
+    expect(getRetryAfterSeconds(err)).toBe(120);
+  });
+  it('returns undefined when neither present', () => {
+    expect(getRetryAfterSeconds({ response: { data: {} } })).toBeUndefined();
   });
 });
 

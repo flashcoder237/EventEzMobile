@@ -1187,6 +1187,7 @@
     "paymentBack": "Back",
     "paymentGenericError": "An error occurred during payment",
     "paymentErrorTitle": "Payment error",
+    "paymentBlockedTitle": "Card payment blocked",
     "paymentCancelledTitle": "Payment cancelled",
     "paymentNoPaymentInProgress": "No ongoing payment to verify",
     "paymentVerifyingTitle": "Verifying...",

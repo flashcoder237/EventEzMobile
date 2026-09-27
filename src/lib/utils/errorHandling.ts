@@ -171,6 +171,9 @@ function flattenErrorValue(value: any): string {
 
 interface ApiErrorData {
   detail?: string;
+  message?: string;
+  error?: string;
+  retry_after?: number;
   email?: string | string[];
   password?: string | string[];
   username?: string | string[];
@@ -191,6 +194,14 @@ export function extractErrorMessage(error: any): string {
   // Erreur Axios avec reponse
   if (error?.response?.data) {
     const data: ApiErrorData = error.response.data;
+
+    // Message applicatif explicite. Beaucoup d'endpoints (paiement, anti-fraude…)
+    // renvoient {success:false, error:'code', message:'texte actionnable'}. Sans
+    // cette priorite, la boucle "premiere cle de l'objet" plus bas renvoyait la
+    // valeur de `success` (=> le texte "false"), masquant le vrai message.
+    if (typeof data.message === 'string' && data.message.trim()) {
+      return data.message;
+    }
 
     // Message detail direct
     if (data.detail) {
@@ -308,4 +319,29 @@ export function isNetworkError(error: any): boolean {
  */
 export function isValidationError(error: any): boolean {
   return error?.response?.status === 400;
+}
+
+/**
+ * Code d'erreur applicatif renvoye par le backend ({error:'...'} ou {code:'...'}),
+ * pour reagir specifiquement (ex: proposer un autre moyen de paiement).
+ */
+export function getApiErrorCode(error: any): string | undefined {
+  const data = error?.response?.data;
+  if (data && typeof data === 'object') {
+    return data.error || data.code || undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Delai (secondes) avant nouvelle tentative, si le backend l'a fourni
+ * (champ `retry_after` ou en-tete HTTP `Retry-After`). Pour afficher un
+ * compte a rebours plutot qu'un "reessayez" vague.
+ */
+export function getRetryAfterSeconds(error: any): number | undefined {
+  const fromBody = error?.response?.data?.retry_after;
+  if (typeof fromBody === 'number' && fromBody > 0) return fromBody;
+  const header = error?.response?.headers?.['retry-after'];
+  const parsed = header ? parseInt(String(header), 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }

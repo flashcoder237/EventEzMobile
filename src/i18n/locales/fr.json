@@ -1187,6 +1187,7 @@
     "paymentBack": "Retour",
     "paymentGenericError": "Une erreur est survenue lors du paiement",
     "paymentErrorTitle": "Erreur de paiement",
+    "paymentBlockedTitle": "Paiement par carte bloqué",
     "paymentCancelledTitle": "Paiement annulé",
     "paymentNoPaymentInProgress": "Aucun paiement en cours à vérifier",
     "paymentVerifyingTitle": "Vérification en cours",

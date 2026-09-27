@@ -1128,6 +1128,21 @@ export default function PaymentScreen() {
         return;
       }
 
+      // Anti-fraude card-testing : le backend bloque les paiements par CARTE
+      // apres plusieurs cartes refusees (429, {error:'too_many_failed_payments',
+      // message:'...'}). Son message est deja clair et actionnable (delai restant
+      // + suggestion Mobile Money) → on l'affiche tel quel, avec un titre dedie.
+      if (error?.response?.data?.error === 'too_many_failed_payments') {
+        const blockedMsg = error?.response?.data?.message;
+        showError(
+          t('payment.paymentBlockedTitle'),
+          typeof blockedMsg === 'string' && blockedMsg.trim()
+            ? blockedMsg
+            : t('errors.codes.paymentFailed'),
+        );
+        return;
+      }
+
       // Message rassurant : jamais de brut au payeur. Réseau/timeout pendant
       // l'initiation → message double-débit dédié (aucun montant débité si
       // l'initiation n'a pas abouti). Sinon fallback paymentFailed.
