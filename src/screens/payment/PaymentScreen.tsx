@@ -815,28 +815,28 @@ export default function PaymentScreen() {
       return;
     }
 
-    // Detection precoce du provider : CinetPay capture le telephone sur sa
-    // page hebergee, donc on saute la validation locale (sinon on bloquerait
-    // l'utilisateur qui n'a pas tape son numero dans notre form).
-    const earlyMethodConfig = dynamicMethods.find((m) => m.id === selectedMethod);
-    // `provider` (mappé depuis selected_provider) — pas `selected_provider` qui
-    // n'existe pas sur dynamicMethods (bug : le skip CinetPay ne marchait que
-    // via CINETPAY_ONLY_METHODS).
-    const earlyProvider = (earlyMethodConfig as any)?.provider
-      ?? (earlyMethodConfig as any)?.selected_provider;
-    const earlyIsCinetPay =
-      earlyProvider === 'cinetpay'
-      || CINETPAY_ONLY_METHODS.has(selectedMethod);
+    // NB : on ne detecte plus le provider ici. L'ancienne version sautait la
+    // validation du numero pour CinetPay, en supposant qu'il le capturerait
+    // « sur sa page hebergee ». Faux pour le Mobile Money : l'operateur pousse
+    // la demande sur le telephone, il faut donc le numero DES le depart.
 
-    // Validation du numero de telephone pour Mobile Money via NotchPay uniquement
+    // Numero du payeur : REQUIS pour tout Mobile Money, CinetPay COMPRIS.
+    //
+    // BUG CORRIGE : la validation etait sautee quand le fournisseur etait
+    // CinetPay — precisement le cas ou le numero est indispensable. On
+    // envoyait donc `billing_phone: ""`, et CinetPay refusait avec un
+    // `1004 INVALID_PARAMS` opaque (depuis, un message explicite).
+    //
+    // L'operateur pousse la demande de paiement SUR LE TELEPHONE : sans
+    // numero, il ne sait pas qui solliciter. C'est vrai quel que soit le
+    // fournisseur. `validatePhoneNumber` ne valide que les methodes Mobile
+    // Money, les autres passent sans controle.
     let formattedPhone = '';
-    if (!earlyIsCinetPay) {
-      const validation = validatePhoneNumber(selectedMethod);
-      if (!validation.valid) {
-        return;
-      }
-      formattedPhone = validation.formatted || '';
+    const validation = validatePhoneNumber(selectedMethod);
+    if (!validation.valid) {
+      return;
     }
+    formattedPhone = validation.formatted || '';
 
     // Confirmation biométrique avant d'initier le paiement (catégorie payments).
     // Posé AVANT setProcessing pour ne pas bloquer le bouton si l'user annule.
