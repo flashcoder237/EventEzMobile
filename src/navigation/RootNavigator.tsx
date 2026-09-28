@@ -11,6 +11,8 @@ import * as Linking from 'expo-linking';
 import { ONBOARDING_COMPLETE_KEY } from '../screens/auth/OnboardingScreen';
 import { LANGUAGE_STORAGE_KEY, changeLanguage } from '../i18n';
 import { navigate } from './navigationRef';
+import { InteractionManager } from 'react-native';
+import { markAppReady } from '../lib/appReady';
 
 // Helper : wrap un composant lazy dans un Suspense pour qu'il soit utilisable
 // directement comme `component={...}` d'un Stack.Screen sans changer la signature.
@@ -24,6 +26,43 @@ function withSuspense<P extends object>(LazyComp: ComponentType<P>): ComponentTy
   );
   Wrapped.displayName = `Suspended(${(LazyComp as any).displayName || 'LazyScreen'})`;
   return Wrapped;
+}
+
+// Variante préchargeable de withSuspense(lazy(...)) pour les écrans lazy les
+// plus visités. `preload()` charge le module en arrière-plan ; une fois résolu,
+// les nouvelles instances rendent le composant DIRECTEMENT (sans passer par
+// Suspense → aucun spinner, même pas une frame). Le choix direct/lazy est figé
+// au montage (useState) pour ne jamais remonter un écran déjà affiché.
+type PreloadableScreen<P> = ComponentType<P> & { preload: () => Promise<unknown> };
+function lazyScreen<P extends object>(
+  factory: () => Promise<{ default: ComponentType<P> }>,
+): PreloadableScreen<P> {
+  let Resolved: ComponentType<P> | null = null;
+  let promise: Promise<{ default: ComponentType<P> }> | null = null;
+  const load = () => {
+    if (!promise) {
+      promise = factory().then((mod) => {
+        Resolved = mod.default;
+        return mod;
+      });
+      // Échec (rare) : on autorise une nouvelle tentative au prochain appel.
+      promise.catch(() => { promise = null; });
+    }
+    return promise;
+  };
+  const LazyComp = lazy(load);
+  const Wrapped = (props: P) => {
+    const [Direct] = useState(() => Resolved);
+    if (Direct) return <Direct {...props} />;
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <LazyComp {...(props as any)} />
+      </Suspense>
+    );
+  };
+  Wrapped.displayName = 'PreloadableScreen';
+  (Wrapped as PreloadableScreen<P>).preload = load;
+  return Wrapped as PreloadableScreen<P>;
 }
 
 // Navigators
@@ -56,7 +95,7 @@ import EventDetailsScreen from '../screens/events/EventDetailsScreen';
 // (MainTabNavigator), jamais ceux-ci. Les charger en dur faisait parser
 // ~9 400 lignes avant le premier rendu — d'où l'alerte « vitesse » de
 // Play Console. Chargés à la première navigation.
-const ConversationScreen = withSuspense(lazy(() => import('../screens/messages/ConversationScreen')));
+const ConversationScreen = lazyScreen(() => import('../screens/messages/ConversationScreen'));
 const MessagesScreen = withSuspense(lazy(() => import('../screens/messages/MessagesScreen')));
 const MessageRequestsScreen = withSuspense(lazy(() => import('../screens/messages/MessageRequestsScreen')));
 const ConnectionsScreen = withSuspense(lazy(() => import('../screens/messages/ConnectionsScreen')));
@@ -73,7 +112,7 @@ const DraftsListScreen = withSuspense(lazy(() => import('../screens/organizer/Dr
 const EventPricingTiersScreen = withSuspense(lazy(() => import('../screens/organizer/EventPricingTiersScreen')));
 const EventRegistrationsScreen = withSuspense(lazy(() => import('../screens/organizer/EventRegistrationsScreen')));
 const ScanScreen = withSuspense(lazy(() => import('../screens/scan/ScanScreen')));
-const SettingsScreen = withSuspense(lazy(() => import('../screens/profile/SettingsScreen')));
+const SettingsScreen = lazyScreen(() => import('../screens/profile/SettingsScreen'));
 const BecomeOrganizerScreen = withSuspense(lazy(() => import('../screens/profile/BecomeOrganizerScreen')));
 const VerificationScreen = withSuspense(lazy(() => import('../screens/profile/VerificationScreen')));
 const BlockedUsersScreen = withSuspense(lazy(() => import('../screens/profile/BlockedUsersScreen')));
@@ -83,12 +122,12 @@ const MemoriesScreen = withSuspense(lazy(() => import('../screens/profile/Memori
 const TermsScreen = withSuspense(lazy(() => import('../screens/profile/TermsScreen')));
 const PrivacyScreen = withSuspense(lazy(() => import('../screens/profile/PrivacyScreen')));
 const MyDataAtExhibitorsScreen = withSuspense(lazy(() => import('../screens/profile/MyDataAtExhibitorsScreen')));
-const NotificationsScreen = withSuspense(lazy(() => import('../screens/dashboard/NotificationsScreen')));
+const NotificationsScreen = lazyScreen(() => import('../screens/dashboard/NotificationsScreen'));
 const EventAttendeesScreen = withSuspense(lazy(() => import('../screens/events/EventAttendeesScreen')));
 const PendingTransfersScreen = withSuspense(lazy(() => import('../screens/tickets/PendingTransfersScreen')));
 const OfflineTicketsScreen = withSuspense(lazy(() => import('../screens/tickets/OfflineTicketsScreen')));
 const TransferAcceptScreen = withSuspense(lazy(() => import('../screens/tickets/TransferAcceptScreen')));
-const DashboardScreen = withSuspense(lazy(() => import('../screens/dashboard/DashboardScreen')));
+const DashboardScreen = lazyScreen(() => import('../screens/dashboard/DashboardScreen'));
 const MyPaymentsScreen = withSuspense(lazy(() => import('../screens/payment/MyPaymentsScreen')));
 const RefundRequestScreen = withSuspense(lazy(() => import('../screens/payment/RefundRequestScreen')));
 const RefundsListScreen = withSuspense(lazy(() => import('../screens/payment/RefundsListScreen')));
@@ -199,60 +238,86 @@ export default function RootNavigator() {
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const pendingLoginRef = useRef(false);
 
-  // Résolution de la langue au premier launch. Plutôt que d'imposer un écran
-  // de choix (gate plein écran), on auto-détecte la langue depuis la locale du
-  // device. L'utilisateur peut toujours la changer dans Paramètres.
+  // Résolution au boot de la langue ET de l'onboarding. PERF cold start :
+  // les lectures (langue, onboarding, deep link initial) sont indépendantes →
+  // un seul multiGet AsyncStorage + getInitialURL en parallèle, au lieu de
+  // 3 allers-retours en série qui retardaient le premier rendu.
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      let storedLang: string | null = null;
+      let onboardingCompleted: string | null = null;
+      let initialUrl: string | null = null;
+      let readFailed = false;
       try {
-        const stored = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
-        if (stored === 'fr' || stored === 'en') {
-          if (!cancelled) setLanguagePicked(true);
-          return;
-        }
-        // Pas de préférence → on dérive de la locale device et on persiste
-        // silencieusement. Défaut FRANÇAIS (aligné backend DEFAULT_LANG='fr') :
-        // seul un device explicitement en anglais bascule en EN. Doit rester
-        // cohérent avec src/i18n/index.ts.
-        const deviceLang = getLocales()[0]?.languageCode === 'en' ? 'en' : 'fr';
-        await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, deviceLang);
-        await changeLanguage(deviceLang);
-        if (!cancelled) setLanguagePicked(true);
+        const [pairs, url] = await Promise.all([
+          AsyncStorage.multiGet([LANGUAGE_STORAGE_KEY, ONBOARDING_COMPLETE_KEY]),
+          Linking.getInitialURL().catch(() => null),
+        ]);
+        const values = new Map(pairs);
+        storedLang = values.get(LANGUAGE_STORAGE_KEY) ?? null;
+        onboardingCompleted = values.get(ONBOARDING_COMPLETE_KEY) ?? null;
+        initialUrl = url;
       } catch (error) {
-        if (__DEV__) console.error('[RootNavigator] Error resolving language pref:', error);
-        // En cas d'erreur, on ne bloque pas : i18n a déjà un fallback EN au boot.
-        if (!cancelled) setLanguagePicked(true);
+        readFailed = true;
+        if (__DEV__) console.error('[RootNavigator] Error reading boot prefs:', error);
       }
+
+      // --- Langue --- Plutôt que d'imposer un écran de choix (gate plein
+      // écran), on auto-détecte la langue depuis la locale du device.
+      // L'utilisateur peut toujours la changer dans Paramètres.
+      if (storedLang !== 'fr' && storedLang !== 'en' && !readFailed) {
+        try {
+          // Pas de préférence → on dérive de la locale device et on persiste
+          // silencieusement. Défaut FRANÇAIS (aligné backend DEFAULT_LANG='fr') :
+          // seul un device explicitement en anglais bascule en EN. Doit rester
+          // cohérent avec src/i18n/index.ts.
+          const deviceLang = getLocales()[0]?.languageCode === 'en' ? 'en' : 'fr';
+          await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, deviceLang);
+          await changeLanguage(deviceLang);
+        } catch (error) {
+          if (__DEV__) console.error('[RootNavigator] Error resolving language pref:', error);
+          // En cas d'erreur, on ne bloque pas : i18n a déjà un fallback au boot.
+        }
+      }
+      if (cancelled) return;
+      setLanguagePicked(true);
+
+      // --- Onboarding --- Un deeplink d'ouverture est une intention
+      // EXPLICITE : il doit primer sur l'écran d'onboarding. Sinon
+      // `showOnboarding` remplaçait tout le Stack au boot → la cible du lien
+      // n'était jamais montée et le lien était "avalé" (cause principale des
+      // deeplinks qui n'ouvraient rien, iOS ET Android).
+      if (readFailed || initialUrl) {
+        setShowOnboarding(false);
+      } else {
+        setShowOnboarding(onboardingCompleted !== 'true');
+      }
+      setCheckingOnboarding(false);
     })();
     return () => { cancelled = true; };
   }, []);
 
+  const bootResolved = !isInitializing && !checkingOnboarding && languagePicked !== null;
+
+  // Signal « app prête » → l'AnimatedSplash peut disparaître sans attendre.
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        // Un deeplink d'ouverture est une intention EXPLICITE : il doit primer
-        // sur l'écran d'onboarding. Sinon `showOnboarding` remplaçait tout le
-        // Stack au boot → la cible du lien n'était jamais montée et le lien
-        // était "avalé" (cause principale des deeplinks qui n'ouvraient rien,
-        // iOS ET Android, même pour un utilisateur qui n'a jamais vu l'app).
-        const initialUrl = await Linking.getInitialURL();
-        if (initialUrl && !cancelled) {
-          setShowOnboarding(false);
-          return;
-        }
-        const completed = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
-        if (!cancelled) setShowOnboarding(completed !== 'true');
-      } catch (error) {
-        if (__DEV__) console.error('[RootNavigator] Error checking onboarding status:', error);
-        if (!cancelled) setShowOnboarding(false);
-      } finally {
-        if (!cancelled) setCheckingOnboarding(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+    if (bootResolved) markAppReady();
+  }, [bootResolved]);
+
+  // Préchargement, APRÈS le premier rendu et les interactions en cours, des
+  // écrans lazy les plus visités : ils restent hors du chemin de démarrage
+  // (pas de parse au cold start) mais leur première ouverture n'affiche plus
+  // le spinner Suspense (cf. lazyScreen).
+  useEffect(() => {
+    if (!bootResolved) return;
+    const task = InteractionManager.runAfterInteractions(() => {
+      [ConversationScreen, NotificationsScreen, DashboardScreen, SettingsScreen].forEach((screen) => {
+        screen.preload().catch(() => { /* retenté à la navigation */ });
+      });
+    });
+    return () => task.cancel();
+  }, [bootResolved]);
 
   const handleOnboardingComplete = useCallback((goToLogin?: boolean) => {
     pendingLoginRef.current = !!goToLogin;
@@ -271,7 +336,7 @@ export default function RootNavigator() {
   // languagePicked passe de null → true une fois la langue résolue (auto-
   // détectée depuis la locale device). On attend cette résolution avant de
   // monter la stack pour que l'onboarding s'affiche dans la bonne langue.
-  if (isInitializing || checkingOnboarding || languagePicked === null) {
+  if (!bootResolved) {
     return <BrandedSplash />;
   }
 

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import i18n from 'i18next';
 import { authAPI, usersAPI, setTokens, clearTokens, getAccessToken, getRefreshToken } from '../api';
@@ -115,6 +115,15 @@ function isTransientAuthError(error: any): boolean {
   return status !== 401 && status !== 403;
 }
 
+/**
+ * Délai max pendant lequel le démarrage attend /users/me/ quand AUCUN user
+ * n'est en cache (sinon le cache est affiché immédiatement). Au-delà, l'UI
+ * démarre sans session affichée et la requête continue en arrière-plan : si
+ * elle aboutit, la session est appliquée.
+ */
+const BOOT_USER_FETCH_TIMEOUT_MS = 8000;
+const BOOT_TIMEOUT = Symbol('boot-timeout');
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   // isInitializing: true only during the first auth check at app start
   const [isInitializing, setIsInitializing] = useState(true);
@@ -150,7 +159,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsub;
   }, []);
 
+  // Époque de session : incrémentée à chaque changement d'identité (login,
+  // logout, social auth, invité, expulsion). Une revalidation /users/me/
+  // lancée au boot n'applique son résultat QUE si l'époque n'a pas bougé —
+  // sinon elle écraserait la session d'un login survenu entre-temps.
+  const authEpochRef = useRef(0);
+
+  // Expulsion définitive (refresh invalide) : invalide aussi les
+  // revalidations en vol. Listener séparé pour ne pas toucher au précédent.
+  useEffect(() => eventBus.on('api-auth-error', () => { authEpochRef.current += 1; }), []);
+
+  /**
+   * GET /users/me/ puis applique le user (garde JWT, analytics, crash, langue,
+   * cache). Retourne false si la session a été fermée (désync JWT) ou si le
+   * résultat est périmé (époque changée). Les erreurs réseau/HTTP remontent.
+   */
+  const fetchAndApplyCurrentUser = async (token: string, epoch: number): Promise<boolean> => {
+    const response = await usersAPI.getCurrentUser();
+    if (authEpochRef.current !== epoch) return false;
+    const user = response.data;
+
+    // Defense-in-depth : si le JWT contient un user_id différent de celui
+    // retourné par /users/me/, c'est que le token mémoire et SecureStore
+    // sont désynchronisés (corruption, restore atypique, bug). On ferme
+    // la session pour repartir d'un état propre. Voir AUDIT §2.4.
+    const jwtUserId = getJWTUserId(token);
+    if (jwtUserId && String(user.id) !== jwtUserId) {
+      if (__DEV__) {
+        console.warn(
+          `[Auth] JWT user_id (${jwtUserId}) ≠ /users/me/ id (${user.id}) — clearing session`,
+        );
+      }
+      await clearTokens();
+      try { await CacheService.clearAll(); } catch { /* ignore */ }
+      setState({ user: null, isAuthenticated: false, isLoading: false });
+      return false;
+    }
+
+    setState({
+      user,
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    setAnalyticsUser(user.id, { role: user.role || 'user' });
+    setCrashUser({ id: user.id, email: user.email, role: user.role });
+    // Sync i18n avec la préférence backend (si différente de l'AsyncStorage local)
+    applyUserLanguagePreference(user);
+    // Persiste le user pour pouvoir restaurer la session hors-ligne au boot.
+    cacheCurrentUser(user);
+    return true;
+  };
+
+  /**
+   * Échec d'auth franc (401/403, refresh compris) → fermeture propre de la
+   * session. Les erreurs transitoires ne passent JAMAIS par ici.
+   */
+  const closeSessionAfterAuthFailure = async (error: unknown, epoch: number) => {
+    if (authEpochRef.current !== epoch) return;
+    if (__DEV__) console.error('Erreur de vérification auth (déconnexion):', error);
+    try {
+      await clearTokens();
+    } catch (clearError) {
+      if (__DEV__) console.warn('Failed to clear tokens during auth check:', clearError);
+    }
+    setState({ user: null, isAuthenticated: false, isLoading: false });
+  };
+
   const checkAuth = async () => {
+    const epoch = authEpochRef.current;
     try {
       // Plus besoin de checker REMEMBER_ME_KEY ici :
       //   - Si rememberMe=false au login, les tokens n'ont JAMAIS été écrits
@@ -165,37 +241,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const response = await usersAPI.getCurrentUser();
-      const user = response.data;
-
-      // Defense-in-depth : si le JWT contient un user_id différent de celui
-      // retourné par /users/me/, c'est que le token mémoire et SecureStore
-      // sont désynchronisés (corruption, restore atypique, bug). On ferme
-      // la session pour repartir d'un état propre. Voir AUDIT §2.4.
+      // PERF — CACHE-FIRST : si un user est en cache (et cohérent avec le
+      // JWT), on l'affiche IMMÉDIATEMENT et on revalide /users/me/ en
+      // arrière-plan. Le démarrage n'attend plus un aller-retour réseau.
+      const cachedUser = await loadCachedUser();
       const jwtUserId = getJWTUserId(token);
-      if (jwtUserId && String(user.id) !== jwtUserId) {
-        if (__DEV__) {
-          console.warn(
-            `[Auth] JWT user_id (${jwtUserId}) ≠ /users/me/ id (${user.id}) — clearing session`,
-          );
-        }
-        await clearTokens();
-        try { await CacheService.clearAll(); } catch { /* ignore */ }
-        setState({ user: null, isAuthenticated: false, isLoading: false });
-        return;
+      if (cachedUser && (!jwtUserId || String(cachedUser.id) === jwtUserId)) {
+        setState({ user: cachedUser, isAuthenticated: true, isLoading: false });
+        setAnalyticsUser(cachedUser.id, { role: cachedUser.role || 'user' });
+        setCrashUser({ id: cachedUser.id, email: cachedUser.email, role: cachedUser.role });
+        applyUserLanguagePreference(cachedUser);
+
+        fetchAndApplyCurrentUser(token, epoch).catch(async (error) => {
+          // Hors-ligne / transitoire : on garde le user en cache (session
+          // préservée). Seul un échec d'auth franc ferme la session.
+          if (isTransientAuthError(error)) {
+            if (__DEV__) console.log('[Auth] Revalidation /users/me/ échouée (transitoire) — cache conservé');
+            return;
+          }
+          await closeSessionAfterAuthFailure(error, epoch);
+        });
+        return; // finally → isInitializing=false tout de suite
       }
 
-      setState({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-      setAnalyticsUser(user.id, { role: user.role || 'user' });
-      setCrashUser({ id: user.id, email: user.email, role: user.role });
-      // Sync i18n avec la préférence backend (si différente de l'AsyncStorage local)
-      applyUserLanguagePreference(user);
-      // Persiste le user pour pouvoir restaurer la session hors-ligne au boot.
-      cacheCurrentUser(user);
+      // Pas de user en cache : on attend /users/me/, mais BORNÉ dans le temps.
+      const fetchPromise = fetchAndApplyCurrentUser(token, epoch);
+      const outcome = await Promise.race([
+        fetchPromise,
+        new Promise<typeof BOOT_TIMEOUT>((resolve) =>
+          setTimeout(() => resolve(BOOT_TIMEOUT), BOOT_USER_FETCH_TIMEOUT_MS),
+        ),
+      ]);
+      if (outcome === BOOT_TIMEOUT) {
+        // Réseau lent : on démarre sans bloquer (tokens CONSERVÉS) et on
+        // laisse la requête finir en arrière-plan — si elle aboutit,
+        // fetchAndApplyCurrentUser applique la session.
+        if (__DEV__) console.log('[Auth] /users/me/ lent au boot — démarrage non bloquant');
+        setState({ user: null, isAuthenticated: false, isLoading: false });
+        fetchPromise.catch(async (error) => {
+          if (!isTransientAuthError(error)) await closeSessionAfterAuthFailure(error, epoch);
+        });
+      }
     } catch (error) {
       // Hors-ligne / erreur transitoire (réseau, timeout, 5xx) : NE PAS
       // déconnecter ni effacer les tokens. On restaure la dernière session
@@ -216,19 +302,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       // Échec d'auth franc → fermeture propre de la session.
-      if (__DEV__) console.error('Erreur de vérification auth (déconnexion):', error);
-      try {
-        await clearTokens();
-      } catch (clearError) {
-        if (__DEV__) console.warn('Failed to clear tokens during auth check:', clearError);
-      }
-      setState({ user: null, isAuthenticated: false, isLoading: false });
+      await closeSessionAfterAuthFailure(error, epoch);
     } finally {
       setIsInitializing(false);
     }
   };
 
   const login = useCallback(async (email: string, password: string, rememberMe: boolean = true) => {
+    authEpochRef.current += 1;
     setState((prev) => ({ ...prev, isLoading: true }));
     try {
       const response = await authAPI.login(email, password);
@@ -287,6 +368,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const guestRegister = useCallback(async (data: { email: string; first_name: string; last_name?: string }) => {
+    authEpochRef.current += 1;
     setState((prev) => ({ ...prev, isLoading: true }));
     try {
       const response = await authAPI.guestRegister(data);
@@ -331,6 +413,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async (options?: { accountDeleted?: boolean }) => {
+    authEpochRef.current += 1;
     setState((prev) => ({ ...prev, isLoading: true }));
     // Cas special : compte deja supprime serveur. Le JWT pointe vers un user
     // qui n'existe plus → toute call API retourne 401 user_not_found, et
@@ -487,6 +570,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Pour l'authentification sociale - met à jour l'utilisateur après connexion
   const setUserFn = useCallback(async (user: User) => {
+    authEpochRef.current += 1;
     const accessToken = await getAccessToken();
     const refreshToken = await getRefreshToken();
     if (!accessToken || !refreshToken) {

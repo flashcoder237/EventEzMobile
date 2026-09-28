@@ -48,8 +48,12 @@ const patchDefaultFont = (Component: any) => {
   Component.render = function (...args: any[]) {
     const element = orig.apply(this, args);
     if (!element || !element.props) return element;
+    const userStyle = element.props.style;
+    // Perf : ce patch s'exécute pour CHAQUE <Text> rendu. Sans style user, on
+    // réutilise l'objet constant (pas d'allocation de tableau) — rendu
+    // identique à `[DEFAULT_TEXT_STYLE, undefined]`.
     return React.cloneElement(element, {
-      style: [DEFAULT_TEXT_STYLE, element.props.style],
+      style: userStyle == null ? DEFAULT_TEXT_STYLE : [DEFAULT_TEXT_STYLE, userStyle],
     });
   };
 };
@@ -86,7 +90,7 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import { NotificationProvider } from './src/contexts/NotificationContext';
 import { AlertProvider } from './src/contexts/AlertContext';
 import { StatusProvider } from './src/contexts/StatusContext';
-import { CurrentRouteProvider } from './src/contexts/CurrentRouteContext';
+import { CurrentRouteProvider, setCurrentRoute } from './src/contexts/CurrentRouteContext';
 import { AnnouncementsProvider } from './src/contexts/AnnouncementsContext';
 import { InAppToastProvider } from './src/contexts/InAppToastContext';
 import { FeatureTourProvider } from './src/components/tour';
@@ -260,13 +264,42 @@ const linking: LinkingOptions<RootStackParamList> = {
   },
 };
 
+const NAV_STATE_SAVE_DEBOUNCE_MS = 500;
+
 function AppContent() {
   const { isDark } = useTheme();
   const routeNameRef = useRef<string | undefined>(undefined);
-  // State exposé via CurrentRouteContext — utilisé par IncidentBanner pour
-  // savoir quels services sont pertinents pour l'écran courant. Mis à jour
-  // dans onNavigationStateChange ci-dessous.
-  const [currentRouteName, setCurrentRouteName] = useState<string | undefined>(undefined);
+  // La route courante est publiée via setCurrentRoute (store de
+  // CurrentRouteContext) — PAS un useState ici : sinon chaque navigation
+  // re-rendait tout l'arbre de providers ci-dessous. Seul IncidentBanner
+  // (useCurrentRoute) se re-rend.
+
+  // Sauvegarde de l'état de navigation DEBOUNCÉE (JSON.stringify + 2 écritures
+  // AsyncStorage) : une rafale de transitions ne coûte qu'une écriture. Flush
+  // immédiat au passage en arrière-plan pour ne rien perdre si l'OS tue l'app.
+  const pendingNavStateRef = useRef<NavigationState | undefined>(undefined);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flushNavState = useCallback(() => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    const pending = pendingNavStateRef.current;
+    if (pending) {
+      pendingNavStateRef.current = undefined;
+      void saveNavigationState(pending);
+    }
+  }, []);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next !== 'active') flushNavState();
+    });
+    return () => {
+      sub.remove();
+      flushNavState();
+    };
+  }, [flushNavState]);
 
   // Restauration de l'état de navigation après un cold start. Si l'OS a tué
   // l'app pendant que l'utilisateur était sur un écran profond (ex: Payment),
@@ -285,12 +318,16 @@ function AppContent() {
         // l'ecran precedent (souvent Notifications) clignoter avant la page
         // demandee. Si l'app s'ouvre via un lien, la destination est
         // explicite : on ne restaure rien.
-        const openedFromLink = await Linking.getInitialURL();
+        // Perf cold start : les deux lectures sont indépendantes → en
+        // parallèle (le rendu est bloqué tant qu'elles ne sont pas finies).
+        const [openedFromLink, state] = await Promise.all([
+          Linking.getInitialURL().catch(() => null),
+          loadNavigationState(),
+        ]);
         if (openedFromLink) {
           if (!cancelled) setInitialNavState(undefined);
           return;
         }
-        const state = await loadNavigationState();
         if (!cancelled) setInitialNavState(state);
       } finally {
         if (!cancelled) setIsNavReady(true);
@@ -341,7 +378,7 @@ function AppContent() {
   const onNavigationReady = useCallback(() => {
     const initialRoute = navigationRef.current?.getCurrentRoute()?.name;
     routeNameRef.current = initialRoute;
-    setCurrentRouteName(initialRoute);
+    setCurrentRoute(initialRoute);
   }, []);
 
   const onNavigationStateChange = useCallback((state: NavigationState | undefined) => {
@@ -351,12 +388,15 @@ function AppContent() {
       routeNameRef.current = newRouteName;
       // Sync au CurrentRouteContext — IncidentBanner s'en sert pour le
       // filtrage par scope service.
-      setCurrentRouteName(newRouteName);
+      setCurrentRoute(newRouteName);
     }
     // Persiste l'état pour qu'un cold start après kill OS ramène l'utilisateur
-    // exactement où il était. Best-effort, non-bloquant.
-    void saveNavigationState(state);
-  }, []);
+    // exactement où il était. Best-effort, non-bloquant, debouncé (500 ms).
+    if (!state) return;
+    pendingNavStateRef.current = state;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(flushNavState, NAV_STATE_SAVE_DEBOUNCE_MS);
+  }, [flushNavState]);
 
   // Bloque le rendu de la stack tant qu'on n'a pas tenté de charger l'état
   // persisté — sinon NavigationContainer monte avec son état par défaut puis
@@ -366,7 +406,7 @@ function AppContent() {
   }
 
   return (
-    <CurrentRouteProvider routeName={currentRouteName}>
+    <CurrentRouteProvider>
     <ConnectionProvider>
       <NavigationContainer
         ref={navigationRef}

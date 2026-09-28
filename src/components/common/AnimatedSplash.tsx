@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Dimensions, Text } from 'react-native';
 import { Image } from 'expo-image';
 import Animated, {
@@ -16,16 +16,36 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, DarkColors, FontFamily, FontSizes } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { onAppReady } from '../../lib/appReady';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Letters configuration matching frontend GlitchProgressLoader
+// Letters configuration matching frontend GlitchProgressLoader.
+//
+// PERF (perception du démarrage) : la timeline d'origine (3 s fixes + 400 ms
+// de fondu, à CHAQUE lancement) a été compressée ~×0,5 en gardant le même
+// séquencement. Le splash ne suit plus une durée fixe : il disparaît dès que
+// l'app est prête (signal `markAppReady` émis par RootNavigator), avec un
+// minimum pour que l'animation d'entrée ne paraisse pas coupée, et un
+// plafond de sécurité si le signal n'arrive jamais (gate bloquante, etc.).
 const EVENT_LETTERS = ['E', 'v', 'e', 'n', 't'] as const;
-const LETTER_DELAYS = [200, 300, 400, 500, 600] as const;
-const ICON_DELAY = 700;
-const Z_DELAY = 850;
-const PROGRESS_FADE_DELAY = 1000;
-const TOTAL_DURATION = 3000; // total before fade-out
+const LETTER_DELAYS = [100, 150, 200, 250, 300] as const;
+const LETTER_DURATION = 280;
+const ICON_DELAY = 350;
+const ICON_DURATION = 450;
+const Z_DELAY = 425;
+const FLOAT_DELAY = ICON_DELAY + ICON_DURATION;
+const PROGRESS_FADE_DELAY = 450;
+/** Remplissage « d'attente » de la barre : jusqu'à 85 %, le reste au ready. */
+const PROGRESS_IDLE_TARGET = 85;
+const PROGRESS_IDLE_DURATION = 1200;
+/** Durée minimale d'affichage (fin de l'animation d'entrée du logo). */
+const MIN_DURATION = 750;
+/** Plafond : on sort même sans signal ready (BrandedSplash prend le relais). */
+const MAX_DURATION = 2500;
+/** Sortie : barre complétée puis fondu du conteneur. */
+const PROGRESS_COMPLETE_DURATION = 150;
+const FADE_OUT_DURATION = 250;
 
 // Individual glitch letter component
 function GlitchLetter({
@@ -43,7 +63,7 @@ function GlitchLetter({
     progress.value = withDelay(
       delay,
       withTiming(1, {
-        duration: 500,
+        duration: LETTER_DURATION,
         easing: Easing.bezier(0.22, 1, 0.36, 1),
       })
     );
@@ -85,7 +105,7 @@ function GlitchZ({ colors }: { colors: typeof Colors }) {
     progress.value = withDelay(
       Z_DELAY,
       withTiming(1, {
-        duration: 500,
+        duration: LETTER_DURATION,
         easing: Easing.bezier(0.22, 1, 0.36, 1),
       })
     );
@@ -122,14 +142,14 @@ function LogoIcon() {
     popProgress.value = withDelay(
       ICON_DELAY,
       withTiming(1, {
-        duration: 800,
+        duration: ICON_DURATION,
         easing: Easing.bezier(0.22, 1, 0.36, 1),
       })
     );
 
     // Float after pop (starts after pop completes)
     floatProgress.value = withDelay(
-      1500,
+      FLOAT_DELAY,
       withRepeat(
         withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
         -1,
@@ -171,9 +191,9 @@ function ScanLine({ colors }: { colors: typeof Colors }) {
 
   useEffect(() => {
     progress.value = withDelay(
-      100,
+      50,
       withTiming(1, {
-        duration: 800,
+        duration: 450,
         easing: Easing.inOut(Easing.ease),
       })
     );
@@ -207,7 +227,15 @@ function ScanLine({ colors }: { colors: typeof Colors }) {
 }
 
 // Shimmer progress bar
-function ProgressBar({ colors, isDark }: { colors: typeof Colors; isDark: boolean }) {
+function ProgressBar({
+  colors,
+  isDark,
+  finishing,
+}: {
+  colors: typeof Colors;
+  isDark: boolean;
+  finishing: boolean;
+}) {
   const fadeProgress = useSharedValue(0);
   const fillProgress = useSharedValue(0);
   const shimmerProgress = useSharedValue(0);
@@ -216,14 +244,15 @@ function ProgressBar({ colors, isDark }: { colors: typeof Colors; isDark: boolea
     // Fade in
     fadeProgress.value = withDelay(
       PROGRESS_FADE_DELAY,
-      withTiming(1, { duration: 400, easing: Easing.out(Easing.ease) })
+      withTiming(1, { duration: 250, easing: Easing.out(Easing.ease) })
     );
 
-    // Fill animation (matches frontend easing curve)
+    // Fill animation (matches frontend easing curve) — s'arrête à
+    // PROGRESS_IDLE_TARGET ; les derniers % sont joués quand l'app est prête.
     fillProgress.value = withDelay(
       PROGRESS_FADE_DELAY,
-      withTiming(100, {
-        duration: 2000,
+      withTiming(PROGRESS_IDLE_TARGET, {
+        duration: PROGRESS_IDLE_DURATION,
         easing: Easing.bezier(0.25, 0.1, 0.25, 1),
       })
     );
@@ -238,6 +267,17 @@ function ProgressBar({ colors, isDark }: { colors: typeof Colors; isDark: boolea
       )
     );
   }, []);
+
+  // App prête : on complète la barre (et on s'assure qu'elle est visible si le
+  // ready arrive avant son fondu d'entrée).
+  useEffect(() => {
+    if (!finishing) return;
+    fadeProgress.value = withTiming(1, { duration: PROGRESS_COMPLETE_DURATION });
+    fillProgress.value = withTiming(100, {
+      duration: PROGRESS_COMPLETE_DURATION,
+      easing: Easing.out(Easing.ease),
+    });
+  }, [finishing]);
 
   const containerStyle = useAnimatedStyle(() => ({
     opacity: fadeProgress.value,
@@ -275,16 +315,36 @@ interface AnimatedSplashProps {
 export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
   const { colors, isDark } = useTheme();
   const containerOpacity = useSharedValue(1);
+  const [minElapsed, setMinElapsed] = useState(false);
+  const [appReady, setAppReady] = useState(false);
+  const [finishing, setFinishing] = useState(false);
 
   useEffect(() => {
-    // Fade out and finish
+    const minTimer = setTimeout(() => setMinElapsed(true), MIN_DURATION);
+    // Plafond de sécurité : sortie forcée même sans signal ready.
+    const maxTimer = setTimeout(() => setFinishing(true), MAX_DURATION);
+    const unsubscribe = onAppReady(() => setAppReady(true));
+    return () => {
+      clearTimeout(minTimer);
+      clearTimeout(maxTimer);
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (minElapsed && appReady) setFinishing(true);
+  }, [minElapsed, appReady]);
+
+  useEffect(() => {
+    if (!finishing) return;
+    // Barre complétée (ProgressBar) puis fondu du conteneur et fin.
     containerOpacity.value = withDelay(
-      TOTAL_DURATION,
-      withTiming(0, { duration: 400, easing: Easing.out(Easing.ease) }, () => {
+      PROGRESS_COMPLETE_DURATION,
+      withTiming(0, { duration: FADE_OUT_DURATION, easing: Easing.out(Easing.ease) }, () => {
         runOnJS(onFinish)();
       })
     );
-  }, []);
+  }, [finishing]);
 
   const containerAnimStyle = useAnimatedStyle(() => ({
     opacity: containerOpacity.value,
@@ -323,7 +383,7 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
         </View>
 
         {/* Progress bar */}
-        <ProgressBar colors={colors as any} isDark={isDark} />
+        <ProgressBar colors={colors as any} isDark={isDark} finishing={finishing} />
       </View>
     </Animated.View>
   );

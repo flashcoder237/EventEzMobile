@@ -22,7 +22,9 @@ const APP_PLATFORM = Platform.OS === 'ios' || Platform.OS === 'android' ? Platfo
 // Création de l'instance Axios
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  // 15 s (était 30 s) : combiné aux retries ci-dessous, un endpoint muet
+  // bloquait jusqu'à ~2 min avant d'échouer. Les uploads gardent 60 s.
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -133,8 +135,26 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-// Nombre maximum de retries pour les timeouts
-const MAX_TIMEOUT_RETRIES = 3;
+// Nombre maximum de retries pour les timeouts / erreurs réseau, et délais
+// d'attente avant chaque retry (était 3 retries à 1/2/4 s : trop long pour
+// l'utilisateur qui fixe un écran de chargement).
+const MAX_TIMEOUT_RETRIES = 2;
+const RETRY_BACKOFF_MS = [500, 1500] as const;
+
+/**
+ * True si l'appareil est CONNU hors-ligne (NetInfo). Réessayer une requête
+ * sans réseau ne fait que retarder l'échec (et donc le repli sur le cache).
+ * En cas de doute (NetInfo indisponible, état inconnu) → false : on retente.
+ */
+async function isDeviceKnownOffline(): Promise<boolean> {
+  try {
+    const NetInfo = require('@react-native-community/netinfo').default;
+    const state = await NetInfo.fetch();
+    return state?.isConnected === false;
+  } catch {
+    return false;
+  }
+}
 
 // ============================================
 // SHARED REFRESH TOKEN HELPER
@@ -252,7 +272,13 @@ api.interceptors.response.use(
       const isFormDataRequest = originalRequest.data instanceof FormData ||
         (originalRequest.data && typeof originalRequest.data === 'object' && Array.isArray((originalRequest.data as any)?._parts));
 
-      if (!isFormDataRequest) {
+      // Erreur réseau alors que l'appareil est hors-ligne : aucun retry, on
+      // échoue tout de suite (ConnectionContext gère déjà l'état offline).
+      const knownOffline = isNetworkError && !isFormDataRequest && await isDeviceKnownOffline();
+
+      if (knownOffline) {
+        if (__DEV__) console.log(`[API] Device offline — no retry for ${originalRequest.url}`);
+      } else if (!isFormDataRequest) {
         const retryCount = originalRequest._timeoutRetryCount || 0;
 
         if (retryCount < MAX_TIMEOUT_RETRIES) {
@@ -267,14 +293,14 @@ api.interceptors.response.use(
             endpoint: originalRequest.url,
           });
 
-          // Backoff exponentiel: 1s, 2s, 4s
-          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+          // Backoff : 0,5 s puis 1,5 s
+          await new Promise(resolve => setTimeout(resolve, RETRY_BACKOFF_MS[retryCount] ?? 1500));
 
           return api(originalRequest);
         }
         if (__DEV__) console.error(`[API] Max retries reached for ${originalRequest.url}`);
         eventBus.emit('api-server-error');
-        // 3 retries successifs en échec sur le même endpoint → backend ou réseau
+        // Retries successifs en échec sur le même endpoint → backend ou réseau
         // probablement KO. Remonter en warning pour suivre les patterns.
         captureMessage('API max retries reached', 'warning', {
           url: originalRequest.url,
