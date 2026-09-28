@@ -365,7 +365,7 @@ exports[`MapEventCard snapshots renders paid event with image 1`] = `
             "top": 0,
           }
         }
-        transition={200}
+        transition={100}
       />
     </View>
   </View>
@@ -648,7 +648,7 @@ exports[`MapEventCard snapshots renders with userLocation + distance 1`] = `
             "top": 0,
           }
         }
-        transition={200}
+        transition={100}
       />
     </View>
   </View>
@@ -947,7 +947,7 @@ exports[`MapEventCard snapshots renders without category 1`] = `
             "top": 0,
           }
         }
-        transition={200}
+        transition={100}
       />
     </View>
   </View>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -46,6 +46,30 @@ import {
 } from '../../constants/theme';
 import { centeredContent } from '../../constants/layout';
 import { getOrganizerUrl } from '../../constants/urls';
+import CacheService from '../../services/CacheService';
+
+// Compteurs du profil : servis depuis le cache (affichage instantané, pas de
+// retour à 0 au focus), rafraîchis au plus une fois par minute ou au
+// pull-to-refresh. Avant : 3 requêtes (dont la liste COMPLÈTE des
+// inscriptions, juste pour compter) à CHAQUE focus de l'onglet.
+const PROFILE_CACHE_TTL = 60 * 1000;
+type ProfileStats = { tickets: number; favorites: number; reviews: number };
+type ProfileWallet = {
+  bank_name?: string;
+  bank_account_number?: string;
+  mobile_money_number?: string;
+  stripe_payouts_enabled?: boolean;
+};
+const statsCacheKey = (userId: unknown) => `profile-stats:${userId}`;
+const walletCacheKey = (userId: unknown) => `profile-wallet:${userId}`;
+// Même définition que ProfileSuggestionBanner.hasPayoutConfigured.
+const isWalletConfigured = (w: ProfileWallet | null) =>
+  !!(w && (
+    w.bank_name?.trim()
+    || w.bank_account_number?.trim()
+    || w.mobile_money_number?.trim()
+    || w.stripe_payouts_enabled
+  ));
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -59,59 +83,72 @@ export default function ProfileScreen() {
   const { unreadNotificationCount, unreadMessageCount, pendingInvitationCount, pendingTransferCount, pendingModerationCount, salesContractCount } = useUnreadCounts();
   const [showMyQR, setShowMyQR] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [stats, setStats] = useState({
-    tickets: 0,
-    favorites: 0,
-    reviews: 0,
-  });
-  const [wallet, setWallet] = useState<{
-    bank_name?: string;
-    bank_account_number?: string;
-    mobile_money_number?: string;
-    stripe_payouts_enabled?: boolean;
-  } | null>(null);
+  const [stats, setStats] = useState<ProfileStats>(() =>
+    (user?.id != null && CacheService.peekMemory?.<ProfileStats>(statsCacheKey(user.id))?.data)
+    || { tickets: 0, favorites: 0, reviews: 0 },
+  );
+  const [wallet, setWallet] = useState<ProfileWallet | null>(() =>
+    (user?.id != null && CacheService.peekMemory?.<ProfileWallet>(walletCacheKey(user.id))?.data) || null,
+  );
+  const walletRef = useRef(wallet);
+  walletRef.current = wallet;
 
   const isOrganizer = user?.role === 'organizer';
   const isModerator = user?.role === 'moderator' || user?.role === 'admin';
   const isAdmin = user?.role === 'admin';
 
-  useEffect(() => {
-    fetchStats();
-    if (isOrganizer) fetchWallet();
-  }, [isOrganizer]);
-
-  // Refetch stats + wallet whenever Profile regains focus — fixes the stale
-  // "configure ton wallet" banner persisting after the user has actually
-  // configured payout info on WalletScreen and navigated back.
+  // Focus (couvre aussi le montage) : cache d'abord, réseau seulement si périmé.
+  // Le wallet NON configuré est toujours re-vérifié au focus — sinon la
+  // bannière « configure ton wallet » restait affichée au retour de
+  // WalletScreen alors que l'utilisateur venait de le configurer.
   useFocusEffect(
     useCallback(() => {
       fetchStats();
-      if (isOrganizer) fetchWallet();
+      if (isOrganizer) fetchWallet(!isWalletConfigured(walletRef.current));
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOrganizer])
+    }, [isOrganizer, user?.id])
   );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([fetchStats(), isOrganizer ? fetchWallet() : Promise.resolve()]);
+    await Promise.all([fetchStats(true), isOrganizer ? fetchWallet(true) : Promise.resolve()]);
     setRefreshing(false);
-  }, [isOrganizer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOrganizer, user?.id]);
 
-  const fetchWallet = async () => {
+  const fetchWallet = async (force = false) => {
+    const key = user?.id != null ? walletCacheKey(user.id) : null;
+    if (key && !force) {
+      const cached = await CacheService.get<ProfileWallet>(key).catch(() => null);
+      if (cached) {
+        setWallet(cached.data);
+        if (!cached.isStale) return;
+      }
+    }
     try {
       const res = await walletAPI.getMyWallet();
-      setWallet({
+      const next: ProfileWallet = {
         bank_name: res.data?.bank_name,
         bank_account_number: res.data?.bank_account_number,
         mobile_money_number: res.data?.mobile_money_number,
         stripe_payouts_enabled: res.data?.stripe_payouts_enabled,
-      });
+      };
+      setWallet(next);
+      if (key) CacheService.set(key, next, PROFILE_CACHE_TTL).catch(() => {});
     } catch (error) {
       if (__DEV__) console.warn('Wallet fetch failed:', error);
     }
   };
 
-  const fetchStats = async () => {
+  const fetchStats = async (force = false) => {
+    const key = user?.id != null ? statsCacheKey(user.id) : null;
+    if (key && !force) {
+      const cached = await CacheService.get<ProfileStats>(key).catch(() => null);
+      if (cached) {
+        setStats(cached.data);
+        if (!cached.isStale) return;
+      }
+    }
     try {
       // Fetch all stats in parallel
       const [registrationsRes, followingRes, feedbacksRes] = await Promise.all([
@@ -133,11 +170,13 @@ export default function ProfileScreen() {
       const followingCount = extractCount(followingRes);
       const feedbacksCount = extractCount(feedbacksRes);
 
-      setStats({
+      const next: ProfileStats = {
         tickets: registrationsCount,
         favorites: followingCount,
         reviews: feedbacksCount,
-      });
+      };
+      setStats(next);
+      if (key) CacheService.set(key, next, PROFILE_CACHE_TTL).catch(() => {});
     } catch (error) {
       if (__DEV__) console.error('Error fetching stats:', error);
     }

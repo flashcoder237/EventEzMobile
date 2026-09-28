@@ -58,7 +58,7 @@ function MapEventCardComponent({
       {/* Image */}
       <View style={styles.imageContainer}>
         {imageUrl ? (
-          <EventImage uri={typeof imageUrl === 'string' ? imageUrl : (imageUrl as any)?.uri} style={styles.image} transition={200} />
+          <EventImage uri={typeof imageUrl === 'string' ? imageUrl : (imageUrl as any)?.uri} style={styles.image} transition={100} />
         ) : (
           <View style={[styles.imagePlaceholder, { backgroundColor: colors.gray200 }]}>
             <Ionicons name="calendar-outline" size={28} color={colors.gray400} />

@@ -55,6 +55,7 @@ import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import EventImage from '../../components/events/EventImage';
+import { toEventPreview } from '../../lib/utils/eventNavPreview';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -703,7 +704,7 @@ export default function MyEventsScreen() {
           {
             label: t('organizer.myEvents.actions.view'),
             icon: 'eye-outline',
-            onPress: () => navigation.navigate('EventDetails', { eventId: event.slug || event.id }),
+            onPress: () => navigation.navigate('EventDetails', { eventId: event.slug || event.id, initialEvent: toEventPreview(event) }),
           },
           {
             label: t('organizer.myEvents.actions.duplicate'),
@@ -728,7 +729,7 @@ export default function MyEventsScreen() {
       {
         label: t('organizer.myEvents.actions.view'),
         icon: 'eye-outline',
-        onPress: () => navigation.navigate('EventDetails', { eventId: event.slug || event.id }),
+        onPress: () => navigation.navigate('EventDetails', { eventId: event.slug || event.id, initialEvent: toEventPreview(event) }),
       },
     ];
     if (event.status === 'validated') {
@@ -1055,7 +1056,7 @@ export default function MyEventsScreen() {
             { backgroundColor: colors.card, borderColor: hairline },
             Shadows.lg,
           ]}
-          onPress={() => navigation.navigate('EventDetails', { eventId: item.slug || item.id })}
+          onPress={() => navigation.navigate('EventDetails', { eventId: item.slug || item.id, initialEvent: toEventPreview(item) })}
           onLongPress={() => showEventActions(item)}
           activeOpacity={0.92}
           accessibilityRole="button"

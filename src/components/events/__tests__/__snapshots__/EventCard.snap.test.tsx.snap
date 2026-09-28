@@ -131,7 +131,7 @@ exports[`EventCard snapshots renders compact variant 1`] = `
             "top": 0,
           }
         }
-        transition={300}
+        transition={100}
       />
     </View>
     <View
@@ -393,7 +393,7 @@ exports[`EventCard snapshots renders default variant 1`] = `
             "top": 0,
           }
         }
-        transition={300}
+        transition={100}
       />
     </View>
     <View
@@ -810,7 +810,7 @@ exports[`EventCard snapshots renders default variant with free event + soon (J-2
             "top": 0,
           }
         }
-        transition={300}
+        transition={100}
       />
     </View>
     <View
@@ -1270,7 +1270,7 @@ exports[`EventCard snapshots renders default variant with isFeatured + isLiked 1
             "top": 0,
           }
         }
-        transition={300}
+        transition={100}
       />
     </View>
     <View
@@ -1701,7 +1701,7 @@ exports[`EventCard snapshots renders featured variant 1`] = `
             "top": 0,
           }
         }
-        transition={300}
+        transition={100}
       />
     </View>
     <View
@@ -2180,7 +2180,7 @@ exports[`EventCard snapshots renders grid variant with online location 1`] = `
             "top": 0,
           }
         }
-        transition={300}
+        transition={100}
       />
     </View>
     <View
@@ -2569,7 +2569,7 @@ exports[`EventCard snapshots renders horizontal variant 1`] = `
             "top": 0,
           }
         }
-        transition={300}
+        transition={100}
       />
     </View>
     <View

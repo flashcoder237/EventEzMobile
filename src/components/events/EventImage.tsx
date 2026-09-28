@@ -48,7 +48,9 @@ export default function EventImage({
   placeholder,
   style,
   blurRadius = 25,
-  transition = 300,
+  // Court : une image déjà en cache mémoire (retour sur une liste, carte
+  // revue) apparaît quasi instantanément au lieu d'un fondu perceptible.
+  transition = 100,
   accessibilityLabel,
 }: Props) {
   const source = uri ? { uri } : fallbackSource;

@@ -78,6 +78,7 @@ import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import { getEventUrl } from '../../constants/urls';
 import { getApiResults } from '../../lib/utils/apiHelpers';
 import { getEventPriceRange } from '../../lib/utils/priceFormatters';
+import { toEventPreview } from '../../lib/utils/eventNavPreview';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -307,6 +308,7 @@ export default function DiscoverScreen() {
   const [forYouHasMore, setForYouHasMore] = useState(true);
   const [forYouLoading, setForYouLoading] = useState(false);
   // Refs pour éviter les double-fetch en course de scroll fast
+  const discoveryInFlightRef = React.useRef(false);
   const forYouLoadingRef = React.useRef(false);
   const forYouHasMoreRef = React.useRef(true);
   const forYouPageRef = React.useRef(1);
@@ -402,6 +404,9 @@ export default function DiscoverScreen() {
 
   // === Fetch data (progressive, cached) ===
   const fetchDiscoveryData = useCallback(async (bypassCache: boolean = false) => {
+    // Un fetch réseau est déjà en vol (montage + arrivée de la geoloc, focus…) :
+    // ne pas le doubler. Le pull-to-refresh (bypassCache) passe toujours.
+    if (!bypassCache && discoveryInFlightRef.current) return;
     let failures = 0;
     const trackFailure = (label: string) => (err: unknown) => {
       failures += 1;
@@ -423,7 +428,12 @@ export default function DiscoverScreen() {
         if (cachedFeatured || cachedCategories || cachedUpcoming || cachedFree) {
           setInitialLoading(false);
         }
+        // Cache complet ET frais → pas de réseau. Avant, les 4 requêtes
+        // repartaient à chaque montage même avec des données de 10 secondes.
+        const all = [cachedFeatured, cachedCategories, cachedUpcoming, cachedFree];
+        if (all.every((c) => c && !c.isStale)) return;
       }
+      discoveryInFlightRef.current = true;
 
       // Quand la geoloc est dispo, on transmet lat/lng au backend qui prioritise
       // la proximité dans le tri (sans filtrer par radius — on veut voir tout,
@@ -496,6 +506,8 @@ export default function DiscoverScreen() {
       if (__DEV__) console.error('Erreur chargement:', error);
       setFetchErrorCount((c) => c + 1);
       setInitialLoading(false);
+    } finally {
+      discoveryInFlightRef.current = false;
     }
   }, [location]);
 
@@ -780,13 +792,15 @@ export default function DiscoverScreen() {
 
   useEffect(() => {
     if (location) {
+      // Seules les sections DÉPENDANTES de la position sont rechargées :
+      // « près de toi » et les pubs géo-ciblées (radius matching).
       fetchNearbyEvents();
-      // Re-fetch ads avec coords précises (radius matching)
       fetchAds();
-      // Re-fetch discovery (featured/upcoming/free) avec lat/lng pour que
-      // le backend trie par proximité — l'initial fetch s'est fait sans geoloc.
-      // bypassCache=true pour ne pas afficher les anciens résultats triés par récence.
-      fetchDiscoveryData(true);
+      // Featured/upcoming/free : on NE re-télécharge PLUS tout à l'arrivée de
+      // la geoloc (doublait les 4 requêtes à chaque démarrage à froid). Le tri
+      // par proximité s'applique au prochain rafraîchissement (cache périmé ou
+      // pull-to-refresh) — fetchDiscoveryData lit `location` à ce moment-là.
+      fetchDiscoveryData();
       // "Pour vous" guest aussi : page 1 paginée par proximité backend.
       if (!user) {
         loadMoreForYou(true);
@@ -818,8 +832,8 @@ export default function DiscoverScreen() {
   const activateSearch = (categoryId?: number) => {
     navigation.navigate('EventSearch', categoryId ? { category: categoryId } : undefined);
   };
-  const navigateToEvent = (eventId: string, imageUrl?: string) => {
-    navigation.navigate('EventDetails', { eventId, imageUrl });
+  const navigateToEvent = (eventId: string, imageUrl?: string, ev?: Partial<Event>) => {
+    navigation.navigate('EventDetails', { eventId, imageUrl, initialEvent: toEventPreview(ev) });
   };
   const goToNotifications = () =>
     user ? navigation.navigate('Notifications') : navigation.navigate('Login' as any);
@@ -865,7 +879,7 @@ export default function DiscoverScreen() {
     return (
       <AnimatedPressable
         animationType="shadow"
-        onPress={() => navigateToEvent(ev.id, img)}
+        onPress={() => navigateToEvent(ev.id, img, ev)}
         style={[
           styles.heroCard,
           styles.shadowBase,
@@ -1103,7 +1117,7 @@ export default function DiscoverScreen() {
       <StaggeredItem index={index} staggerDelay={70}>
         <AnimatedPressable
           animationType="shadow"
-          onPress={() => navigateToEvent(item.id, img)}
+          onPress={() => navigateToEvent(item.id, img, item)}
           style={[
             styles.nearbyCard,
             styles.shadowBase,
@@ -1195,7 +1209,7 @@ export default function DiscoverScreen() {
             <StaggeredItem key={ev.id} index={i} staggerDelay={70}>
               <AnimatedPressable
                 animationType="shadow"
-                onPress={() => navigateToEvent(ev.id, eventImage(ev))}
+                onPress={() => navigateToEvent(ev.id, eventImage(ev), ev)}
                 style={[
                   styles.incomingCard,
                   styles.shadowBase,
@@ -1367,7 +1381,7 @@ export default function DiscoverScreen() {
             return (
               <AnimatedPressable
                 animationType="shadow"
-                onPress={() => navigateToEvent(item.id, img)}
+                onPress={() => navigateToEvent(item.id, img, item)}
                 style={[
                   styles.freeCard,
                   styles.shadowBase,
@@ -1418,7 +1432,7 @@ export default function DiscoverScreen() {
     return (
       <AnimatedPressable
         animationType="shadow"
-        onPress={() => navigateToEvent(ev.id, img)}
+        onPress={() => navigateToEvent(ev.id, img, ev)}
         style={[
           styles.recCard,
           styles.shadowBase,
@@ -2165,7 +2179,7 @@ export default function DiscoverScreen() {
                         >
                           {/* Header : organisateur + meta — tappable comme tout LinkedIn/FB post */}
                           <TouchableOpacity
-                            onPress={() => navigateToEvent(ev.id, img)}
+                            onPress={() => navigateToEvent(ev.id, img, ev)}
                             activeOpacity={0.95}
                           >
                             <View style={styles.feedCardHeader}>
@@ -2295,7 +2309,7 @@ export default function DiscoverScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity
                               style={[styles.feedCardActionPrimary, { backgroundColor: colors.primary }]}
-                              onPress={() => navigateToEvent(ev.id, img)}
+                              onPress={() => navigateToEvent(ev.id, img, ev)}
                               activeOpacity={0.85}
                               accessibilityLabel={t('discover.viewEvent')}
                             >

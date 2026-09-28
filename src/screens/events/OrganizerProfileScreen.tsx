@@ -44,6 +44,7 @@ import {
   AvatarSizes,
 } from '../../constants/theme';
 import { centeredContent, WIDE_MAX } from '../../constants/layout';
+import { toEventPreview } from '../../lib/utils/eventNavPreview';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'OrganizerProfile'>;
 type RouteProps = RouteProp<RootStackParamList, 'OrganizerProfile'>;
@@ -165,8 +166,8 @@ export default function OrganizerProfileScreen() {
     navigation.navigate('Browser', { url: fullUrl, title });
   }, [navigation]);
 
-  const navigateToEvent = useCallback((eventId: string) => {
-    navigation.navigate('EventDetails', { eventId });
+  const navigateToEvent = useCallback((eventId: string, ev?: any) => {
+    navigation.navigate('EventDetails', { eventId, initialEvent: toEventPreview(ev) });
   }, [navigation]);
 
   const formatDate = (dateStr: string): string => {
@@ -508,7 +509,7 @@ export default function OrganizerProfileScreen() {
                   return (
                     <TouchableOpacity
                       style={[styles.eventRow, { backgroundColor: colors.card, borderColor: colors.border }]}
-                      onPress={() => navigateToEvent(event.id)}
+                      onPress={() => navigateToEvent(event.id, event)}
                       activeOpacity={TOUCH_OPACITY}
                     >
                       {/* Date tile orange à gauche */}

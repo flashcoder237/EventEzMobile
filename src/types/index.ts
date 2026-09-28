@@ -1715,6 +1715,13 @@ export type RootStackParamList = {
      * d'une notif event_live → on scrolle/ouvre la section « Rejoindre la visio ».
      */
     initialTab?: 'virtual';
+    /**
+     * Aperçu léger (titre, bannière, dates, lieu) fourni par la carte de liste
+     * d'origine → en-tête affiché instantanément pendant le fetch du détail.
+     * Construit via `toEventPreview()` — champs primitifs seulement
+     * (sérialisable, compatible persistance de navigation).
+     */
+    initialEvent?: import('../lib/utils/eventNavPreview').EventNavPreview;
   };
   EventReviews: { eventId: string; eventTitle?: string };
   // Recherche partageable : params alignés sur les query string web /events?…

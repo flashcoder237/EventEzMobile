@@ -11,6 +11,16 @@ import { useAlert } from '../contexts/AlertContext';
 import { getEventUrl } from '../constants/urls';
 import { findExistingDirectConversation } from '../lib/utils/messagingHelpers';
 import { getApiErrorMessage } from '../lib/utils/errorHandling';
+import CacheService from '../services/CacheService';
+
+// Cache du détail d'event (stale-while-revalidate) : réouvrir un event déjà vu
+// l'affiche instantanément, le fetch réseau rafraîchit en arrière-plan. Le
+// cache est purgé au logout (CacheService.clearAll) — les champs propres à
+// l'utilisateur (is_following, user_has_access) ne fuient pas entre comptes.
+const EVENT_DETAIL_CACHE_TTL = 2 * 60 * 1000;
+export const eventDetailCacheKey = (idOrSlug: string) => `event-detail:${idOrSlug}`;
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Dedup module-level — un même event ouvert plusieurs fois dans la session ne
 // remonte qu'une seule view au backend. Évite de polluer le signal recommandation
@@ -113,12 +123,19 @@ export function useEventDetails(
   const { toastSuccess, toastError } = useFeedback();
 
   const isPreview = !!previewEvent;
-  const [event, setEvent] = useState<Event | null>(
-    isPreview ? (previewEvent as Event) : null,
+  // Lecture synchrone du cache mémoire au 1er render → pas de flash squelette
+  // quand l'event a déjà été ouvert pendant la session.
+  const [memCached] = useState(() =>
+    isPreview ? null : (CacheService.peekMemory?.<Event>(eventDetailCacheKey(eventId)) ?? null),
   );
-  const [loading, setLoading] = useState(!isPreview);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followersCount, setFollowersCount] = useState(0);
+  const [event, setEvent] = useState<Event | null>(
+    isPreview ? (previewEvent as Event) : (memCached?.data ?? null),
+  );
+  const [loading, setLoading] = useState(!isPreview && !memCached);
+  const [isFollowing, setIsFollowing] = useState(!!memCached?.data?.is_following);
+  const [followersCount, setFollowersCount] = useState<number>(
+    (memCached?.data as any)?.followers_count || 0,
+  );
   const [activeTab, setActiveTab] = useState<TabType>('about');
   // Review state
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -148,7 +165,10 @@ export function useEventDetails(
   // (?event=X sur /registrations/, /sessions/, /waitlist/, /feedbacks/) sont
   // strictement UUID : un slug renvoie 400/500. On differe ces fetches
   // jusqu'a ce que fetchEvent ait resolu l'UUID via event.id.
-  const eventUuid = event?.id;
+  // Si le param de route est DÉJÀ un UUID, les sous-fetches partent en
+  // parallèle de getEvent (plus de cascade getEvent → feedbacks/sessions/…).
+  // Même valeur que event.id une fois chargé → l'effet ne se redéclenche pas.
+  const eventUuid = UUID_RE.test(eventId) ? eventId : event?.id;
 
   useEffect(() => {
     if (isPreview) {
@@ -198,6 +218,22 @@ export function useEventDetails(
   };
 
   const fetchEvent = async () => {
+    const cacheKey = eventDetailCacheKey(eventId);
+    // Cache disque (AsyncStorage) si rien en mémoire : affichage immédiat,
+    // le réseau rafraîchit juste après.
+    if (!memCached) {
+      try {
+        const cached = await CacheService.get<Event>(cacheKey);
+        if (cached?.data) {
+          setEvent((prev) => prev ?? cached.data);
+          setIsFollowing((prev) => prev || !!cached.data.is_following);
+          setFollowersCount((prev: number) => prev || (cached.data as any).followers_count || 0);
+          setLoading(false);
+        }
+      } catch {
+        // cache best effort
+      }
+    }
     try {
       const [eventResponse, followResponse, countResponse] = await Promise.all([
         eventsAPI.getEvent(eventId),
@@ -205,6 +241,7 @@ export function useEventDetails(
         eventsAPI.getFollowersCount(eventId).catch(() => ({ data: { followers_count: 0 } })),
       ]);
       setEvent(eventResponse.data);
+      CacheService.set(cacheKey, eventResponse.data, EVENT_DETAIL_CACHE_TTL).catch(() => {});
       setIsFollowing(followResponse.data?.is_following || eventResponse.data.is_following || false);
       setFollowersCount(countResponse.data?.followers_count || eventResponse.data.followers_count || 0);
       // Track view cote reco (une fois par session par event). Best effort.
@@ -223,12 +260,19 @@ export function useEventDetails(
       const status = error?.response?.status;
       const data = error?.response?.data;
       if (status === 403 && data?.code === 'invite_only_required') {
+        CacheService.invalidate(cacheKey).catch(() => {});
         setEvent({
           id: eventId,
           visibility: 'invite_only',
           user_has_access: false,
         } as unknown as Event);
+      } else if (status === 404 || status === 403 || status === 410) {
+        // Event supprimé / devenu inaccessible : ne pas laisser une copie
+        // cachée masquer l'état réel (écran 404).
+        CacheService.invalidate(cacheKey).catch(() => {});
+        setEvent(null);
       } else if (__DEV__) {
+        // Erreur réseau : on garde l'éventuelle copie cachée (mode hors ligne).
         console.error('Erreur chargement evenement:', error);
       }
     } finally {

@@ -80,6 +80,18 @@ const CacheService = {
   },
 
   /**
+   * Lecture SYNCHRONE du seul niveau mémoire (pas d'AsyncStorage).
+   * Permet d'initialiser un état React au premier render (zéro flash de
+   * squelette) quand la donnée a déjà été chargée pendant la session.
+   */
+  peekMemory<T>(key: string): CacheResult<T> | null {
+    const m = mem.get(key);
+    if (!m) return null;
+    touchKey(key, m);
+    return { data: m.data as T, isStale: Date.now() - m.timestamp > m.ttl };
+  },
+
+  /**
    * Écrit une entrée dans le cache (mémoire + AsyncStorage).
    */
   async set<T>(key: string, data: T, ttl = DEFAULT_TTL): Promise<void> {

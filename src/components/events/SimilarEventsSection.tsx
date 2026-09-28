@@ -24,6 +24,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import EventImage from './EventImage';
+import { toEventPreview } from '../../lib/utils/eventNavPreview';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -117,7 +118,7 @@ export default function SimilarEventsSection({ eventId, limit = 5 }: Props) {
             // explose, retour pénible). On remplace l'écran courant → la
             // navigation event↔event reste à profondeur 1 ; le « retour » ramène
             // là d'où l'utilisateur est vraiment venu.
-            onPress={() => navigation.replace('EventDetails', { eventId: String(item.id) })}
+            onPress={() => navigation.replace('EventDetails', { eventId: String(item.id), initialEvent: toEventPreview(item) })}
           />
         )}
         horizontal

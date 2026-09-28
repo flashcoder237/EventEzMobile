@@ -39,6 +39,7 @@ import {
 } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { RootStackParamList } from '../../types';
+import { toEventPreview } from '../../lib/utils/eventNavPreview';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -129,7 +130,7 @@ export default function MyTeamEventsScreen() {
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
         <TouchableOpacity
           activeOpacity={TOUCH_OPACITY}
-          onPress={() => navigation.navigate('EventDetails', { eventId: item.event.slug || item.event.id })}
+          onPress={() => navigation.navigate('EventDetails', { eventId: item.event.slug || item.event.id, initialEvent: toEventPreview(item.event as any) })}
         >
           {item.event.banner_url ? (
             <Image source={{ uri: item.event.banner_url }} style={styles.banner} resizeMode="cover" />
@@ -161,7 +162,7 @@ export default function MyTeamEventsScreen() {
 
           <TouchableOpacity
             activeOpacity={TOUCH_OPACITY}
-            onPress={() => navigation.navigate('EventDetails', { eventId: item.event.slug || item.event.id })}
+            onPress={() => navigation.navigate('EventDetails', { eventId: item.event.slug || item.event.id, initialEvent: toEventPreview(item.event as any) })}
           >
             <Text style={[styles.title, { color: colors.gray900 }]} numberOfLines={2}>
               {item.event.title}
@@ -185,7 +186,7 @@ export default function MyTeamEventsScreen() {
             {canModerate && (
               <TouchableOpacity
                 style={[styles.actionButtonSecondary, { borderColor: colors.gray200 }]}
-                onPress={() => navigation.navigate('EventDetails', { eventId: item.event.slug || item.event.id })}
+                onPress={() => navigation.navigate('EventDetails', { eventId: item.event.slug || item.event.id, initialEvent: toEventPreview(item.event as any) })}
                 activeOpacity={TOUCH_OPACITY}
               >
                 <Ionicons name="chatbubbles-outline" size={16} color={colors.gray700} />

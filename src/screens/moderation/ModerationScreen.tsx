@@ -40,6 +40,7 @@ import {
 } from '../../constants/theme';
 import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
+import { toEventPreview } from '../../lib/utils/eventNavPreview';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -582,7 +583,7 @@ export default function ModerationScreen() {
           {/* Disque "Voir" — action tertiaire (consultation) */}
           <TouchableOpacity
             style={[styles.actionDisc, { backgroundColor: colors.gray100 }]}
-            onPress={() => navigation.navigate('EventDetails', { eventId: item.slug || item.id })}
+            onPress={() => navigation.navigate('EventDetails', { eventId: item.slug || item.id, initialEvent: toEventPreview(item as any) })}
             activeOpacity={0.7}
             accessibilityLabel={t('moderation.viewEventA11y')}
           >

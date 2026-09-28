@@ -30,6 +30,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { toEventPreview } from '../../lib/utils/eventNavPreview';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'Map'>;
@@ -376,7 +377,7 @@ export default function MapScreen() {
         <MapEventCard
           marker={selectedMarker}
           userLocation={userLocation}
-          onPress={() => navigation.navigate('EventDetails', { eventId: selectedMarker.slug || selectedMarker.id })}
+          onPress={() => navigation.navigate('EventDetails', { eventId: selectedMarker.slug || selectedMarker.id, initialEvent: toEventPreview(selectedMarker as any) })}
           calculateDistance={calculateDistance}
         />
       )}

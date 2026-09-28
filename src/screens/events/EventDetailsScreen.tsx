@@ -31,7 +31,7 @@ import Animated, {
   useAnimatedStyle,
   interpolate,
   Extrapolation,
-  FadeInUp,
+  FadeIn,
   runOnJS,
 } from 'react-native-reanimated';
 
@@ -63,7 +63,8 @@ const SponsorsTab = React.lazy(() => import('../../components/events/SponsorsTab
 // étaient importés mais jamais utilisés dans le rendu — supprimés (dead imports).
 // Si tu as besoin d'eux, les ajouter en lazy comme les heavy tabs ci-dessus.
 import SimilarEventsSection from '../../components/events/SimilarEventsSection';
-import { useEventDetails } from '../../hooks/useEventDetails';
+import { useEventDetails, eventDetailCacheKey } from '../../hooks/useEventDetails';
+import CacheService from '../../services/CacheService';
 import { useUTMTracking } from '../../hooks/useUTMTracking';
 import { useCoverVideoAutoplay } from '../../hooks/useCoverVideoAutoplay';
 import { useFeedback } from '../../contexts/FeedbackContext';
@@ -96,7 +97,15 @@ const { width } = Dimensions.get('window');
 
 export default function EventDetailsScreen() {
   const route = useRoute<RouteProps>();
-  const { eventId, imageUrl: routeImageUrl, previewEvent, initialTab } = route.params;
+  const { eventId, imageUrl: routeImageParam, previewEvent, initialTab, initialEvent } = route.params;
+  // Aperçu transmis par la carte d'origine : bannière + en-tête affichés
+  // immédiatement pendant le chargement du détail complet.
+  const routeImageUrl = routeImageParam
+    || initialEvent?.banner_image
+    || initialEvent?.category?.default_event_image
+    || initialEvent?.display_image;
+  const routePlaceholder = initialEvent?.banner_placeholder
+    || initialEvent?.category?.default_event_image_placeholder;
   const { colors, isDark, gradients } = useTheme();
   const { requireAuth } = useAuthGuard();
   const { t, i18n } = useTranslation();
@@ -388,6 +397,8 @@ export default function EventDetailsScreen() {
         }
         // Reload — le backend voit maintenant le token via l'interceptor
         // et renvoie les infos completes.
+        // Purge le détail caché (version sans accès) avant de recharger.
+        CacheService.invalidate(eventDetailCacheKey(eventId)).catch(() => {});
         navigation.replace('EventDetails', { eventId });
       } else {
         // Code refusé SANS exception (200 + { valid: false }) : sans ce else,
@@ -573,7 +584,7 @@ export default function EventDetailsScreen() {
       {/* BlurHeader that appears on scroll */}
       <BlurHeader
         scrollY={scrollY}
-        title={event?.title || ''}
+        title={event?.title || initialEvent?.title || ''}
         titleShowOffset={280}
         bgShowOffset={200}
         leftAction={
@@ -635,9 +646,9 @@ export default function EventDetailsScreen() {
               {/* Workaround expo-image v3 : placeholder LQIP rendu comme
                   source de fond pour garantir le remplissage du conteneur
                   (placeholderContentFit ignoré sur petits data URIs en natif). */}
-              {(event?.banner_placeholder || event?.category?.default_event_image_placeholder) && (
+              {(event?.banner_placeholder || event?.category?.default_event_image_placeholder || routePlaceholder) && (
                 <Image
-                  source={{ uri: event?.banner_placeholder || event?.category?.default_event_image_placeholder || DEFAULT_BLUR_DATA_URL }}
+                  source={{ uri: event?.banner_placeholder || event?.category?.default_event_image_placeholder || routePlaceholder || DEFAULT_BLUR_DATA_URL }}
                   contentFit="cover"
                   style={StyleSheet.absoluteFillObject}
                 />
@@ -649,7 +660,7 @@ export default function EventDetailsScreen() {
                     : require('../../../assets/defaults/default-event.png')
                 }
                 contentFit="cover"
-                transition={400}
+                transition={150}
                 cachePolicy="memory-disk"
                 style={StyleSheet.absoluteFillObject}
               />
@@ -733,15 +744,47 @@ export default function EventDetailsScreen() {
         {/* Content */}
         {loading ? (
           <View style={[styles.content, { backgroundColor: colors.surface, padding: Spacing.lg }]}>
-            <View style={{ height: 20, width: '40%', backgroundColor: colors.gray200, borderRadius: 4, marginBottom: 12 }} />
-            <View style={{ height: 28, width: '80%', backgroundColor: colors.gray200, borderRadius: 4, marginBottom: 16 }} />
+            {initialEvent?.title ? (
+              <>
+                {/* En-tête instantané depuis l'aperçu de la carte d'origine */}
+                <Text style={[styles.titleEyebrow, { color: colors.primary }]}>
+                  {initialEvent.category?.name
+                    ? t('eventDetails.eyebrowWithCategory', { category: initialEvent.category.name.toUpperCase() })
+                    : t('eventDetails.eyebrow')}
+                </Text>
+                {!!initialEvent.start_date && (
+                  <View style={[styles.datePill, { backgroundColor: colors.primaryBg, borderColor: colors.primary }]}>
+                    <Ionicons name="calendar-outline" size={14} color={colors.primary} />
+                    <Text
+                      style={[styles.datePillText, { color: colors.primary }]}
+                      allowFontScaling
+                      maxFontSizeMultiplier={1.5}
+                    >
+                      {formatEventDateRange(
+                        initialEvent.start_date, initialEvent.end_date || initialEvent.start_date,
+                        i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR',
+                      )}
+                    </Text>
+                  </View>
+                )}
+                <Text style={[styles.title, { color: colors.gray900 }]}>{initialEvent.title}</Text>
+              </>
+            ) : (
+              <>
+                <View style={{ height: 20, width: '40%', backgroundColor: colors.gray200, borderRadius: 4, marginBottom: 12 }} />
+                <View style={{ height: 28, width: '80%', backgroundColor: colors.gray200, borderRadius: 4, marginBottom: 16 }} />
+              </>
+            )}
             <View style={{ height: 60, width: '100%', backgroundColor: colors.gray100, borderRadius: 12, marginBottom: 16 }} />
             <View style={{ height: 16, width: '60%', backgroundColor: colors.gray200, borderRadius: 4, marginBottom: 8 }} />
             <View style={{ height: 16, width: '90%', backgroundColor: colors.gray200, borderRadius: 4, marginBottom: 8 }} />
             <View style={{ height: 16, width: '70%', backgroundColor: colors.gray200, borderRadius: 4 }} />
           </View>
         ) : event ? (
-        <Animated.View entering={FadeInUp.delay(200).duration(400).springify()}>
+        // Pas de délai : le contenu apparaît dès qu'il est prêt. Aucune
+        // animation quand l'en-tête d'aperçu était déjà affiché (évite un
+        // clignotement titre visible → invisible → visible).
+        <Animated.View entering={initialEvent?.title ? undefined : FadeIn.duration(200)}>
         <View style={[styles.content, { backgroundColor: colors.surface }]}>
           {/* Pending Payment Alert */}
           {userRegistration && userRegistration.status === 'pending' && isPaymentRequired(userRegistration) && (

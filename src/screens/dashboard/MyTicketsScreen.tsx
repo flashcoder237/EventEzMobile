@@ -211,6 +211,12 @@ function CountdownRing({
 // ============================================================
 // Shimmer band (animated gradient sweep)
 // ============================================================
+// Transferts de billets en attente : compteur mémorisé au niveau module pour
+// (1) ne pas retomber à 0 au remontage et (2) ne pas relancer la requête à
+// CHAQUE focus de l'onglet — au plus une fois par minute (pull-to-refresh force).
+const PENDING_TRANSFERS_TTL = 60 * 1000;
+let pendingTransfersMemo: { userId: unknown; count: number; at: number } | null = null;
+
 function ShimmerBand({
   label,
   bgColor,
@@ -332,7 +338,9 @@ export default function MyTicketsScreen() {
     searchOpen,
   } = state;
 
-  const [pendingTransferCount, setPendingTransferCount] = React.useState(0);
+  const [pendingTransferCount, setPendingTransferCount] = React.useState(() =>
+    pendingTransfersMemo && pendingTransfersMemo.userId === user?.id ? pendingTransfersMemo.count : 0,
+  );
 
   // Canvas: warm light gray in light mode, dark slate in dark mode
   const canvasBg = isDark ? colors.background : CANVAS_LIGHT;
@@ -382,13 +390,28 @@ export default function MyTicketsScreen() {
     fetchRegistrations();
   }, [user?.id]);
 
+  const fetchPendingTransfers = useCallback((force = false) => {
+    const memo = pendingTransfersMemo;
+    if (
+      !force && memo && memo.userId === user?.id
+      && Date.now() - memo.at < PENDING_TRANSFERS_TTL
+    ) {
+      // Valeur déjà posée par l'initialiseur de useState (ou le dernier fetch).
+      return Promise.resolve();
+    }
+    const userId = user?.id;
+    return ticketTransfersAPI.getPendingTransfers().then((res: any) => {
+      const data = res.data?.results ?? res.data ?? [];
+      const count = Array.isArray(data) ? data.length : 0;
+      pendingTransfersMemo = { userId, count, at: Date.now() };
+      setPendingTransferCount(count);
+    }).catch(() => {});
+  }, [user?.id]);
+
   useFocusEffect(
     useCallback(() => {
-      ticketTransfersAPI.getPendingTransfers().then((res: any) => {
-        const data = res.data?.results ?? res.data ?? [];
-        setPendingTransferCount(Array.isArray(data) ? data.length : 0);
-      }).catch(() => {});
-    }, [])
+      fetchPendingTransfers();
+    }, [fetchPendingTransfers])
   );
 
   // Extrait du fetch : transforme la liste de registrations en payload pour
@@ -467,7 +490,7 @@ export default function MyTicketsScreen() {
 
   const onRefresh = async () => {
     dispatch({ type: 'SET_REFRESHING', payload: true });
-    await fetchRegistrations(true);
+    await Promise.all([fetchRegistrations(true), fetchPendingTransfers(true)]);
     dispatch({ type: 'SET_REFRESHING', payload: false });
   };
 

@@ -340,7 +340,7 @@ function EventCoverMediaImpl({
         <EventImage
           uri={imageUri}
           placeholder={placeholder}
-          transition={400}
+          transition={150}
           style={StyleSheet.absoluteFill}
         />
       ) : (

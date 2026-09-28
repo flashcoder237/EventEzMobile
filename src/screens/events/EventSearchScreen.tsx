@@ -58,6 +58,7 @@ import { getEventPriceRange } from '../../lib/utils/priceFormatters';
 import EventCard from '../../components/events/EventCard';
 import { EmptyState } from '../../components/ui';
 import { EventCardSkeleton, SkeletonList } from '../../components/ui/Skeleton';
+import { toEventPreview } from '../../lib/utils/eventNavPreview';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'EventSearch'>;
 type RouteProps = RouteProp<RootStackParamList, 'EventSearch'>;
@@ -658,6 +659,7 @@ export default function EventSearchScreen() {
     navigation.navigate('EventDetails', {
       eventId: event.slug || event.id,
       imageUrl: event.banner_image || event.category?.default_event_image || event.display_image,
+      initialEvent: toEventPreview(event),
     });
   };
 

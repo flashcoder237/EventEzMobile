@@ -79,6 +79,19 @@ export function FadeInView({
 // 2. StaggeredItem — For list items with stagger
 // ============================================
 
+/**
+ * Au-delà de cet index, un item de liste apparaît sans délai supplémentaire.
+ * Sans plafond, le 30e item d'une FlatList attendait 30 × 60 ms = 1,8 s avant
+ * de s'afficher (perçu comme « l'écran est lent »), et chaque item recyclé
+ * par la virtualisation rejouait ce délai géant au scroll.
+ */
+export const MAX_STAGGER_INDEX = 6;
+
+/** Délai de stagger plafonné — à utiliser aussi pour les `entering` reanimated. */
+export function staggerDelayFor(index: number, step: number): number {
+  return Math.min(Math.max(index, 0), MAX_STAGGER_INDEX) * step;
+}
+
 interface StaggeredItemProps {
   children: React.ReactNode;
   index: number;
@@ -98,7 +111,7 @@ function StaggeredItemComponent({
   useEffect(() => {
     if (reducedMotion) return;
     progress.value = withDelay(
-      index * staggerDelay,
+      staggerDelayFor(index, staggerDelay),
       withSpring(1, { damping: 18, stiffness: 200 })
     );
   }, []);

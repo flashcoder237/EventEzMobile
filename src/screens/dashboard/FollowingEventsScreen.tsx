@@ -45,6 +45,7 @@ import { FollowingEventCardSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem, ContentTransition } from '../../components/ui/Animations';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import EventImage from '../../components/events/EventImage';
+import { toEventPreview } from '../../lib/utils/eventNavPreview';
 
 
 // Warm editorial canvas (light) / dark background
@@ -726,6 +727,7 @@ export default function FollowingEventsScreen() {
     navigation.navigate('EventDetails', {
       eventId: event.slug || event.id,
       imageUrl: event.banner_image || event.category?.default_event_image || undefined,
+      initialEvent: toEventPreview(event),
     });
   }, [navigation]);
 
