@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import {
   Modal,
   View,
@@ -13,6 +13,8 @@ import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { buildEmbedSource } from '../../lib/utils/videoUrl';
+import { WEB_BASE_URL } from '../../constants/urls';
 
 /**
  * Lecteur PLEIN ÉCRAN de la cover video d'un événement — AVEC LE SON.
@@ -50,6 +52,11 @@ export default function EventCoverVideoModal({
   const [loading, setLoading] = useState(true);
 
   const useUploaded = !!videoUri;
+  // Mémorisé : un nouvel objet `source` à chaque rendu rechargerait le lecteur.
+  const embedSource = useMemo(
+    () => (embedUrl ? buildEmbedSource(embedUrl, WEB_BASE_URL) : null),
+    [embedUrl],
+  );
   // Autoplay avec son : on est en plein écran suite à un tap explicite de
   // l'utilisateur, donc le son est légitime (contrairement à l'autoplay de la
   // bannière qui DOIT rester muet côté iOS/Android).
@@ -104,7 +111,8 @@ export default function EventCoverVideoModal({
           />
         ) : embedUrl ? (
           <WebView
-            source={{ uri: embedUrl }}
+            source={embedSource!}
+            originWhitelist={['*']}
             style={StyleSheet.absoluteFill}
             allowsInlineMediaPlayback
             mediaPlaybackRequiresUserAction={false}

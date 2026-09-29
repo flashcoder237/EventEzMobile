@@ -25,6 +25,7 @@ import Animated, {
   Layout,
 } from 'react-native-reanimated';
 import { SpringPresets, ANIMATION_DURATION } from '../../constants/theme';
+import { Amplitudes, Curves, springConfig } from '../../constants/motion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { haptics } from '../../utils/haptics';
 import { BurstParticles } from './motion/BurstParticles';
@@ -242,11 +243,15 @@ export function PulsingBadge({
   const lastTrigger = useRef(trigger);
   useEffect(() => {
     if (lastTrigger.current === trigger) return;
+    const before = lastTrigger.current;
     lastTrigger.current = trigger;
     if (continuous || reducedMotion) return;
+    // M6 (round 2) : un compteur qui BAISSE (notification lue) ne fait plus
+    // sauter le badge — seule une hausse est une nouvelle.
+    if (typeof trigger === 'number' && typeof before === 'number' && trigger < before) return;
     scale.value = withSequence(
-      withTiming(1.22, { duration: 160, easing: Easing.out(Easing.cubic) }),
-      withSpring(1, { damping: 10, stiffness: 260 })
+      withTiming(Amplitudes.popPeak, { duration: 160, easing: Curves.out }),
+      withSpring(1, springConfig('pop'))
     );
   }, [trigger, continuous, reducedMotion]);
 
@@ -305,10 +310,11 @@ export function AnimatedBookmark({
     if (haptic) haptics.light();
     if (reducedMotion) return;
     if (burst) setBurstKey((k) => k + 1);
+    // Tokens motion : entrée depuis 0,96, pic ≤ 1,12, ressort « pop ».
     scale.value = withSequence(
-      withTiming(0.6, { duration: 80 }),
-      withSpring(1.2, { damping: 8, stiffness: 400 }),
-      withSpring(1, { damping: 12, stiffness: 300 })
+      withTiming(Amplitudes.enterFrom, { duration: 80, easing: Curves.out }),
+      withTiming(Amplitudes.popPeak, { duration: 120, easing: Curves.out }),
+      withSpring(1, springConfig('pop'))
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive]);

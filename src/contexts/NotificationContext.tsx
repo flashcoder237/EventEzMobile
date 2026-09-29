@@ -9,6 +9,7 @@ import PushPermissionModal from '../components/common/PushPermissionModal';
 import { useNotificationWebSocket } from '../hooks/useNotificationWebSocket';
 import { navigationRef } from '../navigation/navigationRef';
 import { resolveNotificationTarget } from '../lib/notifications/resolveTarget';
+import { emitLiveNotification } from '../lib/notifications/liveBus';
 
 const PUSH_PERMISSION_PROMPTED_KEY = '@eventez_push_permission_prompted';
 
@@ -702,6 +703,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (!notif.is_read) {
         setUnreadNotificationCount((prev) => prev + 1);
       }
+      // Moments (S3 « Vous êtes entré », jalons…) : le contenu part aussi sur
+      // le bus, pour les hôtes qui en font plus qu'un compteur.
+      emitLiveNotification(notif as any);
     },
     onNotificationRead: (notifId, unreadCount) => {
       setNotifications((prev) =>

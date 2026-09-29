@@ -10,9 +10,12 @@
 // caller de gérer l'empty state pour donner du contexte (les analytics
 // mensuelles sur un event sans historique = on attend les données).
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { useMotionGate } from '../ui/motion/useMotionGate';
+import { Curves, Durations } from '../../constants/motion';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { FontFamily, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
@@ -56,6 +59,27 @@ export default function TrendLineChart({
   // un SCREEN_WIDTH figé au chargement du module. Sinon, sur iPad (mode compat)
   // ou dans un conteneur plus étroit/large, le chart est mal dimensionné.
   const [chartWidth, setChartWidth] = useState(0);
+
+  // O10 — révélation gauche → droite UNE seule fois (premier tracé avec des
+  // données) : un cache couleur carte glisse en translateX. Un changement de
+  // filtre ou de données ne rejoue jamais le tracé. Couleurs inchangées.
+  const { canAnimate } = useMotionGate({ ignoreFocus: true });
+  const cover = useSharedValue(0);
+  const revealed = useRef(false);
+  const hasAny = values.length > 0 && values.some((v) => Number.isFinite(v));
+  const innerW = chartWidth > 0 ? chartWidth - Spacing.lg * 2 - Spacing.md * 2 : 0;
+  useEffect(() => {
+    if (revealed.current || !hasAny || innerW <= 0) return;
+    revealed.current = true;
+    if (!canAnimate) {
+      cover.value = innerW + 4;
+      return;
+    }
+    cover.value = 0;
+    cover.value = withTiming(innerW + 4, { duration: Durations.glint, easing: Curves.inOut });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasAny, innerW, canAnimate]);
+  const coverStyle = useAnimatedStyle(() => ({ transform: [{ translateX: cover.value }] }));
 
   // Garde-fous : si aucune valeur ou tous zéros → on n'affiche rien plutôt
   // qu'un graphe plat trompeur. Le caller peut décider de remplacer par un
@@ -113,6 +137,7 @@ export default function TrendLineChart({
       ) : null}
 
       {innerChartWidth > 0 && (
+      <View style={styles.revealWrap}>
       <LineChart
         data={{
           labels: safeLabels,
@@ -137,6 +162,11 @@ export default function TrendLineChart({
           </Text>
         ) : undefined}
       />
+        <Animated.View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }, coverStyle]}
+        />
+      </View>
       )}
     </View>
   );
@@ -183,6 +213,7 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     marginBottom: Spacing.sm,
   },
+  revealWrap: { overflow: 'hidden' },
   chart: {
     marginVertical: Spacing.sm,
     borderRadius: BorderRadius.lg,

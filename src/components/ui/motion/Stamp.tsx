@@ -21,6 +21,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { springConfig } from '../../../constants/motion';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import { FontFamily } from '../../../constants/theme';
 import { useFirstSeen } from './useFirstSeen';
@@ -80,7 +81,7 @@ function StampComponent({
         withTiming(0.96, { duration: 200, easing: Easing.in(Easing.cubic) }, (finished) => {
           if (finished) runOnJS(impact)();
         }),
-        withSpring(1, { damping: 10, stiffness: 420 }),
+        withSpring(1, springConfig('celebrate')),
       ),
     );
     return undefined;

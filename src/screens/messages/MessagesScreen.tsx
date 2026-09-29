@@ -29,7 +29,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { haptics } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Swipeable from 'react-native-gesture-handler/Swipeable';
+import { SwipeAction } from '../../components/ui/motion/SwipeAction';
 import { resolveConversationAvatar } from '../../utils/conversationAvatar';
 import { messagesAPI, usersAPI, connectionsAPI, getMediaUrl } from '../../api';
 import CacheService from '../../services/CacheService';
@@ -1356,63 +1356,39 @@ export default function MessagesScreen() {
     const convId = String(item.id);
     const muted = isMuted(convId);
 
-    // Actions révélées par swipe vers la GAUCHE (action côté droit) :
-    // Archiver + Supprimer. Style iMessage/Mail.app.
-    const renderRightActions = () => (
-      <View style={swipeStyles.rightActions}>
-        <TouchableOpacity
-          style={[swipeStyles.swipeBtn, { backgroundColor: '#F59E0B' }]}
-          onPress={() => handleArchive(convId)}
-          accessibilityRole="button"
-          accessibilityLabel={t('messages.archive')}
-        >
-          <Ionicons name="archive-outline" size={22} color="#fff" />
-          <Text style={swipeStyles.swipeBtnText}>{t('messages.archive')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[swipeStyles.swipeBtn, { backgroundColor: '#EF4444' }]}
-          onPress={() => handleDelete(convId)}
-          accessibilityRole="button"
-          accessibilityLabel={t('messages.deleteAction')}
-        >
-          <Ionicons name="trash-outline" size={22} color="#fff" />
-          <Text style={swipeStyles.swipeBtnText}>{t('messages.deleteAction')}</Text>
-        </TouchableOpacity>
-      </View>
-    );
-
-    // Action révélée par swipe vers la DROITE (côté gauche) : Mute/Unmute.
-    const renderLeftActions = () => (
-      <View style={swipeStyles.leftActions}>
-        <TouchableOpacity
-          style={[swipeStyles.swipeBtn, { backgroundColor: muted ? colors.primary : colors.gray500 }]}
-          onPress={() => toggleMute(convId)}
-          accessibilityRole="button"
-          accessibilityLabel={muted ? t('messages.unmuteNotifs') : t('messages.muteNotifs')}
-        >
-          <Ionicons
-            name={muted ? 'notifications-outline' : 'notifications-off-outline'}
-            size={22}
-            color="#fff"
-          />
-          <Text style={swipeStyles.swipeBtnText}>
-            {muted ? t('messages.unmuteShort') : t('messages.muteShort')}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    );
+    // T8 — actions révélées au doigt sur le thread UI. Balayer vers la
+    // GAUCHE : Archiver (principale, balayage complet) + Supprimer. Balayer vers
+    // la DROITE : Couper / réactiver les notifications (principale).
+    const rightActions = [
+      {
+        key: 'archive',
+        icon: 'archive-outline' as const,
+        label: t('messages.archive'),
+        color: '#F59E0B',
+        onPress: () => handleArchive(convId),
+      },
+      {
+        key: 'delete',
+        icon: 'trash-outline' as const,
+        label: t('messages.deleteAction'),
+        color: '#EF4444',
+        onPress: () => handleDelete(convId),
+      },
+    ];
+    const leftActions = [
+      {
+        key: 'mute',
+        icon: (muted ? 'notifications-outline' : 'notifications-off-outline') as 'notifications-outline',
+        label: muted ? t('messages.unmuteShort') : t('messages.muteShort'),
+        accessibilityLabel: muted ? t('messages.unmuteNotifs') : t('messages.muteNotifs'),
+        color: muted ? colors.primary : colors.gray500,
+        onPress: () => toggleMute(convId),
+      },
+    ];
 
     return (
       <StaggeredItem index={index}>
-        <Swipeable
-          renderRightActions={renderRightActions}
-          renderLeftActions={renderLeftActions}
-          friction={2}
-          rightThreshold={40}
-          leftThreshold={40}
-          overshootRight={false}
-          overshootLeft={false}
-        >
+        <SwipeAction rightActions={rightActions} leftActions={leftActions}>
           <ConversationCard
             conversation={item}
             currentUserId={user?.id}
@@ -1422,7 +1398,7 @@ export default function MessagesScreen() {
             onPress={() => navigation.navigate('Conversation', { conversationId: convId })}
             onLongPress={() => setConvActionTarget(item)}
           />
-        </Swipeable>
+        </SwipeAction>
       </StaggeredItem>
     );
   }, [user?.id, navigation, isMuted, toggleMute, presenceMap, drafts, colors, t]);

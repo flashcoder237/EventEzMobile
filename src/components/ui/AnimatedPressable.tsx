@@ -9,10 +9,12 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
   interpolate,
 } from 'react-native-reanimated';
 import { haptics } from '../../utils/haptics';
-import { SpringPresets } from '../../constants/theme';
+import { Curves, Durations, springConfig } from '../../constants/motion';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 const AnimatedPressableComponent = Animated.createAnimatedComponent(Pressable);
 
@@ -22,7 +24,13 @@ interface AnimatedPressableProps extends Omit<PressableProps, 'style'> {
   scaleValue?: number;
   animationType?: 'scale' | 'opacity' | 'both' | 'lift' | 'editorial' | 'shadow';
   disabled?: boolean;
+  /** Vibration à la VALIDATION (onPress) — jamais à l'enfoncement (M4). */
   haptic?: boolean | 'light' | 'medium' | 'heavy';
+  /**
+   * Élément d'une liste qui défile : délai de surbrillance de 80 ms (comme
+   * iOS). Un défilement commencé sur la carte ne l'enfonce plus.
+   */
+  inList?: boolean;
   /** Label d'accessibilite personnalise */
   accessibilityLabel?: string;
 }
@@ -34,33 +42,45 @@ export default function AnimatedPressable({
   animationType = 'both',
   disabled = false,
   haptic = false,
+  inList = false,
   onPressIn,
   onPressOut,
+  onPress,
   accessibilityLabel,
   ...props
 }: AnimatedPressableProps) {
   const pressed = useSharedValue(0);
+  const reduced = useReducedMotion();
 
   const triggerHaptic = useCallback(() => {
     if (!haptic) return;
     haptics[haptic === true ? 'light' : haptic]();
   }, [haptic]);
 
+  // Enfoncement 100 ms (interruptible : repart de la valeur courante),
+  // relâchement en ressort « respond ». Tokens constants/motion.
   const handlePressIn = useCallback(
     (e: any) => {
-      pressed.value = withSpring(1, SpringPresets.snappy);
-      triggerHaptic();
+      if (!reduced) pressed.value = withTiming(1, { duration: Durations.pressIn, easing: Curves.out });
       onPressIn?.(e);
     },
-    [onPressIn, pressed, triggerHaptic]
+    [onPressIn, pressed, reduced]
   );
 
   const handlePressOut = useCallback(
     (e: any) => {
-      pressed.value = withSpring(0, SpringPresets.snappy);
+      pressed.value = reduced ? 0 : withSpring(0, springConfig('respond'));
       onPressOut?.(e);
     },
-    [onPressOut, pressed]
+    [onPressOut, pressed, reduced]
+  );
+
+  const handlePress = useCallback(
+    (e: any) => {
+      triggerHaptic();
+      onPress?.(e);
+    },
+    [onPress, triggerHaptic]
   );
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -122,7 +142,9 @@ export default function AnimatedPressable({
       accessible={true}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      unstable_pressDelay={inList ? 80 : undefined}
       {...props}
+      onPress={onPress ? handlePress : undefined}
     >
       {children}
     </AnimatedPressableComponent>

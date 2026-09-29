@@ -58,6 +58,9 @@ import {
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
+import ShareTicketCardButton from '../../components/tickets/ShareTicketCardButton';
+import { getTicketPhase } from '../../lib/utils/ticketPhase';
+import { eventTint, tintAlpha, tintFor } from '../../lib/utils/themeTint';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type QRCodeRouteProp = RouteProp<RootStackParamList, 'QRCode'>;
@@ -115,7 +118,9 @@ export default function QRCodeScreen() {
     opacity: lockFade.value,
     transform: [{ scale: 0.9 + 0.1 * lockFade.value }],
   }));
-  const onCornersIn = useCallback(() => haptics.success(), []);
+  // Révélation = confirmation discrète (« sélection ») : le « succès » est
+  // réservé au paiement et au scan validé (M7).
+  const onCornersIn = useCallback(() => haptics.selection(), []);
   useEffect(() => {
     if (revealTick === 0) return;
     if (reducedMotion) {
@@ -453,6 +458,10 @@ export default function QRCodeScreen() {
   }
 
   const event = (ticket as any)?.event;
+  // S4 — teinte de l'événement (en-tête, pastille) ; jamais sur le QR.
+  const tint = tintFor(eventTint(event), isDark);
+  // S9 — « J'y vais » avant l'événement (une semaine avant, la veille).
+  const sharePhase = getTicketPhase(event, ticket as any);
   const ticketType = typeof ticket.ticket_type === 'object' ? ticket.ticket_type : null;
   const statusConfig = getStatusConfig(ticket.status);
   const reference = String(ticketId).slice(0, 8).toUpperCase();
@@ -528,13 +537,15 @@ export default function QRCodeScreen() {
             style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray200, shadowColor: colors.primary }, cardTiltStyle]}
           >
             {sensorElement}
+            {/* S4 — filet aux couleurs de l'événement, en tête de carte. */}
+            <View style={{ height: 4, backgroundColor: tint }} />
             {/* Event Info */}
             <View style={styles.eventInfo}>
               {/* Type pill : BILLET */}
               <View style={styles.typePillRow}>
-                <View style={[styles.typePill, { backgroundColor: `${colors.primary}15` }]}>
-                  <Ionicons name="ticket" size={10} color={colors.primary} />
-                  <Text style={[styles.typePillText, { color: colors.primary }]}>{t('qrCode.individualBadge')}</Text>
+                <View style={[styles.typePill, { backgroundColor: tintAlpha(tint, 0.1) }]}>
+                  <Ionicons name="ticket" size={10} color={tint} />
+                  <Text style={[styles.typePillText, { color: tint }]}>{t('qrCode.individualBadge')}</Text>
                 </View>
                 {event?.category?.name && (
                   <Text style={[styles.categoryEyebrow, { color: colors.gray500 }]} numberOfLines={1}>
@@ -790,6 +801,17 @@ export default function QRCodeScreen() {
             </View>
           </Animated.View>
           </GestureDetector>
+
+          {/* S9 — « J'y vais » : carte story teintée, sans QR ni référence. */}
+          {(sharePhase === 'J7' || sharePhase === 'VEILLE') && !!event?.title && (
+            <View style={{ marginTop: Spacing.md }}>
+              <ShareTicketCardButton
+                eventTitle={event.title}
+                imageUrl={event.banner_image || event.display_image || null}
+                tint={tint}
+              />
+            </View>
+          )}
 
           {/* Online access (si applicable) */}
           {(isOnlineEvent || isHybridEvent) && (

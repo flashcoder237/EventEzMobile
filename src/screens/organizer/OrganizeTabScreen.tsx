@@ -32,7 +32,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
-import { LiveDot } from '../../components/ui/motion';
+import { CountUpText, LiveDot } from '../../components/ui/motion';
+import { SinceChip, useSinceLabel } from '../../components/organizer/SinceChip';
+import { SaleLiveCard } from '../../components/organizer/SaleLiveCard';
+import { useSinceLastVisit } from '../../hooks/useSinceLastVisit';
+import { useEventMilestone } from '../../lib/organizerMilestones';
 import { useOrganizerRole } from '../../hooks/useOrganizerRole';
 import { eventsAPI, eventTeamAPI, walletAPI } from '../../api';
 import { Event, RootStackParamList } from '../../types';
@@ -139,6 +143,21 @@ export default function OrganizeTabScreen() {
 
   const active = useMemo(() => pickActiveEvent(allEvents), [allEvents]);
 
+  // O5 — « depuis votre dernière visite » : l'événement actif et le solde
+  // roulent depuis leur ancienne valeur, avec une puce qui s'efface.
+  const sinceLabel = useSinceLabel();
+  const activeId = active?.event?.id ? String(active.event.id) : null;
+  const regSince = useSinceLastVisit(
+    activeId ? `organize:reg:${activeId}` : null,
+    loading ? null : active?.event?.registration_count ?? null,
+  );
+  const balanceSince = useSinceLastVisit(
+    isOrganizer ? 'organize:balance' : null,
+    loading || !balance ? null : Math.round(balance.amount),
+  );
+  // O2 — palier atteint en direct pour l'événement actif.
+  const activeMilestone = useEventMilestone(activeId);
+
   const renderActiveEvent = () => {
     if (!active) return null;
     const { event, isLive } = active;
@@ -166,13 +185,31 @@ export default function OrganizeTabScreen() {
         </Text>
 
         <View style={styles.activeStats}>
-          <Text style={[styles.activeStatValue, { color: colors.text }]}>
-            {event.registration_count ?? 0}
-          </Text>
+          {regSince.ready ? (
+            <CountUpText
+              value={event.registration_count ?? 0}
+              from={regSince.from ?? undefined}
+              countKey={`organize-reg:${event.id}`}
+              group
+              style={[styles.activeStatValue, { color: colors.text }]}
+            />
+          ) : (
+            <Text style={[styles.activeStatValue, { color: colors.text }]}>
+              {formatPriceAmount(event.registration_count ?? 0)}
+            </Text>
+          )}
           <Text style={[styles.activeStatLabel, { color: colors.gray500 }]}>
             {t('organize.registered')}
           </Text>
         </View>
+        {regSince.delta != null && regSince.since != null && (
+          <SinceChip label={sinceLabel(`${regSince.delta}`, regSince.since)} delay={250} />
+        )}
+        {activeMilestone?.kind === 'count' && activeMilestone.count ? (
+          <Text style={[styles.milestoneChip, { color: colors.primary, backgroundColor: `${colors.primary}14` }]}>
+            {t('organizerMoments.chip.count', { count: activeMilestone.count })}
+          </Text>
+        ) : null}
 
         {/* Les deux actions de terrain. 56pt de haut : on les vise avec le
             pouce, parfois avec les mains occupées ou mouillées. */}
@@ -247,9 +284,23 @@ export default function OrganizeTabScreen() {
           <Text style={[styles.balanceLabel, { color: colors.gray500 }]}>
             {t('organize.availableBalance')}
           </Text>
-          <Text style={[styles.balanceValue, { color: colors.text }]}>
-            {formatPriceAmount(balance.amount)} {displayCurrency(balance.currency)}
-          </Text>
+          <View style={styles.balanceValueRow}>
+            {balanceSince.ready ? (
+              <CountUpText
+                value={Math.round(balance.amount)}
+                from={balanceSince.from ?? undefined}
+                countKey="organize-balance"
+                group
+                style={[styles.balanceValue, { color: colors.text }]}
+              />
+            ) : (
+              <Text style={[styles.balanceValue, { color: colors.text }]}>{formatPriceAmount(balance.amount)}</Text>
+            )}
+            <Text style={[styles.balanceValue, { color: colors.text }]}> {displayCurrency(balance.currency)}</Text>
+          </View>
+          {balanceSince.delta != null && balanceSince.since != null && (
+            <SinceChip label={sinceLabel(formatPriceAmount(balanceSince.delta), balanceSince.since)} delay={400} />
+          )}
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
       </TouchableOpacity>
@@ -345,6 +396,8 @@ export default function OrganizeTabScreen() {
             )}
 
             {renderBalance()}
+            {/* R2 O2 — ventes poussées en direct (jamais cumulées au solde). */}
+            {isOrganizer && <SaleLiveCard />}
 
             <View style={styles.shortcuts}>
               {shortcuts.map((item) => (
@@ -371,6 +424,17 @@ export default function OrganizeTabScreen() {
 }
 
 const styles = StyleSheet.create({
+  balanceValueRow: { flexDirection: 'row', alignItems: 'baseline' },
+  milestoneChip: {
+    alignSelf: 'flex-start',
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11.5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    overflow: 'hidden',
+    marginTop: 6,
+  },
   content: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,

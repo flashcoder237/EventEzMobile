@@ -65,18 +65,32 @@ export default function LiveEventBanner() {
     }
   }, [toastInfo, t]);
 
+  // S3 — présentiel : le billet est le « hub sur place » (session en cours,
+  // Q&A, plan, networking), plus utile que la fiche publique.
+  const openOnSiteHub = useCallback((reg: LiveReg) => {
+    navigation.navigate('RegistrationDetails', { registrationId: reg.registration_id });
+  }, [navigation]);
+
   const handleTapBanner = useCallback(async () => {
     if (live.length === 1) {
+      if (!live[0].is_online && live[0].registration_id) {
+        openOnSiteHub(live[0]);
+        return;
+      }
       notifyIfWaitingHost(await joinLive(live[0], goDetail));
     } else {
       setListOpen(true); // plusieurs directs → liste, accès à TOUS
     }
-  }, [live, joinLive, goDetail, notifyIfWaitingHost]);
+  }, [live, joinLive, goDetail, notifyIfWaitingHost, openOnSiteHub]);
 
   const handleJoinFromList = useCallback(async (reg: LiveReg) => {
     setListOpen(false);
+    if (!reg.is_online && reg.registration_id) {
+      openOnSiteHub(reg);
+      return;
+    }
     notifyIfWaitingHost(await joinLive(reg, goDetail));
-  }, [joinLive, goDetail, notifyIfWaitingHost]);
+  }, [joinLive, goDetail, notifyIfWaitingHost, openOnSiteHub]);
 
   if (!visible) return null;
 

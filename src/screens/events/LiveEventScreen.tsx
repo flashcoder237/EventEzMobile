@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,13 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { centeredContent, WIDE_MAX } from '../../constants/layout';
+import Animated, { LinearTransition, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { Curves, Durations } from '../../constants/motion';
+import { useLiveTopic } from '../../hooks/useRealtime';
+import { applyPollUpdate, applyQuestionUpdate } from '../../lib/realtime/live';
+import { LiveReactions, type LiveReactionsHandle } from '../../components/events/live/LiveReactions';
+import { useMotionGate } from '../../components/ui/motion';
+import { appDateLocale } from '../../lib/utils/dateFormatters';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type LiveEventRouteProp = RouteProp<RootStackParamList, 'LiveEvent'>;
@@ -69,6 +76,35 @@ interface Poll {
   created_at: string;
 }
 
+// V6 — ordre de lecture : épinglées, puis les plus votées, puis les plus récentes.
+function sortLiveQuestions(list: Question[]): Question[] {
+  return [...list].sort(
+    (a: any, b: any) =>
+      Number(!!b.is_pinned) - Number(!!a.is_pinned) ||
+      (b.upvotes_count || 0) - (a.upvotes_count || 0) ||
+      new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
+  );
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** V6 — barre de résultat d'un sondage qui glisse (scaleX, timing). */
+function PollBar({ ratio, color }: { ratio: number; color: string }) {
+  const { canAnimate } = useMotionGate();
+  const v = useSharedValue(ratio);
+  useEffect(() => {
+    v.value = canAnimate ? withTiming(ratio, { duration: Durations.inform, easing: Curves.out }) : ratio;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ratio, canAnimate]);
+  const style = useAnimatedStyle(() => ({ transform: [{ scaleX: v.value }] }));
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[styles.pollProgressBar, { right: 0, transformOrigin: 'left', backgroundColor: color } as any, style]}
+    />
+  );
+}
+
 export default function LiveEventScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<LiveEventRouteProp>();
@@ -90,10 +126,58 @@ export default function LiveEventScreen() {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [votingId, setVotingId] = useState<string | null>(null);
+  const reactionsRef = useRef<LiveReactionsHandle>(null);
+
+  // V6 — Q&R, sondages et réactions en temps réel sur le topic `live:{uuid}`.
+  const liveId = UUID_RE.test(resolvedEventId) ? resolvedEventId : null;
+  const liveStatus = useLiveTopic(liveId, (kind, data) => {
+    if (kind === 'question.created' || kind === 'question.updated') {
+      setQuestions((prev) =>
+        sortLiveQuestions(
+          applyQuestionUpdate(
+            prev.map((q: any) => ({ ...q, upvote_count: q.upvotes_count })),
+            data,
+            (d) => normalizeQuestion(d),
+          ).map((q: any) => normalizeQuestion({ ...q, upvotes_count: q.upvote_count ?? q.upvotes_count })),
+        ),
+      );
+    } else if (kind === 'poll.status' || kind === 'poll.results') {
+      setPolls((prev) => {
+        const withCounts = prev.map((p) => ({
+          ...p,
+          options: p.options.map((o) => ({ ...o, vote_count: o.votes_count })),
+        }));
+        const next = applyPollUpdate(withCounts as any, data) as any[];
+        if (next === (withCounts as any)) return prev;
+        return next.map((p: any) => {
+          const options = (p.options || []).map((o: any) => ({ ...o, votes_count: Number(o.vote_count ?? o.votes_count ?? 0) }));
+          const total = options.reduce((sum: number, o: any) => sum + (o.votes_count || 0), 0);
+          return {
+            ...p,
+            options,
+            total_votes: total,
+            is_active: p.status ? p.status === 'active' : p.is_active,
+          };
+        });
+      });
+    } else if (kind === 'reactions' && data && typeof data === 'object') {
+      reactionsRef.current?.burst(data as Record<string, number>);
+    }
+  });
 
   useEffect(() => {
     fetchData();
   }, [eventId]);
+
+  // Le topic est rendu quand l'écran perd le focus : à chaque ré-abonnement
+  // (retour sur l'écran, reconnexion), on relit l'état pour ne rien manquer.
+  const wasSubscribed = useRef(false);
+  useEffect(() => {
+    if (liveStatus !== 'subscribed') return;
+    if (wasSubscribed.current) fetchData();
+    wasSubscribed.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveStatus]);
 
   const fetchData = async () => {
     try {
@@ -107,7 +191,7 @@ export default function LiveEventScreen() {
       // (singulier), le composant travaille en `upvotes_count` / `has_upvoted`.
       // Sans ça, l'arithmétique d'upvote portait sur `undefined` → NaN affiché.
       const qList = rawQList.map(normalizeQuestion);
-      setQuestions(qList);
+      setQuestions(sortLiveQuestions(qList));
       setPolls(pList);
       // Résout l'UUID event depuis une question/poll existante, sinon getEvent.
       const fromItem = (qList.find((q: any) => q.event) as any)?.event
@@ -197,7 +281,7 @@ export default function LiveEventScreen() {
 
   const formatTime = (dateString: string): string => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString(appDateLocale(), { hour: '2-digit', minute: '2-digit' });
   };
 
   const renderQuestion = ({ item }: { item: Question }) => (
@@ -263,15 +347,7 @@ export default function LiveEventScreen() {
               disabled={item.has_voted || isVoting || !item.is_active}
             >
               {/* Progress bar background */}
-              {item.has_voted && (
-                <View
-                  style={[
-                    styles.pollProgressBar,
-                    { width: `${percentage}%`, backgroundColor: colors.primaryBg },
-                    isVotedOption && { backgroundColor: colors.primaryBg },
-                  ]}
-                />
-              )}
+              {item.has_voted && <PollBar ratio={percentage / 100} color={colors.primaryBg} />}
               <View style={styles.pollOptionContent}>
                 <Text
                   style={[
@@ -375,8 +451,9 @@ export default function LiveEventScreen() {
       {/* Content */}
       {activeTab === 'questions' ? (
         <>
-          <FlatList
+          <Animated.FlatList
             data={questions}
+            itemLayoutAnimation={LinearTransition.duration(Durations.move)}
             contentContainerStyle={styles.listContent}
             keyExtractor={(item) => item.id}
             refreshControl={
@@ -391,6 +468,9 @@ export default function LiveEventScreen() {
             }
             renderItem={renderQuestion}
           />
+
+          {/* V6 — réactions en direct (au plus 6 bulles par fenêtre de 2 s). */}
+          <LiveReactions ref={reactionsRef} eventId={liveId} />
 
           {/* Question Input */}
           <View
@@ -439,6 +519,7 @@ export default function LiveEventScreen() {
           </View>
         </>
       ) : (
+        <>
         <FlatList
           data={polls}
           contentContainerStyle={[styles.listContent, { paddingBottom: Spacing.lg + insets.bottom }]}
@@ -455,6 +536,10 @@ export default function LiveEventScreen() {
           }
           renderItem={renderPoll}
         />
+        <View style={{ paddingBottom: insets.bottom }}>
+          <LiveReactions ref={reactionsRef} eventId={liveId} />
+        </View>
+        </>
       )}
     </KeyboardAvoidingView>
     </EditorialCanvas>

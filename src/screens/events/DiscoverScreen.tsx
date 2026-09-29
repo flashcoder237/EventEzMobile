@@ -45,6 +45,8 @@ import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import EventCoverMedia from '../../components/events/EventCoverMedia';
 import ForYouEventCard from '../../components/events/ForYouEventCard';
+import { SwipeToSave } from '../../components/ui/motion/SwipeToSave';
+import { useSavedEvents } from '../../hooks/useSavedEvents';
 import { getEventImageUrl, prefetchEventHero, prefetchImageUrls } from '../../utils/imageUtils';
 import type { EventImageSize } from '../../utils/imageUtils';
 import CitiesSection from '../../components/events/CitiesSection';
@@ -70,16 +72,20 @@ import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
 import CacheService from '../../services/CacheService';
 import { DiscoverScreenSkeleton } from '../../components/ui/Skeleton';
-import { SectionEntrance, StaggeredItem, PulsingBadge } from '../../components/ui/Animations';
+import { SectionEntrance, StaggeredItem } from '../../components/ui/Animations';
 import {
   RotatingPlaceholder,
   SearchAura,
-  SwingOnIncrease,
+  NotifyBell,
+  Press,
   GradientIcon,
   SpringChip,
   EdgeFadeScroll,
   GlintSweep,
   moments,
+  withHeroOrigin,
+  HeroSlot,
+  captureHero,
 } from '../../components/ui/motion';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import {
@@ -96,11 +102,16 @@ import { getApiResults } from '../../lib/utils/apiHelpers';
 import { getEventPriceRange } from '../../lib/utils/priceFormatters';
 import { toEventPreview } from '../../lib/utils/eventNavPreview';
 import { shortMonthLabel } from '../../lib/utils/dateFormatters';
+import TonightCard from '../../components/tickets/TonightCard';
+import { CityPulseLine, type CityPulse } from '../../components/events/live/SocialSignals';
+import { useTonightTicket } from '../../hooks/useTonightTicket';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const DISCOVER_CACHE_TTL = 5 * 60 * 1000;
-const HEADER_SCROLL_THRESHOLD = 80;
+// T15 — estimations avant la 1re mesure (évite un saut du flux au montage).
+const HEADER_HEIGHT_ESTIMATE = 250;
+const HEADER_COLLAPSE_ESTIMATE = 72;
 
 // Warm editorial canvas (light mode) — same language as MyTicketsScreen
 const CANVAS_LIGHT = '#F6F6F9';
@@ -109,6 +120,10 @@ const CANVAS_LIGHT = '#F6F6F9';
 
 // Longueur estimée d'une nearbyCard (largeur 220 + gap horizontal)
 const NEARBY_ITEM_LENGTH = 280;
+// T13 — largeurs des cartes de carrousel (source unique pour l'aimantation).
+const NEARBY_CARD_W = 220;
+const FREE_CARD_W = 260;
+const ORGANIZER_CARD_W = 168;
 function splitDate(iso: string) {
   const d = new Date(iso);
   return { day: String(d.getDate()).padStart(2, '0'), month: shortMonthLabel(d) };
@@ -253,6 +268,8 @@ export default function DiscoverScreen() {
   const dockClearance = 64 + Math.max(insets.bottom, 12) + 20;
   const route = useRoute<RouteProp<MainTabParamList, 'Discover'>>();
   const { user } = useAuth();
+  // S2 — billet du jour (jour J, portes ouvertes, en cours).
+  const tonight = useTonightTicket(user?.id);
   const { colors, isDark } = useTheme();
   const reducedMotion = useReducedMotion();
 
@@ -348,6 +365,22 @@ export default function DiscoverScreen() {
   // « DÉCOUVRIR · … » affichait la ville du 1er event proche — trompeur si
   // l'utilisateur est ailleurs. On affiche désormais sa vraie ville.
   const [userCity, setUserCity] = useState<string | null>(null);
+  // R2 V10 — pouls de la ville (réservations 24 h, événements en direct).
+  // Un appel par ville et par montage ; rien sous le seuil (le serveur renvoie null).
+  const [cityPulse, setCityPulse] = useState<CityPulse | null>(null);
+  useEffect(() => {
+    if (!userCity) return;
+    let alive = true;
+    (eventsAPI as any)
+      .getCityPulse(userCity)
+      .then((res: any) => {
+        if (alive && res?.data) setCityPulse({ ...res.data, city: cityDisplayName(userCity) || res.data.city });
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [userCity]);
   // 'idle' = pas demandé, 'requesting' = en cours, 'granted'/'denied' = état final
   const [locationPermStatus, setLocationPermStatus] = useState<
     'idle' | 'requesting' | 'granted' | 'denied'
@@ -384,33 +417,26 @@ export default function DiscoverScreen() {
     });
     return unsub;
   }, [navigation, scrollToTop]);
-  // Header compact : le FOND est opaque dès qu'il est visible (plus de fondu
-  // du conteneur entier, qui laissait voir les cartes à travers). Il glisse
-  // de −8 px à 0 ; seul son CONTENU apparaît en fondu.
-  const compactHeaderStyle = useAnimatedStyle(() => {
-    const visible = scrollY.value > HEADER_SCROLL_THRESHOLD * 0.5;
+  // === T15 — UN SEUL EN-TÊTE qui se transforme au défilement ===
+  // Avant : un grand en-tête dans le flux + un en-tête compact superposé qui
+  // apparaissait au scroll (deux cloches, deux placeholders, deux auras dont
+  // une invisible qui travaillait). Désormais un seul en-tête, superposé au
+  // flux : la ligne titre (eyebrow, titre, « créer ») se replie vers le haut
+  // pendant que la recherche et les chips glissent et restent en tête.
+  // Transform + opacité uniquement ; le fond devient opaque dès que le flux
+  // passe dessous. Au lâcher, l'en-tête s'aimante ouvert ou replié.
+  const [headerHeight, setHeaderHeight] = useState(HEADER_HEIGHT_ESTIMATE);
+  const collapseD = useSharedValue(HEADER_COLLAPSE_ESTIMATE);
+  const headerStyle = useAnimatedStyle(() => {
+    const y = scrollY.value;
     return {
-      opacity: visible ? 1 : 0,
-      transform: [
-        {
-          translateY: interpolate(
-            scrollY.value,
-            [HEADER_SCROLL_THRESHOLD * 0.5, HEADER_SCROLL_THRESHOLD],
-            [-8, 0],
-            Extrapolation.CLAMP,
-          ),
-        },
-      ],
-      pointerEvents: scrollY.value > HEADER_SCROLL_THRESHOLD * 0.75 ? ('auto' as const) : ('none' as const),
+      // Tiré vers le bas : l'en-tête suit le contenu. Défilé : il monte
+      // jusqu'à ne laisser que recherche + chips.
+      transform: [{ translateY: y < 0 ? -y : -Math.min(y, collapseD.value) }],
     };
   });
-  const compactContentStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      scrollY.value,
-      [HEADER_SCROLL_THRESHOLD * 0.5, HEADER_SCROLL_THRESHOLD],
-      [0, 1],
-      Extrapolation.CLAMP,
-    ),
+  const headerTitleBlockStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [0, collapseD.value * 0.7], [1, 0], Extrapolation.CLAMP),
   }));
   // B5 — « large title » façon iOS : en tirant vers le bas (scrollY < 0), le
   // titre grossit légèrement (1 → 1,06), ancré à gauche. Transform seulement.
@@ -419,14 +445,24 @@ export default function DiscoverScreen() {
       { scale: interpolate(scrollY.value, [-90, 0], [1.06, 1], Extrapolation.CLAMP) },
     ],
   }));
-  // B5 — filet dégradé sous le header compact, qui se dessine (scaleX) à
-  // mesure qu'on continue de défiler après son apparition.
-  const compactRuleStyle = useAnimatedStyle(() => ({
+  // Fond opaque : invisible tant que l'en-tête accompagne le contenu, plein
+  // (en 16 px de défilement) dès qu'il est replié et que le flux passe dessous.
+  const headerBgStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      scrollY.value,
+      [collapseD.value - 16, collapseD.value],
+      [0, 1],
+      Extrapolation.CLAMP,
+    ),
+  }));
+  // B5 — filet dégradé qui se dessine sous l'en-tête replié, à mesure qu'on
+  // continue de défiler.
+  const headerRuleStyle = useAnimatedStyle(() => ({
     transform: [
       {
         scaleX: interpolate(
           scrollY.value,
-          [HEADER_SCROLL_THRESHOLD, HEADER_SCROLL_THRESHOLD + 240],
+          [collapseD.value, collapseD.value + 240],
           [0, 1],
           Extrapolation.CLAMP,
         ),
@@ -444,6 +480,23 @@ export default function DiscoverScreen() {
       const shouldShow = y > SCROLL_TOP_THRESHOLD;
       if (shouldShow !== showScrollTop) {
         runOnJS(setShowScrollTop)(shouldShow);
+      }
+    },
+    // Aimantage : jamais d'en-tête à moitié replié au repos. Lâcher sans élan
+    // → on cale tout de suite ; avec élan → on cale à la fin de l'inertie.
+    onEndDrag: (event) => {
+      const y = event.contentOffset.y;
+      const D = collapseD.value;
+      const v = Math.abs((event as any).velocity?.y ?? 0);
+      if (y > 0 && y < D && v < 0.2) {
+        scrollTo(feedRef, 0, y < D / 2 ? 0 : D, true);
+      }
+    },
+    onMomentumEnd: (event) => {
+      const y = event.contentOffset.y;
+      const D = collapseD.value;
+      if (y > 0 && y < D) {
+        scrollTo(feedRef, 0, y < D / 2 ? 0 : D, true);
       }
     },
   });
@@ -897,12 +950,19 @@ export default function DiscoverScreen() {
     navigation.navigate('EventSearch', categoryId ? { category: categoryId } : undefined);
   };
   const navigateToEvent = (eventId: string, imageUrl?: string, ev?: Partial<Event>) => {
-    navigation.navigate('EventDetails', { eventId, imageUrl, initialEvent: toEventPreview(ev) });
+    // T1 — si la carte touchée a été mesurée, l'image « vole » vers la fiche.
+    navigation.navigate(
+      'EventDetails',
+      withHeroOrigin({ eventId, imageUrl, initialEvent: toEventPreview(ev) }, eventId, ev?.id, ev?.slug),
+    );
   };
   // Callback STABLE pour les cartes mémoïsées du flux « Pour vous ».
   const openEventFromCard = useCallback(
     (ev: Event, imageUrl?: string) => {
-      navigation.navigate('EventDetails', { eventId: ev.id, imageUrl, initialEvent: toEventPreview(ev) });
+      navigation.navigate(
+        'EventDetails',
+        withHeroOrigin({ eventId: ev.id, imageUrl, initialEvent: toEventPreview(ev) }, ev.id, ev.slug),
+      );
     },
     [navigation],
   );
@@ -962,7 +1022,10 @@ export default function DiscoverScreen() {
       <AnimatedPressable
         animationType="shadow"
         onPress={() => navigateToEvent(ev.id, img, ev)}
-        onPressIn={() => prefetchEventHero(ev)}
+        onPressIn={() => {
+          if (!ev.cover_video && !ev.cover_video_embed) captureHero(`discover-hero-${ev.id}`);
+          prefetchEventHero(ev);
+        }}
         style={[
           styles.heroCard,
           styles.shadowBase,
@@ -972,7 +1035,13 @@ export default function DiscoverScreen() {
           },
         ]}
       >
-        <View style={styles.heroImageWrap}>
+        <HeroSlot
+          token={`discover-hero-${ev.id}`}
+          heroKey={ev.id}
+          radius={14}
+          enabled={!ev.cover_video && !ev.cover_video_embed}
+          style={styles.heroImageWrap}
+        >
           <EventCoverMedia
             event={ev}
             mode="hero"
@@ -1006,7 +1075,7 @@ export default function DiscoverScreen() {
               </Text>
             )}
           </View>
-        </View>
+        </HeroSlot>
 
         {/* Meta footer — date tile + venue + price */}
         <View style={styles.heroFooter}>
@@ -1202,7 +1271,10 @@ export default function DiscoverScreen() {
         <AnimatedPressable
           animationType="shadow"
           onPress={() => navigateToEvent(item.id, img, item)}
-          onPressIn={() => prefetchEventHero(item)}
+          onPressIn={() => {
+          if (!item.cover_video && !item.cover_video_embed) captureHero(`discover-near-${item.id}`);
+          prefetchEventHero(item);
+        }}
           style={[
             styles.nearbyCard,
             styles.shadowBase,
@@ -1212,7 +1284,13 @@ export default function DiscoverScreen() {
             },
           ]}
         >
-          <View style={styles.nearbyImageWrap}>
+          <HeroSlot
+            token={`discover-near-${item.id}`}
+            heroKey={item.id}
+            radius={14}
+            enabled={!item.cover_video && !item.cover_video_embed}
+            style={styles.nearbyImageWrap}
+          >
             <EventCoverMedia
               event={item}
               mode="card"
@@ -1254,7 +1332,7 @@ export default function DiscoverScreen() {
                   : 'PAYANT'}
               </Text>
             </View>
-          </View>
+          </HeroSlot>
           <View style={styles.nearbyBody}>
             {item.category?.name && (
               <View style={[styles.nearbyEyebrowPill, { backgroundColor: isDark ? colors.gray200 : colors.gray100 }]}>
@@ -1461,6 +1539,10 @@ export default function DiscoverScreen() {
           data={freeEvents.slice(0, 6)}
           keyExtractor={(it) => `free-${it.id}`}
           contentContainerStyle={styles.freeCardsRow}
+          // T13 — chaque carte se cale au lâcher (inertie « fast »).
+          snapToInterval={FREE_CARD_W + Spacing.md}
+          snapToAlignment="start"
+          decelerationRate="fast"
           renderItem={({ item }) => {
             const img = eventImage(item);
             const { day, month } = splitDate(item.start_date);
@@ -1520,7 +1602,10 @@ export default function DiscoverScreen() {
       <AnimatedPressable
         animationType="shadow"
         onPress={() => navigateToEvent(ev.id, img, ev)}
-        onPressIn={() => prefetchEventHero(ev)}
+        onPressIn={() => {
+          if (!ev.cover_video && !ev.cover_video_embed) captureHero(`discover-rec-${ev.id}`);
+          prefetchEventHero(ev);
+        }}
         style={[
           styles.recCard,
           styles.shadowBase,
@@ -1530,7 +1615,13 @@ export default function DiscoverScreen() {
           },
         ]}
       >
-        <View style={styles.recImageWrap}>
+        <HeroSlot
+          token={`discover-rec-${ev.id}`}
+          heroKey={ev.id}
+          radius={24}
+          enabled={!ev.cover_video && !ev.cover_video_embed}
+          style={styles.recImageWrap}
+        >
           <EventCoverMedia
             event={ev}
             mode="hero"
@@ -1547,7 +1638,7 @@ export default function DiscoverScreen() {
               </Text>
             </View>
           )}
-        </View>
+        </HeroSlot>
         <View style={styles.recBody}>
           <View style={[styles.recDateTile, { backgroundColor: colors.primaryBg }]}>
             <Text style={[styles.recDateDay, { color: colors.primary }]}>{day}</Text>
@@ -1583,173 +1674,23 @@ export default function DiscoverScreen() {
   const listHeader = useMemo(
     () => (
       <>
-        {/* === EDITORIAL HEADER — rounded bottom, matches tickets === */}
-        <View
-          style={[
-            styles.header,
-            {
-              backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
-              borderBottomColor: isDark ? colors.border : 'rgba(255,255,255,0.5)',
-            },
-          ]}
-        >
-          <View style={styles.headerTopRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
-                {(() => {
-                  // Ville RÉELLE de l'utilisateur (reverse-geocoding de sa
-                  // position), pas celle d'un event proche. Sans géoloc /
-                  // sans résolution, on retombe sur le libellé générique.
-                  const label = cityDisplayName(userCity);
-                  return label
-                    ? t('discover.headerCityWithName', { city: label.toUpperCase() })
-                    : t('discover.headerCityPrefix');
-                })()}
-              </Text>
-              <View style={styles.headerTitleRow}>
-                <Animated.Text
-                  style={[
-                    styles.headerTitle,
-                    { color: colors.text, transformOrigin: 'left center' },
-                    headerTitleStyle,
-                  ]}
-                >
-                  {t('discover.headerTitle')}
-                </Animated.Text>
+        {/* T15 — réserve la place de l'en-tête unique, superposé au flux. */}
+        <View style={{ height: headerHeight }} />
 
-              </View>
-            </View>
-            <View style={styles.headerActions}>
-              {user?.role === 'organizer' && (
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => navigation.navigate('EventCreate' as any)}
-                  style={[styles.headerBtnCreate, Shadows.buttonPrimary]}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('discover.createEvent')}
-                >
-                  <LinearGradient
-                    colors={[colors.primary, colors.primaryDark]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={StyleSheet.absoluteFill}
-                  />
-                  <Ionicons name="add" size={20} color={Colors.white} />
-                </TouchableOpacity>
-              )}
-              {/* Messages : retiré du header — déjà accessible via l'onglet
-                  "Messages" de la bottom nav. Évite la duplication d'entrée. */}
-              <TouchableOpacity
-                style={[styles.headerBtn, { backgroundColor: colors.gray100 }]}
-                onPress={goToNotifications}
-                activeOpacity={0.7}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  unreadNotificationCount > 0
-                    ? `${t('notifications.title')}, ${unreadNotificationCount}`
-                    : t('notifications.title')
-                }
-              >
-                <SwingOnIncrease value={unreadNotificationCount}>
-                  <Ionicons name="notifications-outline" size={18} color={colors.gray600} />
-                </SwingOnIncrease>
-                {unreadNotificationCount > 0 && (
-                  <PulsingBadge trigger={unreadNotificationCount} style={styles.headerBadgeWrap}>
-                    <View
-                      style={[
-                        styles.headerBtnBadge,
-                        { backgroundColor: colors.accent, borderColor: colors.gray100 },
-                      ]}
-                    >
-                      <Text style={styles.headerBtnBadgeText}>
-                        {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
-                      </Text>
-                    </View>
-                  </PulsingBadge>
-                )}
-              </TouchableOpacity>
-            </View>
+        {/* R2 V10 — la ville est habitée : réservations du jour, événements en direct. */}
+        {cityPulse && (
+          <View style={{ paddingHorizontal: Spacing.lg }}>
+            <CityPulseLine data={cityPulse} />
           </View>
+        )}
 
-          {/* === SEARCH PILL (Option A) — simple, calme, captante via le
-              placeholder rotatif qui change toutes les 3s. */}
-          <TourTarget id="discover-search">
-            {/* A1 — aura : invisible au repos, une comète fait UN tour au
-                premier affichage de la session, au retour après 10 min et
-                au toucher. Le liseré de base reprend l'ancienne bordure. */}
-            <SearchAura
-              radius={BorderRadius.full}
-              onceKey="discover-search-aura"
-              backgroundColor={isDark ? colors.gray100 : '#F2F1ED'}
-              baseBorderColor={isDark ? colors.gray200 : 'rgba(17,17,16,0.05)'}
-              style={styles.searchAura}
-            >
-              {(lit, flash) => (
-                <TouchableOpacity
-                  style={[
-                    styles.searchTrigger,
-                    { backgroundColor: isDark ? colors.gray100 : '#F2F1ED' },
-                  ]}
-                  onPress={() => {
-                    flash();
-                    activateSearch();
-                  }}
-                  activeOpacity={0.85}
-                  accessibilityRole="search"
-                  accessibilityLabel={t('discover.searchAccessibility')}
-                >
-                  {/* A3 — la loupe passe en dégradé pendant le balayage. */}
-                  <GradientIcon
-                    name="search"
-                    size={18}
-                    active={lit}
-                    color={isDark ? colors.gray400 : colors.gray500}
-                  />
-                  <RotatingPlaceholder
-                    items={placeholderSuggestions}
-                    style={[
-                      styles.searchTriggerText,
-                      { color: isDark ? colors.gray300 : colors.gray600 },
-                    ]}
-                  />
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={isDark ? colors.gray400 : colors.gray400}
-                  />
-                </TouchableOpacity>
-              )}
-            </SearchAura>
-          </TourTarget>
-
-          {/* Category chips row */}
-          {categories.length > 0 && (
-            <EdgeFadeScroll contentContainerStyle={styles.chipsRow}>
-              <TourTarget id="discover-categories">
-                <SpringChip
-                  gradient
-                  style={styles.chip}
-                  onPress={() => activateSearch()}
-                  icon={<Ionicons name="flash" size={13} color={Colors.white} />}
-                >
-                  <Text style={[styles.chipText, { color: Colors.white }]}>{t('common.all')}</Text>
-                </SpringChip>
-              </TourTarget>
-              {categories.slice(0, 8).map((cat) => (
-                <SpringChip
-                  key={cat.id}
-                  style={styles.chip}
-                  inactiveColor={colors.gray100}
-                  onPress={() => activateSearch(Number(cat.id))}
-                >
-                  <Text style={[styles.chipText, { color: colors.gray600 }]}>
-                    {cat.name}
-                  </Text>
-                </SpringChip>
-              ))}
-            </EdgeFadeScroll>
-          )}
-        </View>
+        {/* S2 — le billet du jour vient à vous : « Ce soir · 20:00 · Y aller ». */}
+        {tonight && (
+          <TonightCard
+            ticket={tonight}
+            onGo={() => navigation.navigate('RegistrationDetails', { registrationId: tonight.registrationId })}
+          />
+        )}
 
         {/* === ADS — haut du feed === */}
         {ads.filter((a) => a.placement === 'feed_top').map((ad) => (
@@ -1917,6 +1858,10 @@ export default function DiscoverScreen() {
                 data={nearbyEvents}
                 keyExtractor={(it) => `nearby-${it.id}`}
                 contentContainerStyle={styles.horizontalListContent}
+                // T13 — aimantation carte par carte.
+                snapToInterval={NEARBY_CARD_W + Spacing.md}
+                snapToAlignment="start"
+                decelerationRate="fast"
                 renderItem={renderNearbyCard}
                 removeClippedSubviews
                 initialNumToRender={3}
@@ -1950,6 +1895,9 @@ export default function DiscoverScreen() {
                 data={localOrganizers}
                 keyExtractor={(it) => `org-${it.id}`}
                 contentContainerStyle={styles.horizontalListContent}
+                snapToInterval={ORGANIZER_CARD_W + Spacing.md}
+                snapToAlignment="start"
+                decelerationRate="fast"
                 renderItem={renderOrganizerCard}
                 removeClippedSubviews
                 initialNumToRender={3}
@@ -2148,25 +2096,37 @@ export default function DiscoverScreen() {
       localOrganizerCity, countryIsDistinctive, recommendations, upcomingEvents,
       freeEvents, initialLoading, platformCurrency, categoryCardWidth, hasForYou,
       navigation, requestLocation, handleEnableNotifications, stableOnRefresh,
+      headerHeight, tonight, cityPulse,
     ],
   );
 
   // === POUR VOUS — items virtualisés ===
+  // T7 — état « sauvegardé » pour le balayage du flux Pour vous.
+  const { isSaved, toggleSaved, isAuthenticated: savedAuth } = useSavedEvents();
   const inlineAd = useMemo(() => ads.find((a) => a.placement === 'feed_inline') || null, [ads]);
   const renderForYouItem = useCallback(
     ({ item, index }: { item: Event; index: number }) => (
       <View style={{ paddingHorizontal: Spacing.lg }}>
         {/* Une ad inline injectée à idx=4 pour ne pas spammer */}
         {index === 4 && inlineAd && <AdvertisementCard ad={inlineAd} />}
-        <ForYouEventCard
-          event={item}
-          shouldPlay={forYouVisibleIds.has(String(item.id))}
-          platformCurrency={platformCurrency}
-          onOpen={openEventFromCard}
-        />
+        {/* T7 — flux vertical : balayer la carte vers la droite l'enregistre. */}
+        <SwipeToSave
+          saved={isSaved(String(item.id))}
+          onToggleSave={savedAuth ? () => { toggleSaved(String(item.id)); } : undefined}
+          saveLabel={t('componentsEvents.swipeSave')}
+          unsaveLabel={t('componentsEvents.swipeUnsave')}
+          borderRadius={20}
+        >
+          <ForYouEventCard
+            event={item}
+            shouldPlay={forYouVisibleIds.has(String(item.id))}
+            platformCurrency={platformCurrency}
+            onOpen={openEventFromCard}
+          />
+        </SwipeToSave>
       </View>
     ),
-    [inlineAd, forYouVisibleIds, platformCurrency, openEventFromCard],
+    [inlineAd, forYouVisibleIds, platformCurrency, openEventFromCard, isSaved, toggleSaved, savedAuth, t],
   );
 
   const listFooter = useMemo(
@@ -2210,124 +2170,6 @@ export default function DiscoverScreen() {
           <DiscoverScreenSkeleton />
         ) : (
           <View style={{ flex: 1 }}>
-            {/* === COMPACT HEADER (on scroll) — 2 lignes : search + chips === */}
-            <Animated.View
-              style={[
-                styles.compactHeader,
-                {
-                  // Opaque (clair comme sombre) : même teinte que l'écran.
-                  backgroundColor: colors.background,
-                  borderBottomColor: colors.gray100,
-                },
-                compactHeaderStyle,
-              ]}
-            >
-              <Animated.View style={compactContentStyle}>
-              <View style={styles.compactHeaderTopRow}>
-                {/* Version compacte : pas de balayage d'accueil (déjà joué
-                    sur la grande barre), seulement au toucher. */}
-                <SearchAura
-                  radius={BorderRadius.full}
-                  wake={false}
-                  backgroundColor={colors.gray100}
-                  baseBorderColor={colors.gray100}
-                  style={styles.compactSearchAura}
-                >
-                  {(lit, flash) => (
-                    <TouchableOpacity
-                      style={[
-                        styles.compactSearchBar,
-                        { backgroundColor: colors.gray100 },
-                      ]}
-                      onPress={() => {
-                        flash();
-                        activateSearch();
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <GradientIcon name="search" size={16} active={lit} color={colors.gray500} />
-                      <RotatingPlaceholder
-                        items={placeholderSuggestions}
-                        style={[styles.compactSearchText, { color: colors.gray500 }]}
-                      />
-                    </TouchableOpacity>
-                  )}
-                </SearchAura>
-                <TouchableOpacity
-                  style={[styles.compactBtn, { backgroundColor: colors.gray100 }]}
-                  onPress={goToNotifications}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    unreadNotificationCount > 0
-                      ? `${t('notifications.title')}, ${unreadNotificationCount}`
-                      : t('notifications.title')
-                  }
-                >
-                  <SwingOnIncrease value={unreadNotificationCount}>
-                    <Ionicons name="notifications-outline" size={18} color={colors.gray600} />
-                  </SwingOnIncrease>
-                  {unreadNotificationCount > 0 && (
-                    <PulsingBadge trigger={unreadNotificationCount} style={styles.compactBadgeWrap}>
-                      <View
-                        style={[
-                          styles.compactBtnBadge,
-                          styles.compactBtnBadgeInWrap,
-                          { backgroundColor: colors.accent, borderColor: colors.gray100 },
-                        ]}
-                      >
-                        <Text style={styles.compactBtnBadgeText}>
-                          {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
-                        </Text>
-                      </View>
-                    </PulsingBadge>
-                  )}
-                </TouchableOpacity>
-              </View>
-
-              {/* Sticky category chips — same as in the editorial header above the feed */}
-              {categories.length > 0 && (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.compactChipsRow}
-                >
-                  <TouchableOpacity
-                    style={[styles.compactChip, { backgroundColor: colors.primary }]}
-                    onPress={() => activateSearch()}
-                    activeOpacity={0.75}
-                  >
-                    <Ionicons name="flash" size={11} color={Colors.white} />
-                    <Text style={[styles.compactChipText, { color: Colors.white }]}>{t('common.all')}</Text>
-                  </TouchableOpacity>
-                  {categories.slice(0, 8).map((cat) => (
-                    <TouchableOpacity
-                      key={`compact-cat-${cat.id}`}
-                      style={[styles.compactChip, { backgroundColor: colors.gray100 }]}
-                      onPress={() => activateSearch(Number(cat.id))}
-                      activeOpacity={0.75}
-                    >
-                      <Text style={[styles.compactChipText, { color: colors.gray600 }]}>
-                        {cat.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              )}
-              </Animated.View>
-              {/* B5 — filet dégradé qui se dessine sous le header compact. */}
-              <Animated.View
-                pointerEvents="none"
-                style={[styles.compactRule, { transformOrigin: 'left center' }, compactRuleStyle]}
-              >
-                <LinearGradient
-                  colors={(isDark ? ['#818CF8', '#C084FC', '#FF8A8A'] : ['#4F46E5', '#A855F7', '#FF6B6B'])}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={StyleSheet.absoluteFillObject}
-                />
-              </Animated.View>
-            </Animated.View>
-
             {/* === FEED ===
                 FlatList virtualisée : les sections éditoriales (header, héros,
                 près de toi, catégories…) forment le ListHeaderComponent
@@ -2361,10 +2203,216 @@ export default function DiscoverScreen() {
                   // C5 — Android : le spinner passe par indigo, violet, corail.
                   colors={[colors.primary, colors.secondary, colors.accent]}
                   progressBackgroundColor={colors.card}
+                  // T15 — Android : le spinner apparaît sous l'en-tête superposé.
+                  progressViewOffset={headerHeight}
                 />
               }
               contentContainerStyle={[styles.scrollContent, styles.pageInner]}
             />
+
+            {/* === T15 — EN-TÊTE UNIQUE ===
+                Superposé au flux (rendu APRÈS la liste : au-dessus d'elle).
+                Il se replie en transform pur ; sa hauteur réserve la place en
+                tête de liste (voir listHeader). */}
+            <Animated.View
+              pointerEvents="box-none"
+              style={[styles.headerOverlay, headerStyle]}
+              onLayout={(e) => {
+                const hgt = Math.round(e.nativeEvent.layout.height);
+                setHeaderHeight((prev) => (prev === hgt ? prev : hgt));
+              }}
+            >
+              <View style={styles.pageInner} pointerEvents="box-none">
+              <View
+                style={[
+                  styles.header,
+                  {
+                    backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
+                    borderBottomColor: isDark ? colors.border : 'rgba(255,255,255,0.5)',
+                  },
+                ]}
+              >
+                {/* Fond opaque qui apparaît quand le flux passe sous l'en-tête replié. */}
+                <Animated.View
+                  pointerEvents="none"
+                  style={[styles.headerOpaqueBg, { backgroundColor: colors.background }, headerBgStyle]}
+                />
+                {/* Ligne titre : se replie vers le haut au défilement. */}
+                <Animated.View style={headerTitleBlockStyle}>
+                <View style={styles.headerTopRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
+                      {(() => {
+                        // Ville RÉELLE de l'utilisateur (reverse-geocoding de sa
+                        // position), pas celle d'un event proche. Sans géoloc /
+                        // sans résolution, on retombe sur le libellé générique.
+                        const label = cityDisplayName(userCity);
+                        return label
+                          ? t('discover.headerCityWithName', { city: label.toUpperCase() })
+                          : t('discover.headerCityPrefix');
+                      })()}
+                    </Text>
+                    <View style={styles.headerTitleRow}>
+                      <Animated.Text
+                        style={[
+                          styles.headerTitle,
+                          { color: colors.text, transformOrigin: 'left center' },
+                          headerTitleStyle,
+                        ]}
+                      >
+                        {t('discover.headerTitle')}
+                      </Animated.Text>
+
+                    </View>
+                  </View>
+                  <View style={styles.headerActions}>
+                    {user?.role === 'organizer' && (
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => navigation.navigate('EventCreate' as any)}
+                        style={[styles.headerBtnCreate, Shadows.buttonPrimary]}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('discover.createEvent')}
+                      >
+                        <LinearGradient
+                          colors={[colors.primary, colors.primaryDark]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={StyleSheet.absoluteFill}
+                        />
+                        <Ionicons name="add" size={20} color={Colors.white} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+                </Animated.View>
+
+                {/* === SEARCH PILL (Option A) — simple, calme, captante via le
+                    placeholder rotatif qui change toutes les 3s. */}
+                {/* Recherche + cloche : la rangée qui reste en tête une fois replié.
+                    `onLayout` donne la distance de repli (titre au-dessus). */}
+                <View
+                  style={styles.searchRow}
+                  onLayout={(e) => {
+                    collapseD.value = Math.max(0, e.nativeEvent.layout.y - 8);
+                  }}
+                >
+                <TourTarget id="discover-search" style={styles.searchRowField}>
+                  {/* A1 — aura : invisible au repos, une comète fait UN tour au
+                      premier affichage de la session, au retour après 10 min et
+                      au toucher. Le liseré de base reprend l'ancienne bordure. */}
+                  <SearchAura
+                    radius={BorderRadius.full}
+                    onceKey="discover-search-aura"
+                    backgroundColor={isDark ? colors.gray100 : '#F2F1ED'}
+                    baseBorderColor={isDark ? colors.gray200 : 'rgba(17,17,16,0.05)'}
+                    style={styles.searchAura}
+                  >
+                    {(lit, flash) => (
+                      <Press
+                        variant="card"
+                        style={[
+                          styles.searchTrigger,
+                          { backgroundColor: isDark ? colors.gray100 : '#F2F1ED' },
+                        ]}
+                        onPress={() => {
+                          flash();
+                          activateSearch();
+                        }}
+                        accessibilityRole="search"
+                        accessibilityLabel={t('discover.searchAccessibility')}
+                      >
+                        {/* A3 — la loupe passe en dégradé pendant le balayage. */}
+                        <GradientIcon
+                          name="search"
+                          size={18}
+                          active={lit}
+                          color={isDark ? colors.gray400 : colors.gray500}
+                        />
+                        <RotatingPlaceholder
+                          items={placeholderSuggestions}
+                          style={[
+                            styles.searchTriggerText,
+                            { color: isDark ? colors.gray300 : colors.gray600 },
+                          ]}
+                        />
+                        <Ionicons
+                          name="chevron-forward"
+                          size={16}
+                          color={isDark ? colors.gray400 : colors.gray400}
+                        />
+                      </Press>
+                    )}
+                  </SearchAura>
+                </TourTarget>
+                    <TouchableOpacity
+                      style={[styles.headerBtn, { backgroundColor: colors.gray100 }]}
+                      onPress={goToNotifications}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        unreadNotificationCount > 0
+                          ? `${t('notifications.title')}, ${unreadNotificationCount}`
+                          : t('notifications.title')
+                      }
+                    >
+                      {/* M6 — une seule primitive, à la hausse seulement. T15 : une
+                          seule cloche (plus de doublon dans un en-tête compact). */}
+                      <NotifyBell
+                        count={unreadNotificationCount}
+                        iconColor={colors.gray600}
+                        badgeWrapStyle={styles.headerBadgeWrap}
+                        badgeStyle={[
+                          styles.headerBtnBadge,
+                          { backgroundColor: colors.accent, borderColor: colors.gray100 },
+                        ]}
+                        badgeTextStyle={styles.headerBtnBadgeText}
+                      />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Category chips row */}
+                {categories.length > 0 && (
+                  <EdgeFadeScroll contentContainerStyle={styles.chipsRow}>
+                    <TourTarget id="discover-categories">
+                      <SpringChip
+                        gradient
+                        style={styles.chip}
+                        onPress={() => activateSearch()}
+                        icon={<Ionicons name="flash" size={13} color={Colors.white} />}
+                      >
+                        <Text style={[styles.chipText, { color: Colors.white }]}>{t('common.all')}</Text>
+                      </SpringChip>
+                    </TourTarget>
+                    {categories.slice(0, 8).map((cat) => (
+                      <SpringChip
+                        key={cat.id}
+                        style={styles.chip}
+                        inactiveColor={colors.gray100}
+                        onPress={() => activateSearch(Number(cat.id))}
+                      >
+                        <Text style={[styles.chipText, { color: colors.gray600 }]}>
+                          {cat.name}
+                        </Text>
+                      </SpringChip>
+                    ))}
+                  </EdgeFadeScroll>
+                )}
+                {/* B5 — filet dégradé qui se dessine sous l'en-tête replié. */}
+                <Animated.View
+                  pointerEvents="none"
+                  style={[styles.headerRule, { transformOrigin: 'left center' }, headerRuleStyle]}
+                >
+                  <LinearGradient
+                    colors={(isDark ? ['#818CF8', '#C084FC', '#FF8A8A'] : ['#4F46E5', '#A855F7', '#FF6B6B'])}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                </Animated.View>
+              </View>
+              </View>
+            </Animated.View>
 
             {/* Bouton flottant « remonter en haut » — apparaît après un long
                 scroll (pattern YouTube/LinkedIn). Complète le re-tap d'onglet. */}
@@ -2503,8 +2551,35 @@ const styles = StyleSheet.create({
   // Pill simple et calme : icone search · placeholder rotatif · chevron.
   // Le mouvement du texte (<RotatingPlaceholder>) suffit a capter l'attention.
   // L'anneau (1,5 px) est porté par <SearchAura> : hauteur totale = 52.
-  searchAura: {
+  searchAura: {},
+  // T15 — rangée recherche + cloche (reste en tête une fois replié).
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
     marginBottom: Spacing.md,
+  },
+  searchRowField: { flex: 1 },
+  // T15 — en-tête unique superposé au flux.
+  headerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  // Fond opaque (fondu) : mêmes coins que l'en-tête.
+  headerOpaqueBg: {
+    ...StyleSheet.absoluteFillObject,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerRule: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    bottom: -1,
+    height: 1,
   },
   searchTrigger: {
     flexDirection: 'row',
@@ -2542,101 +2617,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 
-  // === COMPACT HEADER (2 niveaux : search + chips) ===
-  compactHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    paddingHorizontal: Spacing.md,
-    paddingTop: 8,
-    paddingBottom: 6,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  compactRule: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: -StyleSheet.hairlineWidth,
-    height: 1,
-  },
-  compactHeaderTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  compactChipsRow: {
-    flexDirection: 'row',
-    gap: 6,
-    paddingTop: 6,
-    paddingRight: Spacing.sm,
-  },
-  compactChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-    borderRadius: BorderRadius.full,
-    gap: 4,
-  },
-  compactChipText: {
-    fontFamily: FontFamily.bold,
-    fontSize: 11,
-    letterSpacing: 0.2,
-  },
-  // L'anneau (1,5 px) est porté par <SearchAura> : hauteur totale = 36.
-  compactSearchAura: { flex: 1 },
-  compactSearchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 33,
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: Spacing.md,
-    gap: 8,
-  },
-  compactSearchText: {
-    flex: 1,
-    fontFamily: FontFamily.regular,
-    fontSize: FontSizes.sm,
-  },
-  compactBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  compactBtnDot: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-  },
-  compactBadgeWrap: { position: 'absolute', top: -4, right: -4 },
-  compactBtnBadgeInWrap: { position: 'relative', top: 0, right: 0 },
-  compactBtnBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    paddingHorizontal: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-  },
-  compactBtnBadgeText: {
-    color: '#FFFFFF',
-    fontFamily: FontFamily.bold,
-    fontSize: 10,
-    lineHeight: 12,
-    textAlign: 'center',
-  },
 
   // === SECTIONS ===
   section: { marginTop: Spacing.xl },
@@ -2801,7 +2781,7 @@ const styles = StyleSheet.create({
 
   // === NEARBY CARD ===
   organizerCard: {
-    width: 168,
+    width: ORGANIZER_CARD_W,
     borderRadius: 20,
     borderWidth: 1,
     padding: 14,
@@ -2834,7 +2814,7 @@ const styles = StyleSheet.create({
   organizerRating: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   organizerRatingText: { fontFamily: FontFamily.bold, fontSize: 12 },
   nearbyCard: {
-    width: 220,
+    width: NEARBY_CARD_W,
     borderRadius: 14,
     borderWidth: 1,
     overflow: 'hidden',
@@ -3065,7 +3045,7 @@ const styles = StyleSheet.create({
   },
   freeCard: {
     flexDirection: 'row',
-    width: 260,
+    width: FREE_CARD_W,
     padding: Spacing.sm,
     borderRadius: 18,
     borderWidth: 1,

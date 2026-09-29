@@ -75,7 +75,7 @@ export default function DashboardHeroCard({ stats }: Props) {
             <React.Fragment key={cell.label}>
               <View style={styles.statCell}>
                 {typeof cell.value === 'number' ? (
-                  <CountUpText value={cell.value} style={styles.statValue} />
+                  <CountUpText value={cell.value} countKey={`hero:${cell.label}`} style={styles.statValue} />
                 ) : (
                   <Text style={styles.statValue}>{cell.value}</Text>
                 )}

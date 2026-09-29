@@ -230,6 +230,9 @@ jest.mock('../../components/ui/motion', () => {
       React.createElement(RN.View, null, typeof children === 'function' ? children(false, () => {}) : children),
     SwingOnIncrease: ({ children }: any) => React.createElement(RN.View, null, children),
     GradientIcon: () => React.createElement(RN.View, null),
+    Press: ({ children, onPress, style }: any) =>
+      React.createElement(RN.TouchableOpacity, { onPress, style }, children),
+    NotifyBell: () => React.createElement(RN.View, null),
   };
 });
 

@@ -22,6 +22,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { Amplitudes, Curves, Durations, springConfig } from '../../../constants/motion';
 import { useMotionGate, useSettled } from './useMotionGate';
 
 export interface RollingTextProps {
@@ -40,7 +41,7 @@ function RollingTextComponent({
   style,
   containerStyle,
   direction,
-  duration = 220,
+  duration = Durations.move,
   numberOfLines,
   testID,
 }: RollingTextProps) {
@@ -125,13 +126,14 @@ function CountBadgeComponent({
     prev.current = value;
     // Hausse pendant la fenêtre de chargement = valeur serveur initiale.
     if (before === null || value <= before || !canAnimate || !settled()) return;
+    // Tokens : entrée depuis 0,96, pic ≤ 1,12 (jamais 1,28), ressort « pop ».
     scale.value = withSequence(
-      withTiming(0.7, { duration: 70 }),
-      withSpring(1.28, { damping: 9, stiffness: 420 }),
-      withSpring(1, { damping: 12, stiffness: 300 }),
+      withTiming(Amplitudes.enterFrom, { duration: 70, easing: Curves.out }),
+      withTiming(Amplitudes.popPeak, { duration: 120, easing: Curves.out }),
+      withSpring(1, springConfig('pop')),
     );
     ring.value = 0;
-    ring.value = withTiming(1, { duration: 600 });
+    ring.value = withTiming(1, { duration: Durations.inform + 200, easing: Curves.out });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 

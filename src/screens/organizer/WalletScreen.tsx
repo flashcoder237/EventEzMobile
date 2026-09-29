@@ -63,6 +63,14 @@ import Badge from '../../components/ui/Badge';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import ExportButton from '../../components/common/ExportButton';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { PayoutRail } from '../../components/organizer/PayoutRail';
+import { SinceChip, useSinceLabel } from '../../components/organizer/SinceChip';
+import { CountUpText } from '../../components/ui/motion';
+import { useSinceLastVisit } from '../../hooks/useSinceLastVisit';
+import { hoursUntilRelease, releasedSince } from '../../lib/utils/organizerMoments';
+import { shortMonthLabel } from '../../lib/utils/dateFormatters';
+import { haptics } from '../../utils/haptics';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'overview' | 'transactions' | 'payouts' | 'pending';
@@ -113,6 +121,44 @@ export default function WalletScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
+
+  // O7 — fonds libérés depuis la dernière visite du portefeuille : l'attente
+  // décompte, puis le disponible compte, avec « Libéré · Concert X ».
+  const [released, setReleased] = useState<{ total: number; title: string | null; ready: boolean }>({
+    total: 0,
+    title: null,
+    ready: false,
+  });
+  const releasedDone = React.useRef(false);
+  useEffect(() => {
+    if (loading || releasedDone.current) return;
+    releasedDone.current = true;
+    const KEY = 'ez:wallet:last-visit';
+    (async () => {
+      let last: number | null = null;
+      try {
+        const raw = await AsyncStorage.getItem(KEY);
+        last = raw ? Number(raw) : null;
+      } catch {
+        last = null;
+      }
+      const r = releasedSince(pendingEarnings as any[], Number.isFinite(last) ? last : null);
+      const first = r.items[0] as PendingEarning | undefined;
+      setReleased({ total: r.total, title: r.items.length === 1 ? first?.event_title || null : null, ready: true });
+      if (r.total > 0) setTimeout(() => haptics.light(), 400);
+      try {
+        await AsyncStorage.setItem(KEY, String(Date.now()));
+      } catch {
+        /* rien */
+      }
+    })();
+  }, [loading, pendingEarnings]);
+  // O5 appliqué au solde disponible quand rien n'a été libéré.
+  const availableSince = useSinceLastVisit(
+    loading || !wallet ? null : 'wallet:available',
+    wallet ? Math.round(wallet.available_balance || 0) : null,
+  );
+  const sinceLabel = useSinceLabel();
 
   // Wallet tour fires once wallet data has loaded — the 3 targets all live
   // inside the overview tab so we also gate on `activeTab === 'overview'`.
@@ -557,12 +603,10 @@ export default function WalletScreen() {
             <Text style={[styles.payoutDateE, { color: colors.gray400 }]}>{formatDate(payout.requested_at)}</Text>
           </View>
 
-          {payout.failure_reason && (
-            <View style={[styles.payoutFailure, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
-              <Ionicons name="warning" size={11} color="#EF4444" />
-              <Text style={styles.payoutFailureText} numberOfLines={2}>{payout.failure_reason}</Text>
-            </View>
-          )}
+          {/* O6 — suivi Demandé → (Approuvé) → Envoyé ; le motif d'échec y est
+              affiché (ambre, sans secousse), jamais « Envoyé » sur une issue
+              incertaine. */}
+          <PayoutRail payout={payout} methodLabel={methodLabel} />
 
           {canCancel && (
             <TouchableOpacity
@@ -585,7 +629,8 @@ export default function WalletScreen() {
     const days = earning.days_until_release;
     const releaseDate = new Date(earning.release_date);
     const day = String(releaseDate.getDate()).padStart(2, '0');
-    const month = releaseDate.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '').toUpperCase();
+    const month = shortMonthLabel(releaseDate).replace('.', '').toUpperCase();
+    const hoursLeft = hoursUntilRelease(earning.release_date, Date.now());
     return (
       <StaggeredItem key={earning.id} index={index}>
         <View style={[styles.pendingCardE, { backgroundColor: colors.card, borderColor: softBorder }, Shadows.sm]}>
@@ -602,7 +647,9 @@ export default function WalletScreen() {
                 <Text style={[styles.pendingPillText, { color: '#D97706' }]}>{t('organizer.wallet.pendingStatus')}</Text>
               </View>
               <Text style={[styles.pendingDays, { color: days > 0 ? colors.gray500 : '#10B981' }]}>
-                {days > 0 ? t('organizer.wallet.pendingDays', { count: days }) : t('organizer.wallet.pendingSoon')}
+                {hoursLeft != null
+                  ? t('organizerMoments.released.inHours', { count: hoursLeft })
+                  : days > 0 ? t('organizer.wallet.pendingDays', { count: days }) : t('organizer.wallet.pendingSoon')}
               </Text>
             </View>
             <Text style={[styles.pendingTitleE, { color: colors.text }]} numberOfLines={1}>
@@ -724,13 +771,40 @@ export default function WalletScreen() {
                   information. Un solde sans devise est inexploitable des
                   qu'un organisateur a un wallet non-XAF. */}
               <View style={styles.creditCardBalanceRow}>
-                <Text style={styles.creditCardBalance} numberOfLines={1} adjustsFontSizeToFit>
-                  {formatPrice(wallet?.available_balance || 0)}
-                </Text>
+                {released.ready && availableSince.ready ? (
+                  <CountUpText
+                    value={Math.round(wallet?.available_balance || 0)}
+                    from={
+                      released.total > 0
+                        ? Math.max(0, Math.round((wallet?.available_balance || 0) - released.total))
+                        : availableSince.from ?? undefined
+                    }
+                    delay={released.total > 0 ? 450 : 0}
+                    countKey="wallet-available"
+                    group
+                    style={styles.creditCardBalance}
+                  />
+                ) : (
+                  <Text style={styles.creditCardBalance} numberOfLines={1} adjustsFontSizeToFit>
+                    {formatPrice(wallet?.available_balance || 0)}
+                  </Text>
+                )}
                 <Text style={styles.creditCardBalanceCurrency}>
                   {displayCurrency(wallet?.currency)}
                 </Text>
               </View>
+              {released.total > 0 ? (
+                <SinceChip
+                  delay={450}
+                  label={
+                    released.title
+                      ? t('organizerMoments.released.chip', { title: released.title })
+                      : t('organizerMoments.released.chipMany', { amount: formatPrice(released.total) })
+                  }
+                />
+              ) : availableSince.delta != null && availableSince.since != null ? (
+                <SinceChip label={sinceLabel(formatPrice(availableSince.delta), availableSince.since)} delay={250} />
+              ) : null}
               {/* Card number-like dots for deco */}
               <View style={styles.cardDotsRow}>
                 <View style={styles.cardDot} />
@@ -782,9 +856,19 @@ export default function WalletScreen() {
         {/* === STAT STRIP (mini) === */}
         <View style={[styles.miniStatRow, { backgroundColor: colors.card, borderColor: softBorder }]}>
           <View style={[styles.miniStatCell, { borderRightColor: softBorder }]}>
-            <Text style={[styles.miniStatNumber, { color: colors.text }]} numberOfLines={1}>
-              {formatPrice(wallet?.pending_balance || 0)}
-            </Text>
+            {released.ready && released.total > 0 ? (
+              <CountUpText
+                value={Math.round(wallet?.pending_balance || 0)}
+                from={Math.round((wallet?.pending_balance || 0) + released.total)}
+                countKey="wallet-pending"
+                group
+                style={[styles.miniStatNumber, { color: colors.text }]}
+              />
+            ) : (
+              <Text style={[styles.miniStatNumber, { color: colors.text }]} numberOfLines={1}>
+                {formatPrice(wallet?.pending_balance || 0)}
+              </Text>
+            )}
             <Text style={[styles.miniStatEyebrow, { color: colors.gray500 }]}>{t('organizer.wallet.miniStatPending')}</Text>
           </View>
           <View style={[styles.miniStatCell, { borderRightColor: softBorder }]}>

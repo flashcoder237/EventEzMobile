@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LiveDot } from '../ui/motion';
+import { SessionAttendanceLine } from './live/SocialSignals';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -309,6 +310,13 @@ export default function AgendaTab({ sessions, loadingSessions }: AgendaTabProps)
                           </View>
                         )}
                       </View>
+                      {/* R2 V11 — présence réelle d'une session en cours (≥ 10 présents). */}
+                      {status === 'live' && (
+                        <SessionAttendanceLine
+                          count={(session as any).attendance_count}
+                          rate={(session as any).capacity_rate}
+                        />
+                      )}
 
                       {/* Title */}
                       <Text

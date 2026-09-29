@@ -83,3 +83,41 @@ describe('getVideoProvider', () => {
     expect(getVideoProvider('https://youtube.com/watch')).toBeNull();
   });
 });
+
+describe('buildEmbedSource', () => {
+  const { buildEmbedSource } = require('../videoUrl');
+
+  it('héberge le lecteur sur notre origine (Referer requis par YouTube, erreur 153)', () => {
+    const out = buildEmbedSource('https://www.youtube-nocookie.com/embed/abc?autoplay=1&mute=1', 'https://eventez.online');
+    expect(out.baseUrl).toBe('https://eventez.online/');
+    expect(out.html).toContain('<iframe src="https://www.youtube-nocookie.com/embed/abc?');
+    expect(out.html).toContain('origin=https%3A%2F%2Feventez.online');
+    expect(out.html).toContain('playsinline=1');
+    expect(out.html).toContain('referrerpolicy="strict-origin-when-cross-origin"');
+  });
+
+  it("n'ajoute pas origin aux lecteurs Vimeo et échappe les guillemets", () => {
+    const out = buildEmbedSource('https://player.vimeo.com/video/42?a="x"', 'https://eventez.online/');
+    expect(out.html).not.toContain('origin=');
+    expect(out.html).not.toContain('"x"');
+  });
+});
+
+describe('getYouTubeId', () => {
+  const { getYouTubeId } = require('../../../components/events/YouTubeCoverPlayer');
+
+  it.each([
+    ['https://www.youtube.com/watch?v=abc123', 'abc123'],
+    ['https://youtu.be/xyz789', 'xyz789'],
+    ['https://www.youtube-nocookie.com/embed/keep1?autoplay=1', 'keep1'],
+    ['https://m.youtube.com/shorts/short99', 'short99'],
+  ])('%s → %s', (url, id) => {
+    expect(getYouTubeId(url)).toBe(id);
+  });
+
+  it('ignore Vimeo et les URL invalides', () => {
+    expect(getYouTubeId('https://player.vimeo.com/video/42')).toBeNull();
+    expect(getYouTubeId('pas une url')).toBeNull();
+    expect(getYouTubeId(null)).toBeNull();
+  });
+});

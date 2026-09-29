@@ -8,8 +8,9 @@
  */
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { Curves } from '../../../constants/motion';
 import { useMotionGate } from './useMotionGate';
 
 export interface BurstParticlesProps {
@@ -38,7 +39,7 @@ function Particle({
 }) {
   const p = useSharedValue(0);
   useEffect(() => {
-    p.value = withTiming(1, { duration, easing: Easing.out(Easing.cubic) });
+    p.value = withTiming(1, { duration, easing: Curves.out });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const rad = (angle * Math.PI) / 180;

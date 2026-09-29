@@ -337,7 +337,7 @@ export default function ProfileScreen() {
                 <View style={[styles.verifiedTag, { backgroundColor: colors.primary }]}>
                   <Ionicons name="shield-checkmark" size={10} color="#FFFFFF" />
                   <Text style={styles.verifiedTagText}>{t('profile.labelVerified')}</Text>
-                  <GlintSweep trigger={avatarRing} delay={900} duration={700} color="rgba(255,255,255,0.45)" />
+                  <GlintSweep trigger={avatarRing} delay={900} color="rgba(255,255,255,0.45)" />
                 </View>
               ) : (
                 <View style={[styles.verifiedTag, { backgroundColor: colors.accent }]}>

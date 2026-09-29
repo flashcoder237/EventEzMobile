@@ -13,7 +13,6 @@ import {
   TouchableOpacity,
   Animated,
   ActivityIndicator,
-  Keyboard,
 } from 'react-native';
 import EventActionsSheet from '../organizer/EventActionsSheet';
 import { Image } from 'expo-image';
@@ -192,12 +191,14 @@ function InputToolbar({
 
   const canSend = (value.trim().length > 0 || attachedFiles.length > 0) && !sending;
 
-  // Envoi : vibration légère + l'avion « décolle » (+10/−10 px, fondu 160 ms)
-  // puis revient du bas-gauche (140 ms). L'envoi part IMMÉDIATEMENT, l'avion
-  // décolle en parallèle ; le verrou couvre la durée du vol (anti double envoi).
+  // Envoi (M8, round 2) : vibration légère + l'avion « décolle » (+10/−10 px,
+  // fondu 160 ms) puis revient (140 ms). L'animation ne BLOQUE JAMAIS la
+  // saisie : plus de verrou pendant le vol, et le clavier reste ouvert pour
+  // enchaîner un autre message. Seule protection : le même contenu renvoyé
+  // dans les 300 ms (double tap).
   const planeX = useSharedValue(0);
   const planeO = useSharedValue(1);
-  const sendLock = useRef(false);
+  const lastSend = useRef<{ text: string; at: number }>({ text: '', at: 0 });
   const planeStyle = useAnimatedStyle(() => ({
     opacity: planeO.value,
     transform: [{ translateX: planeX.value }, { translateY: -planeX.value }],
@@ -211,16 +212,14 @@ function InputToolbar({
   const swapEntering = mountedRef.current && !reducedMotion ? ZoomIn.duration(160) : undefined;
 
   const handleSend = () => {
-    if (!canSend || sendLock.current) return;
+    if (!canSend) return;
+    const now = Date.now();
+    const text = value.trim();
+    if (attachedFiles.length === 0 && text === lastSend.current.text && now - lastSend.current.at < 300) return;
+    lastSend.current = { text, at: now };
     haptics.light();
-    if (reducedMotion) {
-      onSend();
-      Keyboard.dismiss();
-      return;
-    }
-    sendLock.current = true;
     onSend();
-    Keyboard.dismiss();
+    if (reducedMotion) return;
     planeX.value = withSequence(
       withTiming(10, { duration: 160 }),
       withTiming(-8, { duration: 0 }),
@@ -230,9 +229,6 @@ function InputToolbar({
       withTiming(0, { duration: 160 }),
       withTiming(1, { duration: 140 }),
     );
-    setTimeout(() => {
-      sendLock.current = false;
-    }, 300);
   };
 
   // Reply Preview

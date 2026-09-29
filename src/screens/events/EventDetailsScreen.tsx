@@ -33,7 +33,14 @@ import Animated, {
   Extrapolation,
   FadeIn,
   runOnJS,
+  withDelay,
+  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
+import { useHeroFlight } from '../../components/ui/motion/HeroFlight';
+import { isReducedMotionCached } from '../../hooks/useReducedMotion';
+import { Curves, Durations, springConfig } from '../../constants/motion';
+import { haptics } from '../../utils/haptics';
 
 // Wrapper anime autour d'expo-image pour garder parallax + placeholder LQIP
 import { RootStackParamList } from '../../types';
@@ -90,6 +97,21 @@ import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
 import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import { withJwt, withJitsiUi } from '../../lib/utils/visioUrl';
+import { eventTint, tintAlpha, tintFor } from '../../lib/utils/themeTint';
+import { getEventAmbience } from '../../lib/utils/eventKind';
+import { appDateLocale } from '../../lib/utils/dateFormatters';
+import { CELEBRATION_IVORY, SERIF_FAMILY } from '../../lib/utils/ambience';
+import { useEventPulse } from '../../hooks/useEventPulse';
+import { isPulseHot, pulseAvailability } from '../../lib/realtime/pulse';
+import { subscribeLiveNotifications } from '../../lib/notifications/liveBus';
+import {
+  WatchingLine,
+  LastSaleLine,
+  OnSiteLine,
+  ConnectionsGoingLine,
+  ReachabilityLine,
+  SeatHeldBanner,
+} from '../../components/events/live/SocialSignals';
 
 type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
 
@@ -97,7 +119,7 @@ const { width } = Dimensions.get('window');
 
 export default function EventDetailsScreen() {
   const route = useRoute<RouteProps>();
-  const { eventId, imageUrl: routeImageParam, previewEvent, initialTab, initialEvent } = route.params;
+  const { eventId, imageUrl: routeImageParam, previewEvent, initialTab, initialEvent, hero, seatHeldUntil } = route.params;
   // Aperçu transmis par la carte d'origine : bannière + en-tête affichés
   // immédiatement pendant le chargement du détail complet.
   const routeImageUrl = routeImageParam
@@ -160,6 +182,55 @@ export default function EventDetailsScreen() {
     user,
     showError,
   } = useEventDetails(eventId, previewEvent);
+  // S4/S5 — teinte et registre d'ambiance de l'événement (fonds, titre, ordre).
+  const tint = tintFor(eventTint(event), isDark);
+  const ambience = getEventAmbience(event as any);
+
+  // R2 V0–V3 — pouls de l'événement (regardent, dernière vente, sur place,
+  // stock en direct). Rien n'est affiché si le serveur renvoie null.
+  const pulse = useEventPulse(event?.id ? String(event.id) : null, {
+    hot: event ? isPulseHot(event as any) : false,
+    enabled: !!event && !isPreview,
+  });
+  // Disponibilité en direct d'un tarif : celle du pouls si connue, sinon celle
+  // du détail chargé. Le stock baisse sans recharger la fiche.
+  const liveTicketAvailability = useCallback(
+    (ticket: any) => {
+      const live = pulseAvailability(pulse, ticket?.id);
+      return typeof live === 'number' ? live : getTicketAvailability(ticket);
+    },
+    [pulse, getTicketAvailability],
+  );
+  const liveAllTicketsSoldOut = useCallback(() => {
+    const tts = event?.ticket_types || [];
+    if (tts.length === 0) return areAllTicketsSoldOut();
+    return tts.every((tt: any) => liveTicketAvailability(tt) <= 0);
+  }, [event?.ticket_types, areAllTicketsSoldOut, liveTicketAvailability]);
+  // « Complet » appris EN DIRECT (pouls) : la CTA se désactive sans recharger.
+  // Sans pouls, le comportement existant est inchangé.
+  const soldOutLive =
+    !!pulse &&
+    (pulse.state === 'sold_out' ||
+      (pulse.tickets.length > 0 && (event?.ticket_types || []).length > 0 && liveAllTicketsSoldOut()));
+
+  // V9 — place gardée 15 min (param de notification, ou arrivée en direct).
+  const [seatHeldAt, setSeatHeldAt] = useState<string | null>(seatHeldUntil ?? null);
+  useEffect(() => {
+    if (seatHeldUntil) setSeatHeldAt(seatHeldUntil);
+  }, [seatHeldUntil]);
+  useEffect(() => {
+    if (!event) return;
+    return subscribeLiveNotifications((n) => {
+      if (n.notification_type !== 'waitlist_available') return;
+      const x = (n.extra_data || {}) as Record<string, any>;
+      if (x.kind !== 'seat_held' || !x.hold_expires_at) return;
+      const same =
+        (x.event_slug && String(x.event_slug) === String((event as any).slug)) ||
+        (x.event_id && String(x.event_id) === String(event.id));
+      if (same) setSeatHeldAt(String(x.hold_expires_at));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event?.id]);
   // Héros : variante WebP 960px (display_image_medium) dès l'aperçu de
   // navigation, repli sur l'originale puis sur l'image passée par la carte.
   const heroImageUrl =
@@ -341,6 +412,66 @@ export default function EventDetailsScreen() {
   const BANNER_VISIBLE_THRESHOLD = 280;
   const [bannerVisible, setBannerVisible] = useState(true);
   const bannerVisibleRef = useRef(true);
+  // === T1 — vol carte → fiche (voir ui/motion/HeroFlight) ===
+  const heroFlight = useHeroFlight(hero, { scrollY });
+  const { rewind: heroRewind, release: heroRelease } = heroFlight;
+
+  // === T12 — chorégraphie d'arrivée (une fois par montage) ===
+  // Groupe 1 : la bannière (déjà posée par la navigation ou par le vol).
+  // Groupe 2 : titre / date / lieu — 8 px + fondu à 40 ms (si pas de vol :
+  //            le vol fait déjà apparaître le contenu).
+  // Groupe 3 : la barre de réservation monte depuis 100 % à 120 ms.
+  // Rien au retour sur l'écran ni au pull-to-refresh : l'écran reste monté.
+  const reducedAtMount = useRef(isReducedMotionCached()).current;
+  const arrive = useSharedValue(heroFlight.flying || reducedAtMount ? 1 : 0);
+  useEffect(() => {
+    if (heroFlight.flying || reducedAtMount) return;
+    arrive.value = withDelay(40, withTiming(1, { duration: Durations.enter, easing: Curves.out }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const arrivalStyle = useAnimatedStyle(() => ({
+    opacity: arrive.value,
+    transform: [{ translateY: 8 * (1 - arrive.value) }],
+  }));
+  const ctaIn = useSharedValue(reducedAtMount ? 1 : 0);
+  const ctaHeight = useSharedValue(120);
+  const ctaStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: ctaHeight.value * (1 - ctaIn.value) }],
+  }));
+  const showCtaBar = !loading && !!event && !isPreview;
+  useEffect(() => {
+    if (!showCtaBar || ctaIn.value === 1) return;
+    // Monte quand la bannière est posée : ressort sans dépassement (transform).
+    ctaIn.value = withDelay(120, withSpring(1, springConfig('layout')));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showCtaBar]);
+
+  // === T2 — tirer pour fermer (iOS : rebond natif du ScrollView) ===
+  // Android n'a pas de sur-défilement élastique sur ce ScrollView : le geste
+  // n'y est pas proposé (le retour système et le bouton restent).
+  const PULL_DISMISS_AT = -110;
+  const pullArmed = useSharedValue(0);
+  const closingRef = useRef(false);
+  const closeScreen = useCallback(async () => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    const rewinding = heroRewind();
+    // Le retour de pile (fondu 200 ms) démarre pendant le vol inverse : les
+    // deux se terminent ensemble, la carte réapparaît à sa place.
+    const ok = await Promise.race([
+      rewinding,
+      new Promise<boolean>((r) => setTimeout(() => r(true), 140)),
+    ]);
+    void ok;
+    heroRelease();
+    navigation.goBack();
+    // Si le retour n'a pas eu lieu (écran racine d'un lien profond), on réarme.
+    setTimeout(() => {
+      closingRef.current = false;
+    }, 800);
+  }, [heroRewind, heroRelease, navigation]);
+  const isIOS = Platform.OS === 'ios';
+
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
       scrollY.value = e.contentOffset.y;
@@ -352,8 +483,31 @@ export default function EventDetailsScreen() {
         bannerVisibleRef.current = nowVisible;
         runOnJS(setBannerVisible)(nowVisible);
       }
+      if (isIOS) {
+        // Une seule vibration au passage du seuil, réarmée en dessous.
+        if (e.contentOffset.y <= PULL_DISMISS_AT && !pullArmed.value) {
+          pullArmed.value = 1;
+          runOnJS(haptics.selection)();
+        } else if (e.contentOffset.y > PULL_DISMISS_AT + 20 && pullArmed.value) {
+          pullArmed.value = 0;
+        }
+      }
+    },
+    onEndDrag: (e) => {
+      if (!isIOS) return;
+      const y = e.contentOffset.y;
+      const vy = Math.abs((e as any).velocity?.y ?? 0);
+      if (y <= PULL_DISMISS_AT || (y < -40 && vy > 1.2)) {
+        runOnJS(closeScreen)();
+      }
     },
   });
+  const pullChevronStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [-40, PULL_DISMISS_AT], [0, 1], Extrapolation.CLAMP),
+    transform: [
+      { translateY: interpolate(scrollY.value, [PULL_DISMISS_AT, 0], [-PULL_DISMISS_AT * 0.5, 0], Extrapolation.CLAMP) },
+    ],
+  }));
 
   const bannerAnimatedStyle = useAnimatedStyle(() => {
     const scale = interpolate(
@@ -596,7 +750,7 @@ export default function EventDetailsScreen() {
         leftAction={
           <TouchableOpacity
             style={[styles.blurHeaderBtn, { backgroundColor: colors.gray100 }]}
-            onPress={() => navigation.goBack()}
+            onPress={closeScreen}
             accessibilityRole="button"
             accessibilityLabel={t('common.back')}
           >
@@ -628,7 +782,16 @@ export default function EventDetailsScreen() {
             3. Pressable absoluteFill (capture le tap → ouvre viewer)
             4. Hint visuel "1/N" ou "Agrandir" (pointerEvents none, laisse passer)
             5. Header overlay (boutons back/share/follow, box-none pour les zones vides) */}
-        <View style={styles.bannerContainer}>
+        {/* T1 — conteneur externe : c'est LUI qui vole depuis la carte
+            (transform + coins). La parallaxe reste sur l'image, à l'intérieur. */}
+        <Animated.View
+          ref={heroFlight.outerRef as any}
+          collapsable={false}
+          onLayout={heroFlight.onOuterLayout}
+          style={[styles.bannerContainer, heroFlight.outerStyle]}
+        >
+          {/* Contre-échelle : l'image n'est jamais déformée pendant le vol. */}
+          <Animated.View style={[StyleSheet.absoluteFill, heroFlight.innerStyle]}>
           {/* 1. Image OU video */}
           {(event?.cover_video || event?.cover_video_embed) ? (
             <Animated.View style={[styles.bannerImage, bannerAnimatedStyle]}>
@@ -673,6 +836,10 @@ export default function EventDetailsScreen() {
             </Animated.View>
           )}
 
+          </Animated.View>
+
+          {/* Couches posées sur l'image : apparaissent en fondu après le vol. */}
+          <Animated.View pointerEvents="box-none" style={[StyleSheet.absoluteFill, heroFlight.overlayStyle]}>
           {/* 2. Triple gradient overlay (visuel uniquement) */}
           <LinearGradient
             colors={['rgba(0,0,0,0.3)', 'transparent', 'rgba(0,0,0,0.5)']}
@@ -719,7 +886,7 @@ export default function EventDetailsScreen() {
             <SafeAreaView pointerEvents="box-none" style={styles.headerOverlay} edges={['top']}>
               <TouchableOpacity
                 style={styles.floatingHeaderBtn}
-                onPress={() => navigation.goBack()}
+                onPress={closeScreen}
                 accessibilityRole="button"
                 accessibilityLabel={t('common.back')}
               >
@@ -745,9 +912,11 @@ export default function EventDetailsScreen() {
               </View>
             </SafeAreaView>
           </Animated.View>
-        </View>
+          </Animated.View>
+        </Animated.View>
 
-        {/* Content */}
+        {/* Content — T1 : fondu + 12 px après le vol ; T12 : 8 px + fondu sinon. */}
+        <Animated.View style={heroFlight.flying ? heroFlight.contentStyle : arrivalStyle}>
         {loading ? (
           <View style={[styles.content, { backgroundColor: colors.surface, padding: Spacing.lg }]}>
             {initialEvent?.title ? (
@@ -791,7 +960,17 @@ export default function EventDetailsScreen() {
         // animation quand l'en-tête d'aperçu était déjà affiché (évite un
         // clignotement titre visible → invisible → visible).
         <Animated.View entering={initialEvent?.title ? undefined : FadeIn.duration(200)}>
-        <View style={[styles.content, { backgroundColor: colors.surface }]}>
+        <View style={[
+          styles.content,
+          { backgroundColor: ambience === 'celebration' && !isDark ? CELEBRATION_IVORY : colors.surface },
+        ]}>
+          {/* S4 — halo aux couleurs de l'événement sous la bannière (ambiance
+              seulement, jamais porteur d'information). S5 « nuit » : plus dense. */}
+          <LinearGradient
+            colors={[tintAlpha(tint, ambience === 'night' ? 0.22 : 0.12), tintAlpha(tint, 0)]}
+            style={styles.tintHalo}
+            pointerEvents="none"
+          />
           {/* Pending Payment Alert */}
           {userRegistration && userRegistration.status === 'pending' && isPaymentRequired(userRegistration) && (
             <View style={[styles.pendingPaymentBanner, { backgroundColor: colors.warningLight, borderColor: colors.warning }]}>
@@ -850,7 +1029,57 @@ export default function EventDetailsScreen() {
           />
 
           {/* Title — display extra-bold, no italic */}
-          <Text style={[styles.title, { color: colors.gray900 }]}>{event.title}</Text>
+          <Text
+            style={[
+              styles.title,
+              { color: colors.gray900 },
+              ambience === 'celebration' && { fontFamily: SERIF_FAMILY, fontWeight: '600' },
+            ]}
+          >
+            {event.title}
+          </Text>
+          {/* S5 célébration : filet doré sous le titre. */}
+          {ambience === 'celebration' && <View style={styles.goldRule} />}
+
+          {/* V1 / S3 — signaux vivants, seulement si le serveur les renvoie. */}
+          <WatchingLine pulse={pulse} />
+          <OnSiteLine pulse={pulse} />
+
+          {/* V9 — place gardée pour moi. */}
+          {seatHeldAt && !userRegistration && (
+            <SeatHeldBanner
+              expiresAt={seatHeldAt}
+              onBook={requireAuth(() => navigation.navigate('TicketPurchase', { eventId }), {
+                eventTitle: event.title,
+                returnScreen: 'TicketPurchase',
+                returnParams: { eventId },
+                eventIsFree: !!event.is_free,
+              })}
+            />
+          )}
+
+          {/* S5 savoir : le programme remonte (3 prochaines sessions). */}
+          {ambience === 'knowledge' && sessions && sessions.length > 0 && (
+            <View style={[styles.programCard, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
+              <Text style={[styles.programEyebrow, { color: tint }]}>
+                {t('ambience.program', { count: sessions.length, defaultValue: 'Programme · {{count}} sessions' })}
+              </Text>
+              {sessions.slice(0, 3).map((s: any) => (
+                <Pressable
+                  key={String(s.id)}
+                  onPress={() => navigation.navigate('SessionDetails', { sessionId: String(s.id) })}
+                  style={styles.programRow}
+                  accessibilityRole="button"
+                >
+                  <Text style={[styles.programTime, { color: colors.gray500 }]}>
+                    {s.start_time ? new Date(s.start_time).toLocaleTimeString(appDateLocale(), { hour: '2-digit', minute: '2-digit' }) : ''}
+                  </Text>
+                  <Text style={[styles.programTitle, { color: colors.gray900 }]} numberOfLines={1}>{s.title}</Text>
+                  <Ionicons name="chevron-forward" size={14} color={colors.gray400} />
+                </Pressable>
+              ))}
+            </View>
+          )}
 
           {/* Organizer Card — toute la card tap → OrganizerProfile.
               Bouton Follow inline (compact) + bouton Message + chevron. */}
@@ -863,7 +1092,9 @@ export default function EventDetailsScreen() {
             }}
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel={`Voir le profil de ${event.organizer?.first_name || 'l\'organisateur'}`}
+            accessibilityLabel={t('followingEvents.viewProfileA11y', {
+              name: event.organizer?.first_name || t('events.organizer'),
+            })}
           >
             <View style={[styles.organizerAvatar, { backgroundColor: colors.primary }]}>
               {event.organizer?.profile_picture ? (
@@ -888,6 +1119,8 @@ export default function EventDetailsScreen() {
               {/* Point de décision d'achat : c'est ICI que la vérification KYC
                   a le plus de valeur. Elle n'y était pas affichée du tout. */}
               <UserBadges user={event.organizer as any} style={{ marginTop: 3 }} />
+              {/* V5 — organisateur joignable (présence réelle ou délai médian). */}
+              <ReachabilityLine data={(event as any).organizer_reachability} />
             </View>
             {event.organizer?.id && (
               <View style={styles.organizerActions}>
@@ -1231,6 +1464,11 @@ export default function EventDetailsScreen() {
             <View style={[styles.whoIsGoingSection, { borderTopColor: colors.gray100 }]}>
               <Text style={[styles.sectionEyebrow, { color: colors.primary }]}>{t('eventDetails.communityEyebrow')}</Text>
               <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('eventDetails.communityTitle')}</Text>
+              {/* V4 — mes connexions qui y vont (consentement explicite côté
+                  serveur) : elles remplacent les prénoms anonymes. */}
+              {(event as any).connections_going?.users?.length ? (
+                <ConnectionsGoingLine data={(event as any).connections_going} />
+              ) : (
               <View style={styles.whoIsGoingRow}>
                 {event.recent_registrants && event.recent_registrants.length > 0 ? (
                   <>
@@ -1271,19 +1509,16 @@ export default function EventDetailsScreen() {
                       ))}
                     </View>
                     <Text style={[styles.whoIsGoingText, { color: colors.gray700 }]} numberOfLines={2}>
-                      {event.recent_registrants[0].first_name || 'Quelqu\'un'}
-                      {event.recent_registrants.length > 1
-                        ? `, ${event.recent_registrants[1].first_name || ''}`
-                        : ''}
-                      {(event.visible_attendees_count || event.registration_count || 0) > event.recent_registrants.length
-                        ? ` et ${formatCompactNumber(
-                            (event.visible_attendees_count || event.registration_count || 0) - event.recent_registrants.length,
-                            { fallbackZero: true },
-                          )} autre${
-                            (event.visible_attendees_count || event.registration_count || 0) - event.recent_registrants.length > 1 ? 's' : ''
-                          }`
-                        : ''}
-                      {' '}y vont
+                      {(() => {
+                        const regs = event.recent_registrants!;
+                        const shown = regs.slice(0, 2).map((r) => r.first_name || t('liveSignals.someone'));
+                        const names = shown.join(', ');
+                        const total = event.visible_attendees_count || event.registration_count || 0;
+                        const others = total - regs.length;
+                        return others > 0
+                          ? t('liveSignals.whoGoingOthers', { names, count: others })
+                          : t('liveSignals.whoGoingNames', { names, count: shown.length });
+                      })()}
                     </Text>
                   </>
                 ) : (
@@ -1292,11 +1527,12 @@ export default function EventDetailsScreen() {
                       <Ionicons name="people" size={16} color={colors.primary} />
                     </View>
                     <Text style={[styles.whoIsGoingText, { color: colors.gray700 }]}>
-                      {formatCompactNumber(event.registration_count, { fallbackZero: true })} personne{(event.registration_count || 0) > 1 ? 's' : ''} inscrite{(event.registration_count || 0) > 1 ? 's' : ''}
+                      {t('liveSignals.registeredCount', { count: event.registration_count || 0 })}
                     </Text>
                   </>
                 )}
               </View>
+              )}
             </View>
           )}
 
@@ -1404,13 +1640,19 @@ export default function EventDetailsScreen() {
             </View>
           )}
 
+          {/* V2 — dernière réservation (jamais qui, jamais combien). */}
+          <View style={styles.lastSaleWrap}>
+            <LastSaleLine pulse={pulse} />
+          </View>
+
           {/* Section: Tickets */}
           <TicketsTab
             event={event}
             waitlistEntry={waitlistEntry}
             joiningWaitlist={joiningWaitlist}
-            getTicketAvailability={getTicketAvailability}
-            areAllTicketsSoldOut={areAllTicketsSoldOut}
+            getTicketAvailability={liveTicketAvailability}
+            areAllTicketsSoldOut={liveAllTicketsSoldOut}
+            liveStock={!!pulse}
             onJoinWaitlist={handleJoinWaitlist}
             onLeaveWaitlist={handleLeaveWaitlist}
           />
@@ -1487,7 +1729,18 @@ export default function EventDetailsScreen() {
         </View>
         </Animated.View>
         ) : null}
+        </Animated.View>
       </Animated.ScrollView>
+
+      {/* T2 — chevron « fermer » qui apparaît en tirant vers le bas (iOS). */}
+      {Platform.OS === 'ios' && (
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.pullChevron, { top: insets.top + 6 }, pullChevronStyle]}
+        >
+          <Ionicons name="chevron-down" size={22} color={Colors.white} />
+        </Animated.View>
+      )}
 
       {/* Bottom CTA — remplacé par un message "Aperçu" en mode preview */}
       {!loading && event && isPreview ? (
@@ -1515,6 +1768,13 @@ export default function EventDetailsScreen() {
          spotlight du tour ne se dessinait pas. Le TourTarget, hors du BlurView,
          est dans un coordinate system normal et se mesure correctement. */
       <TourTarget id="event-details-cta" style={styles.bottomBar}>
+      {/* T12 — groupe 3 : la barre monte depuis 100 % une fois la bannière posée. */}
+      <Animated.View
+        style={ctaStyle}
+        onLayout={(e) => {
+          ctaHeight.value = e.nativeEvent.layout.height;
+        }}
+      >
       <BlurView
         intensity={Platform.OS === 'ios' ? 80 : 0}
         tint={isDark ? 'dark' : 'light'}
@@ -1628,6 +1888,16 @@ export default function EventDetailsScreen() {
             <Ionicons name="checkmark-done-outline" size={18} color={colors.white} />
             <Text style={styles.ctaButtonText}>{t('eventDetails.ctaEnded')}</Text>
           </View>
+        ) : soldOutLive ? (
+          // V3 — complet appris en direct : la CTA se désactive sans recharger.
+          <Animated.View
+            entering={FadeIn.duration(Durations.respond)}
+            style={[styles.ctaButton, { backgroundColor: colors.gray400 || '#9CA3AF' }]}
+            accessibilityRole="text"
+          >
+            <Ionicons name="close-circle-outline" size={18} color={colors.white} />
+            <Text style={styles.ctaButtonText}>{t('liveSignals.soldOut')}</Text>
+          </Animated.View>
         ) : (event.is_external && event.source_url) ? (
           <TouchableOpacity
             onPress={() => Linking.openURL(event.source_url!).catch(() => {})}
@@ -1680,6 +1950,7 @@ export default function EventDetailsScreen() {
         )}
       </View>
       </BlurView>
+      </Animated.View>
       </TourTarget>
       ) : null}
 
@@ -1779,6 +2050,13 @@ const styles = StyleSheet.create({
   backButtonErrorText: {
     ...TextStyles.button,
   },
+  tintHalo: { position: 'absolute', top: 0, left: 0, right: 0, height: 140 },
+  goldRule: { width: 48, height: 2, borderRadius: 1, backgroundColor: '#C9A961', marginBottom: Spacing.md },
+  programCard: { borderWidth: 1, borderRadius: 16, padding: 12, gap: 6, marginBottom: Spacing.md },
+  programEyebrow: { fontFamily: FontFamily.bold, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
+  programRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
+  programTime: { fontFamily: FontFamily.semiBold, fontSize: 12, width: 48 },
+  programTitle: { flex: 1, fontFamily: FontFamily.semiBold, fontSize: 14 },
   bannerContainer: {
     height: 360,
     position: 'relative',
@@ -2116,6 +2394,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   // ===== STICKY BOTTOM CTA (glass effect) =====
+  // T2 — chevron « fermer » (tirer vers le bas).
+  pullChevron: {
+    position: 'absolute',
+    alignSelf: 'center',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   bottomBar: {
     position: 'absolute',
     bottom: 0,
@@ -2596,6 +2885,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.1,
   },
   // ===== QUI Y VA =====
+  lastSaleWrap: {
+    marginTop: Spacing.md,
+  },
   whoIsGoingSection: {
     marginTop: Spacing.xl,
     paddingTop: Spacing.lg,

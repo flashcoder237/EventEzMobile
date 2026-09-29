@@ -19,17 +19,17 @@ import {
   View,
   Text,
   StyleSheet,
-  Modal,
   TextInput,
   TouchableOpacity,
-  FlatList,
   Pressable,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
+import { SpringSheet, SpringSheetFlatList } from '../ui/motion/SpringSheet';
 import {
   FontFamily,
   FontSizes,
@@ -89,6 +89,7 @@ export default function SearchableSelectModal<T>({
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { height: winH } = useWindowDimensions();
   const resolvedSearchPlaceholder = searchPlaceholder ?? t('componentsCommon.searchableSearchPlaceholder');
   const resolvedEmptyText = emptyText ?? t('componentsCommon.searchableEmpty');
   const hairline = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(17,17,16,0.08)';
@@ -116,18 +117,20 @@ export default function SearchableSelectModal<T>({
   };
 
   return (
-    <Modal
+    // T5 — feuille SpringSheet : se ferme en tirant (liste tout en haut),
+    // lâcher projeté, ressort interruptible ; même physique sur iOS et Android.
+    <SpringSheet
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={handleClose}
+      onClose={handleClose}
+      backgroundColor={colors.background}
+      accessibilityLabel={title}
+      style={{ height: winH * 0.88 }}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {/* Header — paddingTop = inset.top pour respecter le notch */}
         <View
           style={[
             styles.header,
-            { paddingTop: insets.top + Spacing.md, borderBottomColor: hairline },
+            { paddingTop: Spacing.sm, borderBottomColor: hairline },
           ]}
         >
           <View style={{ flex: 1 }}>
@@ -174,7 +177,7 @@ export default function SearchableSelectModal<T>({
         </View>
 
         {/* List */}
-        <FlatList
+        <SpringSheetFlatList
           data={filtered}
           keyExtractor={getKey}
           keyboardShouldPersistTaps="handled"
@@ -260,7 +263,7 @@ export default function SearchableSelectModal<T>({
           </View>
         )}
       </View>
-    </Modal>
+    </SpringSheet>
   );
 }
 

@@ -4,7 +4,7 @@ import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { pickCanvas, pickCanvasGradient, canvasGradientLocations } from './editorialTokens';
+import { pickCanvas, pickCanvasGradient, canvasGradientLocations, dayLightFor, withDayLight } from './editorialTokens';
 
 type Glow = 'none' | 'indigo' | 'coral';
 
@@ -50,7 +50,9 @@ export default function EditorialCanvas({
 }: EditorialCanvasProps) {
   const { colors, isDark } = useTheme();
   const bg = pickCanvas(isDark, colors.background);
-  const gradient = pickCanvasGradient(isDark, colors.background);
+  // S6 — lumière selon l'heure, lue une fois au montage (aucune transition).
+  const [dayLight] = React.useState(() => dayLightFor(new Date().getHours()));
+  const gradient = withDayLight(pickCanvasGradient(isDark, colors.background), isDark, dayLight);
   // Unique gradient id (avoids SVG id collisions when canvases nest); ':' is invalid in url().
   const gradId = 'cg' + React.useId().replace(/:/g, '');
 

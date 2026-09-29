@@ -37,8 +37,22 @@ export const eventsAPI = {
   getFeaturedEvents: (params?: any) =>
     api.get('/events/featured/', { params }),
 
+  /** O13 — bilan d'un événement terminé (organisateur / équipe). */
+  getEventRecap: (id: string) =>
+    api.get(`/events/${id}/recap/`),
+
   getMyEvents: () =>
     api.get('/events/my_events/'),
+
+  /** R2 V0 — pouls d'un événement (public, mis en cache 30 s côté serveur). */
+  // 404 = backend sans la route (pas encore déployé) ou événement inaccessible :
+  // état attendu, pas une erreur (le pouls est un complément optionnel).
+  getEventPulse: (id: string) =>
+    api.get(`/events/${id}/pulse/`, { expectedErrorStatuses: [404] } as any),
+
+  /** R2 V10 — pouls d'une ville (réservations 24 h, événements en direct). */
+  getCityPulse: (city: string) =>
+    api.get('/events/city-pulse/', { params: { city }, expectedErrorStatuses: [404] } as any),
 
   // ── Événements satellites (exposant sous-organisateur) ───────────────────
   getSatelliteEvents: (params: { host_event: string; status?: string }) =>

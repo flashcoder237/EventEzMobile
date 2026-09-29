@@ -15,6 +15,7 @@ import ConvertedPrice from '../common/ConvertedPrice';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
 import { getSaleState } from '../../utils/ticketSaleWindow';
 import { getDeadlineInfo, shouldHighlightDeadline } from '../../utils/saleDeadline';
+import { LiveFillBar } from './live/SocialSignals';
 
 export interface TicketsTabProps {
   event: Event;
@@ -22,6 +23,8 @@ export interface TicketsTabProps {
   joiningWaitlist: boolean;
   getTicketAvailability: (ticket: any) => number;
   areAllTicketsSoldOut: () => boolean;
+  /** R2 V3 — le stock vient du pouls en direct : la jauge avance sur une vraie baisse. */
+  liveStock?: boolean;
   onJoinWaitlist: () => void;
   onLeaveWaitlist: () => void;
 }
@@ -51,6 +54,7 @@ export default function TicketsTab({
   joiningWaitlist,
   getTicketAvailability,
   areAllTicketsSoldOut,
+  liveStock = false,
   onJoinWaitlist,
   onLeaveWaitlist,
 }: TicketsTabProps) {
@@ -195,6 +199,15 @@ export default function TicketsTab({
                   >
                     {ticket.name}
                   </Text>
+
+                  {/* V3 — jauge du tarif, alimentée par le pouls en direct. */}
+                  {liveStock && !isClosed && (ticket.quantity_total || 0) > 0 && (
+                    <LiveFillBar
+                      available={Math.max(0, available)}
+                      total={ticket.quantity_total || 0}
+                      color={isSoldOut ? colors.gray300 : accent.color}
+                    />
+                  )}
 
                   {/* Description */}
                   {ticket.description && (

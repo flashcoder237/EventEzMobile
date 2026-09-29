@@ -393,3 +393,73 @@ describe('resolveNotificationTarget — scan de badge exposant', () => {
     expect(target?.screen).not.toBe('EventDetails');
   });
 });
+
+describe('resolveNotificationTarget — moments signatures (round 2)', () => {
+  it('event_today avec registration_id → le billet', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'event_today', extra_data: { registration_id: 'r1', event_id: 'e1' },
+    }))).toEqual({ screen: 'RegistrationDetails', params: { registrationId: 'r1' } });
+  });
+  it('event_reminder avec registration_id → le billet', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'event_reminder', extra_data: { registration_id: 'r2' },
+    }))).toEqual({ screen: 'RegistrationDetails', params: { registrationId: 'r2' } });
+  });
+  it('checkin_welcome → billet, sinon onglet billets', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'checkin_welcome', extra_data: { registration_id: 'r3' },
+    }))).toEqual({ screen: 'RegistrationDetails', params: { registrationId: 'r3' } });
+    expect(resolveNotificationTarget(notif({ notification_type: 'checkin_welcome' })))
+      .toEqual({ tab: 'MyTickets' });
+  });
+  it('event_feedback attended → carte souvenir', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'event_feedback', extra_data: { kind: 'attended', event_id: 'e9' },
+    }))).toEqual({ screen: 'Memories', params: { attended: 'e9' } });
+  });
+  it('memory_anniversary → souvenirs sur l\'événement', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'memory_anniversary', extra_data: { event_id: 'e5' },
+    }))).toEqual({ screen: 'Memories', params: { eventId: 'e5' } });
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'memory_anniversary',
+      extra_data: { event_id: 'e5', next_edition: { event_id: 'e6', slug: 'fest-2027', title: 'Fest 2027' } },
+    }))).toEqual({ screen: 'Memories', params: { eventId: 'e5', nextSlug: 'fest-2027', nextTitle: 'Fest 2027' } });
+  });
+  it('year_in_review → écran story', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'year_in_review', extra_data: { year: 2026 },
+    }))).toEqual({ screen: 'YearInReview', params: { year: 2026 } });
+  });
+  // ─── Round 2 — lot O : moments organisateur ───
+  it('organizer_milestone → gestion des inscrits, sinon Mes événements', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'organizer_milestone', extra_data: { kind: 'first', event_id: 'e7' },
+    }))).toEqual({ screen: 'EventRegistrations', params: { eventId: 'e7' } });
+    expect(resolveNotificationTarget(notif({ notification_type: 'organizer_milestone' })))
+      .toEqual({ screen: 'MyEvents' });
+  });
+  it('event_recap_ready → bilan de l\'événement', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'event_recap_ready', extra_data: { event_id: 'e8' },
+    }))).toEqual({ screen: 'EventRecap', params: { eventId: 'e8' } });
+  });
+  // ─── Round 2 — lot V : plateforme vivante ───
+  it('connection_arrived → conversation directe avec la connexion', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'connection_arrived' as any,
+      extra_data: { event_id: 'e1', connection_user_id: 42, connection_name: 'Karim' },
+    }))).toEqual({ screen: 'Conversation', params: { userId: '42', userName: 'Karim' } });
+    expect(resolveNotificationTarget(notif({ notification_type: 'connection_arrived' as any })))
+      .toEqual({ screen: 'Messages' });
+  });
+  it('waitlist_available seat_held → fiche avec le compte à rebours réel', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'waitlist_available',
+      extra_data: { kind: 'seat_held', event_slug: 'jazz', hold_expires_at: '2026-09-29T20:15:00Z' },
+    }))).toEqual({ screen: 'EventDetails', params: { eventId: 'jazz', seatHeldUntil: '2026-09-29T20:15:00Z' } });
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'waitlist_available', extra_data: { event_slug: 'jazz' },
+    }))).toEqual({ screen: 'EventDetails', params: { eventId: 'jazz' } });
+  });
+});

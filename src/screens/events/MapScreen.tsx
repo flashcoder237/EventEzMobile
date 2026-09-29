@@ -75,6 +75,8 @@ export default function MapScreen() {
   };
   const { filters, setFilters, resetFilters: resetPersistedFilters, isLoaded: filtersLoaded } = usePersistedFilters<Filters>('@eventez_map_filters', mapDefaultFilters);
   const [tempFilters, setTempFilters] = useState<Filters>(filters);
+  // V7 — filtre « en direct autour de vous » (puce en haut de la carte).
+  const [liveOnly, setLiveOnly] = useState(false);
 
   const [region, setRegion] = useState({
     latitude: 3.848,
@@ -102,7 +104,7 @@ export default function MapScreen() {
   };
 
   // Filtrer les marqueurs
-  const filteredMarkers = useMemo(() => {
+  const filteredMarkersBase = useMemo(() => {
     let result = [...allMarkers];
 
     // Filtrer par rayon
@@ -160,6 +162,12 @@ export default function MapScreen() {
     return result;
   }, [allMarkers, userLocation, radius, filters]);
 
+  // V7 — événements en cours dans le rayon (compteur de la puce).
+  const liveCount = useMemo(() => filteredMarkersBase.filter((m) => m.is_live).length, [filteredMarkersBase]);
+  const filteredMarkers = useMemo(
+    () => (liveOnly && liveCount > 0 ? filteredMarkersBase.filter((m) => m.is_live) : filteredMarkersBase),
+    [filteredMarkersBase, liveOnly, liveCount],
+  );
   const activeFiltersCount = useMemo(() => {
     return [
       filters.eventType !== 'all',
@@ -341,6 +349,30 @@ export default function MapScreen() {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+
+      {/* V7 — « N en direct autour de vous » : filtre la carte (rien s'il n'y en a pas). */}
+      {liveCount > 0 && (
+        <SafeAreaView style={styles.liveChipWrap} edges={['top']} pointerEvents="box-none">
+          <TouchableOpacity
+            onPress={() => {
+              haptics.selection();
+              setLiveOnly((v) => !v);
+            }}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityState={{ selected: liveOnly }}
+            style={[
+              styles.liveChip,
+              { backgroundColor: liveOnly ? '#FF6B6B' : colors.card, borderColor: '#FF6B6B' },
+            ]}
+          >
+            <View style={[styles.liveChipDot, { backgroundColor: liveOnly ? '#FFFFFF' : '#FF6B6B' }]} />
+            <Text style={[styles.liveChipText, { color: liveOnly ? '#FFFFFF' : colors.gray900 }]}>
+              {liveOnly ? t('liveSignals.liveAroundAll') : t('liveSignals.liveAround', { count: liveCount })}
+            </Text>
+          </TouchableOpacity>
+        </SafeAreaView>
+      )}
 
       {/* Map Controls */}
       <View style={styles.mapControls}>
@@ -607,6 +639,25 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     textAlign: 'center',
   },
+  liveChipWrap: {
+    position: 'absolute',
+    top: 56,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  liveChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    ...Shadows.sm,
+  },
+  liveChipDot: { width: 7, height: 7, borderRadius: 4 },
+  liveChipText: { fontSize: 13, fontWeight: '600' },
   topBar: {
     position: 'absolute',
     top: 0,

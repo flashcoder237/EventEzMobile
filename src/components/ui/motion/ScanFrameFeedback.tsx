@@ -23,6 +23,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { Amplitudes, Curves, Durations, springConfig } from '../../../constants/motion';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 
 export type ScanFeedbackKind = 'idle' | 'success' | 'warning' | 'error';
@@ -65,8 +66,8 @@ function ScanFrameFeedbackComponent({
     if (reduced) return;
     if (kind === 'success') {
       scale.value = withSequence(
-        withTiming(0.92, { duration: 120 }),
-        withSpring(1, { damping: 12, stiffness: 300 }),
+        withTiming(0.92, { duration: 120, easing: Curves.out }),
+        withSpring(1, springConfig('pop')),
       );
       veil.value = withSequence(withTiming(0.18, { duration: 60 }), withDelay(80, withTiming(0, { duration: 200 })));
     } else if (kind === 'warning') {
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
 export const ScanFrameFeedback = memo(ScanFrameFeedbackComponent);
 
 /**
- * PopOnIncrease — petit « pop » (1 → 1.18 → 1) quand `value` MONTE. Rien au
+ * PopOnIncrease — petit « pop » (1 → 1,12 → 1) quand `value` MONTE. Rien au
  * montage, rien à la baisse, rien en reduced-motion.
  */
 export interface PopOnIncreaseProps {
@@ -141,7 +142,7 @@ function PopOnIncreaseComponent({ value, children }: PopOnIncreaseProps) {
     const up = value > prev.current;
     prev.current = value;
     if (!up || reduced) return;
-    s.value = withSequence(withTiming(1.18, { duration: 110 }), withSpring(1, { damping: 10, stiffness: 320 }));
+    s.value = withSequence(withTiming(Amplitudes.popPeak, { duration: 110, easing: Curves.out }), withSpring(1, springConfig('pop')));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
   const style = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));

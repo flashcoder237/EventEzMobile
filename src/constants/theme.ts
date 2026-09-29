@@ -3,6 +3,7 @@
 // Typography: Funnel Display (titles), Montserrat (body)
 
 import { ms, msFont } from '../utils/responsive';
+import { Durations, springConfig } from './motion';
 
 export const Colors = {
   // Primary - Indigo profond (EventEz signature)
@@ -583,15 +584,19 @@ export const TOUCH_OPACITY = 0.7;
 /** Opacite pour les elements desactives */
 export const DISABLED_OPACITY = 0.5;
 
-/** Spring animation presets for react-native-reanimated */
+/**
+ * Spring animation presets for react-native-reanimated.
+ * ALIAS des tokens motion (`constants/motion.ts`, source docs/motion-tokens.json) :
+ * ne plus ajouter de valeurs ici, passer par `Springs` / `springConfig()`.
+ */
 export const SpringPresets = {
-  gentle: { damping: 20, stiffness: 200, mass: 1 },
-  snappy: { damping: 15, stiffness: 400, mass: 0.8 },
-  bouncy: { damping: 10, stiffness: 300, mass: 0.8 },
-  slow: { damping: 25, stiffness: 120, mass: 1.2 },
-  micro: { damping: 18, stiffness: 500, mass: 0.5 },
+  gentle: springConfig('respond'),
+  snappy: springConfig('press'),
+  bouncy: springConfig('pop'),
+  slow: springConfig('drift'),
+  micro: springConfig('press'),
   // Bottom-sheets / drawers : près du critique (pas de rebond), descente franche.
-  sheet: { damping: 30, stiffness: 300, mass: 0.6 },
+  sheet: springConfig('sheet'),
 };
 
 /** Espacements de section standards */
@@ -615,11 +620,11 @@ export const IconSizes = {
   '2xl': ms(64),
 };
 
-/** Durees d'animation standards */
+/** Durees d'animation standards — ALIAS de `Durations` (constants/motion.ts). */
 export const ANIMATION_DURATION = {
-  fast: 150,
-  normal: 300,
-  slow: 500,
+  fast: Durations.respond,
+  normal: Durations.enter,
+  slow: Durations.inform,
 };
 
 /** Hauteurs de composants standards */

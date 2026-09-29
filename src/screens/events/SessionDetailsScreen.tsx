@@ -31,6 +31,7 @@ import {
   AvatarSizes,
 } from '../../constants/theme';
 import { centeredContent } from '../../constants/layout';
+import { SessionAttendanceLine } from '../../components/events/live/SocialSignals';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'SessionDetails'>;
 type RouteProps = RouteProp<RootStackParamList, 'SessionDetails'>;
@@ -363,6 +364,11 @@ export default function SessionDetailsScreen() {
                   <Text style={[styles.infoValue, { color: colors.gray900 }]}>
                     {t('sessionDetails.capacityValue', { count: session.registration_count || 0, max: session.max_capacity })}
                   </Text>
+                  {/* R2 V11 — présence réelle pendant la session (serveur, ≥ 10 présents). */}
+                  <SessionAttendanceLine
+                    count={(session as any).attendance_count}
+                    rate={(session as any).capacity_rate}
+                  />
                 </View>
               </View>
             </>

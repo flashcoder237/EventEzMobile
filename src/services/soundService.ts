@@ -13,7 +13,26 @@ import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AudioPlayer, createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
-export type SoundKey = 'payment-success' | 'scan-success' | 'scan-fail';
+/** Sons réellement embarqués (fichiers dans assets/sounds). */
+type BaseSoundKey = 'payment-success' | 'scan-success' | 'scan-fail';
+
+/**
+ * R2 V12 — signature sonore par moment. Pas d'OTA dans ce projet : un nouveau
+ * fichier audio exigerait un build store. Les variantes réutilisent donc les
+ * sons déjà embarqués (alias) ; pour de vraies variantes, ajouter les fichiers
+ * puis remplacer l'alias par un `require` dans ASSETS.
+ */
+export type SoundKey = BaseSoundKey | 'ticket-received' | 'arrival' | 'sale';
+
+const SOUND_ALIASES: Record<Exclude<SoundKey, BaseSoundKey>, BaseSoundKey> = {
+  'ticket-received': 'payment-success',
+  arrival: 'scan-success',
+  sale: 'scan-success',
+};
+
+function resolveSound(key: SoundKey): BaseSoundKey {
+  return (SOUND_ALIASES as Record<string, BaseSoundKey>)[key] ?? (key as BaseSoundKey);
+}
 
 const STORAGE_KEY = '@eventez_sounds_enabled';
 const DEFAULT_VOLUME = 0.6; // ~ -12 dB
@@ -34,14 +53,14 @@ function safeRequire(loader: () => number): number | null {
   }
 }
 
-const ASSETS: Record<SoundKey, number | null> = {
+const ASSETS: Record<BaseSoundKey, number | null> = {
   'payment-success': safeRequire(() => require('../../assets/sounds/payment-success.mp3')),
   'scan-success': safeRequire(() => require('../../assets/sounds/scan-success.mp3')),
   'scan-fail': safeRequire(() => require('../../assets/sounds/scan-fail.mp3')),
 };
 
 class SoundServiceImpl {
-  private players: Partial<Record<SoundKey, AudioPlayer>> = {};
+  private players: Partial<Record<BaseSoundKey, AudioPlayer>> = {};
   private enabled = true;
   private initialized = false;
   private initPromise: Promise<void> | null = null;
@@ -68,7 +87,7 @@ class SoundServiceImpl {
         this.enabled = stored === null ? true : stored === 'true';
 
         // Pre-charger les players
-        for (const key of Object.keys(ASSETS) as SoundKey[]) {
+        for (const key of Object.keys(ASSETS) as BaseSoundKey[]) {
           const asset = ASSETS[key];
           if (asset == null) continue;
           try {
@@ -117,7 +136,7 @@ class SoundServiceImpl {
       await this.initialize();
     }
 
-    const player = this.players[key];
+    const player = this.players[resolveSound(key)];
     if (!player) return;
 
     try {
@@ -133,7 +152,7 @@ class SoundServiceImpl {
    * Libere les ressources audio. A appeler au logout / unmount du provider.
    */
   release(): void {
-    for (const key of Object.keys(this.players) as SoundKey[]) {
+    for (const key of Object.keys(this.players) as BaseSoundKey[]) {
       try {
         this.players[key]?.remove();
       } catch {

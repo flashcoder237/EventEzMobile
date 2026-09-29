@@ -14,13 +14,13 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { LayoutChangeEvent, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import Animated, {
-  Easing,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withTiming,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Curves, Durations } from '../../../constants/motion';
 import { useMotionGate } from './useMotionGate';
 
 export interface GlintSweepProps {
@@ -36,7 +36,7 @@ export interface GlintSweepProps {
 function GlintSweepComponent({
   trigger,
   playOnMount = false,
-  duration = 900,
+  duration = Durations.glint,
   delay = 0,
   color = 'rgba(255,255,255,0.28)',
   style,
@@ -59,7 +59,7 @@ function GlintSweepComponent({
     if (!changed && !mountPlay) return;
     if (!canAnimate) return;
     x.value = -1;
-    x.value = withDelay(delay, withTiming(1, { duration, easing: Easing.bezier(0.22, 1, 0.36, 1) }));
+    x.value = withDelay(delay, withTiming(1, { duration, easing: Curves.inOut }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trigger, w]);
 

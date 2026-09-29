@@ -389,6 +389,13 @@ export default function SettingsScreen() {
 
   // Confidentialité (P19)
   const [showInAttendees, setShowInAttendees] = useState(true);
+  // Round 2 — trois consentements explicites (vie privée, souvenirs, bilan annuel).
+  const [shareAttendance, setShareAttendance] = useState(false);
+  const [notifyMemories, setNotifyMemories] = useState(false);
+  const [showYearInReview, setShowYearInReview] = useState(true);
+  // S13 — 7 taps sur la version : « Fait à Douala ».
+  const [versionTaps, setVersionTaps] = useState<number[]>([]);
+  const [madeInDouala, setMadeInDouala] = useState(false);
   const [showReadReceipts, setShowReadReceipts] = useState(true);
 
   // Messagerie — opt-outs serveur (UserMessagingSettings)
@@ -559,6 +566,9 @@ export default function SettingsScreen() {
         setLoginNotifications(settings.login_notifications ?? true);
         setPublicProfile(settings.public_profile ?? true);
         setShowInAttendees(settings.show_in_attendees ?? true);
+        setShareAttendance(settings.share_attendance_with_connections ?? false);
+        setNotifyMemories(settings.notify_memories ?? false);
+        setShowYearInReview(settings.show_year_in_review ?? true);
         setShowReadReceipts(settings.show_read_receipts ?? true);
       }
     } catch (error) {
@@ -1404,6 +1414,54 @@ export default function SettingsScreen() {
             right={<SoftToggle value={showInAttendees} onToggle={() => {}} disabled />}
           />
           )}
+          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowShareAttendance', { defaultValue: 'Prévenir mes connexions' })]) && (
+          <OptionCard
+            icon="people-circle-outline"
+            eyebrow={t('eyebrow.privacy', { defaultValue: 'Vie privée' })}
+            title={t('settings.rowShareAttendance', { defaultValue: 'Prévenir mes connexions' })}
+            subtitle={t('settings.rowShareAttendanceSubtitle', {
+              defaultValue: "Vos connexions voient que vous participez à un événement. Désactivé par défaut ; jamais pour les événements sur invitation.",
+            })}
+            right={
+              <SoftToggle
+                value={shareAttendance}
+                onToggle={(v: boolean) => handleToggle('share_attendance_with_connections', v, setShareAttendance)}
+              />
+            }
+          />
+          )}
+          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowNotifyMemories', { defaultValue: 'Souvenirs' })]) && (
+          <OptionCard
+            icon="images-outline"
+            eyebrow={t('eyebrow.memories', { defaultValue: 'Souvenirs' })}
+            title={t('settings.rowNotifyMemories', { defaultValue: '« Il y a un an » en notification' })}
+            subtitle={t('settings.rowNotifyMemoriesSubtitle', {
+              defaultValue: "Un rappel au plus par semaine, le jour anniversaire d'un événement auquel vous étiez.",
+            })}
+            right={
+              <SoftToggle
+                value={notifyMemories}
+                onToggle={(v: boolean) => handleToggle('notify_memories', v, setNotifyMemories)}
+              />
+            }
+          />
+          )}
+          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowYearInReview', { defaultValue: 'Mon année EventEz' })]) && (
+          <OptionCard
+            icon="sparkles-outline"
+            eyebrow={t('eyebrow.yearInReview', { defaultValue: 'Bilan annuel' })}
+            title={t('settings.rowYearInReview', { defaultValue: 'Mon année EventEz' })}
+            subtitle={t('settings.rowYearInReviewSubtitle', {
+              defaultValue: 'Un récit privé de votre année, en décembre. Personne d\u2019autre ne le voit.',
+            })}
+            right={
+              <SoftToggle
+                value={showYearInReview}
+                onToggle={(v: boolean) => handleToggle('show_year_in_review', v, setShowYearInReview)}
+              />
+            }
+          />
+          )}
           {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('settings.rowReadConfirmations'), t('settings.rowReadConfirmationsSubtitle'), t('eyebrow.readingSoon')]) && (
           <OptionCard
             icon="checkmark-done-outline"
@@ -1576,12 +1634,33 @@ export default function SettingsScreen() {
             icon="information-outline"
             eyebrow={t('eyebrow.version')}
             title={t('settings.rowAppVersion', { version: Constants.expoConfig?.version ?? '' })}
+            onPress={() => {
+              const now = Date.now();
+              const taps = [...versionTaps.filter((x) => now - x < 2500), now];
+              setVersionTaps(taps);
+              if (taps.length >= 7) {
+                setVersionTaps([]);
+                setMadeInDouala(true);
+              }
+            }}
             right={
               <View style={[styles.versionPill, { backgroundColor: colors.gray100 }]}>
                 <Text style={[styles.versionPillText, { color: colors.gray600 }]}>{t('settings.buildBadge')}</Text>
               </View>
             }
           />
+          )}
+          {madeInDouala && (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => setMadeInDouala(false)}
+              style={styles.madeIn}
+              accessibilityRole="button"
+            >
+              <Text style={styles.madeInEyebrow}>EventEz</Text>
+              <Text style={styles.madeInTitle}>{t('settings.madeInDouala', { defaultValue: 'Fait à Douala, avec soin.' })}</Text>
+              <Text style={styles.madeInSub}>{t('settings.madeInDoualaSub', { defaultValue: 'Merci de faire vivre vos événements avec nous.' })}</Text>
+            </TouchableOpacity>
           )}
         </View>
         )}
@@ -1950,6 +2029,16 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 1.2,
   },
+  madeIn: {
+    marginTop: 8,
+    borderRadius: 18,
+    padding: 18,
+    backgroundColor: '#4F46E5',
+    gap: 4,
+  },
+  madeInEyebrow: { color: 'rgba(255,255,255,0.85)', fontFamily: FontFamily.bold, fontSize: 11, letterSpacing: 1.4, textTransform: 'uppercase' },
+  madeInTitle: { color: '#FFFFFF', fontFamily: FontFamily.displayBold, fontSize: 20 },
+  madeInSub: { color: 'rgba(255,255,255,0.9)', fontFamily: FontFamily.medium, fontSize: 13 },
   versionPill: {
     paddingHorizontal: 10,
     paddingVertical: 5,

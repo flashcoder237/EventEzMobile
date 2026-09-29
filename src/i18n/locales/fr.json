@@ -1294,7 +1294,8 @@
     "finalizeSoldOutBody": "Les billets que vous aviez réservés ne sont plus disponibles. Votre réservation a expiré. Aucun montant ne vous a été débité.",
     "finalizeBackToEvent": "Retour à l'événement",
     "paymentPushSentTitle": "Confirme sur ton téléphone",
-    "paymentPushSentMessage": "Une demande de paiement a été envoyée sur ton téléphone. Valide-la (code PIN Mobile Money) pour finaliser."
+    "paymentPushSentMessage": "Une demande de paiement a été envoyée sur ton téléphone. Valide-la (code PIN Mobile Money) pour finaliser.",
+    "firstTicket": "Votre premier billet EventEz · {{date}}"
   },
   "memories": {
     "title": "Mes souvenirs",
@@ -1311,7 +1312,11 @@
     "recapShare": "Partager mon récap",
     "recapEvents": "événements vécus",
     "recapCities": "villes",
-    "recapFirst": "fois arrivé #1"
+    "recapFirst": "fois arrivé #1",
+    "oneYearAgo": "Il y a un an, vous y étiez.",
+    "nextEdition": "La nouvelle édition est en vente · {{title}}",
+    "firstHint": "Appui long pour une surprise",
+    "firstNote": "Premier arrivé. Les portes s'ouvraient à peine."
   },
   "profile": {
     "title": "Profil",
@@ -1700,7 +1705,15 @@
     "rowLiveBanner": "Bannière des événements en direct",
     "rowLiveBannerSubtitle": "Affiche un bandeau pour rejoindre un événement en cours.",
     "pushPermissionTitle": "Notifications désactivées sur cet appareil",
-    "pushPermissionMessage": "Android/iOS bloque les notifications d'EventEz. Ouvrez les réglages système pour les autoriser."
+    "pushPermissionMessage": "Android/iOS bloque les notifications d'EventEz. Ouvrez les réglages système pour les autoriser.",
+    "rowShareAttendance": "Prévenir mes connexions",
+    "rowShareAttendanceSubtitle": "Vos connexions voient que vous participez à un événement. Désactivé par défaut ; jamais pour les événements sur invitation.",
+    "rowNotifyMemories": "« Il y a un an » en notification",
+    "rowNotifyMemoriesSubtitle": "Un rappel au plus par semaine, le jour anniversaire d'un événement auquel vous étiez.",
+    "rowYearInReview": "Mon année EventEz",
+    "rowYearInReviewSubtitle": "Un récit privé de votre année, en décembre. Personne d'autre ne le voit.",
+    "madeInDouala": "Fait à Douala, avec soin.",
+    "madeInDoualaSub": "Merci de faire vivre vos événements avec nous."
   },
   "messages": {
     "title": "Messages",
@@ -1915,7 +1928,8 @@
     "subscriptionSubtitle": "Gérer mon plan",
     "exportTitle": "Exporter",
     "exportSubtitle": "Vos données",
-    "settingsLink": "Paramètres"
+    "settingsLink": "Paramètres",
+    "greetingNight": "Belle soirée"
   },
   "following": {
     "title": "Mes favoris",
@@ -5076,7 +5090,18 @@
     "ticketsClosesIn_hours": "Ferme dans {{count}} h",
     "ticketsClosesIn_minutes": "Ferme dans {{count}} min",
     "ticketsSaleEnded": "Ventes terminées",
-    "ticketsSaleNotStarted": "Bientôt en vente"
+    "ticketsSaleNotStarted": "Bientôt en vente",
+    "peekSave": "Enregistrer",
+    "peekUnsave": "Retirer des favoris",
+    "peekShare": "Partager",
+    "peekOpen": "Ouvrir",
+    "peekA11yHint": "Maintenir pour un aperçu",
+    "swipeSave": "Relâchez pour enregistrer",
+    "swipeUnsave": "Relâchez pour retirer",
+    "swipeHint": "Glissez pour enregistrer",
+    "swipeRemoved": "Retiré des favoris",
+    "swipeUndo": "Annuler",
+    "swipeRemove": "Retirer"
   },
   "componentsCommon": {
     "exportTitle": "Choisir le format",
@@ -5472,7 +5497,10 @@
     "tabMessages": "03 · MESSAGES",
     "tabTickets": "04 · BILLETS",
     "tabProfile": "05 · PROFIL",
-    "push": "Push"
+    "push": "Push",
+    "privacy": "Vie privée",
+    "memories": "Souvenirs",
+    "yearInReview": "Bilan annuel"
   },
   "organizer": {
     "common": {
@@ -7672,5 +7700,203 @@
     "teamEvents": "Événements où je suis staff",
     "analytics": "Statistiques",
     "loadError": "Impossible de charger votre espace. Vérifiez votre connexion."
+  },
+  "moments": {
+    "checkin": {
+      "entered": "Vous êtes entré",
+      "rank_one": "{{count}}er",
+      "rank_other": "{{count}}e"
+    }
+  },
+  "ticketClock": {
+    "inAWeek": "Dans une semaine",
+    "tomorrow": "Demain · {{time}}",
+    "tonight": "Aujourd'hui · {{time}}",
+    "tonightShort": "Ce soir · {{time}}",
+    "doors": "Les portes sont ouvertes",
+    "onNow": "En ce moment",
+    "startsAt": "Début à {{time}}",
+    "offlineReady": "Billet disponible hors ligne",
+    "offlinePending": "Ouvrez le billet une fois pour l'avoir hors ligne",
+    "sayImGoing": "Dire que j'y vais",
+    "showTicket": "Afficher mon billet",
+    "directions": "Itinéraire",
+    "viewTicket": "Voir le billet",
+    "goThere": "Y aller",
+    "quickAction": "Mon billet · {{title}}"
+  },
+  "onSite": {
+    "eyebrow": "Vous êtes sur place",
+    "now": "Maintenant",
+    "next": "Ensuite · {{time}}",
+    "qa": "Q&A en direct",
+    "plan": "Plan et lieu",
+    "networking": "Networking"
+  },
+  "ambience": {
+    "program": "Programme · {{count}} sessions"
+  },
+  "attended": {
+    "title": "Vous y étiez",
+    "rank": "{{rank}}e sur {{total}} arrivés",
+    "firstArrival": "Premier arrivé",
+    "question": "Qu'en avez-vous pensé ?",
+    "thanks": "Merci pour votre note.",
+    "rateA11y_one": "{{count}} étoile",
+    "rateA11y_other": "{{count}} étoiles",
+    "shareStory": "Partager en story",
+    "later": "Plus tard"
+  },
+  "yearInReview": {
+    "eyebrow": "Votre année",
+    "cta": "L'année EventEz {{year}}",
+    "s1Eyebrow": "Votre année {{year}}",
+    "s1Line_one": "événement vécu",
+    "s1Line_other": "événements vécus",
+    "citiesEyebrow": "Sur la route",
+    "categoryEyebrow": "Votre registre",
+    "season": "Votre mois : {{month}}",
+    "firstEyebrow": "Tout a commencé avec",
+    "lastLine": "et s'est fini avec {{title}}",
+    "arrivalsEyebrow": "Toujours à l'heure",
+    "arrivalsLine_one": "fois premier arrivé",
+    "arrivalsLine_other": "fois premier arrivé",
+    "organizerEyebrow": "Votre organisateur",
+    "finalEyebrow": "Mon année EventEz {{year}}",
+    "favoriteLine": "Coup de cœur : {{title}}",
+    "share": "Partager ma carte",
+    "tapHint": "Touchez pour continuer"
+  },
+  "organizerMoments": {
+    "toast": {
+      "firstTitle": "Premier participant",
+      "someone": "Un participant",
+      "share": "Partager pour accélérer",
+      "view": "Voir",
+      "soldOutTitle": "Complet",
+      "soldOutLine": "toutes les places sont parties"
+    },
+    "chip": {
+      "count": "{{count}} inscrits"
+    },
+    "stamp": {
+      "soldOut": "COMPLET",
+      "online": "EN LIGNE"
+    },
+    "share": {
+      "cta": "Partager l'événement",
+      "done": "Partagé via {{app}}",
+      "doneGeneric": "Partagé",
+      "message": "{{title}} — réservez ici : {{url}}"
+    },
+    "since": {
+      "chip": "+{{delta}} depuis {{when}}",
+      "yesterday": "hier {{time}}"
+    },
+    "payout": {
+      "requested": "Demandé",
+      "approved": "Approuvé",
+      "sent": "Envoyé",
+      "verifying": "Vérification en cours auprès de l'opérateur",
+      "sentTo": "Versé sur {{method}} {{tail}} · {{time}}",
+      "failed": "Échec du versement"
+    },
+    "released": {
+      "chip": "Libéré · {{title}}",
+      "chipMany": "Libéré · {{amount}}",
+      "inHours": "Disponible dans {{count}} h"
+    },
+    "liveOps": {
+      "doors": "Portes ouvertes à {{time}}",
+      "peak": "Pic · {{count}} entrées / 15 min",
+      "nearlyFull": "Salle presque pleine",
+      "newCount": "+{{count}} nouveaux"
+    },
+    "scan": {
+      "hundred": "{{count}} entrées validées",
+      "endTitle": "Fin de service",
+      "validated": "Entrées validées",
+      "cadence": "{{value}} / min",
+      "cadenceLabel": "Cadence",
+      "refused": "Refusés",
+      "syncing": "Synchronisation…",
+      "synced": "Synchronisé",
+      "pending": "{{count}} scans en attente de synchronisation",
+      "viewLiveOps": "Voir le direct",
+      "resume": "Reprendre",
+      "close": "Terminer"
+    },
+    "recap": {
+      "title": "Bilan",
+      "eyebrow": "BILAN DE L'ÉVÉNEMENT",
+      "attended": "Présents",
+      "attendedOf": "{{attended}} sur {{expected}}",
+      "rate": "{{rate}} % de présence",
+      "revenue": "Recettes",
+      "rating": "Note moyenne",
+      "reviews": "{{count}} avis",
+      "noReviews": "Pas encore d'avis",
+      "best": "Le mot qui reste",
+      "latest": "Derniers avis",
+      "thank": "Remercier les participants",
+      "funds": "Voir les fonds",
+      "error": "Bilan indisponible pour le moment.",
+      "soldOutAt": "Complet le {{date}}",
+      "cta": "Voir le bilan"
+    }
+  },
+  "liveSignals": {
+    "watching_one": "{{count}} personne regarde cet événement",
+    "watching_other": "{{count}} personnes regardent cet événement",
+    "watchingAtLeast": "{{count}}+ personnes regardent cet événement",
+    "lastSaleJustNow": "Réservé à l'instant",
+    "lastSaleMinutes_one": "Réservé il y a {{count}} min",
+    "lastSaleMinutes_other": "Réservé il y a {{count}} min",
+    "lastSaleThisHour": "Réservé dans l'heure",
+    "lastSaleToday": "Réservé aujourd'hui",
+    "onSite": "{{count}} personnes déjà sur place",
+    "onSiteAtLeast": "{{count}}+ personnes déjà sur place",
+    "soldOut": "Complet",
+    "soldOutCta": "Complet · plus de places",
+    "connectionsOne": "{{name}} y va",
+    "connectionsTwo": "{{name}} et {{name2}} y vont",
+    "connectionsMany_one": "{{name}} et {{count}} de vos connexions y vont",
+    "connectionsMany_other": "{{name}} et {{count}} de vos connexions y vont",
+    "connectionsA11y": "Vos connexions qui participent",
+    "someone": "Quelqu'un",
+    "whoGoingNames_one": "{{names}} y va",
+    "whoGoingNames_other": "{{names}} y vont",
+    "whoGoingOthers_one": "{{names}} et {{count}} autre y vont",
+    "whoGoingOthers_other": "{{names}} et {{count}} autres y vont",
+    "registeredCount_one": "{{count}} personne inscrite",
+    "registeredCount_other": "{{count}} personnes inscrites",
+    "online": "En ligne",
+    "repliesWithin": "Répond généralement en moins de {{duration}}",
+    "durMinutes": "{{count}} min",
+    "durHours_one": "{{count}} heure",
+    "durHours_other": "{{count}} heures",
+    "durDay": "24 h",
+    "seatHeldTitle": "Une place vous est gardée",
+    "seatHeldBody": "Réservez avant la fin du compte à rebours : ensuite, elle passe à la personne suivante.",
+    "seatHeldCta": "Réserver ma place",
+    "seatHeldExpired": "Le délai est écoulé : la place est passée à la personne suivante.",
+    "seatHeldA11y": "Temps restant pour réserver : {{time}}",
+    "cityPulse": "{{count}} réservations à {{city}} aujourd'hui",
+    "cityPulseAtLeast": "{{count}}+ réservations à {{city}} aujourd'hui",
+    "cityLive_one": "{{count}} événement en direct",
+    "cityLive_other": "{{count}} événements en direct",
+    "sessionAttendance": "{{count}} présents · {{rate}} % de la salle",
+    "liveAround_one": "{{count}} en direct autour de vous",
+    "liveAround_other": "{{count}} en direct autour de vous",
+    "liveAroundAll": "Tout afficher",
+    "reactionA11y": "Réagir avec {{emoji}}",
+    "reactionsTitle": "Réactions",
+    "connectionArrived": "{{name}} est arrivé",
+    "connectionArrivedFallback": "Une de vos connexions est arrivée",
+    "connectionArrivedCta": "Lui écrire",
+    "saleOne": "+{{count}} {{ticket}}",
+    "saleWindow": "+{{count}} en 1 min",
+    "saleLive": "Ventes en direct",
+    "checkinPushed": "Arrivée en direct"
   }
 }

@@ -67,6 +67,51 @@ export const pickCanvasGradient = (
   return [shade(base, up), base, shade(base, down)];
 };
 
+/**
+ * S6 — Lumière selon l'heure. Le haut du canvas se teinte À PEINE : chaud à
+ * l'aube, neutre le jour, indigo profond le soir. Sous le seuil de perception
+ * en thème sombre (mélange plus faible). Calculé au montage, sans transition.
+ */
+export type DayLight = 'dawn' | 'day' | 'evening' | 'night';
+
+export function dayLightFor(hour: number): DayLight {
+  if (hour >= 5 && hour < 10) return 'dawn';
+  if (hour >= 10 && hour < 18) return 'day';
+  if (hour >= 18 && hour < 21) return 'evening';
+  return 'night';
+}
+
+const DAYLIGHT_TINT: Record<DayLight, string | null> = {
+  dawn: '#FFD9A8',
+  day: null,
+  evening: '#FFB4A2',
+  night: '#312E81',
+};
+
+const mix = (hex: string, withHex: string, amount: number): string => {
+  const p = (h: string) => {
+    const m = h.replace('#', '');
+    const f = m.length === 3 ? m.split('').map((c) => c + c).join('') : m;
+    return [0, 2, 4].map((i) => parseInt(f.slice(i, i + 2), 16));
+  };
+  const a = p(hex);
+  const b = p(withHex);
+  const out = a.map((v, i) => clampByte(Math.round(v + (b[i] - v) * amount)));
+  return `#${out.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+};
+
+/** Applique la lumière de l'heure au premier arrêt du dégradé du canvas. */
+export const withDayLight = (
+  gradient: [string, string, string],
+  isDark: boolean,
+  light: DayLight,
+): [string, string, string] => {
+  const tint = DAYLIGHT_TINT[light];
+  if (!tint) return gradient;
+  const amount = isDark ? 0.05 : 0.1;
+  return [mix(gradient[0], tint, amount), gradient[1], gradient[2]];
+};
+
 /** Positions des arrêts : lumière concentrée vers le haut, chute douce vers le bas. */
 export const canvasGradientLocations: [number, number, number] = [0, 0.42, 1];
 

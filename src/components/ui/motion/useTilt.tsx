@@ -32,11 +32,19 @@ import {
 } from 'react-native-reanimated';
 import { Gesture } from 'react-native-gesture-handler';
 import { useMotionGate } from './useMotionGate';
+import { springConfig } from '../../../constants/motion';
 
 const RANGE = 0.45; // radians d'inclinaison pour atteindre ±1
 /** Capteur coupé après ce délai d'immobilité (batterie) ; un toucher le réveille. */
 const IDLE_MS = 15000;
 const MOVE_EPS = 0.004; // radians : en dessous, le téléphone est « posé »
+/**
+ * Après 2 s sans mouvement, l'inclinaison est FIGÉE : le billet ne bouge plus
+ * quand on le présente au scanner (QR stable). Tout mouvement la relâche.
+ */
+const FREEZE_MS = 2000;
+/** Constante de temps du lissage (ms) — indépendant de la fréquence d'écran. */
+const SMOOTH_MS = 80;
 
 function clamp(v: number): number {
   'worklet';
@@ -52,12 +60,15 @@ function TiltSensorBridge({
   tiltY: SharedValue<number>;
   onIdle: () => void;
 }) {
-  const sensor = useAnimatedSensor(SensorType.ROTATION, { interval: 32 });
+  // 'auto' : cadence native de l'écran (60/120 Hz) — plus de paliers visibles
+  // d'un échantillonnage fixe à 30 Hz.
+  const sensor = useAnimatedSensor(SensorType.ROTATION, { interval: 'auto' });
   const baseRoll = useSharedValue<number | null>(null);
   const basePitch = useSharedValue<number | null>(null);
   const lastRoll = useSharedValue(0);
   const lastPitch = useSharedValue(0);
   const lastMoveAt = useSharedValue(0);
+  const lastSampleAt = useSharedValue(0);
   const idleSent = useSharedValue(false);
 
   useAnimatedReaction(
@@ -71,8 +82,11 @@ function TiltSensorBridge({
         lastRoll.value = v.roll;
         lastPitch.value = v.pitch;
         lastMoveAt.value = now;
+        lastSampleAt.value = now;
         return;
       }
+      const dt = Math.max(1, Math.min(100, now - lastSampleAt.value));
+      lastSampleAt.value = now;
       // Immobilité prolongée → on rend la main (le capteur est démonté).
       if (Math.abs(v.roll - lastRoll.value) + Math.abs(v.pitch - lastPitch.value) > MOVE_EPS) {
         lastMoveAt.value = now;
@@ -83,13 +97,18 @@ function TiltSensorBridge({
         idleSent.value = true;
         runOnJS(onIdle)();
       }
+      // Immobile depuis 2 s : inclinaison figée (QR stable devant le scanner).
+      if (now - lastMoveAt.value > FREEZE_MS) return;
+      // Lissage par frame, facteur fonction de dt (même rendu à 60 ou 120 Hz).
+      const k = 1 - Math.exp(-dt / SMOOTH_MS);
       // La position neutre dérive doucement vers la tenue actuelle.
-      baseRoll.value += (v.roll - baseRoll.value) * 0.01;
-      basePitch.value += (v.pitch - basePitch.value) * 0.01;
+      const kBase = 1 - Math.exp(-dt / 1600);
+      baseRoll.value += (v.roll - baseRoll.value) * kBase;
+      basePitch.value += (v.pitch - basePitch.value) * kBase;
       const tx = clamp((v.roll - baseRoll.value) / RANGE);
       const ty = clamp((v.pitch - basePitch.value) / RANGE);
-      tiltX.value += (tx - tiltX.value) * 0.2;
-      tiltY.value += (ty - tiltY.value) * 0.2;
+      tiltX.value += (tx - tiltX.value) * k;
+      tiltY.value += (ty - tiltY.value) * k;
     },
   );
   return null;
@@ -118,8 +137,8 @@ export function useTilt(options: { enabled?: boolean; sensor?: boolean } = {}): 
   const wake = useCallback(() => setAsleep(false), []);
   const sleep = useCallback(() => {
     setAsleep(true);
-    tiltX.value = withSpring(0, { damping: 18 });
-    tiltY.value = withSpring(0, { damping: 18 });
+    tiltX.value = withSpring(0, springConfig('drift'));
+    tiltY.value = withSpring(0, springConfig('drift'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -143,8 +162,8 @@ export function useTilt(options: { enabled?: boolean; sensor?: boolean } = {}): 
           tiltY.value = clamp(-e.translationY / 140);
         })
         .onEnd(() => {
-          tiltX.value = withSpring(0, { damping: 18 });
-          tiltY.value = withSpring(0, { damping: 18 });
+          tiltX.value = withSpring(0, springConfig('drift'));
+          tiltY.value = withSpring(0, springConfig('drift'));
         }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [on],
@@ -155,8 +174,8 @@ export function useTilt(options: { enabled?: boolean; sensor?: boolean } = {}): 
 
   useEffect(() => {
     if (on) return;
-    tiltX.value = withSpring(0, { damping: 18 });
-    tiltY.value = withSpring(0, { damping: 18 });
+    tiltX.value = withSpring(0, springConfig('drift'));
+    tiltY.value = withSpring(0, springConfig('drift'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [on]);
 

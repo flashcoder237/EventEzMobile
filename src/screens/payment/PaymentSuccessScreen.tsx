@@ -50,11 +50,15 @@ import { useTranslation } from 'react-i18next';
 import ConfettiEffect from '../../components/ui/ConfettiEffect';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { haptics } from '../../utils/haptics';
+import { feedback } from '../../utils/feedback';
+import { springConfig } from '../../constants/motion';
 import { getEventUrl } from '../../constants/urls';
 import ShareTicketCardButton from '../../components/tickets/ShareTicketCardButton';
 import { paymentsAPI, invoicesAPI } from '../../api';
 import { getMediaUrl } from '../../api/config';
 import { maybeRequestReview } from '../../services/reviewService';
+import { eventTint, tintFor } from '../../lib/utils/themeTint';
+import { appDateLocale } from '../../lib/utils/dateFormatters';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PaymentSuccessRouteProp = RouteProp<RootStackParamList, 'PaymentSuccess'>;
@@ -82,7 +86,7 @@ export default function PaymentSuccessScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<PaymentSuccessRouteProp>();
   const { eventType, approvalStatus, eventTitle, eventImage, registrationId, amount, currency, eventStartDate, eventEndDate, eventId, eventSlug, referenceCode, paymentId, attendeeFormScope } = route.params;
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   // Hooks d'auth/sound déclarés tôt — utilisés par handleInviteFriend ci-dessous
@@ -109,12 +113,21 @@ export default function PaymentSuccessScreen() {
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const isPaidEvent = amount !== undefined && amount > 0 && approvalStatus !== 'pending';
 
+  // S10 — premier billet de la vie du compte ; S4 — couleur de l'événement.
+  const [isFirstTicket, setIsFirstTicket] = useState(false);
+  const [eventTintValue, setEventTintValue] = useState<any>(null);
+
   useEffect(() => {
-    if (!paymentId || !isPaidEvent) return;
+    if (!paymentId) return;
     let cancelled = false;
     (async () => {
       try {
         const res = await paymentsAPI.getPayment(paymentId);
+        if (!cancelled) {
+          setIsFirstTicket(!!res.data?.is_first_ticket);
+          setEventTintValue(eventTint(res.data?.registration_details) || eventTint(res.data));
+        }
+        if (!isPaidEvent) return;
         const id = res.data?.invoice?.id;
         if (!cancelled && id) setInvoiceId(String(id));
       } catch {
@@ -237,7 +250,7 @@ export default function PaymentSuccessScreen() {
   // E2 — la coche se dessine APRÈS le ressort de l'icône ; les confettis et
   // l'haptique partent à la fin du trait (pic visuel), jamais au montage.
   const [checkDone, setCheckDone] = useState(false);
-  const { play: playSound, enabled: soundEnabled, setEnabled: setSoundEnabled } = useSoundEffect();
+  const { enabled: soundEnabled, setEnabled: setSoundEnabled } = useSoundEffect();
   const { showError, showSuccess } = useAlert();
 
   // Upgrade-guest modal
@@ -297,12 +310,13 @@ export default function PaymentSuccessScreen() {
   };
 
   useEffect(() => {
-    scale.value = withSpring(1, { damping: 10, stiffness: 100 });
+    // Entrée alignée sur le token « celebrate » (au lieu d'un ressort lent
+    // 100/10 qui traînait).
+    scale.value = withSpring(1, springConfig('celebrate'));
     opacity.value = withDelay(300, withSpring(1));
     // Plus d'anneau qui pulse à l'infini : il part UNE fois, à la fin de la
-    // coche (voir handleCheckDone). Au repos, rien ne bouge.
-    // Son de confirmation paiement (respecte la pref utilisateur)
-    playSound('payment-success');
+    // coche (voir handleCheckDone). Au repos, rien ne bouge. Le son de
+    // confirmation part AUSSI à ce moment-là (M7), plus au montage.
   }, []);
 
   const handleViewTicket = async () => {
@@ -407,7 +421,8 @@ export default function PaymentSuccessScreen() {
   // puis confettis. Si les animations sont réduites, DrawCheck appelle ce
   // callback immédiatement (trait plein d'emblée) — pas d'anneau.
   const handleCheckDone = useCallback(() => {
-    if (content.isSuccess) haptics.celebrate();
+    // M7 — image, vibration et son dans la même frame (respecte le réglage son).
+    if (content.isSuccess) feedback.celebrate('payment-success');
     if (!reducedMotion) {
       ringScale.value = 1;
       ringOpacity.value = 0.6;
@@ -498,6 +513,15 @@ export default function PaymentSuccessScreen() {
             <Text style={[styles.eyebrow, { color: content.iconColor }]}>{content.eyebrow}</Text>
             <Text style={[styles.title, { color: colors.text }]}>{content.title}</Text>
             <Text style={[styles.subtitle, { color: colors.gray500 }]}>{content.subtitle}</Text>
+            {/* S10 — un jalon, pas une fête de plus : aucune animation ajoutée. */}
+            {content.isSuccess && isFirstTicket && (
+              <Text style={[styles.firstTicket, { color: tintFor(eventTintValue, isDark) }]}>
+                {t('payment.firstTicket', {
+                  date: new Date().toLocaleDateString(appDateLocale(), { day: 'numeric', month: 'short', year: 'numeric' }),
+                  defaultValue: 'Votre premier billet EventEz · {{date}}',
+                })}
+              </Text>
+            )}
           </Animated.View>
 
           {/* === MINI RECAP — concrete proof of what was just paid === */}
@@ -715,6 +739,7 @@ export default function PaymentSuccessScreen() {
               eventTitle={eventTitle}
               dateLabel={shareDateLabel}
               imageUrl={eventImage}
+              tint={eventTintValue ? tintFor(eventTintValue, isDark) : null}
             />
           )}
 
@@ -911,6 +936,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: Spacing.md,
   },
+  firstTicket: { fontFamily: FontFamily.semiBold, fontSize: 13, textAlign: 'center', marginTop: 8 },
   subtitle: {
     fontFamily: FontFamily.regular,
     fontSize: 14,

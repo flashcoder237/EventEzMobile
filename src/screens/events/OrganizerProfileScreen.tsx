@@ -29,6 +29,7 @@ import FollowUserButton from '../../components/common/FollowUserButton';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import UserBadges from '../../components/common/UserBadges';
+import { ReachabilityLine } from '../../components/events/live/SocialSignals';
 import { findExistingDirectConversation } from '../../lib/utils/messagingHelpers';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList, User, Event } from '../../types';
@@ -321,6 +322,8 @@ export default function OrganizerProfileScreen() {
                     l'ancienneté. Une simple coche sans libellé ne disait ni
                     lequel, ni pourquoi. */}
                 <UserBadges user={organizer} size="md" style={{ marginTop: 4 }} />
+                {/* V5 — organisateur joignable (présence réelle ou délai médian). */}
+                <ReachabilityLine data={(organizer as any).organizer_reachability} />
                 {organizer.company_name && organizer.company_name !== displayName && (
                   <Text style={[styles.heroSubtitle, { color: colors.gray500 }]} numberOfLines={1}>
                     {organizer.company_name}

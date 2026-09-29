@@ -1294,7 +1294,8 @@
     "finalizeSoldOutBody": "The tickets you had reserved are no longer available. Your reservation expired. You were not charged.",
     "finalizeBackToEvent": "Back to event",
     "paymentPushSentTitle": "Confirm on your phone",
-    "paymentPushSentMessage": "A payment request was sent to your phone. Approve it (Mobile Money PIN) to complete."
+    "paymentPushSentMessage": "A payment request was sent to your phone. Approve it (Mobile Money PIN) to complete.",
+    "firstTicket": "Your first EventEz ticket · {{date}}"
   },
   "memories": {
     "title": "My memories",
@@ -1311,7 +1312,11 @@
     "recapShare": "Share my recap",
     "recapEvents": "events lived",
     "recapCities": "cities",
-    "recapFirst": "times arrived #1"
+    "recapFirst": "times arrived #1",
+    "oneYearAgo": "A year ago, you were there.",
+    "nextEdition": "The new edition is on sale · {{title}}",
+    "firstHint": "Long press for a surprise",
+    "firstNote": "First to arrive. The doors were barely open."
   },
   "profile": {
     "title": "Profile",
@@ -1700,7 +1705,15 @@
     "rowLiveBanner": "Live events banner",
     "rowLiveBannerSubtitle": "Show a banner to join an event that is currently live.",
     "pushPermissionTitle": "Notifications are off for this device",
-    "pushPermissionMessage": "Your system settings block EventEz notifications. Open system settings to allow them."
+    "pushPermissionMessage": "Your system settings block EventEz notifications. Open system settings to allow them.",
+    "rowShareAttendance": "Let my connections know",
+    "rowShareAttendanceSubtitle": "Your connections can see you're attending an event. Off by default; never for invite-only events.",
+    "rowNotifyMemories": "“A year ago” notifications",
+    "rowNotifyMemoriesSubtitle": "At most one reminder a week, on the anniversary of an event you attended.",
+    "rowYearInReview": "My EventEz year",
+    "rowYearInReviewSubtitle": "A private recap of your year, in December. Nobody else sees it.",
+    "madeInDouala": "Made in Douala, with care.",
+    "madeInDoualaSub": "Thanks for bringing your events to life with us."
   },
   "messages": {
     "title": "Messages",
@@ -1915,7 +1928,8 @@
     "subscriptionSubtitle": "Manage my plan",
     "exportTitle": "Export",
     "exportSubtitle": "Your data",
-    "settingsLink": "Settings"
+    "settingsLink": "Settings",
+    "greetingNight": "Have a nice evening"
   },
   "following": {
     "title": "My favorites",
@@ -5076,7 +5090,18 @@
     "ticketsClosesIn_hours": "Closes in {{count}}h",
     "ticketsClosesIn_minutes": "Closes in {{count}}min",
     "ticketsSaleEnded": "Sales ended",
-    "ticketsSaleNotStarted": "On sale soon"
+    "ticketsSaleNotStarted": "On sale soon",
+    "peekSave": "Save",
+    "peekUnsave": "Remove from saved",
+    "peekShare": "Share",
+    "peekOpen": "Open",
+    "peekA11yHint": "Hold for a preview",
+    "swipeSave": "Release to save",
+    "swipeUnsave": "Release to remove",
+    "swipeHint": "Swipe to save",
+    "swipeRemoved": "Removed from saved",
+    "swipeUndo": "Undo",
+    "swipeRemove": "Remove"
   },
   "componentsCommon": {
     "exportTitle": "Choose format",
@@ -5472,7 +5497,10 @@
     "tabMessages": "03 · MESSAGES",
     "tabTickets": "04 · TICKETS",
     "tabProfile": "05 · PROFILE",
-    "push": "Push"
+    "push": "Push",
+    "privacy": "Privacy",
+    "memories": "Memories",
+    "yearInReview": "Year in review"
   },
   "organizer": {
     "common": {
@@ -7672,5 +7700,203 @@
     "teamEvents": "Events I staff",
     "analytics": "Analytics",
     "loadError": "Couldn't load your space. Check your connection."
+  },
+  "moments": {
+    "checkin": {
+      "entered": "You're in",
+      "rank_one": "#{{count}}",
+      "rank_other": "#{{count}}"
+    }
+  },
+  "ticketClock": {
+    "inAWeek": "In a week",
+    "tomorrow": "Tomorrow · {{time}}",
+    "tonight": "Today · {{time}}",
+    "tonightShort": "Tonight · {{time}}",
+    "doors": "Doors are open",
+    "onNow": "Happening now",
+    "startsAt": "Starts at {{time}}",
+    "offlineReady": "Ticket available offline",
+    "offlinePending": "Open the ticket once to keep it offline",
+    "sayImGoing": "Say I'm going",
+    "showTicket": "Show my ticket",
+    "directions": "Directions",
+    "viewTicket": "View ticket",
+    "goThere": "Go",
+    "quickAction": "My ticket · {{title}}"
+  },
+  "onSite": {
+    "eyebrow": "You're on site",
+    "now": "Now",
+    "next": "Next · {{time}}",
+    "qa": "Live Q&A",
+    "plan": "Map & venue",
+    "networking": "Networking"
+  },
+  "ambience": {
+    "program": "Programme · {{count}} sessions"
+  },
+  "attended": {
+    "title": "You were there",
+    "rank": "#{{rank}} of {{total}} to arrive",
+    "firstArrival": "First to arrive",
+    "question": "What did you think?",
+    "thanks": "Thanks for your rating.",
+    "rateA11y_one": "{{count}} star",
+    "rateA11y_other": "{{count}} stars",
+    "shareStory": "Share to story",
+    "later": "Later"
+  },
+  "yearInReview": {
+    "eyebrow": "Your year",
+    "cta": "Your EventEz {{year}}",
+    "s1Eyebrow": "Your {{year}}",
+    "s1Line_one": "event attended",
+    "s1Line_other": "events attended",
+    "citiesEyebrow": "On the road",
+    "categoryEyebrow": "Your kind of event",
+    "season": "Your month: {{month}}",
+    "firstEyebrow": "It all started with",
+    "lastLine": "and ended with {{title}}",
+    "arrivalsEyebrow": "Always on time",
+    "arrivalsLine_one": "time first to arrive",
+    "arrivalsLine_other": "times first to arrive",
+    "organizerEyebrow": "Your organizer",
+    "finalEyebrow": "My EventEz {{year}}",
+    "favoriteLine": "Favorite: {{title}}",
+    "share": "Share my card",
+    "tapHint": "Tap to continue"
+  },
+  "organizerMoments": {
+    "toast": {
+      "firstTitle": "First attendee",
+      "someone": "Someone",
+      "share": "Share to boost sales",
+      "view": "View",
+      "soldOutTitle": "Sold out",
+      "soldOutLine": "every ticket is gone"
+    },
+    "chip": {
+      "count": "{{count}} registered"
+    },
+    "stamp": {
+      "soldOut": "SOLD OUT",
+      "online": "LIVE"
+    },
+    "share": {
+      "cta": "Share the event",
+      "done": "Shared via {{app}}",
+      "doneGeneric": "Shared",
+      "message": "{{title}} — book here: {{url}}"
+    },
+    "since": {
+      "chip": "+{{delta}} since {{when}}",
+      "yesterday": "yesterday {{time}}"
+    },
+    "payout": {
+      "requested": "Requested",
+      "approved": "Approved",
+      "sent": "Sent",
+      "verifying": "Checking with the operator",
+      "sentTo": "Paid to {{method}} {{tail}} · {{time}}",
+      "failed": "Payout failed"
+    },
+    "released": {
+      "chip": "Released · {{title}}",
+      "chipMany": "Released · {{amount}}",
+      "inHours": "Available in {{count}} h"
+    },
+    "liveOps": {
+      "doors": "Doors opened at {{time}}",
+      "peak": "Peak · {{count}} entries / 15 min",
+      "nearlyFull": "Venue almost full",
+      "newCount": "+{{count}} new"
+    },
+    "scan": {
+      "hundred": "{{count}} check-ins",
+      "endTitle": "End of shift",
+      "validated": "Checked in",
+      "cadence": "{{value}} / min",
+      "cadenceLabel": "Pace",
+      "refused": "Refused",
+      "syncing": "Syncing…",
+      "synced": "Synced",
+      "pending": "{{count}} scans waiting to sync",
+      "viewLiveOps": "View live ops",
+      "resume": "Resume",
+      "close": "Finish"
+    },
+    "recap": {
+      "title": "Recap",
+      "eyebrow": "EVENT RECAP",
+      "attended": "Attended",
+      "attendedOf": "{{attended}} of {{expected}}",
+      "rate": "{{rate}}% attendance",
+      "revenue": "Revenue",
+      "rating": "Average rating",
+      "reviews": "{{count}} reviews",
+      "noReviews": "No reviews yet",
+      "best": "Standout review",
+      "latest": "Latest reviews",
+      "thank": "Thank attendees",
+      "funds": "View funds",
+      "error": "Recap unavailable right now.",
+      "soldOutAt": "Sold out on {{date}}",
+      "cta": "View recap"
+    }
+  },
+  "liveSignals": {
+    "watching_one": "{{count}} person is looking at this event",
+    "watching_other": "{{count}} people are looking at this event",
+    "watchingAtLeast": "{{count}}+ people are looking at this event",
+    "lastSaleJustNow": "Booked just now",
+    "lastSaleMinutes_one": "Booked {{count}} min ago",
+    "lastSaleMinutes_other": "Booked {{count}} min ago",
+    "lastSaleThisHour": "Booked in the last hour",
+    "lastSaleToday": "Booked today",
+    "onSite": "{{count}} people already here",
+    "onSiteAtLeast": "{{count}}+ people already here",
+    "soldOut": "Sold out",
+    "soldOutCta": "Sold out · no seats left",
+    "connectionsOne": "{{name}} is going",
+    "connectionsTwo": "{{name}} and {{name2}} are going",
+    "connectionsMany_one": "{{name}} and {{count}} of your connections are going",
+    "connectionsMany_other": "{{name}} and {{count}} of your connections are going",
+    "connectionsA11y": "Your connections who are going",
+    "someone": "Someone",
+    "whoGoingNames_one": "{{names}} is going",
+    "whoGoingNames_other": "{{names}} are going",
+    "whoGoingOthers_one": "{{names}} and {{count}} other are going",
+    "whoGoingOthers_other": "{{names}} and {{count}} others are going",
+    "registeredCount_one": "{{count}} person registered",
+    "registeredCount_other": "{{count}} people registered",
+    "online": "Online",
+    "repliesWithin": "Usually replies within {{duration}}",
+    "durMinutes": "{{count}} min",
+    "durHours_one": "{{count}} hour",
+    "durHours_other": "{{count}} hours",
+    "durDay": "24 h",
+    "seatHeldTitle": "A seat is being held for you",
+    "seatHeldBody": "Book before the countdown ends: after that, it goes to the next person.",
+    "seatHeldCta": "Book my seat",
+    "seatHeldExpired": "Time is up: the seat went to the next person.",
+    "seatHeldA11y": "Time left to book: {{time}}",
+    "cityPulse": "{{count}} bookings in {{city}} today",
+    "cityPulseAtLeast": "{{count}}+ bookings in {{city}} today",
+    "cityLive_one": "{{count}} event live",
+    "cityLive_other": "{{count}} events live",
+    "sessionAttendance": "{{count}} present · {{rate}}% of the room",
+    "liveAround_one": "{{count}} live around you",
+    "liveAround_other": "{{count}} live around you",
+    "liveAroundAll": "Show all",
+    "reactionA11y": "React with {{emoji}}",
+    "reactionsTitle": "Reactions",
+    "connectionArrived": "{{name}} has arrived",
+    "connectionArrivedFallback": "One of your connections has arrived",
+    "connectionArrivedCta": "Message them",
+    "saleOne": "+{{count}} {{ticket}}",
+    "saleWindow": "+{{count}} in 1 min",
+    "saleLive": "Live sales",
+    "checkinPushed": "Live arrival"
   }
 }

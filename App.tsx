@@ -106,6 +106,10 @@ import { VisioCallProvider } from './src/contexts/VisioCallContext';
 import { LiveRegistrationsProvider } from './src/contexts/LiveRegistrationsContext';
 import VisioCallOverlay from './src/components/visio/VisioCallOverlay';
 import LiveEventBanner from './src/components/visio/LiveEventBanner';
+import { PeekHost } from './src/components/ui/motion/Peek';
+import CheckinWelcomeMoment from './src/components/moments/CheckinWelcomeMoment';
+import ConnectionArrivedMoment from './src/components/moments/ConnectionArrivedMoment';
+import OrganizerMomentHost from './src/components/moments/OrganizerMomentHost';
 import LiveBannerSpacer from './src/components/visio/LiveBannerSpacer';
 import VerificationGuardModal from './src/components/auth/VerificationGuardModal';
 import LockGate from './src/components/auth/LockGate';
@@ -491,6 +495,17 @@ function AppContent() {
                           Rendu APRÈS RootNavigator pour avoir accès à la
                           navigation et passer au-dessus visuellement. */}
                       <IncidentBanner />
+                      {/* T6 — aperçu au toucher long des cartes d'événement :
+                          au-dessus de tout, fond flouté, actions au doigt. */}
+                      <PeekHost />
+                      {/* S3 — « Vous êtes entré · 213e » : moment teinté au
+                          check-in réel, poussé en direct par le backend. */}
+                      <CheckinWelcomeMoment />
+                      {/* R2 V8 — une connexion vient d'arriver. */}
+                      <ConnectionArrivedMoment />
+                      {/* O1/O3 — « Premier participant », « Complet » : jalons
+                          organisateur poussés en direct. */}
+                      <OrganizerMomentHost />
                       </LiveRegistrationsProvider>
                       </VisioCallProvider>
                       </FeatureTourProvider>

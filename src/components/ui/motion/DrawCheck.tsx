@@ -10,13 +10,13 @@ import React, { memo, useEffect, useRef } from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import Animated, {
-  Easing,
   runOnJS,
   useAnimatedProps,
   useSharedValue,
   withDelay,
   withTiming,
 } from 'react-native-reanimated';
+import { Curves } from '../../../constants/motion';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -79,7 +79,7 @@ function AnimatedStrokeComponent({
     offset.value = length;
     offset.value = withDelay(
       delay,
-      withTiming(0, { duration, easing: Easing.out(Easing.cubic) }, (finished) => {
+      withTiming(0, { duration, easing: Curves.inOut }, (finished) => {
         if (finished) runOnJS(done)();
       }),
     );

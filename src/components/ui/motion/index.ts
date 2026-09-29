@@ -40,3 +40,30 @@ export type { CountUpTextProps } from './CountUpText';
 export type { ScanFrameFeedbackProps, ScanFeedbackKind, PopOnIncreaseProps } from './ScanFrameFeedback';
 export { SpringChip, EdgeFadeScroll } from './SpringChip';
 export type { SpringChipProps, EdgeFadeScrollProps } from './SpringChip';
+export { NotifyBell } from './NotifyBell';
+export type { NotifyBellProps } from './NotifyBell';
+export { Press, usePressScale } from './Press';
+export type { PressProps, PressRole, PressHaptic } from './Press';
+export {
+  HeroSlot,
+  useHeroToken,
+  captureHero,
+  takeHeroOrigin,
+  withHeroOrigin,
+  heroScreenOptions,
+  isHeroFresh,
+  setHeroHidden,
+  measureHeroToken,
+  useHeroFlight,
+} from './HeroFlight';
+export type { HeroParam, HeroRect, HeroSlotProps, HeroFlightOptions, HeroFlightResult } from './HeroFlight';
+// Round 2 — lot T (B) : gestes.
+export { SpringSheet, SpringSheetScrollView, SpringSheetFlatList } from './SpringSheet';
+export type { SpringSheetProps } from './SpringSheet';
+export { projectRelease, rubberband, nearestPoint } from './sheetPhysics';
+export { SwipeAction, FULL_SWIPE_RATIO } from './SwipeAction';
+export type { SwipeActionProps, SwipeActionItem } from './SwipeAction';
+export { SwipeToSave } from './SwipeToSave';
+export type { SwipeToSaveProps } from './SwipeToSave';
+export { PeekHost, PeekTrigger, peek } from './Peek';
+export type { PeekAction, PeekPreview, PeekTriggerProps } from './Peek';

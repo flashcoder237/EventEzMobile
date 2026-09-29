@@ -202,6 +202,10 @@ export interface Event {
   // Validation tracking
   validated_by?: User;
   validated_at?: string;
+  /** O3 — tous les types épuisés ou jauge atteinte (annoté côté serveur). */
+  is_sold_out?: boolean | null;
+  /** O3 — posé UNE fois, au premier passage à « complet ». */
+  sold_out_at?: string | null;
   rejection_reason?: string;
   cancellation_reason?: string;
   /** Texte du modérateur quand status='changes_requested', visible côté organizer */
@@ -830,6 +834,8 @@ export type NotificationType =
   | 'session_reminder'
   | 'waitlist_available'
   | 'waitlist_position'
+  // R2 V8 — une connexion vient d'arriver à l'événement (in_app)
+  | 'connection_arrived'
   | 'verification_reminder'
   | 'feedback_request'
   | 'refund_processed'
@@ -1132,6 +1138,13 @@ export interface Payout {
   notes?: string;
   failure_reason?: string;
   wallet_available_balance?: number; // SerializerMethodField
+  /** O6 — première approbation (double validation), sinon absent. */
+  first_approved_at?: string | null;
+  /**
+   * O6 — état de livraison côté serveur. `verifying` = issue incertaine
+   * (timeout/5xx) : jamais présenté comme « envoyé ».
+   */
+  delivery_state?: 'requested' | 'approved' | 'sending' | 'verifying' | 'sent' | 'failed' | 'cancelled';
 }
 
 export interface PendingEarning {
@@ -1438,6 +1451,9 @@ export interface MapMarker {
   is_free?: boolean;
   price?: number;
   min_price?: number;
+  /** R2 V7 — fin de l'événement et « en cours maintenant » (payload map_events). */
+  end_date?: string | null;
+  is_live?: boolean;
 }
 
 export interface Location {
@@ -1728,6 +1744,10 @@ export type RootStackParamList = {
      * (sérialisable, compatible persistance de navigation).
      */
     initialEvent?: import('../lib/utils/eventNavPreview').EventNavPreview;
+    /** T1 — origine du « vol » carte → fiche (voir ui/motion/HeroFlight). */
+    hero?: import('../components/ui/motion/HeroFlight').HeroParam;
+    /** V9 — place gardée (notification waitlist_available kind seat_held) : fin du délai ISO. */
+    seatHeldUntil?: string;
   };
   EventReviews: { eventId: string; eventTitle?: string };
   // Recherche partageable : params alignés sur les query string web /events?…
@@ -1785,7 +1805,11 @@ export type RootStackParamList = {
   };
   PaymentFailed: { paymentId?: string; error?: string };
   QRCode: { ticketId: string };
-  RegistrationDetails: { registrationId: string };
+  RegistrationDetails: {
+    registrationId: string;
+    /** T14 — le billet de la liste « se soulève » jusqu'au détail. */
+    hero?: import('../components/ui/motion/HeroFlight').HeroParam;
+  };
   PendingTransfers: undefined;
   OfflineTickets: undefined;
   TransferAccept: { token: string; action?: 'accept' | 'decline' };
@@ -1820,10 +1844,15 @@ export type RootStackParamList = {
   Subscription: undefined;
   QRScanner: { eventId: string };
   LiveOps: { eventId: string };
+  /** O13 — bilan d'un événement terminé. */
+  EventRecap: { eventId: string };
   // Guichet : vente sur place et cloture de caisse.
   BoxOffice: { eventId: string; eventTitle?: string };
   CashDrawerClose: { drawerId: string; eventId?: string };
-  Memories: undefined;
+  /** S8 `attended` : ouvre la carte « Vous y étiez » ; S12 `eventId` : met en avant un souvenir. */
+  Memories: { eventId?: string; attended?: string; nextSlug?: string; nextTitle?: string } | undefined;
+  /** S11 — L'année EventEz. */
+  YearInReview: { year?: number } | undefined;
   EventAttendees: { eventId: string; registrationId: string };
   EventPricingTiers: { eventId: string; eventCurrency?: string };
   Scan: undefined;

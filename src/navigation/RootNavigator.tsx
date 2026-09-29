@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, Suspense, lazy, ComponentType } from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createNativeStackNavigator, NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../types';
@@ -11,7 +11,7 @@ import * as Linking from 'expo-linking';
 import { ONBOARDING_COMPLETE_KEY } from '../screens/auth/OnboardingScreen';
 import { LANGUAGE_STORAGE_KEY, changeLanguage } from '../i18n';
 import { navigate } from './navigationRef';
-import { InteractionManager } from 'react-native';
+import { InteractionManager, Platform } from 'react-native';
 import { markAppReady } from '../lib/appReady';
 
 // Helper : wrap un composant lazy dans un Suspense pour qu'il soit utilisable
@@ -111,6 +111,7 @@ const WalletScreen = withSuspense(lazy(() => import('../screens/organizer/Wallet
 const MyEventsScreen = withSuspense(lazy(() => import('../screens/organizer/MyEventsScreen')));
 const QRScannerScreen = withSuspense(lazy(() => import('../screens/organizer/QRScannerScreen')));
 const LiveOpsScreen = withSuspense(lazy(() => import('../screens/organizer/LiveOpsScreen')));
+const EventRecapScreen = withSuspense(lazy(() => import('../screens/organizer/EventRecapScreen')));
 // Guichet : vente sur place et cloture de caisse (organisateur/caissier).
 const BoxOfficeScreen = withSuspense(lazy(() => import('../screens/organizer/BoxOfficeScreen')));
 const CashDrawerCloseScreen = withSuspense(lazy(() => import('../screens/organizer/CashDrawerCloseScreen')));
@@ -126,6 +127,7 @@ const BlockedUsersScreen = withSuspense(lazy(() => import('../screens/profile/Bl
 const EditProfileScreen = withSuspense(lazy(() => import('../screens/profile/EditProfileScreen')));
 const FollowingUsersScreen = withSuspense(lazy(() => import('../screens/profile/FollowingUsersScreen')));
 const MemoriesScreen = withSuspense(lazy(() => import('../screens/profile/MemoriesScreen')));
+const YearInReviewScreen = withSuspense(lazy(() => import('../screens/profile/YearInReviewScreen')));
 const TermsScreen = withSuspense(lazy(() => import('../screens/profile/TermsScreen')));
 const PrivacyScreen = withSuspense(lazy(() => import('../screens/profile/PrivacyScreen')));
 const MyDataAtExhibitorsScreen = withSuspense(lazy(() => import('../screens/profile/MyDataAtExhibitorsScreen')));
@@ -232,11 +234,18 @@ const TreasuryReportsScreen = withSuspense(lazy(() => import('../screens/admin/t
 // System Status Screens
 import MaintenanceScreen from '../screens/status/MaintenanceScreen';
 import StatusScreen from '../screens/status/StatusScreen';
+import { heroScreenOptions } from '../components/ui/motion/HeroFlight';
 
 // Common Screens
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+
+// T3 — retour depuis n'importe où dans l'écran (iOS ; sans effet sur Android).
+const FULL_SCREEN_BACK: NativeStackNavigationOptions = { fullScreenGestureEnabled: true };
+
+// T4 — feuilles natives à crans (react-native-screens) : ressort, élasticité et
+// inertie fournis par le système.
 export default function RootNavigator() {
   const { isInitializing, isAuthenticated } = useAuth();
   const { colors } = useTheme();
@@ -357,7 +366,10 @@ export default function RootNavigator() {
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: colors.background },
-        animation: 'slide_from_right',
+        // T3 — même langage de pile sur les deux OS : Android adopte le
+        // glissement iOS (l'écran du dessous recule en parallaxe). Sur iOS,
+        // 'ios_from_right' se résout en glissement natif par défaut.
+        animation: Platform.OS === 'android' ? 'ios_from_right' : 'slide_from_right',
         animationDuration: 320,
         freezeOnBlur: true,
       }}
@@ -426,6 +438,9 @@ export default function RootNavigator() {
         name="EventDetails"
         component={EventDetailsScreen}
         getId={({ params }) => (params as any)?.eventId ? String((params as any).eventId) : undefined}
+        // T1 — ouvert depuis une carte : fondu court, l'image « vole » jusqu'à
+        // la bannière (HeroFlight). Sinon, glissement par défaut de la pile.
+        options={({ route }) => heroScreenOptions(route.params)}
       />
       <Stack.Screen
         name="Map"
@@ -439,10 +454,13 @@ export default function RootNavigator() {
           headerShadowVisible: false,
         }}
       />
-      <Stack.Screen name="SessionDetails" component={SessionDetailsScreen} />
-      <Stack.Screen name="SpeakerDetails" component={SpeakerDetailsScreen} />
-      <Stack.Screen name="OrganizerProfile" component={OrganizerProfileScreen} />
-      <Stack.Screen name="EventReviews" component={EventReviewsScreen} />
+      {/* T3 — écrans sans carrousel horizontal : le retour se fait depuis
+          n'importe où dans l'écran (iOS). Jamais sur EventDetails (listes
+          horizontales, tirer-pour-fermer T2). */}
+      <Stack.Screen name="SessionDetails" component={SessionDetailsScreen} options={FULL_SCREEN_BACK} />
+      <Stack.Screen name="SpeakerDetails" component={SpeakerDetailsScreen} options={FULL_SCREEN_BACK} />
+      <Stack.Screen name="OrganizerProfile" component={OrganizerProfileScreen} options={FULL_SCREEN_BACK} />
+      <Stack.Screen name="EventReviews" component={EventReviewsScreen} options={FULL_SCREEN_BACK} />
       <Stack.Screen
         name="EventSearch"
         component={EventSearchScreen}
@@ -451,7 +469,7 @@ export default function RootNavigator() {
       <Stack.Screen
         name="CitiesIndex"
         component={CitiesIndexScreen}
-        options={{ animation: 'slide_from_right' }}
+        options={FULL_SCREEN_BACK}
       />
 
       {/* Payment Screens */}
@@ -469,8 +487,20 @@ export default function RootNavigator() {
 
       {/* Ticket Screens */}
       <Stack.Screen name="TicketPurchase" component={TicketPurchaseScreen} />
+      {/* Le billet s'ouvre comme avant, en écran (présentation modale plein
+          écran). La feuille à crans T4 a été retirée à la demande de
+          l'utilisateur, qui préfère l'écran. */}
       <Stack.Screen name="QRCode" component={QRCodeScreen} options={{ presentation: 'modal' }} />
-      <Stack.Screen name="RegistrationDetails" component={RegistrationDetailsScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen
+        name="RegistrationDetails"
+        component={RegistrationDetailsScreen}
+        // T14 — depuis la carte de Mes billets : le billet se soulève (fondu +
+        // vol) au lieu de la feuille modale.
+        options={({ route }) => {
+          const hero = heroScreenOptions(route.params);
+          return hero.animation ? hero : { presentation: 'modal' as const };
+        }}
+      />
       <Stack.Screen name="PendingTransfers" component={PendingTransfersScreen} />
       <Stack.Screen name="OfflineTickets" component={OfflineTicketsScreen} />
       {/* TransferAccept : ouvert par deep link https://eventez.online/transfer/{token}/accept */}
@@ -480,14 +510,14 @@ export default function RootNavigator() {
       {/* Dashboard & Profile Screens */}
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="UserDashboard" component={DashboardScreen} />
-      <Stack.Screen name="Settings" component={SettingsScreen} />
-      <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} options={FULL_SCREEN_BACK} />
+      <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} options={FULL_SCREEN_BACK} />
       <Stack.Screen
         name="EditProfile"
         component={EditProfileScreen}
       />
-      <Stack.Screen name="Terms" component={TermsScreen} />
-      <Stack.Screen name="Privacy" component={PrivacyScreen} />
+      <Stack.Screen name="Terms" component={TermsScreen} options={FULL_SCREEN_BACK} />
+      <Stack.Screen name="Privacy" component={PrivacyScreen} options={FULL_SCREEN_BACK} />
       <Stack.Screen name="MyDataAtExhibitors" component={MyDataAtExhibitorsScreen} />
       <Stack.Screen name="BecomeOrganizer" component={BecomeOrganizerScreen} />
       <Stack.Screen
@@ -524,9 +554,12 @@ export default function RootNavigator() {
       <Stack.Screen name="Drafts" component={DraftsListScreen} />
       <Stack.Screen name="QRScanner" component={QRScannerScreen} options={{ presentation: 'fullScreenModal' }} />
       <Stack.Screen name="LiveOps" component={LiveOpsScreen} />
+      <Stack.Screen name="EventRecap" component={EventRecapScreen} />
       <Stack.Screen name="BoxOffice" component={BoxOfficeScreen} />
       <Stack.Screen name="CashDrawerClose" component={CashDrawerCloseScreen} />
       <Stack.Screen name="Memories" component={MemoriesScreen} />
+      {/* S11 — L'année EventEz : récit plein écran, fermé par le bas. */}
+      <Stack.Screen name="YearInReview" component={YearInReviewScreen} options={{ animation: 'fade', presentation: 'fullScreenModal' }} />
       <Stack.Screen name="EventAttendees" component={EventAttendeesScreen} />
       <Stack.Screen name="EventPricingTiers" component={EventPricingTiersScreen} />
       <Stack.Screen name="EventAnalytics" component={EventAnalyticsScreen} />
@@ -557,6 +590,7 @@ export default function RootNavigator() {
 
       {/* Payment Management Screens */}
       <Stack.Screen name="MyPayments" component={MyPaymentsScreen} />
+      {/* T4 — feuille qui prend la hauteur de son contenu. */}
       <Stack.Screen name="RefundRequest" component={RefundRequestScreen} options={{ presentation: 'modal' }} />
       <Stack.Screen name="RefundsList" component={RefundsListScreen} />
 

@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   useWindowDimensions,
-  Modal,
   ScrollView,
   Platform,
   Share,
@@ -60,7 +59,8 @@ import EventCard from '../../components/events/EventCard';
 import { EmptyState } from '../../components/ui';
 import { EventCardSkeleton, SkeletonList } from '../../components/ui/Skeleton';
 import { toEventPreview } from '../../lib/utils/eventNavPreview';
-import { GradientBorder, GradientIcon, SpringChip, EdgeFadeScroll } from '../../components/ui/motion';
+import { GradientBorder, GradientIcon, SpringChip, EdgeFadeScroll, withHeroOrigin } from '../../components/ui/motion';
+import { SpringSheet, SpringSheetScrollView } from '../../components/ui/motion/SpringSheet';
 import { haptics } from '../../utils/haptics';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'EventSearch'>;
@@ -662,11 +662,18 @@ export default function EventSearchScreen() {
   };
 
   const handleEventPress = (event: Event) => {
-    navigation.navigate('EventDetails', {
-      eventId: event.slug || event.id,
-      imageUrl: event.banner_image || event.category?.default_event_image || event.display_image,
-      initialEvent: toEventPreview(event),
-    });
+    navigation.navigate(
+      'EventDetails',
+      withHeroOrigin(
+        {
+          eventId: event.slug || event.id,
+          imageUrl: event.banner_image || event.category?.default_event_image || event.display_image,
+          initialEvent: toEventPreview(event),
+        },
+        event.id,
+        event.slug,
+      ),
+    );
   };
 
   // ATTENTION : ce flag pilote le branchement render entre "vue d'accueil
@@ -749,6 +756,9 @@ export default function EventSearchScreen() {
             attendees={item.registration_count || (item as any).registrations_count}
             variant={columns > 1 ? 'grid' : 'default'}
             fullWidth={columns === 1}
+            // T7 — balayer pour enregistrer : liste à une colonne seulement,
+            // et seulement connecté (la sauvegarde est liée au compte).
+            swipeToSave={columns === 1 && !!savedAuth}
             onPress={() => handleEventPress(item)}
             isLiked={isSaved(item.id)}
             onLikePress={() => {
@@ -1181,27 +1191,16 @@ export default function EventSearchScreen() {
         )}
 
         {/* === FILTERS BOTTOM SHEET === */}
-        <Modal
+        {/* T5 — SpringSheet : tirer pour fermer (liste tout en haut), lâcher
+            projeté, ressort interruptible. */}
+        <SpringSheet
           visible={showFilters}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowFilters(false)}
+          onClose={() => setShowFilters(false)}
+          backgroundColor={colors.background}
+          maxHeight={filterModalMaxHeight}
+          accessibilityLabel={t('eventSearch.sheetTitle')}
+          style={[styles.filterSheet, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}
         >
-          <View style={styles.modalOverlay}>
-            <TouchableOpacity
-              style={StyleSheet.absoluteFill}
-              activeOpacity={1}
-              onPress={() => setShowFilters(false)}
-            />
-            <View
-              style={[
-                styles.filterSheet,
-                { maxHeight: filterModalMaxHeight, backgroundColor: colors.background },
-                { paddingBottom: Math.max(insets.bottom, Spacing.lg) },
-              ]}
-            >
-              {/* Handle */}
-              <View style={[styles.sheetHandle, { backgroundColor: colors.gray300 }]} />
 
               {/* Header */}
               <View style={styles.sheetHeader}>
@@ -1220,7 +1219,7 @@ export default function EventSearchScreen() {
                 </TouchableOpacity>
               </View>
 
-              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Spacing.xl }}>
+              <SpringSheetScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Spacing.xl }}>
                 {/* DATE */}
                 <View style={styles.filterSection}>
                   <Text style={[styles.filterEyebrow, { color: colors.accent }]}>{t('eventSearch.filterDateEyebrow')}</Text>
@@ -1471,7 +1470,7 @@ export default function EventSearchScreen() {
                     })}
                   </View>
                 </View>
-              </ScrollView>
+              </SpringSheetScrollView>
 
               {/* Footer CTAs */}
               <View style={[styles.sheetFooter, { borderTopColor: hairline }]}>
@@ -1503,9 +1502,7 @@ export default function EventSearchScreen() {
                   </View>
                 </TouchableOpacity>
               </View>
-            </View>
-          </View>
-        </Modal>
+        </SpringSheet>
 
         {/* FAB « remonter en haut » — écran poussé (pas de tab bar). */}
         <ScrollTopFab

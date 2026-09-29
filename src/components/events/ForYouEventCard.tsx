@@ -16,6 +16,7 @@ import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 
 import EventCoverMedia from './EventCoverMedia';
+import { HeroSlot, captureHero, useHeroToken } from '../ui/motion';
 import { getMediaUrl } from '../../api';
 import { useTheme } from '../../contexts/ThemeContext';
 import { FontFamily, BorderRadius, Spacing } from '../../constants/theme';
@@ -91,8 +92,15 @@ function ForYouEventCardImpl({ event: ev, shouldPlay, platformCurrency, onOpen }
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const open = useCallback(() => onOpen(ev, img), [onOpen, ev, img]);
-  // Précharge le héros de la fiche pendant l'appui (avant la navigation).
-  const warm = useCallback(() => prefetchEventHero(ev), [ev]);
+  // T1 — l'image « vole » jusqu'à la bannière de la fiche (jamais une vidéo).
+  const heroToken = useHeroToken();
+  const heroEnabled = !ev.cover_video && !ev.cover_video_embed;
+  // Précharge le héros de la fiche pendant l'appui (avant la navigation) et
+  // mesure l'image pour le vol.
+  const warm = useCallback(() => {
+    if (heroEnabled) captureHero(heroToken);
+    prefetchEventHero(ev);
+  }, [ev, heroEnabled, heroToken]);
   const share = useCallback(() => {
     // Toujours inclure le LIEN de l'event (sinon le partage n'envoie que du
     // texte, inexploitable).
@@ -144,14 +152,16 @@ function ForYouEventCardImpl({ event: ev, shouldPlay, platformCurrency, onOpen }
         </View>
 
         {/* Hero image OU video full-width 16:9 (autoplay si visible dans viewport) */}
-        <EventCoverMedia
-          event={ev}
-          mode="card"
-          shouldPlay={shouldPlay}
-          style={styles.feedCardImage}
-          fallbackImageUri={img}
-          fallbackPlaceholder={placeholder}
-        />
+        <HeroSlot token={heroToken} heroKey={ev.id} enabled={heroEnabled} radius={0}>
+          <EventCoverMedia
+            event={ev}
+            mode="card"
+            shouldPlay={shouldPlay}
+            style={styles.feedCardImage}
+            fallbackImageUri={img}
+            fallbackPlaceholder={placeholder}
+          />
+        </HeroSlot>
 
         {/* Body */}
         <View style={styles.feedCardBody}>

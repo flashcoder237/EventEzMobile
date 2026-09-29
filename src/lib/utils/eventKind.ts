@@ -84,3 +84,38 @@ export function findWeddingCategory<T extends CategoryLike & { id?: unknown }>(
     WEDDING_PATTERN.test(`${c?.slug || ''} ${c?.name || ''}`),
   );
 }
+
+/**
+ * S5 — Registre d'ambiance d'un événement.
+ *
+ * Trois registres seulement, pas un par catégorie : ils changent le FOND, la
+ * FAMILLE DE TITRE et l'ORDRE des sections, jamais le mouvement.
+ *   - `celebration` : mariages, anniversaires, baptêmes (ivoire, serif, filet doré) ;
+ *   - `night`       : concerts, soirées, festivals (fond sombre, la couleur ressort) ;
+ *   - `knowledge`   : conférences, formations, ateliers (sobre, agenda et
+ *                     intervenants remontés).
+ * En cas de doute : `neutral` (le design par défaut, inchangé).
+ */
+export type EventAmbience = 'celebration' | 'night' | 'knowledge' | 'neutral';
+
+const CELEBRATION_PATTERN =
+  /mariage|wedding|c[ée]l[ée]bration|anniversaire|birthday|bapt[êe]me|baptism|fian[çc]ailles|engagement/i;
+const NIGHT_PATTERN =
+  /concert|musique|music|soir[ée]e|nightlife|night|club|festival|\bdj\b|party|spectacle|show/i;
+const KNOWLEDGE_PATTERN =
+  /conf[ée]rence|conference|formation|atelier|workshop|s[ée]minaire|seminar|meetup|summit|sommet|tech|[ée]ducation|business|masterclass|webinar|colloque|forum/i;
+
+export function getEventAmbience(event: EventKindInput | null | undefined): EventAmbience {
+  if (!event) return 'neutral';
+  const category = categorySignal(event);
+  // La catégorie prime ; les tags ne servent qu'à départager un événement
+  // sans catégorie reconnue.
+  if (CELEBRATION_PATTERN.test(category)) return 'celebration';
+  if (KNOWLEDGE_PATTERN.test(category)) return 'knowledge';
+  if (NIGHT_PATTERN.test(category)) return 'night';
+  const tags = tagSignal(event);
+  if (CELEBRATION_PATTERN.test(tags)) return 'celebration';
+  if (KNOWLEDGE_PATTERN.test(tags)) return 'knowledge';
+  if (NIGHT_PATTERN.test(tags)) return 'night';
+  return 'neutral';
+}

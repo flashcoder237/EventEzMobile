@@ -1,7 +1,13 @@
 import React, { useEffect, useRef, memo, useCallback } from 'react';
-import { View, StyleSheet, Platform, Pressable, Text, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, Platform, Pressable, Text, useWindowDimensions, Easing as RNEasing } from 'react-native';
 import { Image } from 'expo-image';
-import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import {
+  createBottomTabNavigator,
+  BottomTabBarProps,
+  BottomTabNavigationOptions,
+} from '@react-navigation/bottom-tabs';
+
+type BottomTabSceneStyleInterpolator = NonNullable<BottomTabNavigationOptions['sceneStyleInterpolator']>;
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +24,7 @@ import Animated, {
   Easing,
   FadeIn,
 } from 'react-native-reanimated';
+import { Durations } from '../constants/motion';
 import { haptics } from '../utils/haptics';
 import { useMotionGate, useAppWake, CountBadge } from '../components/ui/motion';
 import { MainTabParamList } from '../types';
@@ -615,8 +622,30 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
   );
 }
 
+// T9 — le contenu arrive du côté de l'onglet choisi : ±16 px + fondu, 200 ms
+// (progress vaut -1 pour un onglet à gauche de l'actif, +1 à droite). Ne
+// touche pas au dessin de la barre d'onglets elle-même.
+const directionalScene: BottomTabSceneStyleInterpolator = ({ current }) => ({
+  sceneStyle: {
+    opacity: current.progress.interpolate({ inputRange: [-1, 0, 1], outputRange: [0, 1, 0] }),
+    transform: [
+      {
+        translateX: current.progress.interpolate({
+          inputRange: [-1, 0, 1],
+          outputRange: [-16, 0, 16],
+        }),
+      },
+    ],
+  },
+});
+const directionalSpec = {
+  animation: 'timing' as const,
+  config: { duration: Durations.move - 20, easing: RNEasing.bezier(0.23, 1, 0.32, 1) },
+};
+
 export default function MainTabNavigator() {
   const { colors } = useTheme();
+  const { reduced: reduceMotion } = useMotionGate({ ignoreFocus: true });
   const { t } = useTranslation();
   const tour = useTour();
   // Propriétaire OU membre d'équipe : un bénévole chargé du scan a exactement
@@ -641,6 +670,9 @@ export default function MainTabNavigator() {
         sceneStyle: { backgroundColor: colors.background },
         freezeOnBlur: true,
         lazy: true,
+        animation: reduceMotion ? 'none' : 'shift',
+        sceneStyleInterpolator: reduceMotion ? undefined : directionalScene,
+        transitionSpec: reduceMotion ? undefined : directionalSpec,
       }}
     >
       <Tab.Screen name="Discover" component={DiscoverScreen} options={{ tabBarLabel: 'Découvrir' }} />

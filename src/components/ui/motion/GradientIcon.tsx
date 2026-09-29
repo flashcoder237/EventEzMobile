@@ -12,6 +12,7 @@ import MaskedView from '@react-native-masked-view/masked-view';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { Curves, Durations } from '../../../constants/motion';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 
@@ -46,7 +47,7 @@ function GradientIconComponent({
   const on = useSharedValue(active ? 1 : 0);
 
   useEffect(() => {
-    on.value = reduced ? (active ? 1 : 0) : withTiming(active ? 1 : 0, { duration: 200 });
+    on.value = reduced ? (active ? 1 : 0) : withTiming(active ? 1 : 0, { duration: Durations.respond, easing: Curves.out });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, reduced]);
 

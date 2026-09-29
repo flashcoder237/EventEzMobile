@@ -18,6 +18,8 @@ export interface RotatingPlaceholderProps {
   style?: StyleProp<TextStyle>;
   containerStyle?: StyleProp<ViewStyle>;
   numberOfLines?: number;
+  /** En pause (ex. en-tête compact masqué) : pas de minuteur, pas de rendu inutile. */
+  paused?: boolean;
   testID?: string;
 }
 
@@ -27,6 +29,7 @@ function RotatingPlaceholderComponent({
   style,
   containerStyle,
   numberOfLines = 1,
+  paused = false,
   testID,
 }: RotatingPlaceholderProps) {
   const { appActive, focused, reduced } = useMotionGate();
@@ -38,10 +41,10 @@ function RotatingPlaceholderComponent({
   }, []);
 
   useEffect(() => {
-    if (!appActive || !focused || items.length < 2) return;
+    if (paused || !appActive || !focused || items.length < 2) return;
     const id = setInterval(() => setIndex((i) => (i + 1) % items.length), intervalMs);
     return () => clearInterval(id);
-  }, [appActive, focused, items.length, intervalMs]);
+  }, [paused, appActive, focused, items.length, intervalMs]);
 
   const safeIndex = index % Math.max(1, items.length);
   const entering = !mounted.current

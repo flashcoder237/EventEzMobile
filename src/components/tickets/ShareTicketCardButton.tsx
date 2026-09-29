@@ -29,6 +29,11 @@ interface Props {
   /** Bannière de l'événement, affichée en fond de carte. Sans elle, la carte
    *  retombe sur le seul dégradé de marque. */
   imageUrl?: string | null;
+  /** S4 — couleur de l'événement (`theme_tint.base`). Remplace l'indigo du
+   *  dégradé ; le corail de marque reste la fin du dégradé. */
+  tint?: string | null;
+  /** Style du bouton (placement dans l'écran hôte). */
+  buttonStyle?: object;
 }
 
 // Ratio ~9:16 → carte Story-friendly (WhatsApp/Insta/FB stories).
@@ -49,6 +54,8 @@ export default function ShareTicketCardButton({
   eyebrow,
   label,
   imageUrl,
+  tint,
+  buttonStyle,
 }: Props) {
   const cardRef = useRef<View>(null);
   const [busy, setBusy] = useState(false);
@@ -60,6 +67,7 @@ export default function ShareTicketCardButton({
   const eyebrowText = eyebrow ?? t('shareCard.eyebrow');
   const labelText = label ?? t('shareCard.button');
   const resolvedImage = imageUrl ? getMediaUrl(imageUrl) : null;
+  const base = tint && /^#[0-9a-f]{6}$/i.test(tint) ? tint : '#4F46E5';
 
   const handleShare = async () => {
     if (busy) return;
@@ -93,7 +101,7 @@ export default function ShareTicketCardButton({
         activeOpacity={0.85}
         accessibilityRole="button"
         accessibilityLabel={labelText}
-        style={styles.button}
+        style={[styles.button, buttonStyle]}
       >
         {busy ? (
           <ActivityIndicator size="small" color="#FFFFFF" />
@@ -122,8 +130,8 @@ export default function ShareTicketCardButton({
             colors={
               resolvedImage
                 // Voile sombre : garde le titre lisible par-dessus la photo.
-                ? ['rgba(17,17,16,0.35)', 'rgba(79,70,229,0.75)', 'rgba(255,107,107,0.85)']
-                : ['#4F46E5', '#A855F7', '#FF6B6B']
+                ? ['rgba(17,17,16,0.35)', `${base}BF`, 'rgba(255,107,107,0.85)']
+                : [base, tint ? base : '#A855F7', '#FF6B6B']
             }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}

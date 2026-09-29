@@ -9,6 +9,8 @@ import {
   TextInput,
   Modal,
   ActivityIndicator,
+  Share,
+  Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -56,6 +58,13 @@ import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import EventImage from '../../components/events/EventImage';
 import { toEventPreview } from '../../lib/utils/eventNavPreview';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { EventCardMoments, OnlineStamp } from '../../components/organizer/EventCardMoments';
+import { isRecentValidation } from '../../lib/utils/organizerMoments';
+import { getEventUrl } from '../../constants/urls';
+import { haptics } from '../../utils/haptics';
+import { Durations } from '../../constants/motion';
+import { shortMonthLabel, appDateLocale } from '../../lib/utils/dateFormatters';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -88,11 +97,29 @@ const statusColorIcon: Record<string, { color: string; icon: keyof typeof Ionico
  * les actions (scan, statistiques, diffusion) restent pertinentes. Repli sur
  * `start_date` quand la date de fin est absente.
  */
+// O13 — le bilan d'un événement est prêt 24 h après sa fin (validé ou terminé).
+function isRecapReady(event: any, now: number = Date.now()): boolean {
+  if (!(event?.status === 'validated' || event?.status === 'completed') || !event?.end_date) return false;
+  const end = new Date(event.end_date).getTime();
+  return Number.isFinite(end) && now - end >= 24 * 3600 * 1000;
+}
+
 function isEventEnded(event: any): boolean {
   const end = event?.end_date || event?.start_date;
   if (!end) return false;
   const t = new Date(end).getTime();
   return Number.isFinite(t) && t < Date.now();
+}
+
+/** « com.apple.UIKit.activity.Message » → « Message » ; « net.whatsapp.WhatsApp.ShareExtension » → « WhatsApp ». */
+function prettyActivity(activityType: string): string | null {
+  const known: Record<string, string> = {
+    whatsapp: 'WhatsApp', facebook: 'Facebook', instagram: 'Instagram', twitter: 'X', telegram: 'Telegram',
+    linkedin: 'LinkedIn', mail: 'Mail', message: 'Messages', copytopasteboard: '', airdrop: 'AirDrop',
+  };
+  const lower = activityType.toLowerCase();
+  for (const k of Object.keys(known)) if (lower.includes(k)) return known[k] || null;
+  return null;
 }
 
 export default function MyEventsScreen() {
@@ -1033,13 +1060,33 @@ export default function MyEventsScreen() {
     }
   };
 
+  // O11 — partage prêt : lien suivi (UTM par canal « app organisateur ») et
+  // retour sobre quand le partage a vraiment eu lieu.
+  const handleShareEvent = useCallback(async (event: Event) => {
+    const base = getEventUrl(event.slug || event.id);
+    const url = `${base}?utm_source=organizer_app&utm_medium=share&utm_campaign=${encodeURIComponent(event.slug || event.id)}`;
+    try {
+      const res = await Share.share({
+        message: t('organizerMoments.share.message', { title: event.title, url }),
+        url,
+      });
+      if (res.action === Share.sharedAction) {
+        haptics.light();
+        const app = Platform.OS === 'ios' && res.activityType ? prettyActivity(res.activityType) : null;
+        toastSuccess(app ? t('organizerMoments.share.done', { app }) : t('organizerMoments.share.doneGeneric'));
+      }
+    } catch {
+      /* partage annulé ou indisponible */
+    }
+  }, [t, toastSuccess]);
+
   const renderEvent = ({ item, index }: { item: Event; index: number }) => {
     const config = statusConfig[item.status] || statusConfig.draft;
     const location = getLocationDisplay(item);
     const startDate = new Date(item.start_date);
     const day = String(startDate.getDate()).padStart(2, '0');
-    const month = startDate.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '').toUpperCase();
-    const time = startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const month = shortMonthLabel(startDate).replace('.', '').toUpperCase();
+    const time = startDate.toLocaleTimeString(appDateLocale(), { hour: '2-digit', minute: '2-digit' });
     const statusEyebrow = item.status === 'validated' ? t('organizer.myEvents.eyebrowOnline') :
                           item.status === 'submitted' ? t('organizer.myEvents.eyebrowPending') :
                           item.status === 'changes_requested' ? t('organizer.myEvents.eyebrowChanges') :
@@ -1097,6 +1144,10 @@ export default function MyEventsScreen() {
                 {item.title}
               </Text>
             </View>
+
+            {/* O4 — « EN LIGNE » : la première fois qu'un événement validé
+                récemment est vu. */}
+            <OnlineStamp event={item} />
           </View>
 
           {/* === META ROW === */}
@@ -1141,6 +1192,9 @@ export default function MyEventsScreen() {
               </Text>
             </View>
           </View>
+
+          {/* O3 « Complet » / O2 palier atteint en direct. */}
+          <EventCardMoments event={item} />
 
           {/* Note modérateur visible sur les events à corriger ou rejetés */}
           {item.status === 'changes_requested' && item.moderator_notes ? (
@@ -1295,6 +1349,35 @@ export default function MyEventsScreen() {
                 accessibilityLabel={t('organizer.myEvents.editA11y')}
               >
                 <Ionicons name="create-outline" size={14} color={colors.gray700} />
+              </TouchableOpacity>
+            )}
+
+            {item.status === 'validated' && !isEventEnded(item) && (
+              <Animated.View entering={isRecentValidation(item, Date.now()) ? FadeIn.delay(Durations.inform).duration(Durations.enter) : undefined}>
+                <TouchableOpacity
+                  style={[styles.actionChipE, { backgroundColor: colors.gray100 }]}
+                  onPress={() => handleShareEvent(item)}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('organizerMoments.share.cta')}
+                >
+                  <Ionicons name="share-outline" size={14} color={colors.gray700} />
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+
+            {/* O13 — bilan intégré à la carte de l'événement terminé, au lieu
+                d'une bannière séparée au-dessus de la liste. */}
+            {isRecapReady(item) && (
+              <TouchableOpacity
+                style={[styles.recapPill, { backgroundColor: `${colors.primary}14` }]}
+                onPress={() => navigation.navigate('EventRecap', { eventId: item.slug || item.id })}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={t('organizerMoments.recap.cta')}
+              >
+                <Ionicons name="ribbon-outline" size={14} color={colors.primary} />
+                <Text style={[styles.recapPillText, { color: colors.primary }]}>{t('organizerMoments.recap.cta')}</Text>
               </TouchableOpacity>
             )}
 
@@ -2026,6 +2109,15 @@ export default function MyEventsScreen() {
 }
 
 const styles = StyleSheet.create({
+  recapPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    height: 36,
+    borderRadius: 18,
+  },
+  recapPillText: { fontFamily: FontFamily.bold, fontSize: 12, letterSpacing: 0.2 },
   container: { flex: 1 },
   header: {
     paddingHorizontal: Spacing.lg,

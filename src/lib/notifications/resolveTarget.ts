@@ -40,8 +40,31 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
     case 'event_validated':
     case 'event_update':
     case 'event_cancelled':
-    case 'event_today':
       return eventId ? { screen: 'EventDetails', params: { eventId: eventNav } } : null;
+    // S2 — « C'est aujourd'hui » / rappel : quand l'inscription est connue,
+    // le billet vient à vous (QR à un tap, luminosité gérée par l'écran).
+    case 'event_today':
+      if (regId) return { screen: 'RegistrationDetails', params: { registrationId: regId } };
+      return eventId ? { screen: 'EventDetails', params: { eventId: eventNav } } : null;
+    // S3 — « Vous êtes entré » → le billet, qui passe en mode « sur place ».
+    case 'checkin_welcome':
+      return regId
+        ? { screen: 'RegistrationDetails', params: { registrationId: regId } }
+        : { tab: 'MyTickets' };
+    // S12 — « Il y a un an » → la carte souvenir de l'événement.
+    case 'memory_anniversary': {
+      const next = meta.next_edition && typeof meta.next_edition === 'object' ? meta.next_edition : null;
+      return {
+        screen: 'Memories',
+        params: {
+          eventId: meta.event_id ? String(meta.event_id) : undefined,
+          ...(next ? { nextSlug: String(next.slug || next.event_id || ''), nextTitle: String(next.title || '') } : null),
+        },
+      };
+    }
+    // S11 — L'année EventEz.
+    case 'year_in_review':
+      return { screen: 'YearInReview', params: { year: meta.year ? Number(meta.year) : undefined } };
     // « L'événement est en cours » → page détail en ouvrant DIRECTEMENT la
     // section visio (initialTab), pour que l'utilisateur tombe sur le bouton
     // « Rejoindre » sans le chercher.
@@ -49,6 +72,17 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
       return eventId
         ? { screen: 'EventDetails', params: { eventId: eventNav, initialTab: 'virtual' } }
         : null;
+    // O1/O2/O3 — jalons organisateur (premier inscrit, palier, complet) →
+    // gestion des inscrits de l'événement.
+    case 'organizer_milestone':
+      return meta.event_id || eventId
+        ? { screen: 'EventRegistrations', params: { eventId: String(meta.event_id || eventId) } }
+        : { screen: 'MyEvents' };
+    // O13 — le bilan d'un événement terminé est prêt.
+    case 'event_recap_ready':
+      return meta.event_id || eventId
+        ? { screen: 'EventRecap', params: { eventId: String(meta.event_id || eventId) } }
+        : { screen: 'MyEvents' };
     // new_registration = notif ORGANISATEUR (« nouvel inscrit ») → gestion des inscrits.
     case 'new_registration':
       return eventId ? { screen: 'EventRegistrations', params: { eventId } } : null;
@@ -70,6 +104,11 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
         ? { screen: 'Payment', params: { registrationId: regId } }
         : { tab: 'MyTickets' };
     case 'event_feedback':
+      // S8 — « Vous y étiez » : les personnes réellement scannées ouvrent la
+      // carte souvenir (note en un geste) au lieu de la page des avis.
+      if (meta.kind === 'attended') {
+        return { screen: 'Memories', params: { attended: String(meta.event_id || eventId || '') } };
+      }
       return eventId ? { screen: 'EventReviews', params: { eventId } } : null;
 
     // ─── Billets / paiements (participant) ───
@@ -117,12 +156,31 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
       return { screen: 'Gamification' };
     case 'pioneer_granted':
       return { screen: 'Subscription' };
+    // R2 V9 — place gardée 15 min : la fiche affiche le compte à rebours réel.
+    case 'waitlist_available':
+      if (!eventNav) return null;
+      return meta.kind === 'seat_held' && meta.hold_expires_at
+        ? { screen: 'EventDetails', params: { eventId: eventNav, seatHeldUntil: String(meta.hold_expires_at) } }
+        : { screen: 'EventDetails', params: { eventId: eventNav } };
+    // R2 V8 — « Karim est arrivé · Lui écrire » → conversation directe.
+    case 'connection_arrived':
+      return meta.connection_user_id
+        ? {
+            screen: 'Conversation',
+            params: {
+              userId: String(meta.connection_user_id),
+              ...(meta.connection_name ? { userName: String(meta.connection_name) } : null),
+            },
+          }
+        : { screen: 'Messages' };
     case 'waitlist_position':
     case 'connections_at_event':
     case 'followed_organizer_new_event':
     case 'event_suggestion':
     case 'winback':
+      return eventNav ? { screen: 'EventDetails', params: { eventId: eventNav } } : null;
     case 'event_reminder':
+      if (regId) return { screen: 'RegistrationDetails', params: { registrationId: regId } };
       return eventNav ? { screen: 'EventDetails', params: { eventId: eventNav } } : null;
 
     // ─── Social ───

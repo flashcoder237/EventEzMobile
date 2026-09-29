@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
+  Share,
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { Video, ResizeMode } from 'expo-av';
@@ -13,7 +14,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import AnimatedPressable from '../ui/AnimatedPressable';
 import { AnimatedBookmark } from '../ui/Animations';
-import { GlintSweep, GradientIcon, moments } from '../ui/motion';
+import { GlintSweep, GradientIcon, HeroSlot, captureHero, moments, useHeroToken } from '../ui/motion';
+import { PeekTrigger, peek, PeekAction } from '../ui/motion/Peek';
+import { SwipeToSave } from '../ui/motion/SwipeToSave';
+import { getEventUrl } from '../../constants/urls';
 import {
   formatCardPrice,
   formatPriceShort,
@@ -31,6 +35,9 @@ import {
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatCount } from '../../lib/utils/numberFormatters';
 import EventImage from './EventImage';
+
+/** Rayon des vignettes, repris au départ du vol carte → fiche (T1). */
+const HERO_RADIUS = 16;
 
 // Largeur de référence plafonnée : sur grand écran (iPad en mode compat iPhone),
 // on borne à une largeur type iPhone pour que les cartes (peek 0.82/0.88 et
@@ -118,6 +125,9 @@ interface EventCardProps {
   /** Si la card est actuellement visible dans le viewport (pour autoplay video).
    *  Doit etre fourni par le parent via FlatList viewabilityConfig. Defaut: false. */
   isVisible?: boolean;
+  /** T7 — balayer vers la droite pour enregistrer (listes verticales seulement,
+   *  jamais dans un carrousel). Requiert `onLikePress`. */
+  swipeToSave?: boolean;
 }
 
 function EventCardComponent({
@@ -146,6 +156,7 @@ function EventCardComponent({
   coverVideoEmbed,
   isVisible = false,
   prefetchImageUrl,
+  swipeToSave = false,
 }: EventCardProps) {
   const { colors, isDark, gradients } = useTheme();
   const { t } = useTranslation();
@@ -173,15 +184,28 @@ function EventCardComponent({
   const likePress = onLikePress ? handleLikePress : undefined;
 
   const resolvedImageUrl = getMediaUrl(imageUrl);
-  const handlePressIn = prefetchImageUrl
-    ? () => prefetchImageUrls([getMediaUrl(prefetchImageUrl)], 1)
-    : undefined;
   const resolvedVideoUrl = coverVideo ? getMediaUrl(coverVideo) : null;
+  // T1 — l'image de la carte peut « voler » jusqu'à la bannière de la fiche.
+  // Mesurée au pressIn ; jamais pour une couverture vidéo.
+  const heroToken = useHeroToken();
+  const heroEnabled = !resolvedVideoUrl;
+  const handlePressIn = useCallback(() => {
+    if (heroEnabled) captureHero(heroToken);
+    if (prefetchImageUrl) prefetchImageUrls([getMediaUrl(prefetchImageUrl)], 1);
+  }, [heroEnabled, heroToken, prefetchImageUrl]);
   const blurPlaceholder = imagePlaceholder || DEFAULT_BLUR_DATA_URL;
   const hasCardVideo = !!resolvedVideoUrl;
   // Note: pour les cards on n'utilise PAS l'embed YouTube/Vimeo (WebView dans une FlatList = trop lourd).
   // Si seul cover_video_embed est fourni (pas d'upload), on retombe sur l'image + petit badge "Video".
   const hasEmbedOnly = !hasCardVideo && !!coverVideoEmbed;
+
+  // T6 — un tap qui suit un aperçu au toucher long appartient au geste d'aperçu.
+  const guardedPressFn = useCallback(() => {
+    if (peek.isOpen() || peek.justClosed()) return;
+    onPress?.();
+  }, [onPress]);
+  // Garde `undefined` sans `onPress` : la carte ne devient pas focusable.
+  const guardedPress = onPress ? guardedPressFn : undefined;
 
   // === Derived values ===
   const priceParams = { isFree, price, priceMax, currency, eventType, t };
@@ -198,12 +222,72 @@ function EventCardComponent({
   const eventAccessibilityLabel = `${title}, ${day} ${month}, ${location}`;
   const eventAccessibilityHint = t('componentsEvents.eventCardA11yHint');
 
+  // T6 — actions de l'aperçu, aussi exposées au lecteur d'écran (rotor).
+  const shareEvent = useCallback(() => {
+    Share.share({ message: `${title}
+${getEventUrl(id)}`, url: getEventUrl(id) }).catch(() => {});
+  }, [id, title]);
+  const peekActions: PeekAction[] = [
+    ...(onLikePress
+      ? [{
+          key: 'save',
+          label: isLiked ? t('componentsEvents.peekUnsave') : t('componentsEvents.peekSave'),
+          icon: (isLiked ? 'bookmark' : 'bookmark-outline') as PeekAction['icon'],
+          onSelect: handleLikePress,
+        }]
+      : []),
+    { key: 'share', label: t('componentsEvents.peekShare'), icon: 'share-outline', onSelect: shareEvent },
+    ...(onPress
+      ? [{ key: 'open', label: t('componentsEvents.peekOpen'), icon: 'arrow-forward' as PeekAction['icon'], onSelect: onPress, hero: heroEnabled }]
+      : []),
+  ];
+  const a11yActionProps = {
+    accessibilityActions: peekActions.map((a) => ({ name: a.key, label: a.label })),
+    onAccessibilityAction: (e: { nativeEvent: { actionName: string } }) => {
+      peekActions.find((a) => a.key === e.nativeEvent.actionName)?.onSelect();
+    },
+  };
+
   const locIcon: keyof typeof Ionicons.glyphMap =
     locationType === 'online' ? 'videocam-outline' :
     locationType === 'hybrid' ? 'globe-outline' : 'location-outline';
 
   // VideoOverlay : a poser RIGHT AFTER chaque <ExpoImage /> dans les variants
   // pour que la video uploadee s'affiche par-dessus, et un badge "Video" si seul un embed est dispo.
+  // Carte + gestes : aperçu au toucher long partout ; balayage pour
+  // enregistrer sur les variantes de liste verticale (opt-in du parent).
+  const decorate = (node: React.ReactElement) => {
+    let out = node;
+    if (swipeToSave && onLikePress && (variant === 'default' || variant === 'horizontal')) {
+      out = (
+        <SwipeToSave
+          saved={isLiked}
+          onToggleSave={handleLikePress}
+          saveLabel={t('componentsEvents.swipeSave')}
+          unsaveLabel={t('componentsEvents.swipeUnsave')}
+          borderRadius={HERO_RADIUS}
+        >
+          {out}
+        </SwipeToSave>
+      );
+    }
+    return (
+      <PeekTrigger
+        actions={peekActions}
+        preview={{
+          id,
+          title,
+          subtitle: `${day} ${month}${time ? ` · ${time}` : ''} · ${location}`,
+          meta: shortPriceText,
+          imageUrl: resolvedImageUrl || undefined,
+          placeholder: blurPlaceholder,
+        }}
+      >
+        {out}
+      </PeekTrigger>
+    );
+  };
+
   const VideoOverlay = () => {
     if (hasCardVideo) {
       return (
@@ -234,10 +318,11 @@ function EventCardComponent({
   // HORIZONTAL VARIANT — list item with date tile + body + bookmark
   // ============================================================
   if (variant === 'horizontal') {
-    return (
+    return decorate(
       <AnimatedPressable
-        onPress={onPress}
+        onPress={guardedPress}
         onPressIn={handlePressIn}
+        inList
         style={[
           styles.horizontalCard,
           { backgroundColor: colors.card, borderColor: hairline },
@@ -250,9 +335,10 @@ function EventCardComponent({
         accessibilityRole="button"
         accessibilityLabel={eventAccessibilityLabel}
         accessibilityHint={eventAccessibilityHint}
+        {...a11yActionProps}
       >
         {/* Image with floating date tile */}
-        <View style={styles.horizontalImageWrap}>
+        <HeroSlot token={heroToken} heroKey={id} enabled={heroEnabled} radius={HERO_RADIUS} style={styles.horizontalImageWrap}>
           {/* Placeholder LQIP rendu comme source de fond (workaround
               expo-image v3 : placeholderContentFit ignoré sur petits data
               URIs en natif → l'image apparaissait minuscule). */}
@@ -273,7 +359,7 @@ function EventCardComponent({
             <Text style={[styles.dateTileDay, { color: Colors.gray900 }]}>{day}</Text>
             <Text style={[styles.dateTileMonth, { color: colors.accent }]}>{month}</Text>
           </View>
-        </View>
+        </HeroSlot>
 
         <View style={styles.horizontalBody}>
           {category && (
@@ -331,10 +417,11 @@ function EventCardComponent({
   // COMPACT VARIANT — small card 2-col
   // ============================================================
   if (variant === 'compact') {
-    return (
+    return decorate(
       <TouchableOpacity
-        onPress={onPress}
+        onPress={guardedPress}
         onPressIn={handlePressIn}
+        delayPressIn={80}
         style={[
           styles.compactCard,
           { backgroundColor: colors.card, borderColor: hairline },
@@ -345,8 +432,9 @@ function EventCardComponent({
         accessibilityRole="button"
         accessibilityLabel={eventAccessibilityLabel}
         accessibilityHint={eventAccessibilityHint}
+        {...a11yActionProps}
       >
-        <View style={styles.compactImageWrap}>
+        <HeroSlot token={heroToken} heroKey={id} enabled={heroEnabled} radius={HERO_RADIUS} style={styles.compactImageWrap}>
           <EventImage
             uri={resolvedImageUrl}
             fallbackSource={DEFAULT_EVENT_IMAGE}
@@ -358,7 +446,7 @@ function EventCardComponent({
             <Text style={[styles.dateTileDaySmall, { color: Colors.gray900 }]}>{day}</Text>
             <Text style={[styles.dateTileMonthSmall, { color: colors.accent }]}>{month}</Text>
           </View>
-        </View>
+        </HeroSlot>
         <View style={styles.compactBody}>
           {category && (
             <Text style={[styles.compactEyebrow, { color: colors.accent }]} numberOfLines={1}>
@@ -386,10 +474,11 @@ function EventCardComponent({
   // FEATURED VARIANT — large hero card
   // ============================================================
   if (variant === 'featured') {
-    return (
+    return decorate(
       <AnimatedPressable
-        onPress={onPress}
+        onPress={guardedPress}
         onPressIn={handlePressIn}
+        inList
         style={[
           styles.featuredCard,
           { backgroundColor: colors.card, borderColor: hairline },
@@ -401,8 +490,9 @@ function EventCardComponent({
         accessibilityRole="button"
         accessibilityLabel={eventAccessibilityLabel}
         accessibilityHint={eventAccessibilityHint}
+        {...a11yActionProps}
       >
-        <View style={styles.featuredImageContainer}>
+        <HeroSlot token={heroToken} heroKey={id} enabled={heroEnabled} radius={HERO_RADIUS} style={styles.featuredImageContainer}>
           <EventImage
             uri={resolvedImageUrl}
             fallbackSource={DEFAULT_EVENT_IMAGE}
@@ -452,7 +542,7 @@ function EventCardComponent({
               </Text>
             )}
           </View>
-        </View>
+        </HeroSlot>
 
         {/* Footer: date tile + meta + price */}
         <View style={styles.featuredFooter}>
@@ -502,10 +592,11 @@ function EventCardComponent({
   // GRID VARIANT — masonry/2-col tile
   // ============================================================
   if (variant === 'grid') {
-    return (
+    return decorate(
       <AnimatedPressable
-        onPress={onPress}
+        onPress={guardedPress}
         onPressIn={handlePressIn}
+        inList
         style={[
           styles.gridCard,
           { backgroundColor: colors.card, borderColor: hairline },
@@ -520,8 +611,9 @@ function EventCardComponent({
         accessibilityRole="button"
         accessibilityLabel={eventAccessibilityLabel}
         accessibilityHint={eventAccessibilityHint}
+        {...a11yActionProps}
       >
-        <View style={styles.gridImageWrap}>
+        <HeroSlot token={heroToken} heroKey={id} enabled={heroEnabled} radius={HERO_RADIUS} style={styles.gridImageWrap}>
           <EventImage
             uri={resolvedImageUrl}
             fallbackSource={DEFAULT_EVENT_IMAGE}
@@ -550,7 +642,7 @@ function EventCardComponent({
               />
             </AnimatedBookmark>
           </TouchableOpacity>
-        </View>
+        </HeroSlot>
         <View style={styles.gridBody}>
           {category && (
             <Text style={[styles.compactEyebrow, { color: colors.accent }]} numberOfLines={1}>
@@ -583,10 +675,11 @@ function EventCardComponent({
   // ============================================================
   // DEFAULT VARIANT — standard editorial card
   // ============================================================
-  return (
+  return decorate(
     <AnimatedPressable
-      onPress={onPress}
+      onPress={guardedPress}
       onPressIn={handlePressIn}
+      inList
       style={[
         styles.defaultCard,
         fullWidth && { width: '100%' },
@@ -601,8 +694,9 @@ function EventCardComponent({
       accessibilityRole="button"
       accessibilityLabel={eventAccessibilityLabel}
       accessibilityHint={eventAccessibilityHint}
+      {...a11yActionProps}
     >
-      <View style={styles.defaultImageWrap}>
+      <HeroSlot token={heroToken} heroKey={id} enabled={heroEnabled} radius={HERO_RADIUS} style={styles.defaultImageWrap}>
         <EventImage
           uri={resolvedImageUrl}
           fallbackSource={DEFAULT_EVENT_IMAGE}
@@ -649,7 +743,7 @@ function EventCardComponent({
         <View style={styles.defaultOverlay}>
           <Text style={styles.defaultTitleOverlay} numberOfLines={2}>{title}</Text>
         </View>
-      </View>
+      </HeroSlot>
 
       {/* Footer: date tile + meta + price */}
       <View style={styles.defaultFooter}>
@@ -1154,6 +1248,7 @@ function arePropsEqual(prev: EventCardProps, next: EventCardProps): boolean {
     prev.variant === next.variant &&
     prev.fullWidth === next.fullWidth &&
     prev.isVisible === next.isVisible &&
+    prev.swipeToSave === next.swipeToSave &&
     prev.onPress === next.onPress &&
     prev.onLikePress === next.onLikePress
   );

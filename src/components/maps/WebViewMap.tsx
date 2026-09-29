@@ -190,6 +190,25 @@ export default function WebViewMap({
       .ev-marker, .ev-marker::after { animation: none !important; }
       .ev-marker-selected::after { display: none; }
     }
+    /* V7 — en direct : halo corail lent (10 marqueurs au plus, seule boucle
+       de la carte, coupée par « réduire les animations »). */
+    .ev-marker-live::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 24px;
+      box-shadow: 0 0 0 0 rgba(255,107,107,.55);
+      pointer-events: none;
+      animation: evLive 2.4s cubic-bezier(.23,1,.32,1) infinite;
+    }
+    @keyframes evLive { 0% { box-shadow: 0 0 0 0 rgba(255,107,107,.55); } 100% { box-shadow: 0 0 0 12px rgba(255,107,107,0); } }
+    .ev-marker-live-static { box-shadow: 0 0 0 3px rgba(255,107,107,.45), 0 2px 6px rgba(0,0,0,0.25); }
+    /* « Ce soir » : contour corail fin, sans mouvement. */
+    .ev-marker-tonight { outline: 2px solid #FF6B6B; outline-offset: 2px; }
+    .rm .ev-marker-live::before { animation: none !important; display: none; }
+    @media (prefers-reduced-motion: reduce) {
+      .ev-marker-live::before { animation: none !important; display: none; }
+    }
     .ev-marker-outside {
       opacity: 0.45;
       filter: saturate(0.3);
@@ -293,11 +312,24 @@ export default function WebViewMap({
       return d <= currentRadiusKm;
     }
 
+    // V7 — « ce soir » : commence dans moins de 3 h (et pas encore commencé).
+    function isTonight(marker) {
+      if (marker.is_live || !marker.start_date) return false;
+      var start = Date.parse(marker.start_date);
+      if (!isFinite(start)) return false;
+      var diff = start - Date.now();
+      return diff > 0 && diff < 3 * 3600 * 1000;
+    }
+    var liveHaloIds = {};
+
     function createMarkerIcon(marker, isSelected, enterIndex) {
       var inR = isInRadius(marker.lat, marker.lng);
       var color = inR ? getCatColor(marker.category) : '#9CA3AF';
       var entering = typeof enterIndex === 'number';
-      var cls = 'ev-marker' + (isSelected ? ' ev-marker-selected' : '') + (!inR ? ' ev-marker-outside' : '') + (entering ? ' ev-marker-in' : '');
+      var liveCls = '';
+      if (marker.is_live) liveCls = liveHaloIds[marker.id] ? ' ev-marker-live' : ' ev-marker-live-static';
+      else if (isTonight(marker)) liveCls = ' ev-marker-tonight';
+      var cls = 'ev-marker' + (isSelected ? ' ev-marker-selected' : '') + (!inR ? ' ev-marker-outside' : '') + (entering ? ' ev-marker-in' : '') + liveCls;
       var delay = entering ? 'animation-delay:' + (enterIndex * 25) + 'ms;' : '';
       var label = formatPrice(marker);
       return L.divIcon({
@@ -313,6 +345,13 @@ export default function WebViewMap({
       clusterGroup.clearLayers();
       currentMarkers = {};
       var entered = [];
+      // Au plus 10 halos animés ; les autres événements en direct gardent un
+      // anneau fixe (même information, sans mouvement).
+      liveHaloIds = {};
+      var halos = 0;
+      markers.forEach(function(m) {
+        if (m.is_live && halos < 10) { liveHaloIds[m.id] = true; halos++; }
+      });
       markers.forEach(function(m) {
         if (!m.lat || !m.lng) return;
         var isSelected = m.id === currentSelectedId;

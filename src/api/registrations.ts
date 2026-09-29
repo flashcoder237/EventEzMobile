@@ -114,8 +114,12 @@ export const registrationsAPI = {
 
   // Mur de souvenirs : events auxquels l'utilisateur a assisté (check-in),
   // chacun avec son numéro de série (le Nᵉ participant arrivé).
-  getAttendanceProofs: () =>
-    api.get('/ticket-purchases/attendance-proofs/'),
+  getAttendanceProofs: (eventId?: string) =>
+    api.get('/ticket-purchases/attendance-proofs/', eventId ? { params: { event_id: eventId } } : undefined),
+
+  /** S11 — L'année EventEz (404 sous 2 événements ou si l'utilisateur l'a désactivée). */
+  getYearInReview: (year?: number) =>
+    api.get('/me/year-in-review/', year ? { params: { year } } : undefined),
 
   // Networking « qui est là » : annuaire des participants opt-in d'un event
   // (réservé aux participants confirmés). + toggle de sa propre visibilité.

@@ -13,7 +13,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +22,9 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
 import { registrationsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
+import { appDateLocale } from '../../lib/utils/dateFormatters';
+import { tintBase } from '../../lib/utils/themeTint';
+import AttendedSheet from '../../components/memories/AttendedSheet';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -36,12 +39,16 @@ interface Proof {
   attended_at: string;
   serial?: number | null;
   total_attendees: number;
+  /** S4 — couleur de l'événement. */
+  theme_tint?: any;
+  /** S10 — premier arrivé. */
+  is_first?: boolean;
 }
 
 function formatDate(iso?: string | null): string {
   if (!iso) return '';
   try {
-    return new Date(iso).toLocaleDateString('fr-FR', {
+    return new Date(iso).toLocaleDateString(appDateLocale(), {
       day: 'numeric', month: 'short', year: 'numeric',
     });
   } catch {
@@ -51,12 +58,60 @@ function formatDate(iso?: string | null): string {
 
 export default function MemoriesScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Memories'>>();
+  const params = route.params || {};
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
 
   const [proofs, setProofs] = useState<Proof[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  // S8 — « Vous y étiez » : feuille ouverte depuis la notification du lendemain.
+  const [attended, setAttended] = useState<Proof | null>(null);
+  const attendedHandled = useRef<string | null>(null);
+  // S11 — l'année EventEz, proposée seulement si l'endpoint la rend disponible.
+  const [year, setYear] = useState<number | null>(null);
+
+  React.useEffect(() => {
+    let alive = true;
+    registrationsAPI
+      .getYearInReview()
+      .then((res: any) => {
+        if (alive && res?.data?.available) setYear(Number(res.data.year) || new Date().getFullYear());
+      })
+      .catch(() => {
+        /* 404 : pas (encore) d'année à raconter — rien à afficher */
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const target = params.attended;
+    if (!target || attendedHandled.current === target || loading) return;
+    attendedHandled.current = target;
+    const found = proofs.find((p) => String(p.event_id) === String(target));
+    if (found) {
+      setAttended(found);
+      return;
+    }
+    registrationsAPI
+      .getAttendanceProofs(String(target))
+      .then((res: any) => {
+        const one = ((res.data as any)?.proofs ?? [])[0];
+        if (one) setAttended(one as Proof);
+      })
+      .catch(() => {});
+  }, [params.attended, proofs, loading]);
+
+  // S12 — « Il y a un an » : le souvenir concerné passe en tête.
+  const ordered = React.useMemo(() => {
+    if (!params.eventId) return proofs;
+    const i = proofs.findIndex((p) => String(p.event_id) === String(params.eventId));
+    if (i <= 0) return proofs;
+    return [proofs[i], ...proofs.slice(0, i), ...proofs.slice(i + 1)];
+  }, [proofs, params.eventId]);
 
   const load = useCallback(async () => {
     try {
@@ -112,12 +167,53 @@ export default function MemoriesScreen() {
           <Text style={[styles.subtitle, { color: colors.gray500 }]}>
             {t('memories.count', { count: proofs.length })}
           </Text>
+          {year != null && (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('YearInReview', { year })}
+              activeOpacity={0.85}
+              style={[styles.yearCard, { borderColor: colors.border }]}
+              accessibilityRole="button"
+            >
+              <LinearGradient colors={['#4F46E5', '#A855F7', '#FF6B6B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+              <Text style={styles.yearEyebrow}>{t('yearInReview.eyebrow', { defaultValue: 'Votre année' })}</Text>
+              <Text style={styles.yearTitle}>{t('yearInReview.cta', { year, defaultValue: 'L\u2019année EventEz {{year}}' })}</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={styles.yearArrow} />
+            </TouchableOpacity>
+          )}
           {proofs.length >= 2 && <RecapCard proofs={proofs} colors={colors} t={t} />}
-          {proofs.map((p) => (
-            <MemoryCard key={p.event_id} proof={p} colors={colors} isDark={isDark} t={t} />
-          ))}
+          {ordered.map((p) => {
+            const highlighted = !!params.eventId && String(p.event_id) === String(params.eventId);
+            return (
+              <View key={p.event_id} style={{ gap: 8 }}>
+                {highlighted && (
+                  <Text style={[styles.anniversary, { color: colors.gray600 }]}>
+                    {t('memories.oneYearAgo', { defaultValue: 'Il y a un an, vous y étiez.' })}
+                  </Text>
+                )}
+                <MemoryCard proof={p} colors={colors} isDark={isDark} t={t} />
+                {highlighted && !!params.nextSlug && (
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('EventDetails', { eventId: String(params.nextSlug) })}
+                    activeOpacity={0.85}
+                    style={[styles.nextEdition, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    accessibilityRole="button"
+                  >
+                    <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
+                    <Text style={[styles.nextEditionText, { color: colors.gray900 }]} numberOfLines={2}>
+                      {t('memories.nextEdition', {
+                        title: params.nextTitle || '',
+                        defaultValue: 'La nouvelle édition est en vente · {{title}}',
+                      })}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={16} color={colors.gray400} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          })}
         </ScrollView>
       )}
+      <AttendedSheet proof={attended} visible={!!attended} onClose={() => setAttended(null)} />
     </View>
   );
 }
@@ -130,6 +226,9 @@ function MemoryCard({
   const cardRef = useRef<View>(null);
   const [busy, setBusy] = useState(false);
   const serialLabel = proof.serial ? `#${proof.serial}` : '';
+  // S13 — clin d'œil : appui long sur « #1 » (rien sans geste explicite).
+  const [firstNote, setFirstNote] = useState(false);
+  const tint = tintBase(proof.theme_tint);
   const dateLabel = formatDate(proof.attended_at);
 
   const share = async () => {
@@ -162,7 +261,7 @@ function MemoryCard({
           />
         ) : (
           <LinearGradient
-            colors={['#4F46E5', '#A855F7', '#FF6B6B']}
+            colors={[tint, '#A855F7', '#FF6B6B']}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
           />
@@ -178,12 +277,24 @@ function MemoryCard({
               <Text style={styles.attendedText}>{t('memories.iWasThere')}</Text>
             </View>
             {!!serialLabel && (
-              <View style={styles.serialBadge}>
+              <TouchableOpacity
+                activeOpacity={1}
+                disabled={proof.serial !== 1}
+                onLongPress={() => setFirstNote((v) => !v)}
+                delayLongPress={450}
+                style={styles.serialBadge}
+                accessibilityHint={proof.serial === 1 ? t('memories.firstHint', { defaultValue: 'Appui long pour une surprise' }) : undefined}
+              >
                 <Text style={styles.serialText}>{serialLabel}</Text>
-              </View>
+              </TouchableOpacity>
             )}
           </View>
           <View>
+            {firstNote && (
+              <Text style={styles.firstNote}>
+                {t('memories.firstNote', { defaultValue: 'Premier arrivé. Les portes s\u2019ouvraient à peine.' })}
+              </Text>
+            )}
             <Text style={styles.collectibleTitle} numberOfLines={2}>{proof.title}</Text>
             <Text style={styles.collectibleMeta}>
               {dateLabel}{proof.city ? ` · ${proof.city}` : ''}
@@ -366,6 +477,17 @@ const styles = StyleSheet.create({
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
   brand: { color: '#FFFFFF', fontFamily: FontFamily.displayExtraBold, fontSize: 13, letterSpacing: -0.3 },
 
+  firstNote: { color: '#FFFFFF', fontFamily: FontFamily.semiBold, fontSize: 12, marginBottom: 6, fontStyle: 'italic' },
+  anniversary: { fontFamily: FontFamily.semiBold, fontSize: 13 },
+  nextEdition: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1,
+    borderRadius: BorderRadius.lg, paddingVertical: 12, paddingHorizontal: 14,
+  },
+  nextEditionText: { flex: 1, fontFamily: FontFamily.semiBold, fontSize: 14 },
+  yearCard: { borderRadius: BorderRadius['2xl'], overflow: 'hidden', borderWidth: 1, padding: Spacing.lg, gap: 4 },
+  yearEyebrow: { fontFamily: FontFamily.bold, fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,0.88)', textTransform: 'uppercase' },
+  yearTitle: { fontFamily: FontFamily.displayExtraBold, fontSize: 22, color: '#FFFFFF' },
+  yearArrow: { position: 'absolute', right: Spacing.lg, bottom: Spacing.lg },
   shareBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     paddingVertical: 12, borderTopWidth: 1,

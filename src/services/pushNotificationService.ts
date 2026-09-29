@@ -734,8 +734,15 @@ class PushNotificationService {
           // globale). Le toast éphémère ferait doublon → on le supprime pour ce
           // type ; le deeplink push (app fermée) reste géré par handleNotificationTap.
           const isEventLive = data?.notification_type === 'event_live';
+          // Idem pour les « moments » du round 2 : la carte dédiée (reçue par
+          // WebSocket → liveBus) joue déjà ; un toast en plus ferait doublon.
+          const milestoneKind = (data as any)?.kind ?? (data as any)?.extra_data?.kind;
+          const hasMomentCard =
+            data?.notification_type === 'checkin_welcome' ||
+            (data?.notification_type === 'organizer_milestone' &&
+              (milestoneKind === 'first' || milestoneKind === 'sold_out'));
 
-          if (!onSameConv && !isEventLive && (title || body)) {
+          if (!onSameConv && !isEventLive && !hasMomentCard && (title || body)) {
             // Determine icon + dedup key + onPress depending on notif type.
             let icon: 'message' | 'notification' | 'success' | 'warning' | 'info' = 'notification';
             let dedupKey: string | undefined;

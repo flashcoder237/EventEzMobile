@@ -1,10 +1,16 @@
 /**
  * SearchAura — l'aura du champ de recherche Discover (catalogue A1).
  *
- * Invisible au repos. Une comète indigo → violet → corail fait UN tour :
+ * Invisible au repos. Une comète indigo → violet → corail fait UN tour
+ * (900 ms, token « celebrate ») :
  *   - la première fois de la session que le flux est affiché (après `delayMs`),
- *   - au retour dans l'app après plus de 10 min (`wake`),
- *   - au toucher (`flash()`, à appeler depuis onPress) + vibration « sélection ».
+ *   - au retour dans l'app après plus de 10 min (`wake`).
+ *
+ * Au toucher (`flash()`, à appeler depuis onPress) : vibration « sélection »
+ * SEULEMENT. Le toucher ouvre l'écran de recherche : une comète jouée sous la
+ * transition de navigation était perdue (et faisait trois retours pour un
+ * seul geste). La continuité, c'est l'anneau déjà allumé à l'arrivée sur
+ * l'écran de recherche.
  *
  * `children` peut être une fonction `(lit, flash) => node` : `lit` est vrai
  * pendant le balayage (pour passer la loupe en dégradé, A3).
@@ -12,10 +18,10 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 import { haptics } from '../../../utils/haptics';
-import { GradientBorder } from './GradientBorder';
+import { GradientBorder, SWEEP_DURATION_MS } from './GradientBorder';
 import { moments, useAppWake } from './useMotionGate';
 
-const SWEEP_MS = 1600;
+const SWEEP_MS = SWEEP_DURATION_MS;
 
 export interface SearchAuraProps {
   children: React.ReactNode | ((lit: boolean, flash: () => void) => React.ReactNode);
@@ -79,8 +85,7 @@ function SearchAuraComponent({
 
   const flash = useCallback(() => {
     haptics.selection();
-    play(`${onceKey ?? 'search-aura'}:press`);
-  }, [onceKey, play]);
+  }, []);
 
   return (
     <GradientBorder

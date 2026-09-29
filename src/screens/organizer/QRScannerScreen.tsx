@@ -39,7 +39,17 @@ import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { useCheckinQueue } from '../../hooks/useCheckinQueue';
 import { useCheckinManifest } from '../../hooks/useCheckinManifest';
 import { haptics } from '../../utils/haptics';
-import { ScanFrameFeedback, PopOnIncrease } from '../../components/ui/motion';
+import {
+  ScanFrameFeedback,
+  PopOnIncrease,
+  RollingText,
+  CountUpText,
+  DrawCheck,
+  SpringSheet,
+} from '../../components/ui/motion';
+import { crossedHundred, scanCadence } from '../../lib/utils/organizerMoments';
+import { Durations } from '../../constants/motion';
+import Reanimated, { FadeInDown as ScanFadeInDown, FadeOutUp as ScanFadeOutUp } from 'react-native-reanimated';
 import type { ScanFeedbackKind } from '../../components/ui/motion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { registrationsAPI, eventsAPI, sessionsAPI, exhibitorsAPI } from '../../api';
@@ -119,6 +129,12 @@ export default function QRScannerScreen() {
   // Dernier code lu + horodatage, pour ignorer le meme QR reste dans le cadre.
   const lastScanRef = useRef<{ code: string | null; at: number }>({ code: null, at: 0 });
   const sessionStartedAtRef = useRef<number>(Date.now());
+  // O9 — fin de service : une feuille dédiée au lieu d'une alerte d'erreur.
+  const [endOpen, setEndOpen] = useState(false);
+  // O9 — puce discrète tous les 100 scans validés (jamais sur le viseur).
+  const [hundred, setHundred] = useState<number | null>(null);
+  const prevSuccessRef = useRef(0);
+  const hundredTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [event, setEvent] = useState<Event | null>(null);
   const { play: playSound } = useSoundEffect();
   const { enqueue: enqueueOfflineScan, flush: flushQueue, pendingCount, isFlushing, isOnline, lastRejected, acknowledgeRejected } = useCheckinQueue();
@@ -180,6 +196,7 @@ export default function QRScannerScreen() {
 
   // Auto-dismiss timer (en mode auto, ferme le modal après 1.5s)
   const autoDismissRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resumeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!permission?.granted) {
@@ -659,17 +676,49 @@ export default function QRScannerScreen() {
     if (!scanResult?.success) return; // les erreurs restent affichées
     // Annuler tout timer précédent
     if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
+    // O9 — le viseur rend la main en 250 ms (le cadre, le son et la
+    // vibration ont déjà tout dit) ; la carte du résultat reste lisible
+    // jusqu'à 1,5 s ou jusqu'au scan suivant. Le même QR resté dans le cadre
+    // est ignoré par la garde anti-re-scan (RESCAN_GUARD_MS).
+    const resume = setTimeout(() => setScanned(false), 250);
     autoDismissRef.current = setTimeout(() => {
       handleContinueScan();
     }, 1500);
+    resumeRef.current = resume;
     return () => {
       if (autoDismissRef.current) {
         clearTimeout(autoDismissRef.current);
         autoDismissRef.current = null;
       }
+      if (resumeRef.current) {
+        clearTimeout(resumeRef.current);
+        resumeRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showResult, autoCheckIn, scanResult?.success]);
+  }, [showResult, autoCheckIn, scanResult?.success, scanResult]);
+
+  useEffect(() => {
+    const before = prevSuccessRef.current;
+    prevSuccessRef.current = stats.success;
+    const crossed = crossedHundred(before, stats.success);
+    if (!crossed) return;
+    setHundred(crossed);
+    if (hundredTimer.current) clearTimeout(hundredTimer.current);
+    hundredTimer.current = setTimeout(() => setHundred(null), 2600);
+  }, [stats.success]);
+  useEffect(() => () => {
+    if (hundredTimer.current) clearTimeout(hundredTimer.current);
+  }, []);
+
+  const closeScanner = () => {
+    if (stats.scanned > 0) {
+      setEndOpen(true);
+      if (isOnline && pendingCount > 0) flushQueue?.().catch?.(() => {});
+      return;
+    }
+    navigation.goBack();
+  };
 
   // Reference code = 10 caractères [A-Z0-9] générés par secrets.choice
   // côté backend (apps/registrations/models.py:172-183). On accepte aussi
@@ -814,26 +863,7 @@ export default function QRScannerScreen() {
           <View style={styles.topRow}>
             <TouchableOpacity
               style={styles.closeDisc}
-              onPress={() => {
-                if (stats.scanned > 0) {
-                  const elapsedMs = Date.now() - sessionStartedAtRef.current;
-                  const elapsedMin = Math.max(1, Math.floor(elapsedMs / 60000));
-                  const recapBody = t('organizer.qrScanner.sessionRecapBody', {
-                    scanned: stats.scanned,
-                    minutes: elapsedMin,
-                    success: stats.success,
-                    failed: stats.failed,
-                  });
-                  const queueSuffix = pendingCount > 0
-                    ? t('organizer.qrScanner.sessionRecapQueue', { count: pendingCount })
-                    : '';
-                  showError(
-                    t('organizer.qrScanner.sessionRecapTitle'),
-                    recapBody + queueSuffix,
-                  );
-                }
-                navigation.goBack();
-              }}
+              onPress={closeScanner}
               accessibilityRole="button"
               accessibilityLabel={t('organizer.qrScanner.closeA11y')}
             >
@@ -1046,6 +1076,21 @@ export default function QRScannerScreen() {
           </View>
         </View>
 
+        {/* O9 — tous les 100 scans validés : une puce discrète, au-dessus des
+            statistiques, jamais sur le viseur. */}
+        {hundred != null && (
+          <Reanimated.View
+            entering={ScanFadeInDown.duration(Durations.enter)}
+            exiting={ScanFadeOutUp.duration(Durations.exit)}
+            style={styles.hundredChip}
+            pointerEvents="none"
+          >
+            <Text style={styles.hundredChipText}>
+              {t('organizerMoments.scan.hundred', { count: hundred })}
+            </Text>
+          </Reanimated.View>
+        )}
+
         {/* Bottom Controls */}
         <SafeAreaView style={styles.bottomControls}>
           {/* Stats */}
@@ -1059,7 +1104,7 @@ export default function QRScannerScreen() {
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <PopOnIncrease value={stats.success}>
-                <Text style={[styles.statValue, { color: colors.success }]}>{stats.success}</Text>
+                <RollingText value={stats.success} style={[styles.statValue, { color: colors.success }]} />
               </PopOnIncrease>
               <Text style={styles.statLabel}>{t('organizer.qrScanner.statValidated')}</Text>
             </View>
@@ -1336,11 +1381,119 @@ export default function QRScannerScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* O9 — Fin de service : un bilan, pas une alerte d'erreur. */}
+      <SpringSheet
+        visible={endOpen}
+        onClose={() => setEndOpen(false)}
+        backgroundColor={colors.card}
+        accessibilityLabel={t('organizerMoments.scan.endTitle')}
+      >
+        <View style={styles.endSheet}>
+          <Text style={[styles.endTitle, { color: colors.text }]}>{t('organizerMoments.scan.endTitle')}</Text>
+          <View style={styles.endGrid}>
+            <View style={styles.endCell}>
+              <CountUpText
+                value={stats.success}
+                countKey={`scan-end:${sessionStartedAtRef.current}`}
+                group
+                style={[styles.endValue, { color: colors.success }]}
+              />
+              <Text style={[styles.endLabel, { color: colors.gray500 }]}>{t('organizerMoments.scan.validated')}</Text>
+            </View>
+            <View style={styles.endCell}>
+              <Text style={[styles.endValue, { color: colors.text }]}>
+                {t('organizerMoments.scan.cadence', {
+                  value: String(scanCadence(stats.success, sessionStartedAtRef.current, Date.now())).replace('.', ','),
+                })}
+              </Text>
+              <Text style={[styles.endLabel, { color: colors.gray500 }]}>{t('organizerMoments.scan.cadenceLabel')}</Text>
+            </View>
+            <View style={styles.endCell}>
+              <Text style={[styles.endValue, { color: colors.gray600 }]}>{stats.failed}</Text>
+              <Text style={[styles.endLabel, { color: colors.gray500 }]}>{t('organizerMoments.scan.refused')}</Text>
+            </View>
+          </View>
+
+          {/* File hors ligne : jamais masquée tant qu'il reste des scans. */}
+          {isFlushing ? (
+            <View style={styles.endSync}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.endSyncText, { color: colors.gray600 }]}>{t('organizerMoments.scan.syncing')}</Text>
+            </View>
+          ) : pendingCount > 0 ? (
+            <View style={[styles.endSync, styles.endSyncWarn]}>
+              <Ionicons name="cloud-offline-outline" size={16} color="#D97706" />
+              <Text style={[styles.endSyncText, { color: '#D97706' }]}>
+                {t('organizerMoments.scan.pending', { count: pendingCount })}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.endSync}>
+              <DrawCheck size={16} color={colors.success} strokeWidth={3} play={endOpen} />
+              <Text style={[styles.endSyncText, { color: colors.success }]}>{t('organizerMoments.scan.synced')}</Text>
+            </View>
+          )}
+
+          <View style={styles.endActions}>
+            <TouchableOpacity
+              style={[styles.endBtn, { borderColor: colors.gray200 }]}
+              onPress={() => setEndOpen(false)}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.endBtnText, { color: colors.text }]}>{t('organizerMoments.scan.resume')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.endBtn, { borderColor: colors.gray200 }]}
+              onPress={() => {
+                setEndOpen(false);
+                navigation.replace('LiveOps', { eventId });
+              }}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.endBtnText, { color: colors.text }]}>{t('organizerMoments.scan.viewLiveOps')}</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            style={[styles.endPrimary, { backgroundColor: colors.text }]}
+            onPress={() => {
+              setEndOpen(false);
+              navigation.goBack();
+            }}
+            accessibilityRole="button"
+          >
+            <Text style={[styles.endBtnText, { color: colors.background }]}>{t('organizerMoments.scan.close')}</Text>
+          </TouchableOpacity>
+        </View>
+      </SpringSheet>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  hundredChip: {
+    position: 'absolute',
+    alignSelf: 'center',
+    bottom: 210,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(16,185,129,0.9)',
+  },
+  hundredChipText: { color: '#FFFFFF', fontFamily: FontFamily.bold, fontSize: 12.5 },
+  endSheet: { padding: Spacing.lg, gap: Spacing.md },
+  endTitle: { fontFamily: FontFamily.displayExtraBold, fontSize: 22, letterSpacing: -0.5 },
+  endGrid: { flexDirection: 'row', gap: Spacing.sm },
+  endCell: { flex: 1, gap: 2 },
+  endValue: { fontFamily: FontFamily.displayExtraBold, fontSize: 24 },
+  endLabel: { fontFamily: FontFamily.medium, fontSize: 11.5 },
+  endSync: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+  endSyncWarn: {},
+  endSyncText: { fontFamily: FontFamily.semiBold, fontSize: 13 },
+  endActions: { flexDirection: 'row', gap: Spacing.sm },
+  endBtn: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 999, borderWidth: 1 },
+  endPrimary: { alignItems: 'center', paddingVertical: 14, borderRadius: 999 },
+  endBtnText: { fontFamily: FontFamily.bold, fontSize: 14 },
   container: {
     flex: 1,
     backgroundColor: '#000',

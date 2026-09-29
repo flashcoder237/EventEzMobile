@@ -9,6 +9,7 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
+  LayoutChangeEvent,
 } from 'react-native';
 import Animated, {
   FadeIn,
@@ -20,7 +21,9 @@ import Animated, {
   Easing,
   withDelay,
   useAnimatedProps,
+  withSpring,
 } from 'react-native-reanimated';
+import { Curves, Durations, springConfig } from '../../constants/motion';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import { GradientText } from '../../components/ui/GradientText';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -50,7 +53,7 @@ import { useLiveRegistrations } from '../../contexts/LiveRegistrationsContext';
 import { useFeedback } from '../../contexts/FeedbackContext';
 import { MyTicketsScreenSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem } from '../../components/ui/Animations';
-import { FirstSeenStamp, LiveDot, useMotionGate } from '../../components/ui/motion';
+import { FirstSeenStamp, HeroSlot, LiveDot, captureHero, useMotionGate, withHeroOrigin } from '../../components/ui/motion';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 import { haptics } from '../../utils/haptics';
@@ -70,6 +73,10 @@ import { useOfflineTickets } from '../../hooks/useOfflineTickets';
 import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
 import CacheService from '../../services/CacheService';
 import { isRegistrationUnsettled, isRegistrationPresentable } from '../../utils/paymentSettled';
+import { eventTint, tintFor } from '../../lib/utils/themeTint';
+import { getTicketPhase, SPOTLIGHT_PHASES, TicketPhase } from '../../lib/utils/ticketPhase';
+import TicketClockCard, { useMinuteNow } from '../../components/tickets/TicketClockCard';
+import { setTodayTicket } from '../../lib/todayTicket';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'upcoming' | 'past' | 'cancelled';
@@ -378,7 +385,7 @@ export default function MyTicketsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
-  const { cacheMultipleTickets, cachedTicketCount } = useOfflineTickets();
+  const { cacheMultipleTickets, cachedTicketCount, cachedTickets } = useOfflineTickets();
   const { isOffline } = useNetworkSpeed();
   // « Mes events en cours » (source partagée) : badge EN DIRECT + bouton
   // Rejoindre par carte — accès per-event que la bannière globale ne donne pas.
@@ -841,6 +848,9 @@ export default function MyTicketsScreen() {
       ? colors.warning
       : daysUntil !== null && daysUntil <= 7 && daysUntil >= 0
       ? colors.accent
+      // S4 — chaque billet porte la couleur de son événement (repli indigo).
+      : eventTint(event)
+      ? tintFor(eventTint(event), isDark)
       : colors.primary;
 
     // === TYPE THEMING (billetterie vs inscription) ===
@@ -859,10 +869,13 @@ export default function MyTicketsScreen() {
     return (
       <StaggeredItem index={index} staggerDelay={60}>
         <View style={[styles.ticketWrap, { marginTop: overlapMargin, zIndex: 100 - index }]}>
+          {/* T14 — le billet « se soulève » jusqu'au détail (où vit le vrai QR). */}
+          <HeroSlot token={`ticket-${item.id}`} heroKey={item.id} radius={24}>
           <TouchableOpacity
             activeOpacity={0.85}
+            onPressIn={() => captureHero(`ticket-${item.id}`)}
             onPress={() =>
-              navigation.navigate('RegistrationDetails', { registrationId: item.id })
+              navigation.navigate('RegistrationDetails', withHeroOrigin({ registrationId: item.id }, item.id))
             }
             style={[
               styles.ticketCard,
@@ -1265,6 +1278,7 @@ export default function MyTicketsScreen() {
               pointerEvents="none"
             />
           </TouchableOpacity>
+          </HeroSlot>
         </View>
       </StaggeredItem>
     );
@@ -1361,6 +1375,52 @@ export default function MyTicketsScreen() {
 
   const keyExtractor = useCallback((item: ListItem) => item.key, []);
 
+  // ==========================================================
+  // S1 — L'horloge du billet : le billet le plus proche passe en tête, dans
+  // la posture de sa phase (J-7, veille, jour J, portes, en cours).
+  // ==========================================================
+  const minuteNow = useMinuteNow();
+  const spotlight = useMemo(() => {
+    let best: { reg: Registration; event: any; phase: TicketPhase; start: number } | null = null;
+    for (const reg of registrations) {
+      if (!['confirmed', 'checked_in', 'completed'].includes(String(reg.status))) continue;
+      if (isRegistrationUnsettled(reg)) continue;
+      const event: any = getEventData(reg);
+      const phase = getTicketPhase(event, reg as any, minuteNow);
+      if (!phase || !SPOTLIGHT_PHASES.has(phase)) continue;
+      const start = new Date(event.start_date).getTime();
+      if (!best || start < best.start) best = { reg, event, phase, start };
+    }
+    return best;
+  }, [registrations, getEventData, minuteNow]);
+
+  // S2 — raccourci d'icône « Mon billet » les jours d'événement, retiré après.
+  useEffect(() => {
+    const onDay = spotlight && ['JOUR_J', 'PORTES', 'EN_COURS'].includes(spotlight.phase);
+    setTodayTicket(
+      onDay ? { registrationId: String(spotlight!.reg.id), title: String(spotlight!.event?.title || '') } : null,
+    );
+  }, [spotlight]);
+
+  const spotlightOffline = useMemo(() => {
+    const tks: any[] = (spotlight?.reg as any)?.tickets || [];
+    return tks.some((tk) => !!(cachedTickets as any)?.[String(tk.id)]);
+  }, [spotlight, cachedTickets]);
+
+  const renderListHeader = useCallback(() => {
+    if (activeTab !== 'upcoming' || !spotlight) return null;
+    const regId = spotlight.reg.id;
+    return (
+      <TicketClockCard
+        phase={spotlight.phase}
+        event={spotlight.event}
+        tint={eventTint(spotlight.event)}
+        offlineReady={spotlightOffline}
+        onOpenTicket={() => navigation.navigate('RegistrationDetails', { registrationId: String(regId) })}
+      />
+    );
+  }, [activeTab, spotlight, spotlightOffline, navigation]);
+
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <AnimatedIllustration entry="fadeIn" idle="sway">
@@ -1402,6 +1462,74 @@ export default function MyTicketsScreen() {
     ],
     [stats],
   );
+
+  // T9 — un seul indicateur glisse sous les onglets de statut (translateX en
+  // ressort, largeur en timing 180 ms — jamais de ressort sur une largeur), et
+  // la liste arrive du côté de l'onglet choisi (±12 px + fondu 160 ms).
+  const reduceTabMotion = useReducedMotion();
+  const chipLayouts = useRef(new Map<TabType, { x: number; y: number; w: number; h: number }>());
+  const indX = useSharedValue(0);
+  const indY = useSharedValue(0);
+  const indW = useSharedValue(0);
+  const indH = useSharedValue(0);
+  const indVisible = useSharedValue(0);
+  const listShift = useSharedValue(0);
+  const listOpacity = useSharedValue(1);
+  const prevTabRef = useRef<TabType>(activeTab);
+
+  const placeIndicator = useCallback(
+    (key: TabType, animate: boolean) => {
+      const l = chipLayouts.current.get(key);
+      if (!l) return;
+      indY.value = l.y;
+      indH.value = l.h;
+      if (animate && !reduceTabMotion && indVisible.value) {
+        indX.value = withSpring(l.x, springConfig('respond'));
+        indW.value = withTiming(l.w, { duration: 180, easing: Curves.out });
+      } else {
+        indX.value = l.x;
+        indW.value = l.w;
+      }
+      indVisible.value = 1;
+    },
+    [indH, indVisible, indW, indX, indY, reduceTabMotion],
+  );
+
+  const onChipLayout = useCallback(
+    (key: TabType) => (e: LayoutChangeEvent) => {
+      const { x, y, width, height } = e.nativeEvent.layout;
+      chipLayouts.current.set(key, { x, y, w: width, h: height });
+      if (key === activeTab) placeIndicator(key, false);
+    },
+    [activeTab, placeIndicator],
+  );
+
+  useEffect(() => {
+    const prev = prevTabRef.current;
+    if (prev === activeTab) return;
+    prevTabRef.current = activeTab;
+    placeIndicator(activeTab, true);
+    const order: TabType[] = ['upcoming', 'past', 'cancelled'];
+    const dir = Math.sign(order.indexOf(activeTab) - order.indexOf(prev)) || 1;
+    if (reduceTabMotion) return;
+    listShift.value = dir * 12;
+    listOpacity.value = 0;
+    listShift.value = withTiming(0, { duration: Durations.respond, easing: Curves.out });
+    listOpacity.value = withTiming(1, { duration: Durations.respond, easing: Curves.out });
+  }, [activeTab, listOpacity, listShift, placeIndicator, reduceTabMotion]);
+
+  const indicatorStyle = useAnimatedStyle(() => ({
+    opacity: indVisible.value,
+    top: indY.value,
+    height: indH.value,
+    width: indW.value,
+    transform: [{ translateX: indX.value }],
+  }));
+  const listStyle = useAnimatedStyle(() => ({
+    flex: 1,
+    opacity: listOpacity.value,
+    transform: [{ translateX: listShift.value }],
+  }));
 
   if (loading) {
     return (
@@ -1494,15 +1622,24 @@ export default function MyTicketsScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.tabChipsRow}
           >
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.tabIndicator,
+                { backgroundColor: colors.primary, ...Shadows.buttonPrimary },
+                indicatorStyle,
+              ]}
+            />
             {tabs.map((tab) => {
               const isActive = activeTab === tab.key;
               return (
                 <TouchableOpacity
                   key={tab.key}
+                  onLayout={onChipLayout(tab.key)}
                   style={[
                     styles.tabChip,
                     isActive
-                      ? { backgroundColor: colors.primary, ...Shadows.buttonPrimary }
+                      ? { backgroundColor: 'transparent' }
                       : { backgroundColor: colors.gray100 },
                   ]}
                   onPress={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: tab.key })}
@@ -1751,10 +1888,12 @@ export default function MyTicketsScreen() {
         )}
 
         {/* Tickets list */}
+        <Animated.View style={listStyle}>
         <FlatList
           data={sectionedItems}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
+          ListHeaderComponent={renderListHeader}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={renderEmpty}
@@ -1767,6 +1906,7 @@ export default function MyTicketsScreen() {
           removeClippedSubviews={false}
           initialNumToRender={8}
         />
+        </Animated.View>
       </View>
     </EditorialCanvas>
   );
@@ -1880,6 +2020,11 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     paddingRight: Spacing.sm,
     alignItems: 'center',
+  },
+  tabIndicator: {
+    position: 'absolute',
+    left: 0,
+    borderRadius: BorderRadius.full,
   },
   tabChip: {
     flexDirection: 'row',

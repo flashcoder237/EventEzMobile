@@ -1,0 +1,73 @@
+/**
+ * feedback — l'orchestrateur image + vibration + son (round 2, M7).
+ *
+ * Règle : un moment se ressent en UNE frame. L'appelant déclenche `feedback.*`
+ * au pic visuel (fin du trait d'une coche, contact d'un tampon) — le son et la
+ * vibration partent ensemble, jamais l'un au montage et l'autre 700 ms plus
+ * tard.
+ *
+ * Sens des vibrations (tokens motion, style guide §6) :
+ *   - `celebrate` : succès + écho — RÉSERVÉ au paiement et au scan validé ;
+ *   - `confirm`   : sélection — révélation, validation d'un choix ;
+ *   - `warn`      : avertissement (déjà scanné, autre événement) ;
+ *   - `reject`    : erreur (refusé).
+ * Le son respecte le réglage de l'utilisateur (géré par soundService).
+ */
+import { haptics } from './haptics';
+import type { SoundKey } from '../services/soundService';
+
+function play(sound?: SoundKey) {
+  if (!sound) return;
+  try {
+    // Chargé à la demande : le module audio natif n'est tiré qu'au premier son
+    // (et jamais dans les écrans/tests qui ne vibrent que).
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const soundService = require('../services/soundService').default;
+    soundService?.play?.(sound)?.catch?.(() => {});
+  } catch {
+    /* son indisponible → silence */
+  }
+}
+
+/**
+ * R2 V12 — tableau UNIQUE « moment → son → haptique » de la plateforme vivante.
+ * Le son respecte le réglage existant (soundService) et le mode silencieux iOS.
+ */
+export type LiveMoment = 'ticketReceived' | 'arrival' | 'connectionArrived' | 'sale';
+
+export const LIVE_MOMENTS: Record<LiveMoment, { sound: SoundKey; haptic: 'success' | 'light' | 'selection' }> = {
+  ticketReceived: { sound: 'ticket-received', haptic: 'success' },
+  arrival: { sound: 'arrival', haptic: 'success' },
+  connectionArrived: { sound: 'arrival', haptic: 'light' },
+  sale: { sound: 'sale', haptic: 'light' },
+};
+
+export const feedback = {
+  /** Moment de la plateforme vivante (voir LIVE_MOMENTS). */
+  moment(name: LiveMoment) {
+    const spec = LIVE_MOMENTS[name];
+    if (!spec) return;
+    haptics[spec.haptic]();
+    play(spec.sound);
+  },
+  /** Paiement réussi, scan validé. */
+  celebrate(sound?: SoundKey) {
+    haptics.celebrate();
+    play(sound);
+  },
+  /** Révélation, choix confirmé : discret. */
+  confirm(sound?: SoundKey) {
+    haptics.selection();
+    play(sound);
+  },
+  warn(sound?: SoundKey) {
+    haptics.warning();
+    play(sound);
+  },
+  reject(sound?: SoundKey) {
+    haptics.error();
+    play(sound);
+  },
+};
+
+export default feedback;

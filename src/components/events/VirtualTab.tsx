@@ -17,6 +17,20 @@ import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 import { LiveDot } from '../ui/motion';
+import { LiveReactions, type LiveReactionsHandle } from './live/LiveReactions';
+import { useLiveTopic } from '../../hooks/useRealtime';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** V6 — réactions pendant le direct (inscrits seulement, topic `live:{uuid}`). */
+function VirtualLiveReactions({ eventId }: { eventId: string }) {
+  const ref = React.useRef<LiveReactionsHandle>(null);
+  const liveId = UUID_RE.test(eventId) ? eventId : null;
+  useLiveTopic(liveId, (kind, data) => {
+    if (kind === 'reactions' && data && typeof data === 'object') ref.current?.burst(data);
+  });
+  return <LiveReactions ref={ref} eventId={liveId} />;
+}
 import { withJwt, withJitsiUi } from '../../lib/utils/visioUrl';
 import { useLiveStatus } from '../../hooks/useLiveStatus';
 import { useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
@@ -240,6 +254,12 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
       </TouchableOpacity>
     </View>
   ) : null;
+  const liveBlock = liveBanner ? (
+    <>
+      {liveBanner}
+      {isRegistered && <VirtualLiveReactions eventId={eventId} />}
+    </>
+  ) : null;
 
   if (loading) {
     return (
@@ -255,7 +275,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
   if (!hasContent) {
     return (
       <View style={styles.section}>
-        {liveBanner}
+        {liveBlock}
         <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.virtualTitle')}</Text>
         <View style={styles.emptyTab}>
           <Ionicons name="videocam-outline" size={40} color={colors.gray300} />
@@ -267,7 +287,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
 
   return (
     <View style={styles.section}>
-      {liveBanner}
+      {liveBlock}
       {/* Virtual Rooms */}
       {rooms.length > 0 && (
         <>

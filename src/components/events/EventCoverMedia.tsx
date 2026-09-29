@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useRef, useState } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, ImageStyle, ViewStyle, TouchableOpacity, AppState } from 'react-native';
 import { Image } from 'expo-image';
 import { Video, ResizeMode, Audio, InterruptionModeIOS, InterruptionModeAndroid } from 'expo-av';
@@ -8,6 +8,9 @@ import { useTranslation } from 'react-i18next';
 import { Event } from '../../types';
 import { getMediaUrl } from '../../api/config';
 import EventImage from './EventImage';
+import { buildEmbedSource } from '../../lib/utils/videoUrl';
+import { WEB_BASE_URL } from '../../constants/urls';
+import YouTubeCoverPlayer, { getYouTubeId } from './YouTubeCoverPlayer';
 
 interface EventCoverMediaProps {
   event: Pick<Event, 'id' | 'title' | 'banner_image' | 'banner_placeholder' | 'cover_video' | 'cover_video_embed' | 'category'> & Record<string, any>;
@@ -69,8 +72,16 @@ function EventCoverMediaImpl({
 
   const coverVideoUri = event.cover_video ? getMediaUrl(event.cover_video) : null;
   const coverVideoEmbed = event.cover_video_embed || '';
+  // Mémorisé : un nouvel objet `source` à chaque rendu rechargerait le lecteur.
+  const embedSource = useMemo(
+    () => (coverVideoEmbed ? buildEmbedSource(coverVideoEmbed, WEB_BASE_URL) : null),
+    [coverVideoEmbed],
+  );
   const hasUploadedVideo = !!coverVideoUri && !videoError;
   const hasEmbedVideo = !hasUploadedVideo && !!coverVideoEmbed;
+  // YouTube : lecteur piloté (se comporte comme une vidéo téléversée).
+  const youTubeId = hasEmbedVideo ? getYouTubeId(coverVideoEmbed) : null;
+  const [embedFailed, setEmbedFailed] = useState(false);
 
   // B4 (fix) : si le réseau interdit l'autoplay (data éco), on ANNULE aussi le
   // play manuel — sinon la vidéo continuait de streamer en 4G éco dès qu'on avait
@@ -280,12 +291,94 @@ function EventCoverMediaImpl({
     );
   }
 
+  // ─── YouTube piloté : même comportement qu'une vidéo téléversée ───
+  // Lecture muette auto, pause hors écran / arrière-plan / à la demande, son
+  // au tap, agrandir. Sans contrôles (accueil), c'est un APERÇU : quelques
+  // extraits courts en boucle. L'interface YouTube n'est jamais montrée : le
+  // poster reste visible tant que la vidéo ne joue pas, et en cas d'erreur.
+  if (youTubeId && !embedFailed && mode === 'hero') {
+    const poster = (
+      <View style={StyleSheet.absoluteFill}>
+        {placeholder && (
+          <Image source={{ uri: placeholder }} contentFit="cover" style={[StyleSheet.absoluteFill, imageStyle]} />
+        )}
+        {imageUri ? (
+          <Image source={{ uri: imageUri }} contentFit="cover" transition={200} cachePolicy="memory-disk" style={[StyleSheet.absoluteFill, imageStyle]} />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: '#0F172A' }]} />
+        )}
+      </View>
+    );
+    return (
+      <View style={[styles.container, style]} testID={testID}>
+        <YouTubeCoverPlayer
+          videoId={youTubeId}
+          playing={playing}
+          muted={showControls ? muted : true}
+          preview={!showControls}
+          poster={poster}
+          onError={() => { setEmbedFailed(true); onVideoUnavailable?.(); }}
+        />
+
+        {showControls && !playing && (
+          <TouchableOpacity
+            style={styles.playOverlay}
+            activeOpacity={0.85}
+            onPress={() => { setUserPaused(false); setManualPlay(true); setMuted(false); applyAudioFocus(true); }}
+            accessibilityRole="button"
+            accessibilityLabel={t('eventDetails.videoPlayA11y', { defaultValue: 'Lire la vidéo avec le son' })}
+          >
+            <View style={styles.playCircle}>
+              <Ionicons name="play" size={26} color="#0F172A" />
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {showControls && playing && (
+          <View style={styles.controlsRow} pointerEvents="box-none">
+            <TouchableOpacity
+              style={styles.ctrlBtn}
+              onPress={() => { setUserPaused(true); applyAudioFocus(false); }}
+              accessibilityRole="button"
+              accessibilityLabel={t('eventDetails.videoPauseA11y', { defaultValue: 'Mettre la vidéo en pause' })}
+            >
+              <Ionicons name="pause" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.ctrlBtn}
+              onPress={toggleMute}
+              accessibilityRole="button"
+              accessibilityLabel={
+                muted
+                  ? t('eventDetails.videoUnmuteA11y', { defaultValue: 'Activer le son' })
+                  : t('eventDetails.videoMuteA11y', { defaultValue: 'Couper le son' })
+              }
+            >
+              <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+            {onExpand && (
+              <TouchableOpacity
+                style={styles.ctrlBtn}
+                onPress={onExpand}
+                accessibilityRole="button"
+                accessibilityLabel={t('eventDetails.videoExpandA11y', { defaultValue: 'Agrandir la vidéo en plein écran' })}
+              >
+                <Ionicons name="expand" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </View>
+    );
+  }
+
   // ─── Embed YouTube/Vimeo via WebView (uniquement en mode hero, trop lourd pour les cards) ───
-  if (hasEmbedVideo && mode === 'hero') {
+  if (hasEmbedVideo && !youTubeId && mode === 'hero') {
     return (
       <View style={[styles.container, style]} testID={testID}>
         <WebView
-          source={{ uri: coverVideoEmbed }}
+          source={embedSource!}
+          originWhitelist={['*']}
           style={StyleSheet.absoluteFill}
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,26 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
-import { LiveDot } from '../../components/ui/motion';
+import Animated, {
+  FadeInDown,
+  FadeOut,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import { LiveDot, RollingText } from '../../components/ui/motion';
+import { useMotionGate, useScreenFocused } from '../../components/ui/motion/useMotionGate';
+import { useOrganizerTopic } from '../../hooks/useRealtime';
+import { Curves, Durations } from '../../constants/motion';
+import {
+  checkinKey,
+  LiveOpsMoment,
+  newCheckins,
+  pickLiveOpsMoment,
+  PEAK_MIN_ENTRIES,
+} from '../../lib/utils/organizerMoments';
+import { appDateLocale } from '../../lib/utils/dateFormatters';
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
 import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import { registrationsAPI } from '../../api';
@@ -24,7 +43,10 @@ import { RootStackParamList } from '../../types';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'LiveOps'>;
 
-const POLL_MS = 15000;
+// R2 O8 — les check-ins sont désormais POUSSÉS (topic `organizer:{uuid}`) ;
+// le polling ne sert plus que de filet de sécurité (socket coupée).
+const POLL_MS = 60000;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface RecentItem {
   holder_name?: string;
@@ -44,6 +66,8 @@ interface LiveOps {
   currency: string;
   recent: RecentItem[];
   timeline: { bucket_minutes: number; start: string; buckets: number[] };
+  /** O8 — heure du tout premier check-in (« Portes ouvertes à 18:42 »). */
+  first_check_in_at?: string | null;
 }
 
 function timeAgo(iso: string, t: (k: string, o?: any) => string): string {
@@ -77,10 +101,35 @@ export default function LiveOpsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
 
+  const { canAnimate } = useMotionGate();
+  // O8 — un seul moment par rafraîchissement, rien au premier chargement.
+  const prevRef = useRef<LiveOps | null>(null);
+  const [moment, setMoment] = useState<{ kind: LiveOpsMoment; key: number } | null>(null);
+  const [freshKeys, setFreshKeys] = useState<Set<string>>(new Set());
+  const [pendingNew, setPendingNew] = useState(0);
+  const scrollYRef = useRef(0);
+  // Liste affichée : figée tant que l'organisateur lit plus bas (puce « +3 »).
+  const [shown, setShown] = useState<LiveOps | null>(null);
+
   const load = useCallback(async () => {
     try {
       const res = await registrationsAPI.getLiveOps(eventId);
-      setData(res.data as LiveOps);
+      const next = res.data as LiveOps;
+      const prev = prevRef.current;
+      prevRef.current = next;
+      const m = pickLiveOpsMoment(prev, next);
+      if (m) setMoment({ kind: m, key: Date.now() });
+      const fresh = newCheckins(prev?.recent, next.recent);
+      setData(next);
+      if (!prev) {
+        setShown(next);
+      } else if (fresh.length && scrollYRef.current > 8) {
+        // En cours de lecture : on n'insère rien sous le doigt, une puce propose.
+        setPendingNew((n) => n + fresh.length);
+      } else {
+        setShown(next);
+        setFreshKeys(new Set(fresh.map(checkinKey)));
+      }
       setError(false);
     } catch {
       setError(true);
@@ -88,6 +137,19 @@ export default function LiveOpsScreen() {
       setLoading(false);
     }
   }, [eventId]);
+
+  // R2 O8 — check-in poussé : on relit le direct (la logique d'insertion par le
+  // haut et les moments du lot O s'appliquent telles quelles). Le serveur
+  // limite déjà à une diffusion toutes les 10 s.
+  const focused = useScreenFocused();
+  const topicEventId = UUID_RE.test(String(eventId))
+    ? String(eventId)
+    : (data as any)?.event_id && UUID_RE.test(String((data as any).event_id))
+    ? String((data as any).event_id)
+    : null;
+  useOrganizerTopic(topicEventId, () => {
+    load();
+  }, focused);
 
   // Polling tant que l'écran est au premier plan (stoppé au blur → batterie).
   useFocusEffect(
@@ -101,6 +163,44 @@ export default function LiveOpsScreen() {
       };
     }, [load]),
   );
+
+  useEffect(() => {
+    if (!freshKeys.size) return;
+    const id = setTimeout(() => setFreshKeys(new Set()), 1200);
+    return () => clearTimeout(id);
+  }, [freshKeys]);
+
+  const showPending = useCallback(() => {
+    setPendingNew(0);
+    setShown(prevRef.current);
+  }, []);
+
+  // Barre de progression : scaleX (transform) au lieu d'une largeur en %.
+  const progress = useSharedValue(0);
+  const pctTarget = Math.min(100, data?.check_in_percentage ?? 0) / 100;
+  useEffect(() => {
+    progress.value = canAnimate
+      ? withTiming(pctTarget, { duration: Durations.inform, easing: Curves.out })
+      : pctTarget;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pctTarget, canAnimate]);
+  const progressStyle = useAnimatedStyle(() => ({ transform: [{ scaleX: progress.value }] }));
+
+  let momentLabel: string | null = null;
+  if (moment && data) {
+    if (moment.kind === 'doors' && data.first_check_in_at) {
+      const time = new Date(data.first_check_in_at).toLocaleTimeString(appDateLocale(), {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      momentLabel = t('organizerMoments.liveOps.doors', { time });
+    } else if (moment.kind === 'nearly_full') {
+      momentLabel = t('organizerMoments.liveOps.nearlyFull');
+    } else if (moment.kind === 'peak') {
+      const b = data.timeline?.buckets ?? [];
+      momentLabel = t('organizerMoments.liveOps.peak', { count: b.length ? b[b.length - 1] : 0 });
+    }
+  }
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -150,6 +250,10 @@ export default function LiveOpsScreen() {
         </View>
       ) : (
         <ScrollView
+          onScroll={(e) => {
+            scrollYRef.current = e.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={64}
           contentContainerStyle={styles.content}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
           showsVerticalScrollIndicator={false}
@@ -161,12 +265,21 @@ export default function LiveOpsScreen() {
 
           {/* % validés — hero */}
           <View style={[styles.heroCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.heroPct, { color: colors.primary }]}>{pct}%</Text>
+            <RollingText value={`${pct}%`} style={[styles.heroPct, { color: colors.primary }]} />
+            {!!momentLabel && (
+              <Animated.View
+                key={moment?.key}
+                entering={canAnimate ? FadeInDown.duration(Durations.enter) : undefined}
+                style={[styles.momentChip, { backgroundColor: `${colors.success}18` }]}
+              >
+                <Text style={[styles.momentText, { color: colors.success }]}>{momentLabel}</Text>
+              </Animated.View>
+            )}
             <Text style={[styles.heroLabel, { color: colors.gray500 }]}>
               {t('organizer.liveOps.arrived', { checked: data?.checked_in ?? 0, sold: data?.tickets_sold ?? 0 })}
             </Text>
             <View style={[styles.progressTrack, { backgroundColor: colors.surface }]}>
-              <View style={[styles.progressFill, { backgroundColor: colors.primary, width: `${Math.min(100, pct)}%` }]} />
+              <Animated.View style={[styles.progressFill, { backgroundColor: colors.primary }, progressStyle]} />
             </View>
           </View>
 
@@ -203,19 +316,33 @@ export default function LiveOpsScreen() {
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.cardTitle, { color: colors.text }]}>{t('organizer.liveOps.cadenceTitle')}</Text>
             <View style={styles.chart}>
-              {buckets.map((b, i) => (
-                <View key={i} style={styles.barCol}>
-                  <View
-                    style={[
-                      styles.bar,
-                      {
-                        height: `${Math.max(4, (b / maxBucket) * 100)}%`,
-                        backgroundColor: b > 0 ? colors.primary : colors.surface,
-                      },
-                    ]}
-                  />
-                </View>
-              ))}
+              {buckets.map((b, i) => {
+                // O8 — le pic de la tranche courante (≥ 10 entrées) en dégradé.
+                const isPeak = i === buckets.length - 1 && b >= PEAK_MIN_ENTRIES && b >= maxBucket;
+                return (
+                  <View key={i} style={styles.barCol}>
+                    <View
+                      style={[
+                        styles.bar,
+                        {
+                          height: `${Math.max(4, (b / maxBucket) * 100)}%`,
+                          backgroundColor: b > 0 ? colors.primary : colors.surface,
+                          overflow: 'hidden',
+                        },
+                      ]}
+                    >
+                      {isPeak && (
+                        <LinearGradient
+                          colors={[colors.accent, colors.primary]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 0, y: 1 }}
+                          style={StyleSheet.absoluteFill}
+                        />
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
             </View>
             <Text style={[styles.chartHint, { color: colors.gray400 }]}>
               {t('organizer.liveOps.chartHint', { minutes: (buckets.length || 8) * (data?.timeline?.bucket_minutes ?? 15) })}
@@ -224,12 +351,39 @@ export default function LiveOpsScreen() {
 
           {/* Recent activity */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>{t('organizer.liveOps.recentTitle')}</Text>
-            {(data?.recent ?? []).length === 0 ? (
+            <View style={styles.recentHeader}>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>{t('organizer.liveOps.recentTitle')}</Text>
+              {pendingNew > 0 && (
+                <TouchableOpacity
+                  onPress={showPending}
+                  style={[styles.newChip, { backgroundColor: `${colors.success}18` }]}
+                  accessibilityRole="button"
+                >
+                  <Text style={[styles.momentText, { color: colors.success }]}>
+                    {t('organizerMoments.liveOps.newCount', { count: pendingNew })}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {((shown ?? data)?.recent ?? []).length === 0 ? (
               <Text style={[styles.emptyText, { color: colors.gray400 }]}>{t('organizer.liveOps.recentEmpty')}</Text>
             ) : (
-              (data?.recent ?? []).map((r, i) => (
-                <View key={i} style={[styles.recentRow, i > 0 && { borderTopWidth: 1, borderTopColor: isDark ? colors.border : colors.gray100 }]}>
+              ((shown ?? data)?.recent ?? []).map((r, i) => (
+                <Animated.View
+                  key={checkinKey(r)}
+                  entering={canAnimate && freshKeys.has(checkinKey(r)) ? FadeInDown.duration(Durations.enter) : undefined}
+                  style={[
+                    styles.recentRow,
+                    i > 0 && { borderTopWidth: 1, borderTopColor: isDark ? colors.border : colors.gray100 },
+                  ]}
+                >
+                  {freshKeys.has(checkinKey(r)) && (
+                    <Animated.View
+                      pointerEvents="none"
+                      exiting={canAnimate ? FadeOut.duration(Durations.inform) : undefined}
+                      style={[StyleSheet.absoluteFill, { backgroundColor: `${colors.success}14`, borderRadius: 10 }]}
+                    />
+                  )}
                   <View style={[styles.recentAvatar, { backgroundColor: `${colors.success}18` }]}>
                     <Ionicons name="checkmark" size={16} color={colors.success} />
                   </View>
@@ -242,7 +396,7 @@ export default function LiveOpsScreen() {
                     )}
                   </View>
                   <Text style={[styles.recentTime, { color: colors.gray400 }]}>{timeAgo(r.checked_in_at, t)}</Text>
-                </View>
+                </Animated.View>
               ))
             )}
           </View>
@@ -299,7 +453,11 @@ const styles = StyleSheet.create({
   heroPct: { fontFamily: FontFamily.displayExtraBold, fontSize: 56, letterSpacing: -2, lineHeight: 60 },
   heroLabel: { fontFamily: FontFamily.medium, fontSize: 14 },
   progressTrack: { width: '100%', height: 8, borderRadius: 4, marginTop: 6, overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 4 },
+  progressFill: { ...StyleSheet.absoluteFillObject, borderRadius: 4, transformOrigin: 'left center' },
+  momentChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  momentText: { fontFamily: FontFamily.bold, fontSize: 12 },
+  recentHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  newChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, marginBottom: Spacing.sm },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   statCard: {

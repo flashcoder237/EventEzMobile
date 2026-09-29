@@ -15,7 +15,6 @@ import React, { memo, useEffect, useRef, useState } from 'react';
 import {
   LayoutChangeEvent,
   Pressable,
-  ScrollView,
   ScrollViewProps,
   StyleProp,
   StyleSheet,
@@ -24,6 +23,8 @@ import {
 } from 'react-native';
 import Animated, {
   interpolateColor,
+  runOnJS,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
@@ -35,6 +36,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { haptics } from '../../../utils/haptics';
 import { useMotionGate } from './useMotionGate';
+import { Amplitudes, Curves, Durations, Timing, springConfig } from '../../../constants/motion';
 
 export interface SpringChipProps {
   onPress?: () => void;
@@ -75,11 +77,11 @@ function SpringChipComponent({
     const was = prev.current;
     prev.current = active;
     if (was === active) return;
-    progress.value = canAnimate ? withTiming(active ? 1 : 0, { duration: 180 }) : active ? 1 : 0;
+    progress.value = canAnimate ? withTiming(active ? 1 : 0, Timing.respond) : active ? 1 : 0;
     if (active && canAnimate) {
       iconScale.value = withSequence(
-        withTiming(1.25, { duration: 110 }),
-        withSpring(1, { damping: 12, stiffness: 320 }),
+        withTiming(Amplitudes.popPeak, { duration: 110, easing: Curves.out }),
+        withSpring(1, springConfig('pop')),
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,10 +96,12 @@ function SpringChipComponent({
   return (
     <Pressable
       onPressIn={() => {
-        if (canAnimate) scale.value = withSpring(0.95, { damping: 18, stiffness: 420 });
+        // Press (M4) : enfoncement 100 ms interruptible, relâchement « respond ».
+        if (canAnimate)
+          scale.value = withTiming(Amplitudes.pressChip, { duration: Durations.pressIn, easing: Curves.out });
       }}
       onPressOut={() => {
-        scale.value = withSpring(1, { damping: 14, stiffness: 320 });
+        scale.value = withSpring(1, springConfig('respond'));
       }}
       onPress={() => {
         haptics.selection();
@@ -130,7 +134,8 @@ export const SpringChip = memo(SpringChipComponent);
 
 const FADE = 16;
 
-export interface EdgeFadeScrollProps extends ScrollViewProps {
+/** `onScroll` n'est pas relayé : le suivi des bords tourne sur le thread UI. */
+export interface EdgeFadeScrollProps extends Omit<ScrollViewProps, 'onScroll'> {
   children?: React.ReactNode;
   fade?: number;
 }
@@ -139,7 +144,6 @@ function EdgeFadeScrollComponent({
   children,
   fade = FADE,
   style,
-  onScroll,
   onContentSizeChange,
   ...rest
 }: EdgeFadeScrollProps) {
@@ -155,27 +159,40 @@ function EdgeFadeScrollComponent({
     if (w !== width) setWidth(w);
   };
 
+  // M11 — le défilement est suivi sur le thread UI (handler Reanimated) : le
+  // thread JS n'est sollicité qu'au franchissement d'un bord, plus à chaque
+  // événement de scroll.
+  const startSV = useSharedValue(true);
+  const endSV = useSharedValue(false);
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      const start = e.contentOffset.x <= 2;
+      const end = e.contentOffset.x + e.layoutMeasurement.width >= e.contentSize.width - 2;
+      if (start !== startSV.value) {
+        startSV.value = start;
+        runOnJS(setAtStart)(start);
+      }
+      if (end !== endSV.value) {
+        endSV.value = end;
+        runOnJS(setAtEnd)(end);
+      }
+    },
+  });
+
   const scroll = (
-    <ScrollView
+    <Animated.ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      scrollEventThrottle={32}
+      scrollEventThrottle={16}
       {...rest}
-      onContentSizeChange={(w, h) => {
+      onContentSizeChange={(w: number, h: number) => {
         setContentWidth(Math.round(w));
         onContentSizeChange?.(w, h);
       }}
-      onScroll={(e) => {
-        const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-        const start = contentOffset.x <= 2;
-        const end = contentOffset.x + layoutMeasurement.width >= contentSize.width - 2;
-        if (start !== atStart) setAtStart(start);
-        if (end !== atEnd) setAtEnd(end);
-        onScroll?.(e);
-      }}
+      onScroll={scrollHandler}
     >
       {children}
-    </ScrollView>
+    </Animated.ScrollView>
   );
 
   const overflows = contentWidth > width + 2;
@@ -197,6 +214,9 @@ function EdgeFadeScrollComponent({
   return (
     <View style={style} onLayout={onLayout}>
       <MaskedView
+        // Rendu matériel : en logiciel (défaut Android), le masque est
+        // recalculé sur le CPU à chaque frame de défilement.
+        androidRenderingMode="hardware"
         maskElement={
           <LinearGradient
             colors={[fadeLeft ? 'transparent' : '#000', '#000', '#000', fadeRight ? 'transparent' : '#000']}

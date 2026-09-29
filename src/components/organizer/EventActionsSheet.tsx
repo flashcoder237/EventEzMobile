@@ -1,29 +1,14 @@
-import React, { useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  Pressable,
-  ScrollView,
-  Dimensions,
-} from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSpring,
-  runOnJS,
-} from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { haptics } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
-import { FontFamily, Spacing, BorderRadius, SpringPresets } from '../../constants/theme';
+import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
 import { CARD_MAX } from '../../constants/layout';
+import { SpringSheet, SpringSheetScrollView } from '../ui/motion/SpringSheet';
 
 export type EventActionStyle = 'default' | 'destructive';
 
@@ -56,9 +41,6 @@ interface EventActionsSheetProps {
   sections: EventActionSection[];
 }
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-const MAX_SHEET_HEIGHT = SCREEN_HEIGHT * 0.85;
-
 /**
  * Bottom sheet d'actions pour les events de la liste organizer.
  *
@@ -70,8 +52,8 @@ const MAX_SHEET_HEIGHT = SCREEN_HEIGHT * 0.85;
  * - Sections avec eyebrow uppercase (Suivi/Configuration/etc.)
  * - Safe area top respectée (jamais sous le statusbar)
  * - Safe area bottom respectée (jamais sous la nav bar)
- * - Drag-to-dismiss (swipe down depuis le handle)
- * - Backdrop fade + sheet slide up animation
+ * - Physique commune SpringSheet (T5) : lâcher projeté, ressort interruptible,
+ *   la liste rend la main à la feuille quand elle est tout en haut
  */
 export default function EventActionsSheet({
   visible,
@@ -83,53 +65,11 @@ export default function EventActionsSheet({
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-
-  const translateY = useSharedValue(SCREEN_HEIGHT);
-  const backdropOpacity = useSharedValue(0);
-
-  useEffect(() => {
-    if (visible) {
-      translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.6 });
-      backdropOpacity.value = withTiming(1, { duration: 220 });
-    } else {
-      // Fermeture au ressort (symétrique à l'ouverture, interruptible) — damping
-      // élevé = descente franche sans rebond. Ne jamais utiliser Easing.in sur une
-      // sortie gestuelle (démarre lent, l'utilisateur regarde le départ).
-      translateY.value = withSpring(SCREEN_HEIGHT, SpringPresets.sheet);
-      backdropOpacity.value = withTiming(0, { duration: 180 });
-    }
-  }, [visible, translateY, backdropOpacity]);
+  const { height: winH } = useWindowDimensions();
 
   const handleClose = () => {
     onClose();
   };
-
-  const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
-
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: backdropOpacity.value,
-  }));
-
-  // Drag-to-dismiss : seuil 100px de descente déclenche fermeture
-  const dragGesture = Gesture.Pan()
-    .activeOffsetY(10)
-    .failOffsetY(-10)
-    .onUpdate((e) => {
-      if (e.translationY > 0) {
-        translateY.value = e.translationY;
-        backdropOpacity.value = Math.max(0, 1 - e.translationY / 400);
-      }
-    })
-    .onEnd((e) => {
-      if (e.translationY > 100 || e.velocityY > 600) {
-        runOnJS(handleClose)();
-      } else {
-        translateY.value = withSpring(0, { damping: 22, stiffness: 240 });
-        backdropOpacity.value = withTiming(1, { duration: 180 });
-      }
-    });
 
   const handleActionPress = async (action: EventAction) => {
     if (action.style === 'destructive') {
@@ -144,41 +84,14 @@ export default function EventActionsSheet({
   };
 
   return (
-    <Modal
+    <SpringSheet
       visible={visible}
-      transparent
-      animationType="none"
-      onRequestClose={handleClose}
-      statusBarTranslucent
+      onClose={handleClose}
+      maxHeight={winH * 0.85}
+      backgroundColor={colors.card}
+      accessibilityLabel={title}
+      style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}
     >
-      <View style={styles.modalRoot}>
-        {/* Backdrop tappable pour fermer */}
-        <Animated.View style={[StyleSheet.absoluteFillObject, backdropStyle]}>
-          <Pressable
-            style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.45)' }]}
-            onPress={handleClose}
-            accessibilityRole="button"
-            accessibilityLabel={t('componentsOrganizer.actionsSheet.closeA11y')}
-          />
-        </Animated.View>
-
-        {/* Sheet */}
-        <GestureDetector gesture={dragGesture}>
-          <Animated.View
-            style={[
-              styles.sheet,
-              {
-                backgroundColor: colors.card,
-                paddingBottom: Math.max(insets.bottom, Spacing.md),
-                maxHeight: MAX_SHEET_HEIGHT,
-              },
-              sheetStyle,
-            ]}
-          >
-            {/* Drag handle */}
-            <View style={styles.handleContainer}>
-              <View style={[styles.handle, { backgroundColor: isDark ? '#475569' : '#CBD5E1' }]} />
-            </View>
 
             {/* Header */}
             <View style={styles.header}>
@@ -194,9 +107,8 @@ export default function EventActionsSheet({
             </View>
 
             {/* Sections scrollable */}
-            <ScrollView
+            <SpringSheetScrollView
               showsVerticalScrollIndicator={false}
-              bounces={false}
               contentContainerStyle={styles.scrollContent}
             >
               {sections.map((section, sectionIdx) => (
@@ -279,7 +191,7 @@ export default function EventActionsSheet({
                   </View>
                 </View>
               ))}
-            </ScrollView>
+            </SpringSheetScrollView>
 
             {/* Cancel button collé en bas */}
             <Pressable
@@ -296,36 +208,14 @@ export default function EventActionsSheet({
             >
               <Text style={[styles.cancelLabel, { color: colors.text }]}>{t('componentsOrganizer.actionsSheet.cancel')}</Text>
             </Pressable>
-          </Animated.View>
-        </GestureDetector>
-      </View>
-    </Modal>
+    </SpringSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  modalRoot: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    // iPad : centrer le sheet ; le backdrop (absoluteFill) reste bord-à-bord.
-    alignItems: 'center',
-  },
+  // iPad : SpringSheet centre la feuille ; le voile reste bord-à-bord.
   sheet: {
-    width: '100%',
     maxWidth: CARD_MAX,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    overflow: 'hidden',
-  },
-  handleContainer: {
-    alignItems: 'center',
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
   },
   header: {
     paddingHorizontal: Spacing.lg,

@@ -35,6 +35,7 @@ import {
   TextStyles,
 } from '../../constants/theme';
 import { centeredContent } from '../../constants/layout';
+import { dayLightFor } from '../../components/ui/editorial/editorialTokens';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -172,11 +173,14 @@ export default function DashboardScreen() {
     await fetchStats(true);
   };
 
+  // S6 — la salutation suit la même lumière que le fond (EditorialCanvas).
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return t('dashboard.greetingHi');
-    if (hour < 18) return t('dashboard.greetingGoodAfternoon');
-    return t('dashboard.greetingGoodEvening');
+    const light = dayLightFor(hour);
+    if (light === 'night') return t('dashboard.greetingNight', { defaultValue: 'Belle soirée' });
+    if (light === 'dawn') return t('dashboard.greetingHi');
+    if (light === 'evening') return t('dashboard.greetingGoodEvening');
+    return hour < 12 ? t('dashboard.greetingHi') : t('dashboard.greetingGoodAfternoon');
   };
 
   return (

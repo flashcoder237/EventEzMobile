@@ -24,6 +24,8 @@ import { registrationsAPI, ticketTransfersAPI, paymentsAPI, virtualRoomsAPI } fr
 import { getVerificationUrl, getEventInviteUrl, WEB_BASE_URL } from '../../constants/urls';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useTicketDisplayGuard } from '../../hooks/useTicketDisplayGuard';
+import Animated from 'react-native-reanimated';
+import { useHeroFlight } from '../../components/ui/motion/HeroFlight';
 import { Registration, RootStackParamList } from '../../types';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
 import { withJwt, withJitsiUi } from '../../lib/utils/visioUrl';
@@ -48,6 +50,12 @@ import {
   editorial,
   EditorialColors,
 } from '../../components/ui/editorial';
+import OnSiteHub, { isRegistrationCheckedIn } from '../../components/tickets/OnSiteHub';
+import { shortMonthLabel } from '../../lib/utils/dateFormatters';
+import { getEventAmbience } from '../../lib/utils/eventKind';
+import { SERIF_FAMILY } from '../../lib/utils/ambience';
+import { getTicketPhase } from '../../lib/utils/ticketPhase';
+import { eventTint, tintAlpha, tintFor } from '../../lib/utils/themeTint';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RegistrationDetailsRouteProp = RouteProp<RootStackParamList, 'RegistrationDetails'>;
@@ -63,7 +71,22 @@ export default function RegistrationDetailsScreen() {
   const { width: winWidth } = useWindowDimensions();
   const QR_SIZE = Math.min(winWidth - Spacing['2xl'] * 5, 260);
   const route = useRoute<RegistrationDetailsRouteProp>();
-  const { registrationId } = route.params;
+  const { registrationId, hero } = route.params;
+  // T14 — le billet de Mes billets « se soulève » jusqu'ici : même mécanique
+  // que le vol carte → fiche, en échelle uniforme (pas d'image à recadrer).
+  const heroFlight = useHeroFlight(hero, { uniform: true, restRadius: 24 });
+  const { rewind: heroRewind, release: heroRelease } = heroFlight;
+  const closingRef = useRef(false);
+  const closeScreen = useCallback(async () => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    await Promise.race([heroRewind(), new Promise<boolean>((r) => setTimeout(() => r(true), 140))]);
+    heroRelease();
+    navigation.goBack();
+    setTimeout(() => {
+      closingRef.current = false;
+    }, 800);
+  }, [heroRewind, heroRelease, navigation]);
   const { showError, showSuccess, showConfirm } = useAlert();
   const { open: openSaveOrShare, sheet: saveOrShareSheet } = useSaveOrShareSheet();
   const { toastSuccess, toastError } = useFeedback();
@@ -473,7 +496,7 @@ export default function RegistrationDetailsScreen() {
             eyebrow={t('registrationDetails.headerEyebrowFallback')}
             title={t('registrationDetails.headerTitleFallback')}
             back
-            onBack={() => navigation.goBack()}
+            onBack={closeScreen}
           />
           <View style={styles.errorContainer}>
             <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
@@ -487,6 +510,10 @@ export default function RegistrationDetailsScreen() {
   const event = registration.event_detail || (typeof registration.event === 'object' ? registration.event : null);
   const statusConfig = getStatusConfig(registration.status, registration.approval_status);
   const isActive = registration.status !== 'cancelled' && registration.status !== 'rejected';
+  // S3/S4 — phase du billet (portes ouvertes / en cours) et teinte de l'événement.
+  const ticketPhase = getTicketPhase(event as any, registration as any);
+  const onSitePhase = ticketPhase === 'PORTES' || ticketPhase === 'EN_COURS';
+  const tint = tintFor(eventTint(event), isDark);
 
   // Événement TERMINÉ : la prestation a eu lieu, l'inscription ne s'annule plus
   // (garde miroir du backend). On se base sur `end_date` et non `start_date` :
@@ -545,7 +572,7 @@ export default function RegistrationDetailsScreen() {
           : t('registrationDetails.headerEyebrowInscription', { ref: registration.reference_code })}
         title={isBilletterie ? t('registrationDetails.headerTickets') : t('registrationDetails.headerInscription')}
         back
-        onBack={() => navigation.goBack()}
+        onBack={closeScreen}
         right={
           <View style={styles.headerActions}>
             {isActive && permissionGranted && (
@@ -585,8 +612,19 @@ export default function RegistrationDetailsScreen() {
       />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollInner} showsVerticalScrollIndicator={false}>
+        {/* S3 — scanné et pendant l'événement : le billet devient un hub « sur place ». */}
+        {isActive && onSitePhase && isRegistrationCheckedIn(registration) && event && (
+          <OnSiteHub event={event} registrationId={String(registration.id)} />
+        )}
         {/* Registration Card — editorial ticket (AIDesigner) */}
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray200, shadowColor: colors.primary }]}>
+        <Animated.View
+          ref={heroFlight.outerRef as any}
+          collapsable={false}
+          onLayout={heroFlight.onOuterLayout}
+          style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray200, shadowColor: colors.primary }, heroFlight.outerStyle]}
+        >
+          {/* S4 — filet aux couleurs de l'événement (jamais sur le QR). */}
+          <View style={{ height: 4, backgroundColor: tint }} />
           {/* Event Info — header éditorial avec date tile orange + type pill */}
           <View style={styles.eventInfo}>
             {/* Top row : type pill (BILLETTERIE / INSCRIPTION) + eyebrow catégorie */}
@@ -617,17 +655,24 @@ export default function RegistrationDetailsScreen() {
             {/* Hero row : titre extra-bold + date tile orange à droite */}
             <View style={styles.heroRow}>
               <View style={{ flex: 1, paddingRight: Spacing.md }}>
-                <Text style={[styles.heroTitle, { color: colors.gray900 }]} numberOfLines={3}>
+                <Text
+                  style={[
+                    styles.heroTitle,
+                    { color: colors.gray900 },
+                    getEventAmbience(event as any) === 'celebration' && { fontFamily: SERIF_FAMILY, fontWeight: '600' },
+                  ]}
+                  numberOfLines={3}
+                >
                   {event?.title || t('registrationDetails.eventFallback')}
                 </Text>
               </View>
               {event?.start_date && (
-                <View style={[styles.dateTile, { backgroundColor: `${colors.accent}1A` }]}>
-                  <Text style={[styles.dateTileDay, { color: colors.accent }]}>
+                <View style={[styles.dateTile, { backgroundColor: tintAlpha(tint, 0.1) }]}>
+                  <Text style={[styles.dateTileDay, { color: tint }]}>
                     {new Date(event.start_date).getDate().toString().padStart(2, '0')}
                   </Text>
-                  <Text style={[styles.dateTileMonth, { color: colors.accent }]}>
-                    {new Date(event.start_date).toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase().replace('.', '')}
+                  <Text style={[styles.dateTileMonth, { color: tint }]}>
+                    {shortMonthLabel(new Date(event.start_date)).toUpperCase().replace('.', '')}
                   </Text>
                 </View>
               )}
@@ -915,7 +960,7 @@ export default function RegistrationDetailsScreen() {
               )}
             </View>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Tickets List - For billetterie type */}
         {registration.tickets && registration.tickets.length > 0 && (

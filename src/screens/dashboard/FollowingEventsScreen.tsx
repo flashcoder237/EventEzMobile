@@ -16,6 +16,8 @@ import Animated, {
   withSequence,
   withTiming,
   Easing,
+  FadeOut,
+  LinearTransition,
 } from 'react-native-reanimated';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { Image } from 'expo-image';
@@ -47,6 +49,9 @@ import { StaggeredItem, ContentTransition } from '../../components/ui/Animations
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import EventImage from '../../components/events/EventImage';
 import { toEventPreview } from '../../lib/utils/eventNavPreview';
+import { HeroSlot, captureHero, useHeroToken, withHeroOrigin } from '../../components/ui/motion';
+import { SwipeToSave } from '../../components/ui/motion/SwipeToSave';
+import { useInAppToast } from '../../contexts/InAppToastContext';
 
 
 // Warm editorial canvas (light) / dark background
@@ -196,21 +201,28 @@ function HeroCardComponent({
   const weekday = formatWeekday(event.start_date);
   const time = formatTime(event.start_date);
   const isNotified = follow.notification_preference !== 'none';
+  // T1 — l'image vole jusqu'à la bannière de la fiche.
+  const heroToken = useHeroToken();
   return (
     <TouchableOpacity
       activeOpacity={0.88}
       style={[styles.heroCard, { backgroundColor: colors.card }, Shadows.lg]}
       onPress={() => onPress(event)}
-      onPressIn={() => prefetchEventHero(event)}
+      onPressIn={() => {
+        captureHero(heroToken);
+        prefetchEventHero(event);
+      }}
     >
       {/* Workaround LQIP : placeholder rendu comme `source` de fond
           (placeholderContentFit non honoré sur petits data URIs en natif). */}
-      <EventImage
-        uri={getEventImageUrl(event, 'medium')}
-        fallbackSource={require('../../../assets/defaults/default-event.png')}
-        placeholder={event.banner_placeholder || event.category?.default_event_image_placeholder || undefined}
-        style={StyleSheet.absoluteFillObject}
-      />
+      <HeroSlot token={heroToken} heroKey={event.id} radius={28} style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <EventImage
+          uri={getEventImageUrl(event, 'medium')}
+          fallbackSource={require('../../../assets/defaults/default-event.png')}
+          placeholder={event.banner_placeholder || event.category?.default_event_image_placeholder || undefined}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </HeroSlot>
       {/* Dark gradient overlay */}
       <LinearGradient
         colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.35)', 'rgba(0,0,0,0.9)']}
@@ -304,6 +316,7 @@ function MasonryCardComponent({
   const isNotified = follow.notification_preference !== 'none';
   const imageHeight = variant === 'tall' ? 130 : variant === 'medium' ? 100 : 0;
   const hasImage = variant !== 'short';
+  const heroToken = useHeroToken();
 
   return (
     <TouchableOpacity
@@ -313,10 +326,13 @@ function MasonryCardComponent({
         { backgroundColor: colors.card, borderColor: colors.border },
       ]}
       onPress={() => onPress(event)}
-      onPressIn={() => prefetchEventHero(event)}
+      onPressIn={() => {
+        if (hasImage) captureHero(heroToken);
+        prefetchEventHero(event);
+      }}
     >
       {hasImage && (
-        <View style={[styles.masonryImageWrap, { height: imageHeight }]}>
+        <HeroSlot token={heroToken} heroKey={event.id} radius={14} style={[styles.masonryImageWrap, { height: imageHeight }]}>
           {/* Workaround LQIP : placeholder en source de fond. */}
           <EventImage
             uri={getEventImageUrl(event, 'thumb')}
@@ -344,7 +360,7 @@ function MasonryCardComponent({
               color={isNotified ? colors.accent : colors.gray400}
             />
           </TouchableOpacity>
-        </View>
+        </HeroSlot>
       )}
 
       <View style={styles.masonryBody}>
@@ -595,6 +611,7 @@ export default function FollowingEventsScreen() {
   const { user } = useAuth();
   const { showError, showConfirm } = useAlert();
   const { toastError } = useFeedback();
+  const { showToast } = useInAppToast();
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -705,6 +722,36 @@ export default function FollowingEventsScreen() {
     });
   }, [user?.id, showConfirm, showError, t]);
 
+  // T7 — balayer une archive vers la gauche la retire tout de suite (sans
+  // confirmation : le geste est délibéré), avec « Annuler » dans le toast.
+  const handleSwipeRemove = useCallback(
+    (follow: FollowData) => {
+      const eventId = follow.event_details?.id || follow.event;
+      setFollows((prev) => prev.filter((f) => f.id !== follow.id));
+      CacheService.invalidate(`following:${user?.id}`);
+      eventsAPI.unfollowEvent(eventId).catch(() => {
+        setFollows((prev) => (prev.some((f) => f.id === follow.id) ? prev : [...prev, follow]));
+        toastError(t('followingEvents.unfollowError'));
+      });
+      showToast({
+        title: t('componentsEvents.swipeRemoved'),
+        body: t('componentsEvents.swipeUndo'),
+        icon: 'info',
+        anchor: 'bottom',
+        onPress: () => {
+          eventsAPI
+            .followEvent(eventId)
+            .then(() => {
+              setFollows((prev) => (prev.some((f) => f.id === follow.id) ? prev : [...prev, follow]));
+              CacheService.invalidate(`following:${user?.id}`);
+            })
+            .catch(() => toastError(t('followingEvents.unfollowError')));
+        },
+      });
+    },
+    [showToast, t, toastError, user?.id],
+  );
+
   const toggleNotification = useCallback(async (follow: FollowData) => {
     const eventId = follow.event_details?.id || follow.event;
     const newPreference = follow.notification_preference === 'none' ? 'all' : 'none';
@@ -727,11 +774,18 @@ export default function FollowingEventsScreen() {
   // Stable navigation callback for cards (event.banner_image / category fields
   // don't change between renders for a given event, so memoization is safe).
   const handleEventPress = useCallback((event: Event) => {
-    navigation.navigate('EventDetails', {
-      eventId: event.slug || event.id,
-      imageUrl: event.banner_image || event.category?.default_event_image || undefined,
-      initialEvent: toEventPreview(event),
-    });
+    navigation.navigate(
+      'EventDetails',
+      withHeroOrigin(
+        {
+          eventId: event.slug || event.id,
+          imageUrl: event.banner_image || event.category?.default_event_image || undefined,
+          initialEvent: toEventPreview(event),
+        },
+        event.id,
+        event.slug,
+      ),
+    );
   }, [navigation]);
 
   // --- Partitions + tab filtering (fused: single pass over follows) ---
@@ -1374,15 +1428,31 @@ export default function FollowingEventsScreen() {
                     <SectionHeader label={t('followingEvents.sectionArchives')} muted />
                     <View style={{ gap: Spacing.sm }}>
                       {visibleSections.past.map((x, idx) => (
-                        <StaggeredItem key={x.follow.id} index={idx} staggerDelay={60}>
-                          <ArchivedCard
-                            follow={x.follow}
-                            event={x.event}
-                            colors={colors}
-                            onPress={handleEventPress}
-                            onUnfollow={handleUnfollow}
-                          />
-                        </StaggeredItem>
+                        // Repli de la ligne retirée : fondu + glissement des
+                        // voisines en TIMING 200 ms (jamais de ressort sur la hauteur).
+                        <Animated.View
+                          key={x.follow.id}
+                          exiting={FadeOut.duration(160)}
+                          layout={LinearTransition.duration(200)}
+                        >
+                          <StaggeredItem index={idx} staggerDelay={60}>
+                            <SwipeToSave
+                              saved
+                              onRemove={() => handleSwipeRemove(x.follow)}
+                              saveLabel={t('componentsEvents.peekSave')}
+                              unsaveLabel={t('componentsEvents.peekUnsave')}
+                              removeLabel={t('componentsEvents.swipeRemove')}
+                            >
+                              <ArchivedCard
+                                follow={x.follow}
+                                event={x.event}
+                                colors={colors}
+                                onPress={handleEventPress}
+                                onUnfollow={handleUnfollow}
+                              />
+                            </SwipeToSave>
+                          </StaggeredItem>
+                        </Animated.View>
                       ))}
                     </View>
                   </View>

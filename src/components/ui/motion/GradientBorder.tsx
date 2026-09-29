@@ -9,13 +9,17 @@
  *
  * Modes :
  *   - `idle`   : éteint au repos ; chaque changement de `trigger` joue un
- *                balayage (comète qui fait un tour en 1,4 s puis s'efface).
+ *                balayage (comète qui fait un tour en 900 ms puis s'efface).
  *   - `sweep`  : alias de `idle` (compat).
- *   - `focus`  : `active` = allumé, rotation lente (1 tour / 8 s) ; chaque
- *                changement d'`energy` (ex. longueur du texte) accélère un
- *                instant puis ralentit tout seul.
- *   - `busy`   : comme focus, rotation rapide (1 tour / 1,2 s) — chargement.
+ *   - `focus`  : `active` = anneau FIXE allumé (aucune rotation : rien ne
+ *                tourne dans la vision périphérique pendant qu'on tape) ;
+ *                chaque changement d'`energy` (frappe) donne un bref éclat
+ *                d'opacité (120 ms) qui retombe en 400 ms.
+ *   - `busy`   : rotation (1 tour / 1,2 s) — chargement. Ne démarre qu'après
+ *                300 ms : un résultat rapide n'allume rien.
  *   - `static` : anneau fixe (opacité `restOpacity`, 0,35 par défaut).
+ *
+ * Durées et courbes : tokens `constants/motion`.
  *
  * Réduire les animations : jamais de rotation, uniquement de l'opacité.
  * Fond intérieur : `colors.card` par défaut — JAMAIS `colors.white` (dark).
@@ -23,7 +27,6 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import Animated, {
-  Easing,
   cancelAnimation,
   useAnimatedStyle,
   useFrameCallback,
@@ -34,6 +37,7 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useMotionGate } from './useMotionGate';
+import { Curves, Durations } from '../../../constants/motion';
 
 export type GradientBorderMode = 'idle' | 'sweep' | 'focus' | 'busy' | 'static';
 
@@ -68,9 +72,15 @@ function withAlpha(hex: string, alpha: number): string {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
 }
 
-const SLOW_DEG_PER_MS = 360 / 8000;
 const BUSY_DEG_PER_MS = 360 / 1200;
-const BOOST_DEG_PER_MS = 360 / 700;
+/** Délai avant d'afficher l'état « chargement ». */
+const BUSY_DELAY_MS = 300;
+/** Opacité de l'anneau fixe au focus, et pic de l'éclat de frappe. */
+const FOCUS_REST = 0.8;
+const FOCUS_FLARE = 1;
+
+/** Durée totale d'un balayage (angle et opacité). */
+export const SWEEP_DURATION_MS = Durations.celebrate;
 
 function GradientBorderComponent({
   children,
@@ -117,34 +127,54 @@ function GradientBorderComponent({
 
   const angle = useSharedValue(0);
   const opacity = useSharedValue(rest);
-  const boost = useSharedValue(0);
-  const speed = useSharedValue(0);
 
-  // --- Continu (focus / busy) : intégration angle += vitesse × dt ---------
+  // --- Chargement (busy) : rotation intégrée par frame (indépendante de la
+  // fréquence d'affichage : angle += vitesse × dt). -----------------------
   const frame = useFrameCallback((info) => {
     'worklet';
     const dt = info.timeSincePreviousFrame ?? 16;
-    angle.value = (angle.value + (speed.value + boost.value * BOOST_DEG_PER_MS) * dt) % 360;
-    boost.value = boost.value * 0.94;
+    angle.value = (angle.value + BUSY_DEG_PER_MS * dt) % 360;
   }, false);
 
   useEffect(() => {
     if (!continuous) return;
-    speed.value = mode === 'busy' ? BUSY_DEG_PER_MS : SLOW_DEG_PER_MS;
     const on = active;
-    opacity.value = withTiming(on ? 1 : rest, { duration: on ? 250 : 300 });
-    frame.setActive(on && canAnimate);
-    return () => frame.setActive(false);
+    if (mode === 'focus') {
+      frame.setActive(false);
+      opacity.value = withTiming(on ? FOCUS_REST : rest, {
+        duration: on ? Durations.respond : Durations.exit,
+        easing: Curves.out,
+      });
+      return;
+    }
+    // busy : rien pendant 300 ms, puis anneau plein qui tourne.
+    if (!on) {
+      frame.setActive(false);
+      opacity.value = withTiming(rest, { duration: Durations.exit, easing: Curves.out });
+      return;
+    }
+    const id = setTimeout(() => {
+      opacity.value = withTiming(1, { duration: Durations.respond, easing: Curves.out });
+      frame.setActive(canAnimate);
+    }, BUSY_DELAY_MS);
+    return () => {
+      clearTimeout(id);
+      frame.setActive(false);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [continuous, mode, active, canAnimate, rest]);
 
-  // Impulsion de frappe (focus uniquement, jamais au montage).
+  // Éclat de frappe (focus uniquement, jamais au montage) : opacité seule.
   const lastEnergy = useRef(energy);
   useEffect(() => {
     if (lastEnergy.current === energy) return;
     lastEnergy.current = energy;
-    if (!continuous || !active || !canAnimate) return;
-    boost.value = Math.min(boost.value + 1, 3);
+    if (mode !== 'focus' || !active || reduced) return;
+    cancelAnimation(opacity);
+    opacity.value = withSequence(
+      withTiming(FOCUS_FLARE, { duration: 120, easing: Curves.out }),
+      withTiming(FOCUS_REST, { duration: Durations.inform, easing: Curves.out }),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [energy]);
 
@@ -161,26 +191,27 @@ function GradientBorderComponent({
       if (reduced) {
         // Fondu seul : l'anneau s'allume puis s'éteint, sans rotation.
         opacity.value = withSequence(
-          withTiming(0.6, { duration: 250 }),
-          withTiming(0.6, { duration: 500 }),
-          withTiming(rest, { duration: 400 }),
+          withTiming(0.6, { duration: Durations.respond }),
+          withTiming(0.6, { duration: 440 }),
+          withTiming(rest, { duration: 300 }),
         );
       }
       return;
     }
+    // Un tour en 900 ms (budget d'un moment rare), opacité alignée.
     angle.value = 0;
     opacity.value = withSequence(
-      withTiming(1, { duration: 180 }),
-      withTiming(1, { duration: 1100 }),
-      withTiming(rest, { duration: 400 }),
+      withTiming(1, { duration: 120, easing: Curves.out }),
+      withTiming(1, { duration: 480 }),
+      withTiming(rest, { duration: 300, easing: Curves.out }),
     );
-    angle.value = withTiming(360, { duration: 1400, easing: Easing.bezier(0.22, 1, 0.36, 1) });
+    angle.value = withTiming(360, { duration: SWEEP_DURATION_MS, easing: Curves.out });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trigger, isSweep]);
 
   // Statique : suit `restOpacity`.
   useEffect(() => {
-    if (mode === 'static') opacity.value = withTiming(rest, { duration: 250 });
+    if (mode === 'static') opacity.value = withTiming(rest, { duration: Durations.respond });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, rest]);
 

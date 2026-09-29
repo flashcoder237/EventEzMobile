@@ -17,6 +17,7 @@ import { Platform, AppState } from 'react-native';
 import { getAccessToken, ensureFreshAccessToken } from '../api';
 import { isJWTExpired } from '../lib/utils/jwt';
 import { eventBus } from '../lib/eventBus';
+import { attachRealtimeSocket, detachRealtimeSocket, dispatchRealtime } from '../lib/realtime/socketBus';
 import type { Notification as NotifModel } from '../types';
 
 function getWebSocketBaseUrl(): string {
@@ -116,6 +117,17 @@ export function useNotificationWebSocket({
       reconnectAttemptsRef.current = 0;
       parseErrorsRef.current = 0;
       setWsConnected(true);
+      // R2 V0 — les topics temps réel (event:, live:, organizer:) passent par
+      // cette même socket : aucune connexion de plus.
+      attachRealtimeSocket((message) => {
+        if (ws.readyState !== WebSocket.OPEN) return false;
+        try {
+          ws.send(JSON.stringify(message));
+          return true;
+        } catch {
+          return false;
+        }
+      });
       if (__DEV__) console.log('[NotifWS] connected');
     };
 
@@ -132,6 +144,12 @@ export function useNotificationWebSocket({
           try { ws.close(); } catch { /* ignore */ }
         }
         return;
+      }
+      try {
+        // Accusés de topics et messages temps réel (pouls, direct, organisateur).
+        if (dispatchRealtime(data)) return;
+      } catch {
+        // un abonné défaillant ne casse pas la socket
       }
       try {
         switch (data.type) {
@@ -172,6 +190,7 @@ export function useNotificationWebSocket({
       isConnectingRef.current = false;
       wsRef.current = null;
       setWsConnected(false);
+      detachRealtimeSocket();
       if (__DEV__) console.log('[NotifWS] closed', e?.code);
 
       // Code 4401 = auth refusée → tenter refresh + reconnect
@@ -208,6 +227,7 @@ export function useNotificationWebSocket({
       }
       wsRef.current = null;
     }
+    detachRealtimeSocket();
     reconnectAttemptsRef.current = 0;
     setWsConnected(false);
   }, []);

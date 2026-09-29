@@ -36,6 +36,8 @@ import {
 } from '../../constants/theme';
 import { centeredContent, FORM_MAX } from '../../constants/layout';
 import { RootStackParamList } from '../../types';
+import { getEventAmbience } from '../../lib/utils/eventKind';
+import { CELEBRATION_GOLD, SERIF_FAMILY } from '../../lib/utils/ambience';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'WeddingRsvp'>;
@@ -189,6 +191,9 @@ export default function WeddingRsvpScreen() {
   const ev = info?.event && typeof info.event === 'object' ? info.event : null;
   const eventTitle = info?.event_title || ev?.title || '';
   const inviterName = info?.inviter_name || '';
+  // S5 — registre « célébration » (mariage, anniversaire…) : titre de
+  // l'événement en serif et filet doré. Les autres invitations restent neutres.
+  const isCelebration = getEventAmbience(ev as any) === 'celebration';
   const bcp47 = i18n.language === 'en' ? 'en-US' : 'fr-FR';
   const eventDate = ev?.start_date
     ? new Date(ev.start_date).toLocaleDateString(bcp47, {
@@ -224,7 +229,18 @@ export default function WeddingRsvpScreen() {
           </View>
           <Text style={[styles.title, { color: colors.text }]}>{t('wedding.rsvpTitle', { defaultValue: 'Confirmez votre présence' })}</Text>
           {!!eventTitle && (
-            <Text style={[styles.eventTitle, { color: colors.text }]}>{eventTitle}</Text>
+            <Text
+              style={[
+                styles.eventTitle,
+                { color: colors.text },
+                isCelebration && { fontFamily: SERIF_FAMILY, fontWeight: '600' },
+              ]}
+            >
+              {eventTitle}
+            </Text>
+          )}
+          {isCelebration && !!eventTitle && (
+            <View style={{ width: 48, height: 2, borderRadius: 1, backgroundColor: CELEBRATION_GOLD, marginVertical: 6 }} />
           )}
           {!!inviterName && (
             <Text style={[styles.muted, { color: colors.textSecondary }]}>
