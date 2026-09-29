@@ -87,6 +87,10 @@ export const Springs = {
 
 /** Config Reanimated (withSpring) d'un token : sans les champs informatifs. */
 export function springConfig(name: keyof typeof Springs) {
+  // Appelée aussi depuis des worklets (callbacks de gestes, useAnimatedStyle) :
+  // sans cette directive, Reanimated lève « Tried to synchronously call a
+  // non-worklet function on the UI thread ».
+  'worklet';
   const s = Springs[name] as SpringToken;
   return {
     stiffness: s.stiffness,

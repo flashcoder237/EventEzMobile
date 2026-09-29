@@ -104,6 +104,10 @@ export function SwipeToSave({
 
   const canRight = !!onToggleSave;
   const canLeft = !!onRemove;
+  // Lu côté JS au rendu : les callbacks du geste sont des worklets (thread UI)
+  // et ne peuvent pas appeler une fonction JS ordinaire — on leur passe une
+  // simple valeur capturée.
+  const reduced = isReducedMotionCached();
 
   const pan = Gesture.Pan()
     .enabled(enabled && (canRight || canLeft))
@@ -130,7 +134,7 @@ export function SwipeToSave({
     .onFinalize(() => {
       const side = armed.value;
       armed.value = 0;
-      tx.value = isReducedMotionCached()
+      tx.value = reduced
         ? withTiming(0, { duration: 200, easing: Curves.out })
         : withSpring(0, springConfig('respond'));
       if (side !== 0) runOnJS(commit)(side as 1 | -1);
