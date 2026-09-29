@@ -3,23 +3,74 @@
 Texte « Nouveautés de cette version » pour l'App Store / Play Store.
 Ton : sobre / professionnel. À coller tel quel dans le champ dédié, par langue.
 
-> ⚠️ **Version en préparation — à compléter au fil de l'eau.**
-> Numéro provisoire : si la 1.3.3 n'est pas encore publiée, fusionner ces notes
-> dans `RELEASE_NOTES_1.3.3.md` et supprimer ce fichier.
+> ℹ️ **Version par-dessus 1.3.3** (version passée à 1.3.4 dans `app.json` et
+> `package.json` le 2026-09-29). Trois axes : une app nettement plus rapide
+> (démarrage, écrans, listes), une couche de micro-animations et de retours
+> haptiques sur tout le parcours, et des correctifs de paiement Mobile Money.
+
+---
+
+## Texte promotionnel (App Store — accroche marketing, ≤170 car., modifiable sans build)
+
+**🇫🇷** Trouvez, réservez et vivez vos événements — ou créez les vôtres. Billetterie, inscriptions et paiements, en ligne comme sur place.
+
+**🇬🇧** Find, book and experience events — or create your own. Ticketing, registrations and payments, online and on-site.
 
 ---
 
 ## 🇫🇷 Français
 
-_(À rédiger EN DERNIER, à partir des notes internes : 4-5 lignes de bénéfices.)_
+Nouveautés de cette version :
+
+• Plus rapide : l'app démarre plus vite et les écrans s'ouvrent instantanément.
+• Plus vivante : animations et retours haptiques discrets, de la recherche jusqu'à votre billet.
+• Billet façon Wallet : un reflet qui suit l'inclinaison du téléphone, et un QR plus facile à scanner.
+• Paiement Mobile Money plus fiable, avec des messages clairs en cas de refus.
+• Nombreuses corrections d'affichage et de traduction.
+
+---
 
 ## 🇬🇧 English
 
-_(To be written LAST, from the internal notes.)_
+What's new in this version:
+
+• Faster: the app starts quicker and screens open instantly.
+• More alive: subtle animations and haptic feedback, from search to your ticket.
+• Wallet-style ticket: a sheen that follows your phone's tilt, and a QR code that scans more easily.
+• More reliable Mobile Money payments, with clear messages when a payment is declined.
+• Many display and translation fixes.
 
 ---
 
 ### Notes internes (ne PAS coller dans le store)
+
+**Aussi dans cette version (commits depuis le bump 1.3.3, `7839c20`)**
+
+> ⚠️ Vérifier que `9545d41` et `61fb861` n'étaient pas déjà dans le build 1.3.3
+> publié ; sinon retirer les lignes correspondantes.
+
+- Paiement Mobile Money via CinetPay : le numéro de téléphone était omis à
+  l'initiation (`1004 INVALID_PARAMS`), les paiements échouaient. Le numéro est
+  désormais validé pour tout Mobile Money, quel que soit le fournisseur (`dd0f91c`).
+- Paiement bloqué / refusé (anti-fraude 24 h) : vrai message lisible au lieu de
+  « false » ; `extractErrorMessage` lit `data.message` en priorité (`54e458b`).
+- Démarrage rapide : splash piloté par un signal « app prête » (0,75–2,5 s au
+  lieu de 3,4 s fixes), utilisateur en cache affiché tout de suite, une seule
+  langue chargée au démarrage, fonts en parallèle, React Compiler (`22504ac`,
+  `1d62509`).
+- Écrans instantanés : fiche événement ouverte avec l'aperçu de la carte,
+  caches Profil / Découvrir respectés, listes sans items invisibles 1,5 s,
+  Découvrir virtualisé avec miniatures d'images (`48f91d4`, `1d62509`).
+- Actions optimistes : marquer lu / suivre un utilisateur sans attendre le
+  serveur (rollback en cas d'échec) ; outbox rafraîchi sur événement (`1d62509`).
+- Crash « Property 'Resolved' doesn't exist » corrigé (React Compiler et
+  écrans lazy) (`1d62509`).
+- Traductions : « Partager », « Organisateur », mois des cartes, bannière de
+  connexion lente, dates de l'agenda et de la fiche suivent la langue (`1d62509`).
+- Messagerie, check-in hors ligne, thème éditorial, deep links
+  `/dashboard/registrations/` et `/dashboard/events/` (`61fb861`).
+- Messages tronqués à l'affichage, modales sous la barre d'état Android, visio,
+  lecteur vidéo (`9545d41`).
 
 **Micro-delight — fondations (lot 0)**
 - Nouvelles primitives d'animation dans `src/components/ui/motion` : porte
@@ -182,9 +233,15 @@ _(To be written LAST, from the internal notes.)_
 
 ### Avant publication
 
-- [ ] Relire le texte store : quatre lignes lisibles, pas la liste interne.
-- [ ] Tout le lot micro-delight est livrable en **OTA** (aucune dépendance
-      native ajoutée).
+- [ ] Relire le texte store (FR/EN ci-dessus) et le texte promotionnel.
+- [ ] **Build store requis** : le projet n'embarque pas `expo-updates`, donc pas
+      d'OTA. Aucune dépendance native n'a été ajoutée dans cette version.
+      `eas.json` : `appVersionSource: remote` + `autoIncrement`, le numéro de
+      build est géré par EAS.
+- [ ] Pousser ensemble les commits de la version (micro-animations `beae3ba`
+      dépend de `1d62509`).
+- [ ] Vérifier que le correctif CinetPay est bien déployé côté backend si
+      nécessaire, et faire un paiement Mobile Money réel CinetPay.
 - [ ] Tester sur device : scanner (valide / déjà scanné / autre event), favoris
       dans les listes, retour haptique paiement réussi/échoué, « Réduire les
       animations » activé.
@@ -198,7 +255,7 @@ _(To be written LAST, from the internal notes.)_
       confettis du paiement réussi.
 - [ ] Lot 3 sur device : comptage des stats du Profil, anneau J-x (et J-0 en
       dégradé), dernière heure du compte à rebours, chips qui répondent au
-      doigt + bords estompés, envoi d'un message (latence ~100 ms acceptable ?),
+      doigt + bords estompés, envoi d'un message immédiat,
       reflet des skeletons synchronisé, scan d'un QR noir (billet) à la porte.
 - [ ] Lot 4 sur device : header compact opaque de Découvrir (clair ET sombre),
       re-tap de l'onglet Découvrir (boussole), titre qui grossit en tirant,
