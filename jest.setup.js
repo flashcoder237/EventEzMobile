@@ -73,6 +73,7 @@ jest.mock('react-native-reanimated', () => {
     View,
     Text,
     ScrollView: (props) => React.createElement(RN.ScrollView, props, props.children),
+    FlatList: React.forwardRef((props, ref) => React.createElement(RN.FlatList, { ...props, ref })),
     Image: (props) => React.createElement(RN.Image, props),
     createAnimatedComponent: (C) => C,
     call: () => {},
@@ -118,7 +119,18 @@ jest.mock('react-native-reanimated', () => {
     FadeOut: { duration: () => ({ delay: () => ({}) }), delay: () => ({}) },
     SlideInDown: { duration: () => ({ delay: () => ({}) }), delay: () => ({}) },
     SlideOutDown: { duration: () => ({ delay: () => ({}) }), delay: () => ({}) },
+    FadeInUp: { duration: () => ({ delay: () => ({}) }), delay: () => ({}) },
+    FadeInDown: { duration: () => ({ delay: () => ({}) }), delay: () => ({}) },
+    FadeOutUp: { duration: () => ({ delay: () => ({}) }), delay: () => ({}) },
+    FadeOutDown: { duration: () => ({ delay: () => ({}) }), delay: () => ({}) },
+    ZoomIn: { duration: () => ({ delay: () => ({}) }), delay: () => ({}), springify: () => ({ damping: () => ({}) }) },
+    ZoomOut: { duration: () => ({ delay: () => ({}) }), delay: () => ({}) },
     Layout: { springify: () => ({}) },
+    // Primitives micro-delight (components/ui/motion)
+    useAnimatedProps: () => ({}),
+    useFrameCallback: () => ({ setActive: () => {}, isActive: false, callbackId: 0 }),
+    useAnimatedSensor: () => ({ sensor: { value: null }, unregister: () => {}, isAvailable: false, config: {} }),
+    SensorType: { ACCELEROMETER: 1, GYROSCOPE: 2, GRAVITY: 3, MAGNETIC_FIELD: 4, ROTATION: 5 },
   };
 });
 

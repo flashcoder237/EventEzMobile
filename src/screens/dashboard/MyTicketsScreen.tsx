@@ -19,8 +19,10 @@ import Animated, {
   withTiming,
   Easing,
   withDelay,
+  useAnimatedProps,
 } from 'react-native-reanimated';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+import { GradientText } from '../../components/ui/GradientText';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { LinearGradient } from 'expo-linear-gradient';
 import ExportButton from '../../components/common/ExportButton';
@@ -39,6 +41,7 @@ import {
   BorderRadius,
   Spacing,
   Shadows,
+  Gradients,
 } from '../../constants/theme';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -47,6 +50,13 @@ import { useLiveRegistrations } from '../../contexts/LiveRegistrationsContext';
 import { useFeedback } from '../../contexts/FeedbackContext';
 import { MyTicketsScreenSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem } from '../../components/ui/Animations';
+import { FirstSeenStamp, LiveDot, useMotionGate } from '../../components/ui/motion';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+import { haptics } from '../../utils/haptics';
+
+/** E4 — vibration du tampon « VALIDÉ », au plus une toutes les 1,5 s. */
+const stampImpact = () => haptics.throttled('medium', 1500, 'checkin-stamp');
 import {
   TourTarget,
   useTour,
@@ -164,15 +174,73 @@ function CountdownRing({
   trackColor: string;
   size?: number;
 }) {
+  const { isDark } = useTheme();
+  const { canAnimate, focused } = useMotionGate();
   const stroke = 4;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
-  const progress = Math.max(0, Math.min(1, 1 - days / 14));
-  const offset = circumference * (1 - progress);
+  const target = Math.max(0, Math.min(1, 1 - days / 14));
+  // Veille / jour J : l'arc et le « J-x » passent en dégradé indigo → corail.
+  const imminent = days <= 1;
+  const aurora = isDark ? Gradients.auroraDark : Gradients.aurora;
+  const gradId = `ringGrad-${size}`;
+
+  // L'arc se remplit 0 → valeur à chaque arrivée sur l'onglet (700 ms) ;
+  // à J-1 / J-0, un seul pouls de halo par focus.
+  const progress = useSharedValue(canAnimate ? 0 : target);
+  const halo = useSharedValue(0);
+  useEffect(() => {
+    if (!focused) return;
+    if (!canAnimate) {
+      progress.value = target;
+      return;
+    }
+    progress.value = 0;
+    progress.value = withTiming(target, { duration: 700, easing: Easing.out(Easing.cubic) });
+    if (imminent) {
+      halo.value = 0;
+      halo.value = withDelay(650, withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focused, target, imminent]);
+
+  const arcProps = useAnimatedProps(() => ({
+    strokeDashoffset: circumference * (1 - progress.value),
+  }));
+  const haloStyle = useAnimatedStyle(() => ({
+    opacity: halo.value > 0 && halo.value < 1 ? 0.45 * (1 - halo.value) : 0,
+    transform: [{ scale: 1 + halo.value * 0.35 }],
+  }));
+
+  const labelStyle = {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 18,
+    color,
+    letterSpacing: -0.5,
+  };
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      {imminent && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFillObject,
+            { borderRadius: size / 2, borderWidth: 2, borderColor: aurora[2] },
+            haloStyle,
+          ]}
+        />
+      )}
       <Svg width={size} height={size} style={StyleSheet.absoluteFillObject}>
+        {imminent && (
+          <Defs>
+            <SvgLinearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0" stopColor={aurora[0]} />
+              <Stop offset="0.55" stopColor={aurora[1]} />
+              <Stop offset="1" stopColor={aurora[2]} />
+            </SvgLinearGradient>
+          </Defs>
+        )}
         <Circle
           cx={size / 2}
           cy={size / 2}
@@ -181,29 +249,27 @@ function CountdownRing({
           strokeWidth={stroke}
           fill="none"
         />
-        <Circle
+        <AnimatedCircle
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={color}
+          stroke={imminent ? `url(#${gradId})` : color}
           strokeWidth={stroke}
           fill="none"
           strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={offset}
+          strokeDashoffset={circumference * (1 - target)}
+          animatedProps={arcProps}
           strokeLinecap="round"
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>
-      <Text
-        style={{
-          fontFamily: FontFamily.displayExtraBold,
-          fontSize: 18,
-          color,
-          letterSpacing: -0.5,
-        }}
-      >
-        J-{days}
-      </Text>
+      {imminent ? (
+        <GradientText colors={aurora} style={labelStyle}>
+          J-{days}
+        </GradientText>
+      ) : (
+        <Text style={labelStyle}>J-{days}</Text>
+      )}
     </View>
   );
 }
@@ -871,7 +937,7 @@ export default function MyTicketsScreen() {
                 {/* EN DIRECT (event en cours) prime sur countdown/date */}
                 {isLive ? (
                   <View style={styles.liveTile}>
-                    <View style={styles.liveTileDot} />
+                    <LiveDot size={7} color="#FFFFFF" />
                     <Text style={styles.liveTileText}>{t('visio.liveNow', { defaultValue: 'EN DIRECT' })}</Text>
                   </View>
                 ) : isFirst && !isArchived && daysUntil !== null && daysUntil >= 0 && daysUntil <= 14 ? (
@@ -1016,6 +1082,21 @@ export default function MyTicketsScreen() {
                       </>
                     )}
                   </TouchableOpacity>
+                )}
+                {/* E4 — tampon « VALIDÉ » : s'écrase la 1re fois que l'app voit
+                    cette inscription scannée, statique ensuite. */}
+                {item.status === 'checked_in' && !isArchived && (
+                  <FirstSeenStamp
+                    storageKey="eventez_checkin_stamp_seen"
+                    id={`r:${item.id}`}
+                    label={t('qrCode.stampValidated')}
+                    color={colors.success}
+                    size="sm"
+                    // Plusieurs billets peuvent s'afficher tamponnés d'un coup
+                    // (1re ouverture après la mise à jour) : une seule vibration.
+                    onImpact={stampImpact}
+                    style={{ marginTop: 2 }}
+                  />
                 )}
               </View>
             </View>
@@ -1679,7 +1760,7 @@ export default function MyTicketsScreen() {
           ListEmptyComponent={renderEmpty}
           keyboardShouldPersistTaps="handled"
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary, colors.secondary, colors.accent]} progressBackgroundColor={colors.card} />
           }
           maxToRenderPerBatch={10}
           windowSize={5}
@@ -2013,7 +2094,6 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     backgroundColor: '#EF4444',
   },
-  liveTileDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#fff' },
   liveTileText: {
     fontFamily: FontFamily.bold,
     fontSize: 10,

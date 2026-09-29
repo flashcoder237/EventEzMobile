@@ -3,7 +3,7 @@
  * Equivalents mobile des micro-interactions Framer Motion du web
  */
 
-import React, { useEffect, useCallback, memo } from 'react';
+import React, { useEffect, useCallback, useRef, useState, memo } from 'react';
 import { View, ViewStyle, StyleProp } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -26,6 +26,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SpringPresets, ANIMATION_DURATION } from '../../constants/theme';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { haptics } from '../../utils/haptics';
+import { BurstParticles } from './motion/BurstParticles';
 
 // ============================================
 // 1. FadeInView — Entrance fade + slide up
@@ -192,21 +194,34 @@ export function ScaleOnMount({
 
 interface PulsingBadgeProps {
   children: React.ReactNode;
+  /**
+   * Pulsation continue (legacy). À éviter : le style guide §6 interdit les
+   * boucles permanentes hors « en direct ». Préférer `trigger`.
+   */
   active?: boolean;
+  /**
+   * Une seule pulsation à chaque changement de valeur (jamais au montage).
+   * Ex. : `trigger={unreadCount}` — la cloche réagit à l'arrivée d'une notif,
+   * puis se tait.
+   */
+  trigger?: number | string;
   style?: StyleProp<ViewStyle>;
 }
 
 export function PulsingBadge({
   children,
-  active = true,
+  active,
+  trigger,
   style,
 }: PulsingBadgeProps) {
   const reducedMotion = useReducedMotion();
   const scale = useSharedValue(1);
+  // Mode par défaut : continu seulement si aucun `trigger` n'est fourni.
+  const continuous = active ?? trigger === undefined;
 
   useEffect(() => {
     // Ne pas démarrer la pulsation infinie si l'utilisateur a réduit les animations.
-    if (active && !reducedMotion) {
+    if (continuous && !reducedMotion) {
       scale.value = withRepeat(
         withSequence(
           withTiming(1.15, { duration: 600, easing: Easing.inOut(Easing.ease) }),
@@ -222,7 +237,18 @@ export function PulsingBadge({
       // Stop the infinite withRepeat when active toggles or component unmounts
       cancelAnimation(scale);
     };
-  }, [active, reducedMotion]);
+  }, [continuous, reducedMotion]);
+
+  const lastTrigger = useRef(trigger);
+  useEffect(() => {
+    if (lastTrigger.current === trigger) return;
+    lastTrigger.current = trigger;
+    if (continuous || reducedMotion) return;
+    scale.value = withSequence(
+      withTiming(1.22, { duration: 160, easing: Easing.out(Easing.cubic) }),
+      withSpring(1, { damping: 10, stiffness: 260 })
+    );
+  }, [trigger, continuous, reducedMotion]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -243,23 +269,48 @@ interface AnimatedBookmarkProps {
   children: React.ReactNode;
   isActive: boolean;
   style?: StyleProp<ViewStyle>;
+  /** Vibration légère à l'activation (jamais au retrait). Défaut : true. */
+  haptic?: boolean;
+  /** Éclat de 6 particules indigo/violet/corail à l'activation. Défaut : true. */
+  burst?: boolean;
+  /**
+   * false = suivre `isActive` sans aucun effet (ex. état chargé du serveur
+   * avant tout geste de l'utilisateur). Défaut : true.
+   */
+  animate?: boolean;
 }
 
+/**
+ * Rebond UNIQUEMENT au passage false → true provoqué par l'utilisateur.
+ * Un favori déjà actif au montage (affichage / recyclage de cellule) ne
+ * rebondit pas ; le retrait ne rebondit pas et ne vibre pas.
+ */
 export function AnimatedBookmark({
   children,
   isActive,
   style,
+  haptic = true,
+  burst = true,
+  animate = true,
 }: AnimatedBookmarkProps) {
+  const reducedMotion = useReducedMotion();
   const scale = useSharedValue(1);
+  const prev = useRef(isActive);
+  const [burstKey, setBurstKey] = useState(0);
 
   useEffect(() => {
-    if (isActive) {
-      scale.value = withSequence(
-        withTiming(0.6, { duration: 80 }),
-        withSpring(1.2, { damping: 8, stiffness: 400 }),
-        withSpring(1, { damping: 12, stiffness: 300 })
-      );
-    }
+    const was = prev.current;
+    prev.current = isActive;
+    if (was || !isActive || !animate) return;
+    if (haptic) haptics.light();
+    if (reducedMotion) return;
+    if (burst) setBurstKey((k) => k + 1);
+    scale.value = withSequence(
+      withTiming(0.6, { duration: 80 }),
+      withSpring(1.2, { damping: 8, stiffness: 400 }),
+      withSpring(1, { damping: 12, stiffness: 300 })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive]);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -269,6 +320,7 @@ export function AnimatedBookmark({
   return (
     <Animated.View style={[animatedStyle, style]}>
       {children}
+      {burst && <BurstParticles trigger={burstKey} />}
     </Animated.View>
   );
 }

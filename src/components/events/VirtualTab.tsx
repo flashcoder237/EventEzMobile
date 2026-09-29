@@ -16,6 +16,7 @@ import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from
 import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
+import { LiveDot } from '../ui/motion';
 import { withJwt, withJitsiUi } from '../../lib/utils/visioUrl';
 import { useLiveStatus } from '../../hooks/useLiveStatus';
 import { useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
@@ -214,7 +215,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
   const liveBanner = live?.is_live ? (
     <View style={styles.liveBanner}>
       <View style={styles.liveBannerLeft}>
-        <View style={styles.liveDot} />
+        <LiveDot size={10} color={Colors.white} />
         <View style={{ flexShrink: 1 }}>
           <Text style={styles.liveBannerTitle}>{t('componentsEvents.virtualLiveNow')}</Text>
           {live.participants > 0 && (
@@ -406,12 +407,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
     flexShrink: 1,
-  },
-  liveDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.white,
   },
   liveBannerTitle: {
     fontSize: FontSizes.sm,

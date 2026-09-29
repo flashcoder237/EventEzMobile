@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Animated, Easing,
+  View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
   Modal, Pressable, ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,6 +15,7 @@ import { useStatus } from '../../contexts/StatusContext';
 import { useFeedback } from '../../contexts/FeedbackContext';
 import { RootStackParamList } from '../../types';
 import { FontFamily, Spacing } from '../../constants/theme';
+import { LiveDot } from '../ui/motion';
 
 /**
  * Bannière globale « En direct » — montée à la racine, POUSSE le contenu des
@@ -35,19 +36,7 @@ export default function LiveEventBanner() {
   const { live, joinLive, joiningId, bannerEnabled, setBannerHeight } = useLiveRegistrations();
   const { lastServiceIncident } = useStatus();
   const { toastInfo } = useFeedback();
-  const pulse = useRef(new Animated.Value(0)).current;
   const [listOpen, setListOpen] = useState(false);
-
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [pulse]);
 
   const visible = isAuthenticated && bannerEnabled && live.length > 0 && !call && !lastServiceIncident;
 
@@ -94,7 +83,6 @@ export default function LiveEventBanner() {
   const first = live[0];
   const extra = live.length - 1;
   const isJoiningFirst = joiningId === first.event_id;
-  const dotOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] });
 
   return (
     <>
@@ -111,7 +99,8 @@ export default function LiveEventBanner() {
             : t('visio.liveBannerA11y', { title: first.event_title, defaultValue: '{{title}} est en direct, appuyer pour rejoindre' })
         }
       >
-        <Animated.View style={[styles.dot, { opacity: dotOpacity }]} />
+        {/* Point « en direct » partagé (radar lent, pause app en arrière-plan / animations réduites). */}
+        <LiveDot size={10} color="#fff" />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={styles.label} numberOfLines={1}>
             {t('visio.liveNow', { defaultValue: 'EN DIRECT' })}

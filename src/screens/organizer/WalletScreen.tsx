@@ -687,7 +687,7 @@ export default function WalletScreen() {
               refreshing={refreshing}
               onRefresh={onRefresh}
               tintColor={colors.primary}
-              colors={[colors.primary]}
+              colors={[colors.primary, colors.secondary, colors.accent]} progressBackgroundColor={colors.card}
             />
           }
         >

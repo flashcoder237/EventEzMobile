@@ -18,6 +18,8 @@ import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { eventsAPI, categoriesAPI } from '../../api';
 import { MapMarker, RootStackParamList, Category } from '../../types';
 import WebViewMap from '../../components/maps/WebViewMap';
+import { GradientIcon } from '../../components/ui/motion';
+import { haptics } from '../../utils/haptics';
 import MapEventCard from '../../components/maps/MapEventCard';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -212,11 +214,22 @@ export default function MapScreen() {
     }
   };
 
+  // F5 — l'icône « me localiser » passe en dégradé quelques secondes quand la
+  // carte vient d'être recentrée sur l'utilisateur (la WebView ne remonte pas
+  // les déplacements manuels : on ne peut pas savoir plus longtemps).
+  const [justLocated, setJustLocated] = useState(false);
+  useEffect(() => {
+    if (!justLocated) return;
+    const tm = setTimeout(() => setJustLocated(false), 3000);
+    return () => clearTimeout(tm);
+  }, [justLocated]);
+
   const centerOnUser = async () => {
     try {
       const loc = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
+      setJustLocated(true);
       setUserLocation({
         lat: loc.coords.latitude,
         lng: loc.coords.longitude,
@@ -233,6 +246,7 @@ export default function MapScreen() {
   };
 
   const handleMarkerPress = (marker: MapMarker) => {
+    haptics.selection();
     setSelectedMarker(marker);
   };
 
@@ -331,7 +345,7 @@ export default function MapScreen() {
       {/* Map Controls */}
       <View style={styles.mapControls}>
         <TouchableOpacity style={[styles.mapButton, { backgroundColor: colors.card }]} onPress={centerOnUser} accessibilityRole="button" accessibilityLabel={t('map.centerOnMe', 'Me localiser')}>
-          <Ionicons name="locate" size={24} color={colors.gray700} />
+          <GradientIcon name="locate" size={24} active={justLocated} color={colors.gray700} />
         </TouchableOpacity>
         <TouchableOpacity style={[styles.mapButton, { backgroundColor: colors.card }]} onPress={fetchMapEvents} accessibilityRole="button" accessibilityLabel={t('common.refresh', 'Actualiser')}>
           <Ionicons name="refresh" size={24} color={colors.gray700} />

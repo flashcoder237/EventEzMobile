@@ -570,7 +570,7 @@ export default function OfflineTicketsScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                colors={[colors.primary]}
+                colors={[colors.primary, colors.secondary, colors.accent]} progressBackgroundColor={colors.card}
                 tintColor={colors.primary}
               />
             }

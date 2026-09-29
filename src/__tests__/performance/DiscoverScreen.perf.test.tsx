@@ -19,6 +19,7 @@ jest.mock('react-native-reanimated', () => {
     View,
     Text,
     ScrollView: (props: any) => React.createElement(RN.ScrollView, props, props.children),
+    FlatList: React.forwardRef((props: any, ref: any) => React.createElement(RN.FlatList, { ...props, ref })),
     Image: (props: any) => React.createElement(RN.Image, props),
     createAnimatedComponent: (C: any) => C,
     call: () => {},
@@ -217,6 +218,18 @@ jest.mock('../../components/ui/Animations', () => {
     SectionEntrance: ({ children }: any) => React.createElement(RN.View, null, children),
     StaggeredItem: ({ children }: any) => React.createElement(RN.View, null, children),
     PulsingBadge: ({ children }: any) => React.createElement(RN.View, null, children),
+  };
+});
+
+jest.mock('../../components/ui/motion', () => {
+  const RN = require('react-native');
+  const React = require('react');
+  return {
+    RotatingPlaceholder: ({ items, style }: any) => React.createElement(RN.Text, { style }, items?.[0] ?? ''),
+    SearchAura: ({ children }: any) =>
+      React.createElement(RN.View, null, typeof children === 'function' ? children(false, () => {}) : children),
+    SwingOnIncrease: ({ children }: any) => React.createElement(RN.View, null, children),
+    GradientIcon: () => React.createElement(RN.View, null),
   };
 });
 

@@ -22,6 +22,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useUnreadCounts } from '../../contexts/NotificationContext';
 import { useTranslation } from 'react-i18next';
 import { FadeInView, ScaleOnMount } from '../../components/ui/Animations';
+import { GradientBorder, GlintSweep, moments } from '../../components/ui/motion';
 import QRCodeDisplay from '../../components/common/QRCodeDisplay';
 import VerificationBanner from '../../components/auth/VerificationBanner';
 import {
@@ -229,6 +230,17 @@ export default function ProfileScreen() {
 
   const softBorder = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
+  // D6 — une fois par session, à l'arrivée sur Profil : un anneau en dégradé
+  // fait le tour de l'avatar, puis un reflet passe sur le badge « vérifié ».
+  const [avatarRing, setAvatarRing] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      if (!moments.once('profile-avatar-ring')) return undefined;
+      const tm = setTimeout(() => setAvatarRing((r) => r + 1), 350);
+      return () => clearTimeout(tm);
+    }, []),
+  );
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
       <View style={{ flex: 1 }}>
@@ -239,7 +251,7 @@ export default function ProfileScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={colors.primary}
-            colors={[colors.primary]}
+            colors={[colors.primary, colors.secondary, colors.accent]}
             progressBackgroundColor={colors.card}
           />
         }
@@ -297,6 +309,16 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.avatarSquareWrap}>
+              <GradientBorder
+                mode="idle"
+                trigger={avatarRing || undefined}
+                radius={50}
+                width={2}
+                backgroundColor={colors.background}
+                baseBorderColor="transparent"
+                style={styles.avatarRing}
+                innerStyle={styles.avatarRingInner}
+              >
               {user?.profile_picture || user?.image ? (
                 <Image
                   source={user.profile_picture || user.image}
@@ -310,10 +332,12 @@ export default function ProfileScreen() {
                   <Text style={styles.avatarSquareText}>{getInitials()}</Text>
                 </View>
               )}
+              </GradientBorder>
               {user?.is_verified ? (
                 <View style={[styles.verifiedTag, { backgroundColor: colors.primary }]}>
                   <Ionicons name="shield-checkmark" size={10} color="#FFFFFF" />
                   <Text style={styles.verifiedTagText}>{t('profile.labelVerified')}</Text>
+                  <GlintSweep trigger={avatarRing} delay={900} duration={700} color="rgba(255,255,255,0.45)" />
                 </View>
               ) : (
                 <View style={[styles.verifiedTag, { backgroundColor: colors.accent }]}>
@@ -867,7 +891,16 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: -1,
   },
+  avatarRing: {
+    // L'anneau (2 px) + 2 px d'air débordent du carré de 92 sans le décaler.
+    margin: -4,
+  },
+  avatarRingInner: {
+    padding: 2,
+    borderRadius: 48,
+  },
   verifiedTag: {
+    overflow: 'hidden',
     position: 'absolute',
     bottom: -6,
     right: -6,

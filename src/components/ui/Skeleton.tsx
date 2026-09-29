@@ -18,15 +18,17 @@
  * - DashboardSkeleton: Dashboard overview skeleton
  */
 
-import React, { useEffect, memo } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import { View, StyleSheet, ViewStyle, DimensionValue, Dimensions } from 'react-native';
+import * as ReanimatedModule from 'react-native-reanimated';
 import ReAnimated, {
   useSharedValue,
   useAnimatedStyle,
   withRepeat,
   withTiming,
+  withDelay,
+  cancelAnimation,
   Easing,
-  interpolate,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BorderRadius, Spacing } from '../../constants/theme';
@@ -35,6 +37,74 @@ import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 const AnimatedLinearGradient = ReAnimated.createAnimatedComponent(LinearGradient);
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// ============================================
+// HORLOGE DE SHIMMER PARTAGÉE (catalogue F2)
+// Une seule boucle pour tout l'écran (au lieu d'une par skeleton) : un
+// « faisceau » virtuel balaie la fenêtre de gauche à droite ; chaque skeleton
+// décale son reflet selon sa position x dans la fenêtre (measureInWindow), ce
+// qui donne un balayage unique et cohérent. Démarre 400 ms après l'apparition
+// d'un skeleton (un chargement rapide ne clignote pas). Refcount : la boucle
+// s'arrête quand plus aucun skeleton n'est monté. Reflet teinté indigo léger.
+// ============================================
+const BAND = 220;
+const SWEEP_MS = 1400;
+type Mutable = { value: number };
+const makeMutableSafe: (v: number) => Mutable =
+  (ReanimatedModule as unknown as { makeMutable?: (v: number) => Mutable }).makeMutable ??
+  ((v: number) => ({ value: v }));
+const shimmerClock = makeMutableSafe(0);
+let clockUsers = 0;
+
+function acquireClock() {
+  clockUsers += 1;
+  if (clockUsers === 1) {
+    shimmerClock.value = 0;
+    shimmerClock.value = withRepeat(
+      withTiming(1, { duration: SWEEP_MS, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      false,
+    );
+  }
+}
+function releaseClock() {
+  clockUsers = Math.max(0, clockUsers - 1);
+  if (clockUsers === 0) cancelAnimation(shimmerClock as never);
+}
+
+function useSharedShimmer(enabled: boolean) {
+  const ref = useRef<View>(null);
+  const absX = useSharedValue(0);
+  const visible = useSharedValue(0);
+
+  useEffect(() => {
+    if (!enabled) return;
+    acquireClock();
+    visible.value = withDelay(400, withTiming(1, { duration: 250 }));
+    return () => {
+      releaseClock();
+      cancelAnimation(visible);
+      visible.value = 0;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled]);
+
+  const onLayout = () => {
+    ref.current?.measureInWindow?.((x) => {
+      if (typeof x === 'number') absX.value = x;
+    });
+  };
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const beam = -BAND + shimmerClock.value * (SCREEN_WIDTH + BAND * 2);
+    return {
+      opacity: visible.value,
+      transform: [{ translateX: beam - absX.value - BAND / 2 }],
+    };
+  });
+
+  return { ref, onLayout, animatedStyle };
+}
 
 interface SkeletonProps {
   /** Largeur du skeleton */
@@ -58,26 +128,13 @@ function SkeletonComponent({
 }: SkeletonProps) {
   const { colors } = useTheme();
   const reducedMotion = useReducedMotion();
-  const translateX = useSharedValue(-1);
-
-  useEffect(() => {
-    // En reduced-motion : placeholder gris statique, pas de shimmer qui boucle.
-    if (reducedMotion) return;
-    translateX.value = withRepeat(
-      withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      false
-    );
-  }, [reducedMotion]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: interpolate(translateX.value, [-1, 1], [-200, 200]) },
-    ],
-  }));
+  // En reduced-motion : placeholder gris statique, pas de shimmer qui boucle.
+  const { ref, onLayout, animatedStyle } = useSharedShimmer(!reducedMotion);
 
   return (
     <View
+      ref={ref}
+      onLayout={onLayout}
       style={[
         {
           width,
@@ -89,22 +146,17 @@ function SkeletonComponent({
         style,
       ]}
     >
-      <AnimatedLinearGradient
-        colors={[colors.gray100, colors.gray200, colors.gray100]}
-        start={{ x: 0, y: 0.5 }}
-        end={{ x: 1, y: 0.5 }}
-        style={[
-          {
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            left: 0,
-            right: 0,
-            width: '150%',
-          },
-          animatedStyle,
-        ]}
-      />
+      {!reducedMotion && (
+        <AnimatedLinearGradient
+          colors={['rgba(79,70,229,0)', 'rgba(79,70,229,0.08)', 'rgba(79,70,229,0)']}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={[
+            { position: 'absolute', top: 0, bottom: 0, left: 0, width: BAND },
+            animatedStyle,
+          ]}
+        />
+      )}
     </View>
   );
 }
@@ -123,26 +175,12 @@ function PrimarySkeletonComponent({
   style,
 }: SkeletonProps) {
   const reducedMotion = useReducedMotion();
-  const translateX = useSharedValue(-1);
-
-  useEffect(() => {
-    // En reduced-motion : placeholder gris statique, pas de shimmer qui boucle.
-    if (reducedMotion) return;
-    translateX.value = withRepeat(
-      withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      false
-    );
-  }, [reducedMotion]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: interpolate(translateX.value, [-1, 1], [-200, 200]) },
-    ],
-  }));
+  const { ref, onLayout, animatedStyle } = useSharedShimmer(!reducedMotion);
 
   return (
     <View
+      ref={ref}
+      onLayout={onLayout}
       style={[
         {
           width,
@@ -159,7 +197,7 @@ function PrimarySkeletonComponent({
         start={{ x: 0, y: 0.5 }}
         end={{ x: 1, y: 0.5 }}
         style={[
-          { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, width: '150%' },
+          { position: 'absolute', top: 0, bottom: 0, left: 0, width: BAND },
           animatedStyle,
         ]}
       />

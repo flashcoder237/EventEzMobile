@@ -34,13 +34,108 @@ exports[`EmptyState snapshots renders default with title only 1`] = `
       ]
     }
   >
-    <Text
-      color="#D1D5DB"
-      name="folder-open-outline"
-      size={64}
+    <View
+      pointerEvents="none"
+      style={
+        [
+          {
+            "height": 64,
+            "width": 64,
+          },
+          undefined,
+        ]
+      }
     >
-      folder-open-outline
-    </Text>
+      <View
+        style={
+          [
+            {
+              "left": 0,
+              "position": "absolute",
+              "top": 0,
+            },
+            {},
+          ]
+        }
+      >
+        <Text
+          color="#D1D5DB"
+          name="folder-open-outline"
+          size={64}
+        >
+          folder-open-outline
+        </Text>
+      </View>
+      <View
+        style={
+          [
+            {
+              "left": 0,
+              "position": "absolute",
+              "top": 0,
+            },
+            {},
+          ]
+        }
+      >
+        <RNCMaskedView
+          style={
+            {
+              "height": 64,
+              "width": 64,
+            }
+          }
+        >
+          <View
+            pointerEvents="none"
+            style={
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              }
+            }
+          >
+            <Text
+              color="#000"
+              name="folder-open-outline"
+              size={64}
+            >
+              folder-open-outline
+            </Text>
+          </View>
+          <View
+            colors={
+              [
+                "#4F46E5",
+                "#A855F7",
+                "#FF6B6B",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 1,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": 64,
+                "width": 64,
+              }
+            }
+          />
+        </RNCMaskedView>
+      </View>
+    </View>
   </View>
   <Text
     style={
@@ -97,13 +192,108 @@ exports[`EmptyState snapshots renders with action button 1`] = `
       ]
     }
   >
-    <Text
-      color="#D1D5DB"
-      name="folder-open-outline"
-      size={64}
+    <View
+      pointerEvents="none"
+      style={
+        [
+          {
+            "height": 64,
+            "width": 64,
+          },
+          undefined,
+        ]
+      }
     >
-      folder-open-outline
-    </Text>
+      <View
+        style={
+          [
+            {
+              "left": 0,
+              "position": "absolute",
+              "top": 0,
+            },
+            {},
+          ]
+        }
+      >
+        <Text
+          color="#D1D5DB"
+          name="folder-open-outline"
+          size={64}
+        >
+          folder-open-outline
+        </Text>
+      </View>
+      <View
+        style={
+          [
+            {
+              "left": 0,
+              "position": "absolute",
+              "top": 0,
+            },
+            {},
+          ]
+        }
+      >
+        <RNCMaskedView
+          style={
+            {
+              "height": 64,
+              "width": 64,
+            }
+          }
+        >
+          <View
+            pointerEvents="none"
+            style={
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              }
+            }
+          >
+            <Text
+              color="#000"
+              name="folder-open-outline"
+              size={64}
+            >
+              folder-open-outline
+            </Text>
+          </View>
+          <View
+            colors={
+              [
+                "#4F46E5",
+                "#A855F7",
+                "#FF6B6B",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 1,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": 64,
+                "width": 64,
+              }
+            }
+          />
+        </RNCMaskedView>
+      </View>
+    </View>
   </View>
   <Text
     style={
@@ -287,13 +477,108 @@ exports[`EmptyState snapshots renders with title + description + custom icon 1`]
       ]
     }
   >
-    <Text
-      color="#D1D5DB"
-      name="calendar-outline"
-      size={64}
+    <View
+      pointerEvents="none"
+      style={
+        [
+          {
+            "height": 64,
+            "width": 64,
+          },
+          undefined,
+        ]
+      }
     >
-      calendar-outline
-    </Text>
+      <View
+        style={
+          [
+            {
+              "left": 0,
+              "position": "absolute",
+              "top": 0,
+            },
+            {},
+          ]
+        }
+      >
+        <Text
+          color="#D1D5DB"
+          name="calendar-outline"
+          size={64}
+        >
+          calendar-outline
+        </Text>
+      </View>
+      <View
+        style={
+          [
+            {
+              "left": 0,
+              "position": "absolute",
+              "top": 0,
+            },
+            {},
+          ]
+        }
+      >
+        <RNCMaskedView
+          style={
+            {
+              "height": 64,
+              "width": 64,
+            }
+          }
+        >
+          <View
+            pointerEvents="none"
+            style={
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              }
+            }
+          >
+            <Text
+              color="#000"
+              name="calendar-outline"
+              size={64}
+            >
+              calendar-outline
+            </Text>
+          </View>
+          <View
+            colors={
+              [
+                "#4F46E5",
+                "#A855F7",
+                "#FF6B6B",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 1,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": 64,
+                "width": 64,
+              }
+            }
+          />
+        </RNCMaskedView>
+      </View>
+    </View>
   </View>
   <Text
     style={
@@ -383,13 +668,108 @@ exports[`EmptyState snapshots renders withCard variant 1`] = `
       ]
     }
   >
-    <Text
-      color="#D1D5DB"
-      name="folder-open-outline"
-      size={64}
+    <View
+      pointerEvents="none"
+      style={
+        [
+          {
+            "height": 64,
+            "width": 64,
+          },
+          undefined,
+        ]
+      }
     >
-      folder-open-outline
-    </Text>
+      <View
+        style={
+          [
+            {
+              "left": 0,
+              "position": "absolute",
+              "top": 0,
+            },
+            {},
+          ]
+        }
+      >
+        <Text
+          color="#D1D5DB"
+          name="folder-open-outline"
+          size={64}
+        >
+          folder-open-outline
+        </Text>
+      </View>
+      <View
+        style={
+          [
+            {
+              "left": 0,
+              "position": "absolute",
+              "top": 0,
+            },
+            {},
+          ]
+        }
+      >
+        <RNCMaskedView
+          style={
+            {
+              "height": 64,
+              "width": 64,
+            }
+          }
+        >
+          <View
+            pointerEvents="none"
+            style={
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              }
+            }
+          >
+            <Text
+              color="#000"
+              name="folder-open-outline"
+              size={64}
+            >
+              folder-open-outline
+            </Text>
+          </View>
+          <View
+            colors={
+              [
+                "#4F46E5",
+                "#A855F7",
+                "#FF6B6B",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 1,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": 64,
+                "width": 64,
+              }
+            }
+          />
+        </RNCMaskedView>
+      </View>
+    </View>
   </View>
   <Text
     style={

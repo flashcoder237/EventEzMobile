@@ -20,7 +20,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
 import { connectionsAPI } from '../../api';
 import { useAlert } from '../../contexts/AlertContext';
@@ -55,7 +55,7 @@ export default function ConnectionScannerScreen() {
     setScanned(true);
     setProcessing(true);
     try {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptics.success();
     } catch { /* ignore */ }
 
     try {

@@ -128,7 +128,7 @@ import {
 import { syncConversation } from '../../db/messageSync';
 import { enqueueOutbox, resetOutboxRetry, getOutboxForConversation } from '../../db/outboxRepository';
 import { flushOutbox } from '../../db/outboxSync';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '../../utils/haptics';
 import { useVoicePrefetch, getCachedVoiceUri, registerSentVoice, getSentVoiceUri } from '../../hooks/useVoicePrefetch';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -2100,7 +2100,7 @@ export default function ConversationScreen() {
   // ============================================
 
   const handleMessageLongPress = useCallback((message: Message) => {
-    try { Haptics.selectionAsync(); } catch { /* ignore */ }
+    haptics.selection();
     actions.showActionMenu(message);
   }, [actions]);
 
@@ -2946,7 +2946,7 @@ export default function ConversationScreen() {
       actions.addMessage(tempMessage);
       // Retour haptique léger à l'envoi (le geste central de la messagerie était
       // muet → « feel » plat comparé à WhatsApp/iMessage).
-      try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch { /* ignore */ }
+      haptics.light();
       // Persiste l'optimiste en SQLite (état 'pending') → il survit au refresh
       // et à la fermeture avant confirmation serveur. reconcileSent (WS) le
       // remplacera par le message serveur ; markFailed le passera en échec.

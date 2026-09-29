@@ -26,7 +26,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
@@ -68,6 +68,7 @@ import {
 import { ConversationItemSkeleton, MessagesScreenSkeleton } from '../../components/ui/Skeleton';
 import { NewMessage, PeopleSearch, AnimatedIllustration } from '../../components/illustrations';
 import { StaggeredItem } from '../../components/ui/Animations';
+import { CountBadge } from '../../components/ui/motion';
 import EventActionsSheet, { EventAction } from '../../components/organizer/EventActionsSheet';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -296,18 +297,17 @@ const ConversationCard = memo(function ConversationCard({
               style={{ marginLeft: 6 }}
             />
           )}
-          {hasUnread && (
-            <View
-              style={[
-                cardStyles.unreadPill,
-                { backgroundColor: muted ? colors.gray400 : colors.accent },
-              ]}
-            >
-              <Text style={cardStyles.unreadPillText}>
-                {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
-              </Text>
-            </View>
-          )}
+          {/* D1 — la pastille « éclate » quand un message arrive (hausse
+              seulement, jamais au montage). `key` = conversation : une cellule
+              recyclée ne rejoue pas l'effet d'une autre conversation. */}
+          <CountBadge
+            key={String(conversation.id)}
+            value={conversation.unread_count || 0}
+            size={22}
+            color={muted ? colors.gray400 : colors.accent}
+            textStyle={cardStyles.unreadPillText}
+            style={cardStyles.unreadPillWrap}
+          />
         </View>
       </View>
     </TouchableOpacity>
@@ -415,6 +415,9 @@ const cardStyles = StyleSheet.create({
   },
   draftPreview: {
     fontStyle: 'italic',
+  },
+  unreadPillWrap: {
+    marginLeft: 2,
   },
   unreadPill: {
     minWidth: 22,
@@ -804,7 +807,7 @@ export default function MessagesScreen() {
       })();
       if (senderId !== Number(user?.id)) {
         try {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          haptics.light();
         } catch {
           // ignore — haptic non critique
         }
@@ -1930,7 +1933,7 @@ export default function MessagesScreen() {
           ) : null
         }
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary, colors.secondary, colors.accent]} progressBackgroundColor={colors.card} />
         }
         initialNumToRender={8}
         maxToRenderPerBatch={10}

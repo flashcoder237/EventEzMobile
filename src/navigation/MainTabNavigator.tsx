@@ -11,14 +11,15 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withDelay,
-  withSequence,
-  withRepeat,
+  withSpring,
   cancelAnimation,
   useSharedValue,
   interpolate,
   Easing,
+  FadeIn,
 } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '../utils/haptics';
+import { useMotionGate, useAppWake, CountBadge } from '../components/ui/motion';
 import { MainTabParamList } from '../types';
 import { FontFamily, Spacing, Shadows } from '../constants/theme';
 import { useAuth } from '../contexts/AuthContext';
@@ -242,38 +243,73 @@ const TabSlot = memo(function TabSlot({
       tourCtx.__unregister(tourId);
     };
   }, [tourId, tourCtx]);
-  // Shimmer : balaye la pilule active toutes les ~4s pour un effet "lumière"
-  // discret. Reste à 0 (off-screen gauche) tant que le tab n'est pas actif.
+  // Shimmer : balaye la pilule active une fois quand elle devient active.
+  // Reste à 0 (off-screen gauche) tant que le tab n'est pas actif.
   const shimmerValue = useSharedValue(0);
+  const { canAnimate, reduced } = useMotionGate();
+  // B1 — l'icône active fait un petit « pop » (0,8 → 1) en arrivant.
+  const iconScale = useSharedValue(1);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
-    widthValue.value = withTiming(isFocused ? 1 : 0, {
-      duration: 240,
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [isFocused, widthValue]);
-
-  useEffect(() => {
-    if (!isFocused) {
-      cancelAnimation(shimmerValue);
-      shimmerValue.value = 0;
-      return;
+    // La pilule s'étire SANS dépassement : un ressort qui dépasse fait
+    // osciller sa largeur, et comme les onglets se partagent la barre en
+    // flexGrow, tous les voisins « dansaient » avant de se stabiliser.
+    widthValue.value = reduced
+      ? withTiming(isFocused ? 1 : 0, { duration: 0 })
+      : withTiming(isFocused ? 1 : 0, { duration: 240, easing: Easing.out(Easing.cubic) });
+    if (isFocused && mountedRef.current && !reduced) {
+      // B1 — petit « pop » de l'icône, amorti (pas de rebond).
+      iconScale.value = 0.88;
+      iconScale.value = withSpring(1, { damping: 20, stiffness: 320, overshootClamping: true });
     }
-    // Cycle ~15s : delay 13.5s (stripe off-screen gauche, invisible) →
-    // sweep 1.5s → reset instant → loop. Effet "lumière qui passe" rare et
-    // tranquille, pas envahissant.
-    shimmerValue.value = withRepeat(
-      withSequence(
-        withDelay(13500, withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.cubic) })),
-        withTiming(0, { duration: 1 }),
-      ),
-      -1,
-      false,
+    mountedRef.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFocused, reduced]);
+
+  // B4 — re-tap sur Découvrir déjà actif (qui remonte le flux) : la boussole
+  // fait un tour complet, synchronisé avec le défilement. Transform seulement.
+  const iconSpin = useSharedValue(0);
+  const handlePress = useCallback(() => {
+    if (isFocused && routeName === 'Discover' && canAnimate) {
+      iconSpin.value = withTiming(iconSpin.value + 360, {
+        duration: 520,
+        easing: Easing.out(Easing.cubic),
+      });
+      haptics.light();
+    }
+    onPress();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFocused, routeName, canAnimate, onPress]);
+
+  const iconPopStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: iconScale.value }, { rotate: `${iconSpin.value}deg` }],
+  }));
+
+  // Reflet « au bon moment » (catalogue B3) : UN passage 350 ms après
+  // l'arrivée sur l'onglet, et un au retour dans l'app après une absence.
+  // Plus de boucle toutes les 15 s ; rien si les animations sont réduites.
+  // Le passage démarre APRÈS que la pilule a fini de s'étirer (240 ms) et que
+  // le libellé est apparu, et traverse à vitesse douce : un balayage rapide
+  // sur une pilule encore en mouvement se lisait comme un clignotement.
+  const wake = useAppWake(60 * 1000);
+  useEffect(() => {
+    cancelAnimation(shimmerValue);
+    shimmerValue.value = 0;
+    if (!isFocused || !canAnimate) return;
+    shimmerValue.value = withDelay(
+      450,
+      withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.quad) }),
     );
     return () => {
       cancelAnimation(shimmerValue);
     };
-  }, [isFocused, shimmerValue]);
+  }, [isFocused, canAnimate, wake, shimmerValue]);
+
+  // Largeur réelle de la pilule : la bande parcourt exactement
+  // [-largeur bande, largeur pilule] → vitesse visible constante, sans temps
+  // mort hors champ (avant : 300 px fixes pour une pilule de ~120 px).
+  const pillWidth = useSharedValue(160);
 
   // Animation : seul le slot actif s'étend en largeur via flexGrow.
   // Les inactifs gardent leur largeur fixe (INACTIVE_TAB_WIDTH).
@@ -281,11 +317,12 @@ const TabSlot = memo(function TabSlot({
     flexGrow: widthValue.value,
   }));
 
-  // Stripe shimmer qui balaye la pilule active. Position de départ -50 (hors
-  // écran à gauche), arrivée à 250 (largement après la fin de la pilule).
+  // Stripe shimmer qui balaye la pilule active, du bord gauche (hors champ) au
+  // bord droit (hors champ). Invisible au repos (0) et en fin de course (1).
   const shimmerStyle = useAnimatedStyle(() => ({
+    opacity: shimmerValue.value > 0 && shimmerValue.value < 1 ? 1 : 0,
     transform: [
-      { translateX: interpolate(shimmerValue.value, [0, 1], [-50, 250]) },
+      { translateX: interpolate(shimmerValue.value, [0, 1], [-60, pillWidth.value + 10]) },
       { rotate: '15deg' },
     ],
   }));
@@ -311,7 +348,7 @@ const TabSlot = memo(function TabSlot({
   return (
     <AnimatedPressable
       ref={slotRef}
-      onPress={onPress}
+      onPress={handlePress}
       accessibilityRole="button"
       accessibilityState={isFocused ? { selected: true } : {}}
       accessibilityLabel={label}
@@ -332,6 +369,7 @@ const TabSlot = memo(function TabSlot({
       ]}
     >
       <View
+        onLayout={isFocused ? (e) => { pillWidth.value = e.nativeEvent.layout.width; } : undefined}
         style={[
           styles.tabSlotPill,
           isFocused
@@ -364,7 +402,7 @@ const TabSlot = memo(function TabSlot({
                 toutes les ~15s. Effet "lumière qui passe" subtil. */}
             <Animated.View style={[styles.shimmerStripe, shimmerStyle]} pointerEvents="none">
               <LinearGradient
-                colors={['transparent', 'rgba(255,255,255,0.55)', 'transparent']}
+                colors={['transparent', 'rgba(255,255,255,0.4)', 'transparent']}
                 start={{ x: 0, y: 0.5 }}
                 end={{ x: 1, y: 0.5 }}
                 locations={[0.2, 0.5, 0.8]}
@@ -416,22 +454,26 @@ const TabSlot = memo(function TabSlot({
             </View>
           )
         ) : (
-          <Ionicons
-            name={config.icon}
-            size={isFocused ? 22 : 24}
-            color={isFocused ? activeColor : inactiveColor}
-          />
+          <Animated.View style={iconPopStyle}>
+            <Ionicons
+              name={config.icon}
+              size={isFocused ? 22 : 24}
+              color={isFocused ? activeColor : inactiveColor}
+            />
+          </Animated.View>
         )}
 
         {/* Label uppercase visible UNIQUEMENT sur le tab actif, inline à droite
-            de l'icône dans la pilule. Inactifs = icon-only. */}
+            de l'icône dans la pilule. Inactifs = icon-only. Entre en fondu
+            juste après l'icône (B1). */}
         {isFocused && (
-          <Text
+          <Animated.Text
+            entering={canAnimate ? FadeIn.delay(60).duration(180) : undefined}
             numberOfLines={1}
             style={[styles.tabLabelActive, { color: activeColor }]}
           >
             {label.toUpperCase()}
-          </Text>
+          </Animated.Text>
         )}
       </View>
 
@@ -445,27 +487,27 @@ const TabSlot = memo(function TabSlot({
                 badge centré sur (34,14) → top:6, left:26
             - Active + avatar (avatar 28 → coin (40,11)) :
                 badge centré sur (40,11) → top:3, left:32 */}
-      {showAnyBadge && (
-        <View
-          style={[
-            styles.profileBadge,
-            isFocused
-              ? showAvatar
-                ? { top: 3, left: 32 }
-                : { top: 6, left: 26 }
-              : { top: 2, right: -2 },
-            {
-              backgroundColor: '#FF6B6B',
-              borderColor: isFocused ? pillColor : (isDark ? '#0F172A' : '#FFFFFF'),
-            },
-          ]}
-          pointerEvents="none"
-        >
-          <Text style={styles.profileBadgeText}>
-            {badgeCount > 99 ? '99+' : badgeCount}
-          </Text>
-        </View>
-      )}
+      {/* D1 — CountBadge : pop + anneau corail + chiffre qui roule, UNIQUEMENT
+          quand le compteur monte (jamais au montage). Pas d'haptique : ce
+          n'est pas un geste de l'utilisateur. Toujours monté (masqué à 0)
+          pour que la hausse 0 → 1 soit détectée. */}
+      <CountBadge
+        value={showAnyBadge ? badgeCount : 0}
+        showZero={false}
+        size={16}
+        color="#FF6B6B"
+        borderWidth={1.5}
+        borderColor={isFocused ? pillColor : (isDark ? '#0F172A' : '#FFFFFF')}
+        textStyle={styles.profileBadgeText}
+        style={[
+          styles.profileBadgeAnchor,
+          isFocused
+            ? showAvatar
+              ? { top: 3, left: 32 }
+              : { top: 6, left: 26 }
+            : { top: 2, right: -2 },
+        ]}
+      />
     </AnimatedPressable>
   );
 });
@@ -494,7 +536,8 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
         canPreventDefault: true,
       });
       if (!currentlyFocused && !event.defaultPrevented) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        // Standard iOS pour un changement de sélection (B1).
+        haptics.selection();
         navigation.navigate(routeName as never);
       }
     },
@@ -713,6 +756,10 @@ const styles = StyleSheet.create({
   },
   tabAvatarInitialText: {
     fontFamily: FontFamily.bold,
+  },
+  // Ancre du <CountBadge> (taille/bordure gérées par le composant).
+  profileBadgeAnchor: {
+    position: 'absolute',
   },
   profileBadge: {
     position: 'absolute',

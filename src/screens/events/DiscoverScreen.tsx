@@ -11,7 +11,7 @@ import {
   useWindowDimensions,
   TouchableOpacity,
   InteractionManager,
-  Share,
+  Platform,
 } from 'react-native';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,11 +35,18 @@ import Animated, {
   FadeOutUp,
   FadeIn,
   FadeOut,
+  ZoomIn,
+  ZoomOut,
 } from 'react-native-reanimated';
+import { haptics } from '../../utils/haptics';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { Image } from 'expo-image';
 
 import { useTranslation } from 'react-i18next';
 import EventCoverMedia from '../../components/events/EventCoverMedia';
+import ForYouEventCard from '../../components/events/ForYouEventCard';
+import { getEventImageUrl, prefetchEventHero, prefetchImageUrls } from '../../utils/imageUtils';
+import type { EventImageSize } from '../../utils/imageUtils';
 import CitiesSection from '../../components/events/CitiesSection';
 import { eventsAPI, categoriesAPI, recommendationsAPI, advertisementsAPI, usersAPI, getMediaUrl } from '../../api';
 import type { AdvertisementPublic } from '../../api';
@@ -64,6 +71,16 @@ import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
 import CacheService from '../../services/CacheService';
 import { DiscoverScreenSkeleton } from '../../components/ui/Skeleton';
 import { SectionEntrance, StaggeredItem, PulsingBadge } from '../../components/ui/Animations';
+import {
+  RotatingPlaceholder,
+  SearchAura,
+  SwingOnIncrease,
+  GradientIcon,
+  SpringChip,
+  EdgeFadeScroll,
+  GlintSweep,
+  moments,
+} from '../../components/ui/motion';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import {
   Colors,
@@ -75,10 +92,10 @@ import {
   TOUCH_OPACITY,
 } from '../../constants/theme';
 import { centeredContent, WIDE_MAX } from '../../constants/layout';
-import { getEventUrl } from '../../constants/urls';
 import { getApiResults } from '../../lib/utils/apiHelpers';
 import { getEventPriceRange } from '../../lib/utils/priceFormatters';
 import { toEventPreview } from '../../lib/utils/eventNavPreview';
+import { shortMonthLabel } from '../../lib/utils/dateFormatters';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -89,13 +106,12 @@ const HEADER_SCROLL_THRESHOLD = 80;
 const CANVAS_LIGHT = '#F6F6F9';
 
 // === Date helpers ===
-const MONTHS_FR = ['JAN', 'FÉV', 'MAR', 'AVR', 'MAI', 'JUI', 'JUL', 'AOÛ', 'SEP', 'OCT', 'NOV', 'DÉC'];
 
 // Longueur estimée d'une nearbyCard (largeur 220 + gap horizontal)
 const NEARBY_ITEM_LENGTH = 280;
 function splitDate(iso: string) {
   const d = new Date(iso);
-  return { day: String(d.getDate()).padStart(2, '0'), month: MONTHS_FR[d.getMonth()] };
+  return { day: String(d.getDate()).padStart(2, '0'), month: shortMonthLabel(d) };
 }
 function eventTime(ev: Event) {
   const anyEv = ev as any;
@@ -107,12 +123,11 @@ function eventTime(ev: Event) {
     return '';
   }
 }
-function eventImage(ev: Event) {
-  return (
-    getMediaUrl(
-      ev.banner_image || ev.category?.default_event_image || (ev as any).display_image,
-    ) || undefined
-  );
+// Petites cartes (près de toi…) → vignette WebP 400px ; héros / carte reco
+// pleine largeur → 960px. Repli automatique sur l'originale tant que les
+// variantes ne sont pas générées côté backend.
+function eventImage(ev: Event, size: EventImageSize = 'thumb') {
+  return getEventImageUrl(ev, size) || undefined;
 }
 function eventPlaceholder(ev: Event) {
   return (
@@ -239,6 +254,7 @@ export default function DiscoverScreen() {
   const route = useRoute<RouteProp<MainTabParamList, 'Discover'>>();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
+  const reducedMotion = useReducedMotion();
 
   // Largeur de carte catégorie RÉACTIVE (grille 2 col), plafonnée à une largeur
   // type iPhone pour ne pas s'étirer sur grand écran (iPad en mode compat). Basée
@@ -279,6 +295,18 @@ export default function DiscoverScreen() {
     const next = new Set<string>(viewableItems.map((v) => String(v.item?.id)).filter(Boolean));
     visibleIdsRef.current = next;
     setVisibleVersion((v) => v + 1);
+  }).current;
+
+  // Viewport du flux « Pour vous » (FlatList principale) : autoplay vidéo des
+  // seules cartes visibles. Ensemble séparé de celui du carrousel « près de toi ».
+  const [forYouVisibleIds, setForYouVisibleIds] = useState<Set<string>>(() => new Set());
+  const forYouViewabilityConfig = React.useRef({ itemVisiblePercentThreshold: 60 }).current;
+  const onForYouViewableItemsChanged = React.useRef(({ viewableItems }: { viewableItems: any[] }) => {
+    const next = new Set<string>(viewableItems.map((v) => String(v.item?.id)).filter(Boolean));
+    setForYouVisibleIds((prev) => {
+      if (prev.size === next.size && [...next].every((id) => prev.has(id))) return prev;
+      return next;
+    });
   }).current;
 
   // Discover mini-tour — fires after main-tabs-tour AND once initial data has
@@ -335,7 +363,7 @@ export default function DiscoverScreen() {
   // === Scroll-driven compact header ===
   const scrollY = useSharedValue(0);
   // Ref animée du feed → permet scrollTo(0) sur le thread UI (fluide).
-  const feedRef = useAnimatedRef<Animated.ScrollView>();
+  const feedRef = useAnimatedRef<FlatList<Event>>();
   // Bouton flottant « remonter en haut » : visible au-delà d'un seuil de scroll.
   const [showScrollTop, setShowScrollTop] = useState(false);
   const scrollToTop = useCallback(() => {
@@ -356,18 +384,55 @@ export default function DiscoverScreen() {
     });
     return unsub;
   }, [navigation, scrollToTop]);
+  // Header compact : le FOND est opaque dès qu'il est visible (plus de fondu
+  // du conteneur entier, qui laissait voir les cartes à travers). Il glisse
+  // de −8 px à 0 ; seul son CONTENU apparaît en fondu.
   const compactHeaderStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
+    const visible = scrollY.value > HEADER_SCROLL_THRESHOLD * 0.5;
+    return {
+      opacity: visible ? 1 : 0,
+      transform: [
+        {
+          translateY: interpolate(
+            scrollY.value,
+            [HEADER_SCROLL_THRESHOLD * 0.5, HEADER_SCROLL_THRESHOLD],
+            [-8, 0],
+            Extrapolation.CLAMP,
+          ),
+        },
+      ],
+      pointerEvents: scrollY.value > HEADER_SCROLL_THRESHOLD * 0.75 ? ('auto' as const) : ('none' as const),
+    };
+  });
+  const compactContentStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
       scrollY.value,
       [HEADER_SCROLL_THRESHOLD * 0.5, HEADER_SCROLL_THRESHOLD],
       [0, 1],
       Extrapolation.CLAMP,
-    );
-    return {
-      opacity,
-      pointerEvents: opacity > 0.5 ? ('auto' as const) : ('none' as const),
-    };
-  });
+    ),
+  }));
+  // B5 — « large title » façon iOS : en tirant vers le bas (scrollY < 0), le
+  // titre grossit légèrement (1 → 1,06), ancré à gauche. Transform seulement.
+  const headerTitleStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: interpolate(scrollY.value, [-90, 0], [1.06, 1], Extrapolation.CLAMP) },
+    ],
+  }));
+  // B5 — filet dégradé sous le header compact, qui se dessine (scaleX) à
+  // mesure qu'on continue de défiler après son apparition.
+  const compactRuleStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scaleX: interpolate(
+          scrollY.value,
+          [HEADER_SCROLL_THRESHOLD, HEADER_SCROLL_THRESHOLD + 240],
+          [0, 1],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+  }));
   // Seuil d'apparition du bouton « remonter » (~1.5 écran de scroll).
   const SCROLL_TOP_THRESHOLD = 600;
   const onScroll = useAnimatedScrollHandler({
@@ -394,13 +459,8 @@ export default function DiscoverScreen() {
     ],
     [t],
   );
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPlaceholderIndex((p) => (p + 1) % placeholderSuggestions.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [placeholderSuggestions]);
+  // L'index tourne DANS <RotatingPlaceholder> : changer d'exemple ne
+  // redessine plus tout l'écran toutes les 3 s (et s'arrête hors focus).
 
   // === Fetch data (progressive, cached) ===
   const fetchDiscoveryData = useCallback(async (bypassCache: boolean = false) => {
@@ -630,6 +690,9 @@ export default function DiscoverScreen() {
           hasMoreFlag = (response.data as any)?.next != null;
         }
 
+        // Précharge les images de la page reçue avant le montage des cellules
+        // (taille réellement affichée par ForYouEventCard ; lot plafonné à 10).
+        prefetchImageUrls(data.map((e) => getEventImageUrl(e, 'medium')));
         setForYouEvents((prev) => {
           if (reset) return data;
           const existing = new Set(prev.map((e) => e.id));
@@ -650,20 +713,16 @@ export default function DiscoverScreen() {
     [user, location],
   );
 
-  // Détection scroll-to-end pour infinite scroll. On utilise onMomentumScrollEnd
-  // (déclenché quand le scroll ralentit/s'arrête) plutôt que onScroll continu :
-  // évite les double-fetch quand le user scrolle vite, et économise le worklet.
-  const handleScrollEnd = useCallback(
-    (e: any) => {
-      const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-      const distanceFromBottom = contentSize.height - (contentOffset.y + layoutMeasurement.height);
-      // Trigger 600px avant le bas pour préfetcher la prochaine page
-      if (distanceFromBottom < 600) {
-        loadMoreForYou();
-      }
-    },
-    [loadMoreForYou],
-  );
+  // Infinite scroll : onEndReached de la FlatList (seuil ≈ 600px avant le bas).
+  // Tant que la page 1 n'est pas arrivée (chargée après les interactions),
+  // on ne déclenche rien : sinon on demanderait la page 2 avant la 1.
+  const forYouCountRef = React.useRef(0);
+  forYouCountRef.current = forYouEvents.length;
+  const handleEndReached = useCallback(() => {
+    if (forYouCountRef.current === 0) return;
+    loadMoreForYou();
+  }, [loadMoreForYou]);
+  const forYouKeyExtractor = useCallback((ev: Event) => String(ev.id), []);
 
   // Empty state : « Préviens-moi » → active les notifications push pour que
   // l'utilisateur soit alerté dès qu'un premier événement est publié. C'est le
@@ -829,12 +888,24 @@ export default function DiscoverScreen() {
     ]);
     setRefreshing(false);
   };
+  // Référence stable pour le header mémoïsé (bouton « réessayer ») : appelle
+  // toujours la DERNIÈRE version d'onRefresh (location/perm à jour).
+  const onRefreshRef = React.useRef(onRefresh);
+  onRefreshRef.current = onRefresh;
+  const stableOnRefresh = useCallback(() => onRefreshRef.current(), []);
   const activateSearch = (categoryId?: number) => {
     navigation.navigate('EventSearch', categoryId ? { category: categoryId } : undefined);
   };
   const navigateToEvent = (eventId: string, imageUrl?: string, ev?: Partial<Event>) => {
     navigation.navigate('EventDetails', { eventId, imageUrl, initialEvent: toEventPreview(ev) });
   };
+  // Callback STABLE pour les cartes mémoïsées du flux « Pour vous ».
+  const openEventFromCard = useCallback(
+    (ev: Event, imageUrl?: string) => {
+      navigation.navigate('EventDetails', { eventId: ev.id, imageUrl, initialEvent: toEventPreview(ev) });
+    },
+    [navigation],
+  );
   const goToNotifications = () =>
     user ? navigation.navigate('Notifications') : navigation.navigate('Login' as any);
 
@@ -867,8 +938,19 @@ export default function DiscoverScreen() {
   );
 
   // === HERO — big editorial card with date tile + gradient overlay ===
+  // C4 — reflet unique sur la carte « À la une » : une fois par session et
+  // par événement mis en avant (décidé une fois par id, pas à chaque rendu).
+  // Ref plutôt que useMemo : un double rendu (StrictMode) consommerait la
+  // clé `once` au 1er appel et renverrait false au 2e.
+  const heroId = featuredEvents[0]?.id;
+  const heroGlintRef = React.useRef<{ id: unknown; play: boolean }>({ id: undefined, play: false });
+  if (heroId != null && heroGlintRef.current.id !== heroId) {
+    heroGlintRef.current = { id: heroId, play: moments.once(`discover-hero-glint:${heroId}`) };
+  }
+  const heroGlint = heroGlintRef.current.play;
+
   const renderHero = (ev: Event) => {
-    const img = eventImage(ev);
+    const img = eventImage(ev, 'medium');
     const ph = eventPlaceholder(ev);
     const { day, month } = splitDate(ev.start_date);
     const range = getEventPriceRange(ev);
@@ -880,6 +962,7 @@ export default function DiscoverScreen() {
       <AnimatedPressable
         animationType="shadow"
         onPress={() => navigateToEvent(ev.id, img, ev)}
+        onPressIn={() => prefetchEventHero(ev)}
         style={[
           styles.heroCard,
           styles.shadowBase,
@@ -903,9 +986,10 @@ export default function DiscoverScreen() {
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
+          <GlintSweep playOnMount={heroGlint} delay={700} />
           {/* Eyebrow pill top-left */}
           <View style={[styles.heroEyebrowPill, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
-            <Ionicons name="star" size={11} color={colors.accent} />
+            <GradientIcon name="star" size={11} colors={['#FF6B6B', '#A855F7']} />
             {/* Texte sur fond blanc fixe → couleur ink statique (Colors.gray900),
                 NE PAS utiliser colors.text qui s'inverse en dark mode */}
             <Text style={[styles.heroEyebrowText, { color: Colors.gray900 }]}>{t('discover.featured')}</Text>
@@ -1118,6 +1202,7 @@ export default function DiscoverScreen() {
         <AnimatedPressable
           animationType="shadow"
           onPress={() => navigateToEvent(item.id, img, item)}
+          onPressIn={() => prefetchEventHero(item)}
           style={[
             styles.nearbyCard,
             styles.shadowBase,
@@ -1210,6 +1295,7 @@ export default function DiscoverScreen() {
               <AnimatedPressable
                 animationType="shadow"
                 onPress={() => navigateToEvent(ev.id, eventImage(ev), ev)}
+                onPressIn={() => prefetchEventHero(ev)}
                 style={[
                   styles.incomingCard,
                   styles.shadowBase,
@@ -1382,6 +1468,7 @@ export default function DiscoverScreen() {
               <AnimatedPressable
                 animationType="shadow"
                 onPress={() => navigateToEvent(item.id, img, item)}
+                onPressIn={() => prefetchEventHero(item)}
                 style={[
                   styles.freeCard,
                   styles.shadowBase,
@@ -1426,13 +1513,14 @@ export default function DiscoverScreen() {
   const renderRecCard = () => {
     const ev = recommendations[0];
     if (!ev) return null;
-    const img = eventImage(ev);
+    const img = eventImage(ev, 'medium');
     const ph = eventPlaceholder(ev);
     const { day, month } = splitDate(ev.start_date);
     return (
       <AnimatedPressable
         animationType="shadow"
         onPress={() => navigateToEvent(ev.id, img, ev)}
+        onPressIn={() => prefetchEventHero(ev)}
         style={[
           styles.recCard,
           styles.shadowBase,
@@ -1486,6 +1574,628 @@ export default function DiscoverScreen() {
     );
   };
 
+  // === LIST HEADER (sections éditoriales) — mémoïsé ===
+  // Dépend UNIQUEMENT des données des sections : l'ajout d'une page « Pour
+  // vous » (forYouEvents / forYouLoading / forYouPage) ne le recalcule pas, et
+  // la FlatList reçoit le même élément → React saute tout le sous-arbre.
+  // ⚠️ Toute nouvelle donnée lue par les sections doit être ajoutée aux deps.
+  const hasForYou = forYouEvents.length > 0;
+  const listHeader = useMemo(
+    () => (
+      <>
+        {/* === EDITORIAL HEADER — rounded bottom, matches tickets === */}
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
+              borderBottomColor: isDark ? colors.border : 'rgba(255,255,255,0.5)',
+            },
+          ]}
+        >
+          <View style={styles.headerTopRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
+                {(() => {
+                  // Ville RÉELLE de l'utilisateur (reverse-geocoding de sa
+                  // position), pas celle d'un event proche. Sans géoloc /
+                  // sans résolution, on retombe sur le libellé générique.
+                  const label = cityDisplayName(userCity);
+                  return label
+                    ? t('discover.headerCityWithName', { city: label.toUpperCase() })
+                    : t('discover.headerCityPrefix');
+                })()}
+              </Text>
+              <View style={styles.headerTitleRow}>
+                <Animated.Text
+                  style={[
+                    styles.headerTitle,
+                    { color: colors.text, transformOrigin: 'left center' },
+                    headerTitleStyle,
+                  ]}
+                >
+                  {t('discover.headerTitle')}
+                </Animated.Text>
+
+              </View>
+            </View>
+            <View style={styles.headerActions}>
+              {user?.role === 'organizer' && (
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => navigation.navigate('EventCreate' as any)}
+                  style={[styles.headerBtnCreate, Shadows.buttonPrimary]}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('discover.createEvent')}
+                >
+                  <LinearGradient
+                    colors={[colors.primary, colors.primaryDark]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  <Ionicons name="add" size={20} color={Colors.white} />
+                </TouchableOpacity>
+              )}
+              {/* Messages : retiré du header — déjà accessible via l'onglet
+                  "Messages" de la bottom nav. Évite la duplication d'entrée. */}
+              <TouchableOpacity
+                style={[styles.headerBtn, { backgroundColor: colors.gray100 }]}
+                onPress={goToNotifications}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  unreadNotificationCount > 0
+                    ? `${t('notifications.title')}, ${unreadNotificationCount}`
+                    : t('notifications.title')
+                }
+              >
+                <SwingOnIncrease value={unreadNotificationCount}>
+                  <Ionicons name="notifications-outline" size={18} color={colors.gray600} />
+                </SwingOnIncrease>
+                {unreadNotificationCount > 0 && (
+                  <PulsingBadge trigger={unreadNotificationCount} style={styles.headerBadgeWrap}>
+                    <View
+                      style={[
+                        styles.headerBtnBadge,
+                        { backgroundColor: colors.accent, borderColor: colors.gray100 },
+                      ]}
+                    >
+                      <Text style={styles.headerBtnBadgeText}>
+                        {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                      </Text>
+                    </View>
+                  </PulsingBadge>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* === SEARCH PILL (Option A) — simple, calme, captante via le
+              placeholder rotatif qui change toutes les 3s. */}
+          <TourTarget id="discover-search">
+            {/* A1 — aura : invisible au repos, une comète fait UN tour au
+                premier affichage de la session, au retour après 10 min et
+                au toucher. Le liseré de base reprend l'ancienne bordure. */}
+            <SearchAura
+              radius={BorderRadius.full}
+              onceKey="discover-search-aura"
+              backgroundColor={isDark ? colors.gray100 : '#F2F1ED'}
+              baseBorderColor={isDark ? colors.gray200 : 'rgba(17,17,16,0.05)'}
+              style={styles.searchAura}
+            >
+              {(lit, flash) => (
+                <TouchableOpacity
+                  style={[
+                    styles.searchTrigger,
+                    { backgroundColor: isDark ? colors.gray100 : '#F2F1ED' },
+                  ]}
+                  onPress={() => {
+                    flash();
+                    activateSearch();
+                  }}
+                  activeOpacity={0.85}
+                  accessibilityRole="search"
+                  accessibilityLabel={t('discover.searchAccessibility')}
+                >
+                  {/* A3 — la loupe passe en dégradé pendant le balayage. */}
+                  <GradientIcon
+                    name="search"
+                    size={18}
+                    active={lit}
+                    color={isDark ? colors.gray400 : colors.gray500}
+                  />
+                  <RotatingPlaceholder
+                    items={placeholderSuggestions}
+                    style={[
+                      styles.searchTriggerText,
+                      { color: isDark ? colors.gray300 : colors.gray600 },
+                    ]}
+                  />
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={isDark ? colors.gray400 : colors.gray400}
+                  />
+                </TouchableOpacity>
+              )}
+            </SearchAura>
+          </TourTarget>
+
+          {/* Category chips row */}
+          {categories.length > 0 && (
+            <EdgeFadeScroll contentContainerStyle={styles.chipsRow}>
+              <TourTarget id="discover-categories">
+                <SpringChip
+                  gradient
+                  style={styles.chip}
+                  onPress={() => activateSearch()}
+                  icon={<Ionicons name="flash" size={13} color={Colors.white} />}
+                >
+                  <Text style={[styles.chipText, { color: Colors.white }]}>{t('common.all')}</Text>
+                </SpringChip>
+              </TourTarget>
+              {categories.slice(0, 8).map((cat) => (
+                <SpringChip
+                  key={cat.id}
+                  style={styles.chip}
+                  inactiveColor={colors.gray100}
+                  onPress={() => activateSearch(Number(cat.id))}
+                >
+                  <Text style={[styles.chipText, { color: colors.gray600 }]}>
+                    {cat.name}
+                  </Text>
+                </SpringChip>
+              ))}
+            </EdgeFadeScroll>
+          )}
+        </View>
+
+        {/* === ADS — haut du feed === */}
+        {ads.filter((a) => a.placement === 'feed_top').map((ad) => (
+          <View key={ad.id} style={{ paddingHorizontal: Spacing.lg }}>
+            <AdvertisementCard ad={ad} />
+          </View>
+        ))}
+
+        {/* Le banner réseau (offline / slow) est rendu en overlay flottant
+            au niveau du root (NetworkStatusPill) pour éviter de pousser
+            le contenu et garder le feed propre. */}
+
+        {/* === FETCH-FAILURE BANNER (>= 2 fetches failed; dismissable) === */}
+        {fetchErrorCount >= 2 && !slowBannerDismissed && (
+          <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.md }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: Spacing.sm,
+                padding: Spacing.sm + 2,
+                borderRadius: BorderRadius.lg,
+                backgroundColor: `${colors.warning}15`,
+                borderWidth: 1,
+                borderColor: `${colors.warning}40`,
+              }}
+            >
+              <Ionicons name="cloud-offline" size={16} color={colors.warning} />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontFamily: FontFamily.bold,
+                    fontSize: 12,
+                    color: colors.warning,
+                  }}
+                >
+                  {t('discover.slowConnection')}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: FontFamily.regular,
+                    fontSize: 11,
+                    color: colors.gray600,
+                    marginTop: 1,
+                    lineHeight: 15,
+                  }}
+                >
+                  {t('discover.errorBannerMessage')}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={stableOnRefresh}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel={t('discover.retry')}
+                style={{
+                  padding: 6,
+                  borderRadius: BorderRadius.full,
+                  backgroundColor: `${colors.warning}25`,
+                }}
+              >
+                <Ionicons name="refresh" size={14} color={colors.warning} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setSlowBannerDismissed(true)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel={t('discover.hide')}
+                style={{ padding: 4 }}
+              >
+                <Ionicons name="close" size={16} color={colors.gray500} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* === HERO === */}
+        {featuredEvents[0] && (
+          <SectionEntrance delay={200}>
+            <View style={styles.heroWrap}>{renderHero(featuredEvents[0])}</View>
+          </SectionEntrance>
+        )}
+
+        {/* === LOCATION PERMISSION CARD — pre-perm rationale === */}
+        {locationPermStatus === 'idle' && nearbyEvents.length === 0 && (
+          <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.lg }}>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onPress={requestLocation}
+              style={[
+                {
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: Spacing.sm,
+                  padding: Spacing.md,
+                  borderRadius: 18,
+                  backgroundColor: colors.card,
+                  borderColor: isDark ? colors.gray200 : 'rgba(255,255,255,0.6)',
+                  borderWidth: 1,
+                },
+                Shadows.sm,
+              ]}
+            >
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: `${colors.primary}15`,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="location" size={20} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>
+                  {t('discover.nearbyTeaserEyebrow')}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: FontFamily.displayBold,
+                    fontSize: 14,
+                    color: colors.text,
+                    letterSpacing: -0.3,
+                    marginTop: 2,
+                  }}
+                >
+                  {t('discover.nearbyTeaserTitle')}
+                </Text>
+              </View>
+              <View
+                style={{
+                  backgroundColor: colors.primary,
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                  borderRadius: BorderRadius.full,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: FontFamily.bold,
+                    fontSize: 12,
+                    color: '#fff',
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  {t('discover.nearbyTeaserCTA')}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* === NEARBY === */}
+        {nearbyEvents.length > 0 && (
+          <SectionEntrance delay={300}>
+            <View style={styles.section}>
+              <SectionHeader
+                eyebrow={t('eyebrow.nearby')}
+                title={t('discover.popularNearbyTitle')}
+                onSeeAll={() => activateSearch()}
+              />
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={nearbyEvents}
+                keyExtractor={(it) => `nearby-${it.id}`}
+                contentContainerStyle={styles.horizontalListContent}
+                renderItem={renderNearbyCard}
+                removeClippedSubviews
+                initialNumToRender={3}
+                maxToRenderPerBatch={6}
+                windowSize={5}
+                viewabilityConfig={viewabilityConfig}
+                onViewableItemsChanged={onViewableItemsChanged}
+                extraData={visibleVersion}
+                getItemLayout={(_, i) => ({ length: NEARBY_ITEM_LENGTH, offset: NEARBY_ITEM_LENGTH * i, index: i })}
+              />
+            </View>
+          </SectionEntrance>
+        )}
+
+        {/* === ORGANISATEURS PROCHES === */}
+        {/* On ne suit pas que des événements, on suit des gens. La
+            section se masque seule si elle n'a rien : un rail vide
+            donne l'impression d'une plateforme déserte. */}
+        {localOrganizers.length > 0 && (
+          <SectionEntrance delay={320}>
+            <View style={styles.section}>
+              <SectionHeader
+                eyebrow={t('discover.organizersEyebrow')}
+                title={localOrganizerCity
+                  ? t('discover.organizersTitleWithCity', { city: localOrganizerCity })
+                  : t('discover.organizersTitle')}
+              />
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={localOrganizers}
+                keyExtractor={(it) => `org-${it.id}`}
+                contentContainerStyle={styles.horizontalListContent}
+                renderItem={renderOrganizerCard}
+                removeClippedSubviews
+                initialNumToRender={3}
+                maxToRenderPerBatch={6}
+                windowSize={5}
+              />
+            </View>
+          </SectionEntrance>
+        )}
+
+        {/* === RECOMMENDED rec card (user) === */}
+        {user && recommendations.length > 0 && (
+          <SectionEntrance delay={380}>
+            <View style={styles.section}>
+              <SectionHeader
+                eyebrow={t('eyebrow.forYou')}
+                title={t('discover.recommendedTitle')}
+                onSeeAll={() => activateSearch()}
+              />
+              <View style={{ paddingHorizontal: Spacing.lg }}>{renderRecCard()}</View>
+            </View>
+          </SectionEntrance>
+        )}
+        {!user && (
+          <SectionEntrance delay={380}>
+            <View style={styles.section}>
+              <View style={{ paddingHorizontal: Spacing.lg }}>
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  onPress={() => navigation.navigate('Login' as any)}
+                  style={[
+                    styles.loginCta,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: isDark ? colors.gray200 : 'rgba(255,255,255,0.6)',
+                    },
+                    Shadows.sm,
+                  ]}
+                >
+                  <LinearGradient
+                    colors={[`${colors.primary}15`, `${colors.accent}15`]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  <View style={[styles.loginCtaIcon, { backgroundColor: colors.primaryBg }]}>
+                    <Ionicons name="sparkles" size={20} color={colors.primary} />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: Spacing.sm }}>
+                    <Text style={[styles.loginCtaEyebrow, { color: colors.accent }]}>
+                      CONNEXION
+                    </Text>
+                    <Text style={[styles.loginCtaTitle, { color: colors.text }]}>
+                      Des recommandations taillées pour toi
+                    </Text>
+                  </View>
+                  <Ionicons name="arrow-forward" size={18} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </SectionEntrance>
+        )}
+
+        {/* === INCOMING vertical stub list === */}
+        {upcomingEvents.length > 0 && (
+          <SectionEntrance delay={460}>
+            <View style={styles.section}>
+              <SectionHeader
+                eyebrow={t('eyebrow.upcoming')}
+                title={t('discover.incomingTitle')}
+                onSeeAll={() => activateSearch()}
+              />
+              <View style={{ paddingHorizontal: Spacing.lg }}>{renderIncoming()}</View>
+            </View>
+          </SectionEntrance>
+        )}
+
+        {/* === CATEGORIES grid === */}
+        {categories.length > 0 && (
+          <SectionEntrance delay={540}>
+            <View style={styles.section}>
+              <SectionHeader
+                eyebrow={t('discover.allGenresEyebrow')}
+                title={t('discover.allGenresTitle')}
+                onSeeAll={() => navigation.navigate('EventSearch', undefined)}
+              />
+              <View style={{ paddingHorizontal: Spacing.lg }}>{renderCategories()}</View>
+            </View>
+          </SectionEntrance>
+        )}
+
+        {/* === CITIES (entry point UI vers EventSearch by city + CitiesIndex) === */}
+        <SectionEntrance delay={580}>
+          <CitiesSection />
+        </SectionEntrance>
+
+        {/* === FREE section === */}
+        {freeEvents.length > 0 && (
+          <SectionEntrance delay={620}>
+            <View style={[styles.section, { marginTop: Spacing.xl }]}>
+              {renderFreeSection()}
+            </View>
+          </SectionEntrance>
+        )}
+
+        {/* === EMPTY STATE — when nothing loaded and no errors masking it === */}
+        {!initialLoading &&
+          featuredEvents.length === 0 &&
+          upcomingEvents.length === 0 &&
+          freeEvents.length === 0 &&
+          fetchErrorCount === 0 && (
+            <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing['2xl'], alignItems: 'center' }}>
+              <View
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: 36,
+                  backgroundColor: colors.primary + '18',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: Spacing.md,
+                }}
+              >
+                <Ionicons name="sparkles-outline" size={30} color={colors.primary} />
+              </View>
+              <Text
+                style={{
+                  fontFamily: FontFamily.displayBold,
+                  fontSize: 18,
+                  color: colors.text,
+                  textAlign: 'center',
+                  letterSpacing: -0.4,
+                }}
+              >
+                {t('discover.emptyTitle', { defaultValue: 'Les premiers événements arrivent' })}
+              </Text>
+              <Text
+                style={{
+                  fontFamily: FontFamily.regular,
+                  fontSize: 13,
+                  color: colors.gray500,
+                  textAlign: 'center',
+                  marginTop: 6,
+                  maxWidth: 300,
+                }}
+              >
+                {t('discover.emptyDesc', { defaultValue: 'Sois le premier informé quand ça bouge près de chez toi.' })}
+              </Text>
+              <TouchableOpacity
+                onPress={handleEnableNotifications}
+                activeOpacity={0.85}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  marginTop: Spacing.lg,
+                  backgroundColor: colors.primary,
+                  paddingHorizontal: Spacing.lg,
+                  paddingVertical: Spacing.sm + 2,
+                  borderRadius: 999,
+                }}
+              >
+                <Ionicons name="notifications-outline" size={16} color="#FFFFFF" />
+                <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 14, color: '#FFFFFF' }}>
+                  {t('discover.emptyNotifyCta', { defaultValue: 'Préviens-moi' })}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+        {/* === ADS — bas du feed === */}
+        {ads.filter((a) => a.placement === 'feed_bottom').map((ad) => (
+          <View key={ad.id} style={{ paddingHorizontal: Spacing.lg }}>
+            <AdvertisementCard ad={ad} />
+          </View>
+        ))}
+
+        {/* === POUR VOUS — titre du flux social-style infini === */}
+        {hasForYou && (
+          <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.xl }}>
+            <Text style={[styles.forYouEyebrow, { color: colors.accent }]}>
+              POUR VOUS · BASÉ SUR VOS GOÛTS
+            </Text>
+            <Text style={[styles.forYouTitle, { color: colors.text }]}>
+              Tu pourrais aussi aimer
+            </Text>
+          </View>
+        )}
+      </>
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      colors, isDark, t, user, userCity, unreadNotificationCount, placeholderSuggestions,
+      categories, ads, fetchErrorCount, slowBannerDismissed, featuredEvents,
+      locationPermStatus, nearbyEvents, visibleVersion, localOrganizers,
+      localOrganizerCity, countryIsDistinctive, recommendations, upcomingEvents,
+      freeEvents, initialLoading, platformCurrency, categoryCardWidth, hasForYou,
+      navigation, requestLocation, handleEnableNotifications, stableOnRefresh,
+    ],
+  );
+
+  // === POUR VOUS — items virtualisés ===
+  const inlineAd = useMemo(() => ads.find((a) => a.placement === 'feed_inline') || null, [ads]);
+  const renderForYouItem = useCallback(
+    ({ item, index }: { item: Event; index: number }) => (
+      <View style={{ paddingHorizontal: Spacing.lg }}>
+        {/* Une ad inline injectée à idx=4 pour ne pas spammer */}
+        {index === 4 && inlineAd && <AdvertisementCard ad={inlineAd} />}
+        <ForYouEventCard
+          event={item}
+          shouldPlay={forYouVisibleIds.has(String(item.id))}
+          platformCurrency={platformCurrency}
+          onOpen={openEventFromCard}
+        />
+      </View>
+    ),
+    [inlineAd, forYouVisibleIds, platformCurrency, openEventFromCard],
+  );
+
+  const listFooter = useMemo(
+    () => (
+      <>
+        {hasForYou && (
+          <View style={{ paddingHorizontal: Spacing.lg }}>
+            {forYouLoading && (
+              <View style={styles.forYouLoadingRow}>
+                <Text style={[styles.forYouLoadingText, { color: colors.gray500 }]}>
+                  Chargement...
+                </Text>
+              </View>
+            )}
+            {!forYouHasMore && (
+              <View style={styles.forYouEndRow}>
+                <Text style={[styles.forYouEndText, { color: colors.gray400 }]}>
+                  Tu as tout vu pour aujourd'hui · Reviens demain
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+        <View style={{ height: 140 }} />
+      </>
+    ),
+    [hasForYou, forYouLoading, forYouHasMore, colors],
+  );
+
   // === MAIN RENDER ===
   return (
     <EditorialCanvas edges={['top']} glow="indigo">
@@ -1505,26 +2215,44 @@ export default function DiscoverScreen() {
               style={[
                 styles.compactHeader,
                 {
-                  backgroundColor: isDark ? colors.background : 'rgba(246,246,249,0.92)',
+                  // Opaque (clair comme sombre) : même teinte que l'écran.
+                  backgroundColor: colors.background,
                   borderBottomColor: colors.gray100,
                 },
                 compactHeaderStyle,
               ]}
             >
+              <Animated.View style={compactContentStyle}>
               <View style={styles.compactHeaderTopRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.compactSearchBar,
-                    { backgroundColor: colors.gray100 },
-                  ]}
-                  onPress={() => activateSearch()}
-                  activeOpacity={0.7}
+                {/* Version compacte : pas de balayage d'accueil (déjà joué
+                    sur la grande barre), seulement au toucher. */}
+                <SearchAura
+                  radius={BorderRadius.full}
+                  wake={false}
+                  backgroundColor={colors.gray100}
+                  baseBorderColor={colors.gray100}
+                  style={styles.compactSearchAura}
                 >
-                  <Ionicons name="search" size={16} color={colors.gray500} />
-                  <Text style={[styles.compactSearchText, { color: colors.gray500 }]} numberOfLines={1}>
-                    {placeholderSuggestions[placeholderIndex]}
-                  </Text>
-                </TouchableOpacity>
+                  {(lit, flash) => (
+                    <TouchableOpacity
+                      style={[
+                        styles.compactSearchBar,
+                        { backgroundColor: colors.gray100 },
+                      ]}
+                      onPress={() => {
+                        flash();
+                        activateSearch();
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <GradientIcon name="search" size={16} active={lit} color={colors.gray500} />
+                      <RotatingPlaceholder
+                        items={placeholderSuggestions}
+                        style={[styles.compactSearchText, { color: colors.gray500 }]}
+                      />
+                    </TouchableOpacity>
+                  )}
+                </SearchAura>
                 <TouchableOpacity
                   style={[styles.compactBtn, { backgroundColor: colors.gray100 }]}
                   onPress={goToNotifications}
@@ -1535,18 +2263,23 @@ export default function DiscoverScreen() {
                       : t('notifications.title')
                   }
                 >
-                  <Ionicons name="notifications-outline" size={18} color={colors.gray600} />
+                  <SwingOnIncrease value={unreadNotificationCount}>
+                    <Ionicons name="notifications-outline" size={18} color={colors.gray600} />
+                  </SwingOnIncrease>
                   {unreadNotificationCount > 0 && (
-                    <View
-                      style={[
-                        styles.compactBtnBadge,
-                        { backgroundColor: colors.accent, borderColor: colors.gray100 },
-                      ]}
-                    >
-                      <Text style={styles.compactBtnBadgeText}>
-                        {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
-                      </Text>
-                    </View>
+                    <PulsingBadge trigger={unreadNotificationCount} style={styles.compactBadgeWrap}>
+                      <View
+                        style={[
+                          styles.compactBtnBadge,
+                          styles.compactBtnBadgeInWrap,
+                          { backgroundColor: colors.accent, borderColor: colors.gray100 },
+                        ]}
+                      >
+                        <Text style={styles.compactBtnBadgeText}>
+                          {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                        </Text>
+                      </View>
+                    </PulsingBadge>
                   )}
                 </TouchableOpacity>
               </View>
@@ -1580,784 +2313,80 @@ export default function DiscoverScreen() {
                   ))}
                 </ScrollView>
               )}
+              </Animated.View>
+              {/* B5 — filet dégradé qui se dessine sous le header compact. */}
+              <Animated.View
+                pointerEvents="none"
+                style={[styles.compactRule, { transformOrigin: 'left center' }, compactRuleStyle]}
+              >
+                <LinearGradient
+                  colors={(isDark ? ['#818CF8', '#C084FC', '#FF8A8A'] : ['#4F46E5', '#A855F7', '#FF6B6B'])}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={StyleSheet.absoluteFillObject}
+                />
+              </Animated.View>
             </Animated.View>
 
-            {/* === FEED === */}
-            <Animated.ScrollView
-              ref={feedRef}
+            {/* === FEED ===
+                FlatList virtualisée : les sections éditoriales (header, héros,
+                près de toi, catégories…) forment le ListHeaderComponent
+                MÉMOÏSÉ ; seul le flux infini « Pour vous » est virtualisé.
+                Ajouter une page ne redessine donc plus tout le feed, et les
+                cartes hors écran sont démontées (mémoire bornée). */}
+            <Animated.FlatList
+              ref={feedRef as any}
+              data={forYouEvents}
+              keyExtractor={forYouKeyExtractor}
+              renderItem={renderForYouItem}
+              ListHeaderComponent={listHeader}
+              ListFooterComponent={listFooter}
               showsVerticalScrollIndicator={false}
               onScroll={onScroll}
-              onMomentumScrollEnd={handleScrollEnd}
               scrollEventThrottle={16}
+              onEndReached={handleEndReached}
+              // ≈ 600px avant le bas (comme l'ancien onMomentumScrollEnd)
+              onEndReachedThreshold={0.8}
+              initialNumToRender={3}
+              maxToRenderPerBatch={6}
+              windowSize={7}
+              removeClippedSubviews={Platform.OS === 'android'}
+              viewabilityConfig={forYouViewabilityConfig}
+              onViewableItemsChanged={onForYouViewableItemsChanged}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
                   onRefresh={onRefresh}
                   tintColor={colors.primary}
-                  colors={[colors.primary]}
+                  // C5 — Android : le spinner passe par indigo, violet, corail.
+                  colors={[colors.primary, colors.secondary, colors.accent]}
+                  progressBackgroundColor={colors.card}
                 />
               }
               contentContainerStyle={[styles.scrollContent, styles.pageInner]}
-            >
-              {/* === EDITORIAL HEADER — rounded bottom, matches tickets === */}
-              <View
-                style={[
-                  styles.header,
-                  {
-                    backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
-                    borderBottomColor: isDark ? colors.border : 'rgba(255,255,255,0.5)',
-                  },
-                ]}
-              >
-                <View style={styles.headerTopRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
-                      {(() => {
-                        // Ville RÉELLE de l'utilisateur (reverse-geocoding de sa
-                        // position), pas celle d'un event proche. Sans géoloc /
-                        // sans résolution, on retombe sur le libellé générique.
-                        const label = cityDisplayName(userCity);
-                        return label
-                          ? t('discover.headerCityWithName', { city: label.toUpperCase() })
-                          : t('discover.headerCityPrefix');
-                      })()}
-                    </Text>
-                    <View style={styles.headerTitleRow}>
-                      <Text style={[styles.headerTitle, { color: colors.text }]}>
-                        {t('discover.headerTitle')}
-                      </Text>
-                      
-                    </View>
-                  </View>
-                  <View style={styles.headerActions}>
-                    {user?.role === 'organizer' && (
-                      <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={() => navigation.navigate('EventCreate' as any)}
-                        style={[styles.headerBtnCreate, Shadows.buttonPrimary]}
-                        accessibilityRole="button"
-                        accessibilityLabel={t('discover.createEvent')}
-                      >
-                        <LinearGradient
-                          colors={[colors.primary, colors.primaryDark]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                          style={StyleSheet.absoluteFill}
-                        />
-                        <Ionicons name="add" size={20} color={Colors.white} />
-                      </TouchableOpacity>
-                    )}
-                    {/* Messages : retiré du header — déjà accessible via l'onglet
-                        "Messages" de la bottom nav. Évite la duplication d'entrée. */}
-                    <TouchableOpacity
-                      style={[styles.headerBtn, { backgroundColor: colors.gray100 }]}
-                      onPress={goToNotifications}
-                      activeOpacity={0.7}
-                      accessibilityRole="button"
-                      accessibilityLabel={
-                        unreadNotificationCount > 0
-                          ? `${t('notifications.title')}, ${unreadNotificationCount}`
-                          : t('notifications.title')
-                      }
-                    >
-                      <Ionicons name="notifications-outline" size={18} color={colors.gray600} />
-                      {unreadNotificationCount > 0 && (
-                        <PulsingBadge active style={styles.headerBadgeWrap}>
-                          <View
-                            style={[
-                              styles.headerBtnBadge,
-                              { backgroundColor: colors.accent, borderColor: colors.gray100 },
-                            ]}
-                          >
-                            <Text style={styles.headerBtnBadgeText}>
-                              {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
-                            </Text>
-                          </View>
-                        </PulsingBadge>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* === SEARCH PILL (Option A) — simple, calme, captante via le
-                    placeholder rotatif qui change toutes les 3s. */}
-                <TourTarget id="discover-search">
-                  <TouchableOpacity
-                    style={[
-                      styles.searchTrigger,
-                      {
-                        backgroundColor: isDark ? colors.gray100 : '#F2F1ED',
-                        borderColor: isDark ? colors.gray200 : 'rgba(17,17,16,0.05)',
-                      },
-                    ]}
-                    onPress={() => activateSearch()}
-                    activeOpacity={0.85}
-                    accessibilityRole="search"
-                    accessibilityLabel={t('discover.searchAccessibility')}
-                  >
-                    <Ionicons
-                      name="search"
-                      size={18}
-                      color={isDark ? colors.gray400 : colors.gray500}
-                    />
-                    <Text
-                      style={[
-                        styles.searchTriggerText,
-                        { color: isDark ? colors.gray300 : colors.gray600 },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {placeholderSuggestions[placeholderIndex]}
-                    </Text>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={16}
-                      color={isDark ? colors.gray400 : colors.gray400}
-                    />
-                  </TouchableOpacity>
-                </TourTarget>
-
-                {/* Category chips row */}
-                {categories.length > 0 && (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.chipsRow}
-                  >
-                    <TourTarget id="discover-categories">
-                      <TouchableOpacity
-                        style={[
-                          styles.chip,
-                          { backgroundColor: colors.primary, ...Shadows.buttonPrimary },
-                        ]}
-                        onPress={() => activateSearch()}
-                        activeOpacity={0.75}
-                      >
-                        <Ionicons name="flash" size={13} color={Colors.white} />
-                        <Text style={[styles.chipText, { color: Colors.white }]}>{t('common.all')}</Text>
-                      </TouchableOpacity>
-                    </TourTarget>
-                    {categories.slice(0, 8).map((cat) => (
-                      <TouchableOpacity
-                        key={cat.id}
-                        style={[styles.chip, { backgroundColor: colors.gray100 }]}
-                        onPress={() => activateSearch(Number(cat.id))}
-                        activeOpacity={0.75}
-                      >
-                        <Text style={[styles.chipText, { color: colors.gray600 }]}>
-                          {cat.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                )}
-              </View>
-
-              {/* === ADS — haut du feed === */}
-              {ads.filter((a) => a.placement === 'feed_top').map((ad) => (
-                <View key={ad.id} style={{ paddingHorizontal: Spacing.lg }}>
-                  <AdvertisementCard ad={ad} />
-                </View>
-              ))}
-
-              {/* Le banner réseau (offline / slow) est rendu en overlay flottant
-                  au niveau du root (NetworkStatusPill) pour éviter de pousser
-                  le contenu et garder le feed propre. */}
-
-              {/* === FETCH-FAILURE BANNER (>= 2 fetches failed; dismissable) === */}
-              {fetchErrorCount >= 2 && !slowBannerDismissed && (
-                <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.md }}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: Spacing.sm,
-                      padding: Spacing.sm + 2,
-                      borderRadius: BorderRadius.lg,
-                      backgroundColor: `${colors.warning}15`,
-                      borderWidth: 1,
-                      borderColor: `${colors.warning}40`,
-                    }}
-                  >
-                    <Ionicons name="cloud-offline" size={16} color={colors.warning} />
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={{
-                          fontFamily: FontFamily.bold,
-                          fontSize: 12,
-                          color: colors.warning,
-                        }}
-                      >
-                        Connexion lente
-                      </Text>
-                      <Text
-                        style={{
-                          fontFamily: FontFamily.regular,
-                          fontSize: 11,
-                          color: colors.gray600,
-                          marginTop: 1,
-                          lineHeight: 15,
-                        }}
-                      >
-                        Certaines sections n'ont pas pu se charger.
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      onPress={onRefresh}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      accessibilityLabel={t('discover.retry')}
-                      style={{
-                        padding: 6,
-                        borderRadius: BorderRadius.full,
-                        backgroundColor: `${colors.warning}25`,
-                      }}
-                    >
-                      <Ionicons name="refresh" size={14} color={colors.warning} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => setSlowBannerDismissed(true)}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      accessibilityLabel={t('discover.hide')}
-                      style={{ padding: 4 }}
-                    >
-                      <Ionicons name="close" size={16} color={colors.gray500} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-
-              {/* === HERO === */}
-              {featuredEvents[0] && (
-                <SectionEntrance delay={200}>
-                  <View style={styles.heroWrap}>{renderHero(featuredEvents[0])}</View>
-                </SectionEntrance>
-              )}
-
-              {/* === LOCATION PERMISSION CARD — pre-perm rationale === */}
-              {locationPermStatus === 'idle' && nearbyEvents.length === 0 && (
-                <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.lg }}>
-                  <TouchableOpacity
-                    activeOpacity={0.88}
-                    onPress={requestLocation}
-                    style={[
-                      {
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: Spacing.sm,
-                        padding: Spacing.md,
-                        borderRadius: 18,
-                        backgroundColor: colors.card,
-                        borderColor: isDark ? colors.gray200 : 'rgba(255,255,255,0.6)',
-                        borderWidth: 1,
-                      },
-                      Shadows.sm,
-                    ]}
-                  >
-                    <View
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 22,
-                        backgroundColor: `${colors.primary}15`,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Ionicons name="location" size={20} color={colors.primary} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>
-                        {t('discover.nearbyTeaserEyebrow')}
-                      </Text>
-                      <Text
-                        style={{
-                          fontFamily: FontFamily.displayBold,
-                          fontSize: 14,
-                          color: colors.text,
-                          letterSpacing: -0.3,
-                          marginTop: 2,
-                        }}
-                      >
-                        {t('discover.nearbyTeaserTitle')}
-                      </Text>
-                    </View>
-                    <View
-                      style={{
-                        backgroundColor: colors.primary,
-                        paddingHorizontal: 14,
-                        paddingVertical: 8,
-                        borderRadius: BorderRadius.full,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontFamily: FontFamily.bold,
-                          fontSize: 12,
-                          color: '#fff',
-                          letterSpacing: 0.3,
-                        }}
-                      >
-                        {t('discover.nearbyTeaserCTA')}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {/* === NEARBY === */}
-              {nearbyEvents.length > 0 && (
-                <SectionEntrance delay={300}>
-                  <View style={styles.section}>
-                    <SectionHeader
-                      eyebrow={t('eyebrow.nearby')}
-                      title={t('discover.popularNearbyTitle')}
-                      onSeeAll={() => activateSearch()}
-                    />
-                    <FlatList
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      data={nearbyEvents}
-                      keyExtractor={(it) => `nearby-${it.id}`}
-                      contentContainerStyle={styles.horizontalListContent}
-                      renderItem={renderNearbyCard}
-                      removeClippedSubviews
-                      initialNumToRender={3}
-                      maxToRenderPerBatch={6}
-                      windowSize={5}
-                      viewabilityConfig={viewabilityConfig}
-                      onViewableItemsChanged={onViewableItemsChanged}
-                      extraData={visibleVersion}
-                      getItemLayout={(_, i) => ({ length: NEARBY_ITEM_LENGTH, offset: NEARBY_ITEM_LENGTH * i, index: i })}
-                    />
-                  </View>
-                </SectionEntrance>
-              )}
-
-              {/* === ORGANISATEURS PROCHES === */}
-              {/* On ne suit pas que des événements, on suit des gens. La
-                  section se masque seule si elle n'a rien : un rail vide
-                  donne l'impression d'une plateforme déserte. */}
-              {localOrganizers.length > 0 && (
-                <SectionEntrance delay={320}>
-                  <View style={styles.section}>
-                    <SectionHeader
-                      eyebrow={t('discover.organizersEyebrow')}
-                      title={localOrganizerCity
-                        ? t('discover.organizersTitleWithCity', { city: localOrganizerCity })
-                        : t('discover.organizersTitle')}
-                    />
-                    <FlatList
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      data={localOrganizers}
-                      keyExtractor={(it) => `org-${it.id}`}
-                      contentContainerStyle={styles.horizontalListContent}
-                      renderItem={renderOrganizerCard}
-                      removeClippedSubviews
-                      initialNumToRender={3}
-                      maxToRenderPerBatch={6}
-                      windowSize={5}
-                    />
-                  </View>
-                </SectionEntrance>
-              )}
-
-              {/* === RECOMMENDED rec card (user) === */}
-              {user && recommendations.length > 0 && (
-                <SectionEntrance delay={380}>
-                  <View style={styles.section}>
-                    <SectionHeader
-                      eyebrow={t('eyebrow.forYou')}
-                      title={t('discover.recommendedTitle')}
-                      onSeeAll={() => activateSearch()}
-                    />
-                    <View style={{ paddingHorizontal: Spacing.lg }}>{renderRecCard()}</View>
-                  </View>
-                </SectionEntrance>
-              )}
-              {!user && (
-                <SectionEntrance delay={380}>
-                  <View style={styles.section}>
-                    <View style={{ paddingHorizontal: Spacing.lg }}>
-                      <TouchableOpacity
-                        activeOpacity={0.88}
-                        onPress={() => navigation.navigate('Login' as any)}
-                        style={[
-                          styles.loginCta,
-                          {
-                            backgroundColor: colors.card,
-                            borderColor: isDark ? colors.gray200 : 'rgba(255,255,255,0.6)',
-                          },
-                          Shadows.sm,
-                        ]}
-                      >
-                        <LinearGradient
-                          colors={[`${colors.primary}15`, `${colors.accent}15`]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={StyleSheet.absoluteFill}
-                        />
-                        <View style={[styles.loginCtaIcon, { backgroundColor: colors.primaryBg }]}>
-                          <Ionicons name="sparkles" size={20} color={colors.primary} />
-                        </View>
-                        <View style={{ flex: 1, marginLeft: Spacing.sm }}>
-                          <Text style={[styles.loginCtaEyebrow, { color: colors.accent }]}>
-                            CONNEXION
-                          </Text>
-                          <Text style={[styles.loginCtaTitle, { color: colors.text }]}>
-                            Des recommandations taillées pour toi
-                          </Text>
-                        </View>
-                        <Ionicons name="arrow-forward" size={18} color={colors.primary} />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </SectionEntrance>
-              )}
-
-              {/* === INCOMING vertical stub list === */}
-              {upcomingEvents.length > 0 && (
-                <SectionEntrance delay={460}>
-                  <View style={styles.section}>
-                    <SectionHeader
-                      eyebrow={t('eyebrow.upcoming')}
-                      title={t('discover.incomingTitle')}
-                      onSeeAll={() => activateSearch()}
-                    />
-                    <View style={{ paddingHorizontal: Spacing.lg }}>{renderIncoming()}</View>
-                  </View>
-                </SectionEntrance>
-              )}
-
-              {/* === CATEGORIES grid === */}
-              {categories.length > 0 && (
-                <SectionEntrance delay={540}>
-                  <View style={styles.section}>
-                    <SectionHeader
-                      eyebrow={t('discover.allGenresEyebrow')}
-                      title={t('discover.allGenresTitle')}
-                      onSeeAll={() => navigation.navigate('EventSearch', undefined)}
-                    />
-                    <View style={{ paddingHorizontal: Spacing.lg }}>{renderCategories()}</View>
-                  </View>
-                </SectionEntrance>
-              )}
-
-              {/* === CITIES (entry point UI vers EventSearch by city + CitiesIndex) === */}
-              <SectionEntrance delay={580}>
-                <CitiesSection />
-              </SectionEntrance>
-
-              {/* === FREE section === */}
-              {freeEvents.length > 0 && (
-                <SectionEntrance delay={620}>
-                  <View style={[styles.section, { marginTop: Spacing.xl }]}>
-                    {renderFreeSection()}
-                  </View>
-                </SectionEntrance>
-              )}
-
-              {/* === EMPTY STATE — when nothing loaded and no errors masking it === */}
-              {!initialLoading &&
-                featuredEvents.length === 0 &&
-                upcomingEvents.length === 0 &&
-                freeEvents.length === 0 &&
-                fetchErrorCount === 0 && (
-                  <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing['2xl'], alignItems: 'center' }}>
-                    <View
-                      style={{
-                        width: 72,
-                        height: 72,
-                        borderRadius: 36,
-                        backgroundColor: colors.primary + '18',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: Spacing.md,
-                      }}
-                    >
-                      <Ionicons name="sparkles-outline" size={30} color={colors.primary} />
-                    </View>
-                    <Text
-                      style={{
-                        fontFamily: FontFamily.displayBold,
-                        fontSize: 18,
-                        color: colors.text,
-                        textAlign: 'center',
-                        letterSpacing: -0.4,
-                      }}
-                    >
-                      {t('discover.emptyTitle', { defaultValue: 'Les premiers événements arrivent' })}
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: FontFamily.regular,
-                        fontSize: 13,
-                        color: colors.gray500,
-                        textAlign: 'center',
-                        marginTop: 6,
-                        maxWidth: 300,
-                      }}
-                    >
-                      {t('discover.emptyDesc', { defaultValue: 'Sois le premier informé quand ça bouge près de chez toi.' })}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={handleEnableNotifications}
-                      activeOpacity={0.85}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 6,
-                        marginTop: Spacing.lg,
-                        backgroundColor: colors.primary,
-                        paddingHorizontal: Spacing.lg,
-                        paddingVertical: Spacing.sm + 2,
-                        borderRadius: 999,
-                      }}
-                    >
-                      <Ionicons name="notifications-outline" size={16} color="#FFFFFF" />
-                      <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 14, color: '#FFFFFF' }}>
-                        {t('discover.emptyNotifyCta', { defaultValue: 'Préviens-moi' })}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-              {/* === ADS — bas du feed === */}
-              {ads.filter((a) => a.placement === 'feed_bottom').map((ad) => (
-                <View key={ad.id} style={{ paddingHorizontal: Spacing.lg }}>
-                  <AdvertisementCard ad={ad} />
-                </View>
-              ))}
-
-              {/* === POUR VOUS — feed social-style infini === */}
-              {forYouEvents.length > 0 && (
-                <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.xl }}>
-                  <Text style={[styles.forYouEyebrow, { color: colors.accent }]}>
-                    POUR VOUS · BASÉ SUR VOS GOÛTS
-                  </Text>
-                  <Text style={[styles.forYouTitle, { color: colors.text }]}>
-                    Tu pourrais aussi aimer
-                  </Text>
-                  {forYouEvents.map((ev, idx) => {
-                    const { day, month } = splitDate(ev.start_date);
-                    const img = eventImage(ev);
-                    const placeholder = eventPlaceholder(ev);
-                    const orgName = (ev.organizer_name as string)
-                      || (ev.organizer && typeof ev.organizer === 'object'
-                        ? `${(ev.organizer as any).first_name || ''} ${(ev.organizer as any).last_name || ''}`.trim() || (ev.organizer as any).email
-                        : 'Organisateur');
-                    const orgInitial = (orgName?.[0] || 'O').toUpperCase();
-                    const orgAvatar = (ev.organizer && typeof ev.organizer === 'object')
-                      ? getMediaUrl((ev.organizer as any).profile_picture || (ev.organizer as any).image)
-                      : null;
-                    const locationLabel = ev.location_type === 'online'
-                      ? t('discover.online')
-                      : (ev.location_city || ev.location_name || '');
-                    // Label prix formaté : "Gratuit" / "5 000 FCFA" / "dès 5 000 FCFA"
-                    const priceRange = getEventPriceRange(ev);
-                    const priceLabel = priceRange === undefined
-                      ? ''
-                      : priceRange.max === 0
-                        ? t('common.free')
-                        : priceRange.min === priceRange.max
-                          ? `${priceRange.min.toLocaleString()} ${platformCurrency}`
-                          : `${t('events.startingFrom')} ${priceRange.min.toLocaleString()} ${platformCurrency}`;
-                    const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
-                    // Une ad inline injectée à idx=4 pour ne pas spammer
-                    const inlineAd = idx === 4
-                      ? ads.find((a) => a.placement === 'feed_inline')
-                      : null;
-
-                    return (
-                      <React.Fragment key={ev.id}>
-                        {inlineAd && <AdvertisementCard ad={inlineAd} />}
-                        <View
-                          style={[
-                            styles.feedCard,
-                            { backgroundColor: colors.card, borderColor: hairline },
-                          ]}
-                        >
-                          {/* Header : organisateur + meta — tappable comme tout LinkedIn/FB post */}
-                          <TouchableOpacity
-                            onPress={() => navigateToEvent(ev.id, img, ev)}
-                            activeOpacity={0.95}
-                          >
-                            <View style={styles.feedCardHeader}>
-                              {orgAvatar ? (
-                                <Image
-                                  source={{ uri: orgAvatar }}
-                                  style={[styles.feedCardAvatar, { borderColor: hairline }]}
-                                  contentFit="cover"
-                                  cachePolicy="memory-disk"
-                                />
-                              ) : (
-                                <View
-                                  style={[
-                                    styles.feedCardAvatar,
-                                    { backgroundColor: `${colors.primary}12`, borderColor: hairline },
-                                  ]}
-                                >
-                                  <Text style={[styles.feedCardAvatarInitial, { color: colors.primary }]}>
-                                    {orgInitial}
-                                  </Text>
-                                </View>
-                              )}
-                              <View style={{ flex: 1 }}>
-                                <Text
-                                  style={[styles.feedCardOrgEyebrow, { color: colors.accent }]}
-                                  numberOfLines={1}
-                                >
-                                  POUR VOUS · ORGANISATEUR
-                                </Text>
-                                <Text
-                                  style={[styles.feedCardOrgName, { color: colors.text }]}
-                                  numberOfLines={1}
-                                >
-                                  {orgName}
-                                </Text>
-                              </View>
-                            </View>
-
-                            {/* Hero image OU video full-width 16:9 (autoplay si visible dans viewport) */}
-                            <EventCoverMedia
-                              event={ev}
-                              mode="card"
-                              shouldPlay={visibleIdsRef.current.has(ev.id)}
-                              style={styles.feedCardImage}
-                              fallbackImageUri={img}
-                              fallbackPlaceholder={placeholder}
-                            />
-
-                            {/* Body */}
-                            <View style={styles.feedCardBody}>
-                              <Text
-                                style={[styles.feedCardTitle, { color: colors.text }]}
-                                numberOfLines={2}
-                              >
-                                {ev.title}
-                              </Text>
-                              {!!ev.short_description && (
-                                <Text
-                                  style={[styles.feedCardDesc, { color: colors.gray600 }]}
-                                  numberOfLines={3}
-                                >
-                                  {ev.short_description}
-                                </Text>
-                              )}
-
-                              {/* Meta row : date · lieu · prix — séparateurs visuels épurés */}
-                              <View style={styles.feedCardMetaRow}>
-                                <Ionicons
-                                  name="calendar-outline"
-                                  size={13}
-                                  color={colors.accent}
-                                />
-                                <Text
-                                  style={[styles.feedCardMetaText, { color: colors.gray700 }]}
-                                  numberOfLines={1}
-                                >
-                                  {day} {month} · {eventTime(ev)}
-                                </Text>
-                                {!!locationLabel && (
-                                  <>
-                                    <View style={[styles.feedCardMetaDot, { backgroundColor: colors.gray300 }]} />
-                                    <Text
-                                      style={[styles.feedCardMetaText, { color: colors.gray700, flexShrink: 1 }]}
-                                      numberOfLines={1}
-                                    >
-                                      {locationLabel}
-                                    </Text>
-                                  </>
-                                )}
-                                {!!priceLabel && (
-                                  <>
-                                    <View style={[styles.feedCardMetaDot, { backgroundColor: colors.gray300 }]} />
-                                    <Text
-                                      style={[styles.feedCardMetaText, { color: colors.primary }]}
-                                      numberOfLines={1}
-                                    >
-                                      {priceLabel}
-                                    </Text>
-                                  </>
-                                )}
-                              </View>
-                            </View>
-                          </TouchableOpacity>
-
-                          {/* Footer : Partager (ghost) à gauche · CTA primaire à droite */}
-                          <View style={[styles.feedCardFooter, { borderTopColor: hairline }]}>
-                            <TouchableOpacity
-                              style={styles.feedCardActionGhost}
-                              onPress={() => {
-                                // Toujours inclure le LIEN de l'event (sinon le
-                                // partage n'envoie que du texte, inexploitable).
-                                const shareUrl = getEventUrl(ev.slug || ev.id);
-                                Share.share({
-                                  message: `${ev.title}\n${ev.short_description || ''}\n\n${shareUrl}`,
-                                  url: shareUrl,
-                                  title: ev.title,
-                                }).catch(() => { /* user cancelled */ });
-                              }}
-                              activeOpacity={0.7}
-                              accessibilityLabel={t('discover.share')}
-                              hitSlop={8}
-                            >
-                              <Ionicons name="share-outline" size={16} color={colors.gray600} />
-                              <Text style={[styles.feedCardActionText, { color: colors.gray700 }]}>
-                                Partager
-                              </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={[styles.feedCardActionPrimary, { backgroundColor: colors.primary }]}
-                              onPress={() => navigateToEvent(ev.id, img, ev)}
-                              activeOpacity={0.85}
-                              accessibilityLabel={t('discover.viewEvent')}
-                            >
-                              <Text style={styles.feedCardActionPrimaryText}>{t('discover.viewEvent')}</Text>
-                              <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      </React.Fragment>
-                    );
-                  })}
-                  {forYouLoading && (
-                    <View style={styles.forYouLoadingRow}>
-                      <Text style={[styles.forYouLoadingText, { color: colors.gray500 }]}>
-                        Chargement...
-                      </Text>
-                    </View>
-                  )}
-                  {!forYouHasMore && forYouEvents.length > 0 && (
-                    <View style={styles.forYouEndRow}>
-                      <Text style={[styles.forYouEndText, { color: colors.gray400 }]}>
-                        Tu as tout vu pour aujourd'hui · Reviens demain
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              <View style={{ height: 140 }} />
-            </Animated.ScrollView>
+            />
 
             {/* Bouton flottant « remonter en haut » — apparaît après un long
                 scroll (pattern YouTube/LinkedIn). Complète le re-tap d'onglet. */}
             {showScrollTop && (
               <Animated.View
-                entering={FadeIn.duration(180)}
-                exiting={FadeOut.duration(150)}
+                // C6 — arrive en zoom-ressort (transform), repart en zoom.
+                entering={reducedMotion ? FadeIn.duration(120) : ZoomIn.springify().damping(16)}
+                exiting={reducedMotion ? FadeOut.duration(120) : ZoomOut.duration(160)}
                 // bottom dynamique : au-dessus du dock (menu) + safe area.
                 style={[styles.scrollTopFab, { bottom: dockClearance + 8 }]}
                 pointerEvents="box-none"
               >
                 <TouchableOpacity
-                  onPress={scrollToTop}
+                  onPress={() => {
+                    haptics.selection();
+                    scrollToTop();
+                  }}
                   activeOpacity={0.85}
                   accessibilityLabel={t('discover.scrollToTop')}
-                  style={[styles.scrollTopBtn, { backgroundColor: colors.primary }]}
+                  style={[styles.scrollTopBtn, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.gray200 }]}
                 >
-                  <Ionicons name="chevron-up" size={22} color="#FFFFFF" />
+                  <GradientIcon name="chevron-up" size={22} active color={colors.primary} />
                 </TouchableOpacity>
               </Animated.View>
             )}
@@ -2472,16 +2501,18 @@ const styles = StyleSheet.create({
 
   // === SEARCH TRIGGER (option A — coussin chaud) ===
   // Pill simple et calme : icone search · placeholder rotatif · chevron.
-  // Le mouvement du texte (placeholderIndex) suffit a capter l'attention.
+  // Le mouvement du texte (<RotatingPlaceholder>) suffit a capter l'attention.
+  // L'anneau (1,5 px) est porté par <SearchAura> : hauteur totale = 52.
+  searchAura: {
+    marginBottom: Spacing.md,
+  },
   searchTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 52,
+    height: 49,
     borderRadius: BorderRadius.full,
     paddingHorizontal: 16,
     gap: 10,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
   },
   searchTriggerText: {
     flex: 1,
@@ -2523,6 +2554,13 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  compactRule: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: -StyleSheet.hairlineWidth,
+    height: 1,
+  },
   compactHeaderTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2547,11 +2585,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 0.2,
   },
+  // L'anneau (1,5 px) est porté par <SearchAura> : hauteur totale = 36.
+  compactSearchAura: { flex: 1 },
   compactSearchBar: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    height: 36,
+    height: 33,
     borderRadius: BorderRadius.full,
     paddingHorizontal: Spacing.md,
     gap: 8,
@@ -2577,6 +2616,8 @@ const styles = StyleSheet.create({
     height: 7,
     borderRadius: 4,
   },
+  compactBadgeWrap: { position: 'absolute', top: -4, right: -4 },
+  compactBtnBadgeInWrap: { position: 'relative', top: 0, right: 0 },
   compactBtnBadge: {
     position: 'absolute',
     top: -4,
@@ -2665,6 +2706,7 @@ const styles = StyleSheet.create({
   heroImageWrap: {
     height: 240,
     position: 'relative',
+    overflow: 'hidden',
   },
   heroImage: { width: '100%', height: '100%' },
   heroEyebrowPill: {
@@ -3203,122 +3245,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.7,
     marginBottom: Spacing.md,
   },
-  // === FEED-STYLE POST CARD (Facebook/LinkedIn inspired, sans ombre) ===
-  // Plein-largeur, header eyebrow + nom organisateur, hero 16:9 plein-bord,
-  // titre éditorial, meta row inline avec dots, footer action ghost + CTA.
-  feedCard: {
-    borderRadius: BorderRadius['2xl'],
-    borderWidth: 1,
-    overflow: 'hidden',
-    marginBottom: Spacing.lg,
-  },
-  feedCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.md,
-  },
-  feedCardAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  feedCardAvatarInitial: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: 17,
-    letterSpacing: -0.3,
-  },
-  feedCardOrgEyebrow: {
-    fontFamily: FontFamily.bold,
-    fontSize: 9.5,
-    letterSpacing: 1.4,
-    marginBottom: 3,
-  },
-  feedCardOrgName: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: 15,
-    letterSpacing: -0.3,
-  },
-  feedCardImage: {
-    width: '100%',
-    aspectRatio: 16 / 9,
-  },
-  feedCardBody: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.lg,
-    gap: 8,
-  },
-  feedCardTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: 19,
-    letterSpacing: -0.5,
-    lineHeight: 24,
-  },
-  feedCardDesc: {
-    fontFamily: FontFamily.regular,
-    fontSize: 13.5,
-    lineHeight: 20,
-  },
-  feedCardMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 4,
-  },
-  feedCardMetaText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 12,
-    letterSpacing: -0.1,
-  },
-  feedCardMetaDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    marginHorizontal: 2,
-  },
-  feedCardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderTopWidth: 1,
-    gap: Spacing.md,
-  },
-  feedCardActionGhost: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-  },
-  feedCardActionText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 12.5,
-    letterSpacing: 0.2,
-  },
-  feedCardActionPrimary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: BorderRadius.full,
-  },
-  feedCardActionPrimaryText: {
-    fontFamily: FontFamily.bold,
-    fontSize: 12.5,
-    letterSpacing: 0.3,
-    color: '#FFFFFF',
-  },
+  // Styles de la carte « Pour vous » : components/events/ForYouEventCard.tsx
   forYouLoadingRow: {
     paddingVertical: Spacing.lg,
     alignItems: 'center',

@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { GradientBorder, LiveDot, RollingText, useMotionGate } from '../ui/motion';
+import { haptics } from '../../utils/haptics';
 
 interface Props {
   /** Début de l'événement (ISO). */
@@ -28,6 +31,7 @@ interface Props {
 function EventCountdown({ startDate, endDate, style }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const { canAnimate, focused, appActive } = useMotionGate();
   const [now, setNow] = useState(() => Date.now());
 
   const start = startDate ? new Date(startDate).getTime() : NaN;
@@ -44,6 +48,24 @@ function EventCountdown({ startDate, endDate, style }: Props) {
     return () => clearInterval(id);
   }, [start, end, withinLastHour, now]);
 
+  const live = !isNaN(start) && now >= start && (isNaN(end) ? now <= start + 3 * 3600_000 : now <= end);
+
+  // Passage « bientôt » → « en direct » vu à l'écran : fondu + une vibration
+  // légère (une seule fois, seulement si l'écran est affiché et l'app active).
+  const wasUpcoming = useRef(false);
+  const [becameLive, setBecameLive] = useState(false);
+  useEffect(() => {
+    if (!live && diff > 0) {
+      wasUpcoming.current = true;
+      return;
+    }
+    if (live && wasUpcoming.current && !becameLive) {
+      setBecameLive(true);
+      if (focused && appActive) haptics.light();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live]);
+
   if (isNaN(start)) return null;
 
   // Terminé
@@ -51,13 +73,16 @@ function EventCountdown({ startDate, endDate, style }: Props) {
   if (over) return null;
 
   // En cours
-  const live = now >= start && (isNaN(end) ? now <= start + 3 * 3600_000 : now <= end);
   if (live) {
     return (
-      <View style={[styles.pill, { backgroundColor: `${colors.error}14`, borderColor: `${colors.error}33` }, style]}>
-        <View style={[styles.dot, { backgroundColor: colors.error }]} />
+      <Animated.View
+        // Fondu uniquement si on a VU le passage « bientôt » → « en direct ».
+        entering={becameLive && canAnimate ? FadeIn.duration(320) : undefined}
+        style={[styles.pill, { backgroundColor: `${colors.error}14`, borderColor: `${colors.error}33` }, style]}
+      >
+        <LiveDot size={7} color={colors.error} />
         <Text style={[styles.text, { color: colors.error }]}>{t('countdown.live')}</Text>
-      </View>
+      </Animated.View>
     );
   }
 
@@ -72,6 +97,47 @@ function EventCountdown({ startDate, endDate, style }: Props) {
   if (d > 0) parts = `${d}${t('countdown.d')} ${h}${t('countdown.h')}`;
   else if (h > 0) parts = `${h}${t('countdown.h')} ${m}${t('countdown.m')}`;
   else parts = `${m}${t('countdown.m')} ${s}${t('countdown.s')}`;
+
+  // Dernière heure : seuls les chiffres qui changent roulent (une clé par
+  // position), la pastille reçoit un liseré en dégradé fixe.
+  if (withinLastHour) {
+    const chars = parts.split('');
+    return (
+      <GradientBorder
+        mode="static"
+        restOpacity={0.9}
+        radius={BorderRadius.full}
+        width={1.5}
+        style={[{ alignSelf: 'center' }, style]}
+      >
+        <View
+          style={[styles.pill, styles.pillInner, { backgroundColor: `${colors.primary}12` }]}
+          accessible
+          accessibilityLabel={`${t('countdown.startsIn')} ${m}${t('countdown.m')}`}
+        >
+          <Ionicons name="time-outline" size={14} color={colors.primary} />
+          <Text style={[styles.text, { color: colors.primary }]}>{t('countdown.startsIn')} </Text>
+          <View style={styles.digits} importantForAccessibility="no-hide-descendants">
+            {chars.map((ch, i) =>
+              /\d/.test(ch) ? (
+                <RollingText
+                  key={`c${i}`}
+                  value={ch}
+                  direction="down"
+                  duration={160}
+                  style={[styles.text, styles.strong, styles.digit, { color: colors.primary }]}
+                />
+              ) : (
+                <Text key={`c${i}`} style={[styles.text, styles.strong, { color: colors.primary }]}>
+                  {ch}
+                </Text>
+              ),
+            )}
+          </View>
+        </View>
+      </GradientBorder>
+    );
+  }
 
   return (
     <View style={[styles.pill, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}30` }, style]}>
@@ -94,7 +160,9 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     borderWidth: 1,
   },
-  dot: { width: 7, height: 7, borderRadius: 4 },
+  pillInner: { borderWidth: 0, alignSelf: 'auto' },
+  digits: { flexDirection: 'row', alignItems: 'center' },
+  digit: { fontVariant: ['tabular-nums'] },
   text: { fontFamily: FontFamily.medium, fontSize: 13, letterSpacing: 0.2 },
   strong: { fontFamily: FontFamily.bold },
 });

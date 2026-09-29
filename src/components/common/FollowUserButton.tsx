@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { isValidNumericId } from '../../lib/utils/numericId';
+import { haptics } from '../../utils/haptics';
 import {
   Colors,
   FontSizes,
@@ -38,7 +39,17 @@ interface FollowUserButtonProps {
   variant?: 'default' | 'compact' | 'icon-only';
   showFollowerCount?: boolean;
   onFollowChange?: (isFollowing: boolean) => void;
+  /**
+   * État « je suis » connu de l'appelant (UserSerializer.is_following). Quand
+   * il est fourni (booléen), on SAUTE l'appel `/users/{id}/is_following/` au
+   * montage. `undefined` = inconnu → le bouton le récupère lui-même.
+   */
   initialFollowing?: boolean;
+  /**
+   * Compteur d'abonnés connu de l'appelant (UserSerializer.followers_count).
+   * Fourni → pas d'appel `/users/{id}/followers_count/` au montage.
+   */
+  initialFollowersCount?: number;
 }
 
 interface FollowPreferences {
@@ -53,7 +64,8 @@ function FollowUserButtonImpl({
   variant = 'default',
   showFollowerCount = false,
   onFollowChange,
-  initialFollowing = false,
+  initialFollowing,
+  initialFollowersCount,
 }: FollowUserButtonProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
@@ -64,9 +76,15 @@ function FollowUserButtonImpl({
   // au-dessus de la nav system Android (gesture bar / 3-button) ou home
   // indicator iOS, sinon le bouton chevauche.
   const insets = useSafeAreaInsets();
-  const [isFollowing, setIsFollowing] = useState(initialFollowing);
+  const [isFollowing, setIsFollowing] = useState(initialFollowing ?? false);
+  // `isLoading` ne concerne plus que l'enregistrement des préférences : le
+  // toggle suivre/ne plus suivre est optimiste (pas de spinner).
   const [isLoading, setIsLoading] = useState(false);
-  const [followersCount, setFollowersCount] = useState(0);
+  const [followersCount, setFollowersCount] = useState(initialFollowersCount ?? 0);
+  // Anti double-tap pendant la requête de toggle (ref : pas de re-render).
+  const toggleInFlightRef = useRef(false);
+  // Préférences de suivi déjà chargées depuis le serveur (via is_following) ?
+  const prefsLoadedRef = useRef(false);
   const [showPreferences, setShowPreferences] = useState(false);
   const [preferences, setPreferences] = useState<FollowPreferences>({
     notification_preference: 'important',
@@ -81,12 +99,15 @@ function FollowUserButtonImpl({
   // l'identifiant n'est pas exploitable.
   const hasValidUserId = isValidNumericId(userId);
 
+  // Requêtes de montage UNIQUEMENT pour ce que l'appelant n'a pas fourni : le
+  // UserSerializer renvoie déjà is_following / followers_count, inutile de
+  // refaire 2 allers-retours par affichage.
   useEffect(() => {
     if (!hasValidUserId) return;
-    if (user) {
+    if (user && initialFollowing === undefined) {
       loadFollowStatus();
     }
-    if (showFollowerCount) {
+    if (showFollowerCount && initialFollowersCount === undefined) {
       loadFollowersCount();
     }
   }, [userId, user, hasValidUserId]);
@@ -95,13 +116,18 @@ function FollowUserButtonImpl({
   // plusieurs instances du même bouton coexistent sur un écran et qu'une
   // autre toggle l'état). Sans cet effet, les instances se désynchronisent.
   useEffect(() => {
-    setIsFollowing(initialFollowing);
+    if (initialFollowing !== undefined) setIsFollowing(initialFollowing);
   }, [initialFollowing]);
+
+  useEffect(() => {
+    if (initialFollowersCount !== undefined) setFollowersCount(initialFollowersCount);
+  }, [initialFollowersCount]);
 
   const loadFollowStatus = async () => {
     try {
       const response = await usersAPI.isFollowingUser(userId);
       setIsFollowing(response.data.is_following);
+      prefsLoadedRef.current = true;
       if (response.data.is_following && response.data.follow) {
         setPreferences({
           notification_preference: response.data.follow.notification_preference || 'important',
@@ -125,8 +151,8 @@ function FollowUserButtonImpl({
   };
 
   const handleToggleFollow = async () => {
-    // Anti double-click : ignore les taps pendant qu'une requête tourne
-    if (isLoading) return;
+    // Anti double-tap : ignore les taps pendant qu'une requête tourne
+    if (toggleInFlightRef.current) return;
 
     // Identifiant invalide : l'appel partait quand même vers
     // `/api/users/NaN/follow/` et l'utilisateur voyait « une erreur est
@@ -138,28 +164,49 @@ function FollowUserButtonImpl({
       return;
     }
 
-    // Snapshot de l'état avant pour ne pas dépendre du closure stale après les
-    // setState. Évite les races si le user re-tape pendant la requête.
+    // Toggle OPTIMISTE : l'état bascule tout de suite (plus de spinner pendant
+    // l'aller-retour serveur), rollback exact si l'API échoue. Snapshot avant
+    // setState pour ne pas dépendre d'un closure stale.
     const wasFollowing = isFollowing;
-    setIsLoading(true);
+    const nextFollowing = !wasFollowing;
+    toggleInFlightRef.current = true;
+
+    setIsFollowing(nextFollowing);
+    if (showFollowerCount) {
+      setFollowersCount(prev => (nextFollowing ? prev + 1 : Math.max(0, prev - 1)));
+    }
+    // Haptique au pic visuel, uniquement à l'abonnement (rien au retrait d'un
+    // état — cf. conventions utils/haptics).
+    if (nextFollowing) haptics.light();
+    onFollowChange?.(nextFollowing);
 
     try {
       if (wasFollowing) {
         await usersAPI.unfollowUser(userId);
-        setIsFollowing(false);
-        if (showFollowerCount) setFollowersCount(prev => Math.max(0, prev - 1));
-        onFollowChange?.(false);
       } else {
         await usersAPI.followUser(userId, preferences);
-        setIsFollowing(true);
-        if (showFollowerCount) setFollowersCount(prev => prev + 1);
-        onFollowChange?.(true);
       }
     } catch (error) {
       if (__DEV__) console.error('Error toggling user follow:', error);
+      // Rollback
+      setIsFollowing(wasFollowing);
+      if (showFollowerCount) {
+        setFollowersCount(prev => (nextFollowing ? Math.max(0, prev - 1) : prev + 1));
+      }
+      onFollowChange?.(wasFollowing);
       toastError(t('componentsCommon.followGenericError'));
     } finally {
-      setIsLoading(false);
+      toggleInFlightRef.current = false;
+    }
+  };
+
+  // Les préférences de suivi n'arrivent qu'avec `/is_following/` : si ce
+  // fetch a été sauté au montage (état fourni par l'appelant), on les charge
+  // à l'ouverture de la modale.
+  const openPreferences = () => {
+    setShowPreferences(true);
+    if (!prefsLoadedRef.current && hasValidUserId && user) {
+      loadFollowStatus();
     }
   };
 
@@ -217,7 +264,6 @@ function FollowUserButtonImpl({
     return (
       <TouchableOpacity
         onPress={handleToggleFollow}
-        disabled={isLoading}
         activeOpacity={TOUCH_OPACITY}
         style={[
           styles.iconButton,
@@ -225,15 +271,11 @@ function FollowUserButtonImpl({
           isFollowing && [styles.iconButtonActive, { backgroundColor: colors.primaryBg }],
         ]}
       >
-        {isLoading ? (
-          <ActivityIndicator size="small" color={isFollowing ? colors.primary : colors.gray500} />
-        ) : (
-          <Ionicons
-            name={isFollowing ? 'person' : 'person-add-outline'}
-            size={22}
-            color={isFollowing ? colors.primary : colors.gray600}
-          />
-        )}
+        <Ionicons
+          name={isFollowing ? 'person' : 'person-add-outline'}
+          size={22}
+          color={isFollowing ? colors.primary : colors.gray600}
+        />
       </TouchableOpacity>
     );
   }
@@ -243,7 +285,6 @@ function FollowUserButtonImpl({
     return (
       <TouchableOpacity
         onPress={handleToggleFollow}
-        disabled={isLoading}
         activeOpacity={TOUCH_OPACITY}
         style={[
           styles.compactButton,
@@ -251,20 +292,14 @@ function FollowUserButtonImpl({
           isFollowing && [styles.compactButtonActive, { backgroundColor: colors.primaryBg }],
         ]}
       >
-        {isLoading ? (
-          <ActivityIndicator size="small" color={isFollowing ? colors.primary : colors.gray600} />
-        ) : (
-          <>
-            <Ionicons
-              name={isFollowing ? 'person' : 'person-add-outline'}
-              size={16}
-              color={isFollowing ? colors.primary : colors.gray600}
-            />
-            <Text style={[styles.compactText, { color: colors.gray700 }, isFollowing && [styles.compactTextActive, { color: colors.primary }]]}>
-              {isFollowing ? t('componentsCommon.followFollowing') : t('componentsCommon.followFollow')}
-            </Text>
-          </>
-        )}
+        <Ionicons
+          name={isFollowing ? 'person' : 'person-add-outline'}
+          size={16}
+          color={isFollowing ? colors.primary : colors.gray600}
+        />
+        <Text style={[styles.compactText, { color: colors.gray700 }, isFollowing && [styles.compactTextActive, { color: colors.primary }]]}>
+          {isFollowing ? t('componentsCommon.followFollowing') : t('componentsCommon.followFollow')}
+        </Text>
       </TouchableOpacity>
     );
   }
@@ -275,7 +310,6 @@ function FollowUserButtonImpl({
       <View style={styles.buttonRow}>
         <TouchableOpacity
           onPress={handleToggleFollow}
-          disabled={isLoading}
           activeOpacity={TOUCH_OPACITY}
           style={[
             styles.mainButton,
@@ -284,21 +318,12 @@ function FollowUserButtonImpl({
               : [styles.mainButtonDefault, { backgroundColor: colors.primary }],
           ]}
         >
-          {/* Spinner pendant loading (remplace l'icône, position stable),
-              le label + badge restent affichés pour éviter le bug "fond bleu
-              sans texte" perçu pendant la transition rapide. */}
-          {isLoading ? (
-            <ActivityIndicator
-              size="small"
-              color={isFollowing ? colors.primary : Colors.white}
-            />
-          ) : (
-            <Ionicons
-              name={isFollowing ? 'checkmark-circle' : 'person-add-outline'}
-              size={18}
-              color={isFollowing ? colors.primary : Colors.white}
-            />
-          )}
+          {/* Toggle optimiste : l'icône bascule immédiatement, sans spinner. */}
+          <Ionicons
+            name={isFollowing ? 'checkmark-circle' : 'person-add-outline'}
+            size={18}
+            color={isFollowing ? colors.primary : Colors.white}
+          />
           <Text
             style={[
               styles.mainButtonText,
@@ -331,7 +356,7 @@ function FollowUserButtonImpl({
 
         {isFollowing && (
           <TouchableOpacity
-            onPress={() => setShowPreferences(true)}
+            onPress={openPreferences}
             activeOpacity={TOUCH_OPACITY}
             style={[styles.preferencesButton, { backgroundColor: colors.gray100 }]}
           >

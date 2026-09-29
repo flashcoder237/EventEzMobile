@@ -238,7 +238,7 @@ function VerificationRequestsContent() {
           keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
           contentContainerStyle={[centeredContent(CARD_MAX), { padding: Spacing.lg, paddingBottom: Spacing['3xl'] }]}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary, colors.secondary, colors.accent]} progressBackgroundColor={colors.card} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <View style={[styles.emptyIcon, { backgroundColor: `${colors.primary}10` }]}>

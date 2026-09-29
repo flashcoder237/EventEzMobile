@@ -3,12 +3,13 @@
  * Affiche un etat vide standardise avec icone, titre et action optionnelle
  */
 
-import React, { memo } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FontFamily, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import GradientButton from './GradientButton';
+import { GradientIcon } from './motion';
 
 interface EmptyStateProps {
   icon?: keyof typeof Ionicons.glyphMap;
@@ -43,6 +44,14 @@ function EmptyStateComponent({
 }: EmptyStateProps) {
   const { colors } = useTheme();
   const resolvedIconColor = iconColor || colors.gray300;
+  // E18 — l'icône par défaut (sans couleur imposée) passe du gris au dégradé
+  // de marque juste après l'apparition : un seul fondu, puis plus rien.
+  const [iconLit, setIconLit] = useState(false);
+  useEffect(() => {
+    if (iconColor || illustration) return undefined;
+    const tm = setTimeout(() => setIconLit(true), 450);
+    return () => clearTimeout(tm);
+  }, [iconColor, illustration]);
 
   const content = (
     <>
@@ -50,7 +59,11 @@ function EmptyStateComponent({
         <View style={styles.illustrationContainer}>{illustration}</View>
       ) : (
         <View style={[styles.iconContainer, { backgroundColor: colors.gray50 }]}>
-          <Ionicons name={icon} size={iconSize} color={resolvedIconColor} />
+          {iconColor ? (
+            <Ionicons name={icon} size={iconSize} color={resolvedIconColor} />
+          ) : (
+            <GradientIcon name={icon} size={iconSize} active={iconLit} color={resolvedIconColor} />
+          )}
         </View>
       )}
       <Text style={[styles.title, { color: colors.gray700 }]}>{title}</Text>

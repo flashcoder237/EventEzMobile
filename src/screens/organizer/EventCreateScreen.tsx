@@ -21,6 +21,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList } from '../../types';
 import MapPickerModal from '../../components/common/MapPickerModal';
 import AIUsageBadge from '../../components/events/AIUsageBadge';
+import EventSubmittedSheet from '../../components/organizer/EventSubmittedSheet';
 import {
   TourTarget,
   useTour,
@@ -263,6 +264,9 @@ export default function EventCreateScreen() {
   }, [isEditing, saveNow, navigation]);
 
   const [termsAccepted, setTermsAccepted] = useState(false);
+  // E6 — soumission réussie : feuille dédiée (tampon « EN REVUE ») au lieu
+  // de l'alerte générique. `null` = fermée.
+  const [submittedTitle, setSubmittedTitle] = useState<string | null>(null);
 
   const onSubmit = async () => {
     // Acceptation des CGU obligatoire à la PUBLICATION (pas en édition). On
@@ -302,26 +306,29 @@ export default function EventCreateScreen() {
       );
     } else {
       await clearDraft();
-      showAlert(
-        t('common.success'),
-        t('organizer.eventCreate.submitSuccess'),
-        [
-          {
-            text: t('organizer.eventCreate.viewMyEvents'),
-            onPress: () => resetToMainThen(navigation as any, 'MyEvents'),
-          },
-          {
-            text: t('organizer.eventCreate.createAnother'),
-            onPress: async () => {
-              await clearDraft();
-              resetForm();
-            },
-          },
-        ],
-        'success'
-      );
+      setSubmittedTitle(formRef.current.title.trim());
     }
   };
+
+  const submittedSheet = (
+    <EventSubmittedSheet
+      visible={submittedTitle !== null}
+      eventTitle={submittedTitle || undefined}
+      onViewMyEvents={() => {
+        setSubmittedTitle(null);
+        resetToMainThen(navigation as any, 'MyEvents');
+      }}
+      onCreateAnother={async () => {
+        setSubmittedTitle(null);
+        await clearDraft();
+        resetForm();
+      }}
+      onClose={() => {
+        setSubmittedTitle(null);
+        resetToMainThen(navigation as any, 'MyEvents');
+      }}
+    />
+  );
 
   const stepNumeral = String(form.currentStep).padStart(2, '0');
   const totalNumeral = String(STEPS.length).padStart(2, '0');
@@ -894,6 +901,8 @@ export default function EventCreateScreen() {
         initialLat={form.locationLatitude ? parseFloat(form.locationLatitude) : undefined}
         initialLng={form.locationLongitude ? parseFloat(form.locationLongitude) : undefined}
       />
+
+      {submittedSheet}
     </SafeAreaView>
   );
 }

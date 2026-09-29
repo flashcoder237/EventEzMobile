@@ -24,10 +24,10 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withDelay,
-  withRepeat,
   withTiming,
   Easing,
 } from 'react-native-reanimated';
+import { DrawCheck, GradientIcon } from '../../components/ui/motion';
 
 import { RootStackParamList } from '../../types';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -233,6 +233,10 @@ export default function PaymentSuccessScreen() {
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
   const ringScale = useSharedValue(1);
+  const ringOpacity = useSharedValue(0);
+  // E2 — la coche se dessine APRÈS le ressort de l'icône ; les confettis et
+  // l'haptique partent à la fin du trait (pic visuel), jamais au montage.
+  const [checkDone, setCheckDone] = useState(false);
   const { play: playSound, enabled: soundEnabled, setEnabled: setSoundEnabled } = useSoundEffect();
   const { showError, showSuccess } = useAlert();
 
@@ -295,14 +299,8 @@ export default function PaymentSuccessScreen() {
   useEffect(() => {
     scale.value = withSpring(1, { damping: 10, stiffness: 100 });
     opacity.value = withDelay(300, withSpring(1));
-    // L'anneau pulse à l'infini — coupé en reduced-motion (on garde l'anneau statique).
-    if (!reducedMotion) {
-      ringScale.value = withRepeat(
-        withTiming(1.4, { duration: 1800, easing: Easing.bezier(0.4, 0, 0.6, 1) }),
-        -1,
-        false,
-      );
-    }
+    // Plus d'anneau qui pulse à l'infini : il part UNE fois, à la fin de la
+    // coche (voir handleCheckDone). Au repos, rien ne bouge.
     // Son de confirmation paiement (respecte la pref utilisateur)
     playSound('payment-success');
   }, []);
@@ -332,7 +330,7 @@ export default function PaymentSuccessScreen() {
 
   const ringStyle = useAnimatedStyle(() => ({
     transform: [{ scale: ringScale.value }],
-    opacity: 1 - (ringScale.value - 1) / 0.4,
+    opacity: ringOpacity.value,
   }));
 
   const contentStyle = useAnimatedStyle(() => ({
@@ -400,12 +398,25 @@ export default function PaymentSuccessScreen() {
     }
   }, [eventType, approvalStatus, eventTitle, t]);
 
-  const showConfetti = content.isSuccess;
+  // Confettis APRÈS le trait de la coche (ConfettiEffect se coupe seul en
+  // « Réduire les animations »).
+  const showConfetti = content.isSuccess && checkDone;
+  const drawsCheck = content.icon === 'checkmark';
 
-  // Retour haptique de succès (célébration tactile, en plus du son + confetti).
-  useEffect(() => {
-    if (content.isSuccess) haptics.success();
-  }, [content.isSuccess]);
+  // Fin du trait de la coche = pic visuel : haptique de fête, anneau unique,
+  // puis confettis. Si les animations sont réduites, DrawCheck appelle ce
+  // callback immédiatement (trait plein d'emblée) — pas d'anneau.
+  const handleCheckDone = useCallback(() => {
+    if (content.isSuccess) haptics.celebrate();
+    if (!reducedMotion) {
+      ringScale.value = 1;
+      ringOpacity.value = 0.6;
+      ringScale.value = withTiming(1.45, { duration: 600, easing: Easing.out(Easing.cubic) });
+      ringOpacity.value = withTiming(0, { duration: 600, easing: Easing.out(Easing.cubic) });
+    }
+    setCheckDone(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content.isSuccess, reducedMotion]);
 
   // Demande de note in-app (ASO) — uniquement sur un vrai succès, et pas pour
   // les invités (qui voient déjà la modale d'upgrade : on évite la collision).
@@ -422,7 +433,7 @@ export default function PaymentSuccessScreen() {
     <EditorialCanvas edges={['top', 'bottom']}>
       <WatermarkNumeral>{content.watermark}</WatermarkNumeral>
       <View style={{ flex: 1, zIndex: 1 }}>
-        {showConfetti && <ConfettiEffect />}
+        {showConfetti && <ConfettiEffect count={60} />}
 
         {/* Mini sound toggle — discreet, top-right */}
         <TouchableOpacity
@@ -465,7 +476,19 @@ export default function PaymentSuccessScreen() {
                   end={{ x: 1, y: 1 }}
                   style={StyleSheet.absoluteFill}
                 />
-                <Ionicons name={content.icon} size={56} color={Colors.white} />
+                {drawsCheck ? (
+                  <DrawCheck
+                    size={64}
+                    color={Colors.white}
+                    strokeWidth={2.6}
+                    delay={320}
+                    duration={380}
+                    onComplete={handleCheckDone}
+                    testID="payment-success-check"
+                  />
+                ) : (
+                  <Ionicons name={content.icon} size={56} color={Colors.white} />
+                )}
               </View>
             </Animated.View>
           </View>
@@ -581,7 +604,12 @@ export default function PaymentSuccessScreen() {
                 ]}
               >
                 <View style={[styles.infoIconBox, { backgroundColor: `${content.iconColor}15` }]}>
-                  <Ionicons name={item.icon} size={20} color={content.iconColor} />
+                  {/* E18 — seule icône en dégradé de l'écran : le billet obtenu. */}
+                  {index === 0 && item.icon === 'ticket' ? (
+                    <GradientIcon name="ticket" size={20} />
+                  ) : (
+                    <Ionicons name={item.icon} size={20} color={content.iconColor} />
+                  )}
                 </View>
                 <View style={styles.infoText}>
                   <Text style={[styles.infoEyebrow, { color: content.iconColor }]}>{item.eyebrow}</Text>

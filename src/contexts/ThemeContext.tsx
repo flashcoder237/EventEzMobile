@@ -76,6 +76,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return {
       ...Gradients,
       brand: Gradients.brandDark,
+      aurora: Gradients.auroraDark,
+      coralViolet: Gradients.coralVioletDark,
       primary: [DarkColors.primary, DarkColors.primaryDark],
       light: ['rgba(15,15,26,0)', 'rgba(15,15,26,1)'],
     } as unknown as typeof Gradients;

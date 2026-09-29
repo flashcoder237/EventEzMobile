@@ -18,7 +18,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
@@ -133,9 +133,9 @@ export default function EventActionsSheet({
 
   const handleActionPress = async (action: EventAction) => {
     if (action.style === 'destructive') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      haptics.warning();
     } else {
-      Haptics.selectionAsync().catch(() => {});
+      haptics.selection();
     }
     onClose();
     // Délai léger pour laisser l'animation de fermeture commencer avant la

@@ -109,7 +109,7 @@ export default function QRCodeDisplay({
             <QRCode
               value={data}
               size={size}
-              color={isDark ? '#4C1D95' : '#5B21B6'}
+              color="#000000" // noir pur sur blanc : fiabilité de scan (aucun effet sur le QR)
               backgroundColor="#FFFFFF"
             />
           </View>

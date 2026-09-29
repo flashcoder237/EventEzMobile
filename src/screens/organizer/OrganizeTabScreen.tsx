@@ -32,6 +32,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
+import { LiveDot } from '../../components/ui/motion';
 import { useOrganizerRole } from '../../hooks/useOrganizerRole';
 import { eventsAPI, eventTeamAPI, walletAPI } from '../../api';
 import { Event, RootStackParamList } from '../../types';
@@ -148,7 +149,7 @@ export default function OrganizeTabScreen() {
         <View style={styles.activeHeader}>
           {isLive ? (
             <View style={[styles.liveBadge, { backgroundColor: colors.errorLight }]}>
-              <View style={[styles.liveDot, { backgroundColor: colors.error }]} />
+              <LiveDot size={7} color={colors.error} />
               <Text style={[styles.liveText, { color: colors.error }]}>
                 {t('organize.liveNow')}
               </Text>
@@ -406,11 +407,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: BorderRadius.full,
-  },
-  liveDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
   },
   liveText: {
     fontFamily: FontFamily.semiBold,

@@ -39,6 +39,9 @@ import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { useCheckinQueue } from '../../hooks/useCheckinQueue';
 import { useCheckinManifest } from '../../hooks/useCheckinManifest';
 import { haptics } from '../../utils/haptics';
+import { ScanFrameFeedback, PopOnIncrease } from '../../components/ui/motion';
+import type { ScanFeedbackKind } from '../../components/ui/motion';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { registrationsAPI, eventsAPI, sessionsAPI, exhibitorsAPI } from '../../api';
 import { RootStackParamList, Registration, Event } from '../../types';
 
@@ -71,6 +74,8 @@ interface ScanResult {
   registration?: Registration;
   message: string;
   alreadyCheckedIn?: boolean;
+  /** Validé mais à surveiller (billet d'un autre événement) → retour ambre. */
+  warning?: boolean;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -96,6 +101,18 @@ export default function QRScannerScreen() {
   const [flashOn, setFlashOn] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  // G1 — chaque nouveau résultat relance le retour visuel des coins du viseur
+  // (vert / ambre / rouge), même si le type est identique au précédent.
+  const [scanFeedback, setScanFeedback] = useState<{ kind: ScanFeedbackKind; n: number }>({ kind: 'idle', n: 0 });
+  useEffect(() => {
+    if (!scanResult) return;
+    const kind: ScanFeedbackKind = !scanResult.success
+      ? 'error'
+      : scanResult.alreadyCheckedIn || scanResult.warning
+        ? 'warning'
+        : 'success';
+    setScanFeedback((prev) => ({ kind, n: prev.n + 1 }));
+  }, [scanResult]);
   const [showResult, setShowResult] = useState(false);
   const [stats, setStats] = useState({ scanned: 0, success: 0, failed: 0 });
   const [autoCheckIn, setAutoCheckIn] = useState(true);
@@ -125,30 +142,6 @@ export default function QRScannerScreen() {
   const scanLineAnim = useRef(new Animated.Value(0)).current;
   const liveDotAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(scanLineAnim, {
-          toValue: 1,
-          duration: 1800,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(scanLineAnim, {
-          toValue: 0,
-          duration: 1800,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(liveDotAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-        Animated.timing(liveDotAnim, { toValue: 0.3, duration: 700, useNativeDriver: true }),
-      ]),
-    ).start();
-  }, []);
 
   // Scanner tour fires once the camera permission is granted — before that,
   // the screen renders a loading spinner or permission-denied page and the
@@ -250,6 +243,45 @@ export default function QRScannerScreen() {
   // Mode économie batterie : abaisse la fréquence d'autofocus + désactive
   // les optimisations gourmandes. À activer pour les events > 1h sans charger.
   const [lowPowerMode, setLowPowerMode] = useState(false);
+  // Ligne de scan + point « live » : coupés en mode économie batterie et
+  // quand l'utilisateur a réduit les animations (état fixe, lisible).
+  const reducedMotion = useReducedMotion();
+  useEffect(() => {
+    if (lowPowerMode || reducedMotion) {
+      scanLineAnim.setValue(0.5);
+      liveDotAnim.setValue(1);
+      return;
+    }
+    const line = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanLineAnim, {
+          toValue: 1,
+          duration: 1800,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scanLineAnim, {
+          toValue: 0,
+          duration: 1800,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    const dot = Animated.loop(
+      Animated.sequence([
+        Animated.timing(liveDotAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(liveDotAnim, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+      ]),
+    );
+    line.start();
+    dot.start();
+    return () => {
+      line.stop();
+      dot.stop();
+    };
+  }, [lowPowerMode, reducedMotion, scanLineAnim, liveDotAnim]);
+
   const toggleLowPower = useCallback(() => {
     setLowPowerMode((prev) => {
       const next = !prev;
@@ -359,6 +391,10 @@ export default function QRScannerScreen() {
   // Retour haptique premium au portique (bien plus « pro » qu'un buzz brut).
   const vibrateSuccess = () => haptics.success();
   const vibrateFail = () => haptics.error();
+  // « Déjà scanné » / « autre événement » : ce n'est PAS un succès à la porte.
+  // Vibration d'avertissement et aucun son (pas d'asset dédié : le son de
+  // succès induirait l'agent en erreur, celui d'échec aussi).
+  const vibrateWarn = () => haptics.warning();
 
   /**
    * Traite un scan en routant vers la bonne API selon :
@@ -414,7 +450,9 @@ export default function QRScannerScreen() {
           success: data?.valid ? prev.success + 1 : prev.success,
           failed: data?.valid ? prev.failed : prev.failed + 1,
         }));
-        if (data?.valid) {
+        if (data?.valid && data?.already_attended) {
+          vibrateWarn();
+        } else if (data?.valid) {
           playSound('scan-success');
           vibrateSuccess();
         } else {
@@ -452,8 +490,7 @@ export default function QRScannerScreen() {
               message: t('organizer.qrScanner.offlineAlready'),
             });
             setStats(prev => ({ ...prev, scanned: prev.scanned + 1, success: prev.success + 1 }));
-            playSound('scan-success');
-            vibrateSuccess();
+            vibrateWarn();
             return;
           }
           // valid → enregistre localement (persisté + poussé en batch au retour réseau)
@@ -539,14 +576,19 @@ export default function QRScannerScreen() {
           ? t('organizer.qrScanner.checkInSuccess')
           : t('organizer.qrScanner.verifySuccess'),
         alreadyCheckedIn,
+        warning: !!eventMismatch,
       });
       setStats(prev => ({
         ...prev,
         scanned: prev.scanned + 1,
         success: prev.success + 1,
       }));
-      playSound('scan-success');
-      vibrateSuccess();
+      if (eventMismatch || alreadyCheckedIn) {
+        vibrateWarn();
+      } else {
+        playSound('scan-success');
+        vibrateSuccess();
+      }
     } catch (error: any) {
       if (__DEV__) console.error('Scan error:', error);
 
@@ -890,11 +932,13 @@ export default function QRScannerScreen() {
 
           <TourTarget id="scanner-frame">
             <View style={styles.scanArea}>
-              {/* Brackets indigo style ScanScreen */}
-              <View style={[styles.bracket, styles.bracketTL]} />
-              <View style={[styles.bracket, styles.bracketTR]} />
-              <View style={[styles.bracket, styles.bracketBL]} />
-              <View style={[styles.bracket, styles.bracketBR]} />
+              {/* Coins du viseur : blancs au repos, vert / ambre / rouge au
+                  résultat (G1 — trois états distincts, lisibles d'un coup d'œil). */}
+              <ScanFrameFeedback
+                kind={scanFeedback.kind}
+                trigger={scanFeedback.n}
+                colors={{ success: colors.success, warning: colors.warning, error: colors.error }}
+              />
 
               {/* Ligne de scan animée */}
               <Animated.View
@@ -1007,17 +1051,23 @@ export default function QRScannerScreen() {
           {/* Stats */}
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{stats.scanned}</Text>
+              <PopOnIncrease value={stats.scanned}>
+                <Text style={styles.statValue}>{stats.scanned}</Text>
+              </PopOnIncrease>
               <Text style={styles.statLabel}>{t('organizer.qrScanner.statScanned')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: colors.success }]}>{stats.success}</Text>
+              <PopOnIncrease value={stats.success}>
+                <Text style={[styles.statValue, { color: colors.success }]}>{stats.success}</Text>
+              </PopOnIncrease>
               <Text style={styles.statLabel}>{t('organizer.qrScanner.statValidated')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: colors.error }]}>{stats.failed}</Text>
+              <PopOnIncrease value={stats.failed}>
+                <Text style={[styles.statValue, { color: colors.error }]}>{stats.failed}</Text>
+              </PopOnIncrease>
               <Text style={styles.statLabel}>{t('organizer.qrScanner.statFailed')}</Text>
             </View>
           </View>
@@ -1465,40 +1515,6 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     backgroundColor: 'transparent',
     overflow: 'hidden',
-  },
-  bracket: {
-    position: 'absolute',
-    width: 36,
-    height: 36,
-    borderColor: '#FFFFFF',
-  },
-  bracketTL: {
-    top: 10,
-    left: 10,
-    borderTopWidth: 3,
-    borderLeftWidth: 3,
-    borderTopLeftRadius: 16,
-  },
-  bracketTR: {
-    top: 10,
-    right: 10,
-    borderTopWidth: 3,
-    borderRightWidth: 3,
-    borderTopRightRadius: 16,
-  },
-  bracketBL: {
-    bottom: 10,
-    left: 10,
-    borderBottomWidth: 3,
-    borderLeftWidth: 3,
-    borderBottomLeftRadius: 16,
-  },
-  bracketBR: {
-    bottom: 10,
-    right: 10,
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
-    borderBottomRightRadius: 16,
   },
   scanLine: {
     position: 'absolute',

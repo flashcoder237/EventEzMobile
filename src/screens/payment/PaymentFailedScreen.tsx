@@ -1,4 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import {
   View,
   Text,
@@ -26,6 +32,8 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Alert as AlertIllustration, AnimatedIllustration } from '../../components/illustrations';
 import { centeredContent, FORM_MAX } from '../../constants/layout';
+import { haptics } from '../../utils/haptics';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PaymentFailedRouteProp = RouteProp<RootStackParamList, 'PaymentFailed'>;
@@ -37,6 +45,27 @@ export default function PaymentFailedScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const reduced = useReducedMotion();
+
+  // Échec sobre (catalogue G2) : fondu puis UNE secousse « non », avec la
+  // vibration d'erreur au même instant. Pas de rebond joyeux, pas de boucle.
+  const shakeX = useSharedValue(0);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      haptics.error();
+      if (reduced) return;
+      shakeX.value = withSequence(
+        withTiming(-6, { duration: 60 }),
+        withTiming(6, { duration: 70 }),
+        withTiming(-4, { duration: 60 }),
+        withTiming(3, { duration: 55 }),
+        withTiming(0, { duration: 55 }),
+      );
+    }, 280);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shakeX.value }] }));
 
   const reasons = [
     { icon: 'card-outline' as const, eyebrow: t('payment.failedReason1Eyebrow'), title: t('payment.failedReason1Title'), description: t('payment.failedReason1Desc') },
@@ -54,11 +83,13 @@ export default function PaymentFailedScreen() {
         >
           {/* === ILLUSTRATION HERO === */}
           <View style={styles.illoWrap}>
-            <AnimatedIllustration entry="bounce" idle="breathe">
-              <View style={styles.iconContainer}>
-                <AlertIllustration color="#EF4444" size={180} />
-              </View>
-            </AnimatedIllustration>
+            <Animated.View style={shakeStyle}>
+              <AnimatedIllustration entry="fadeIn" idle="none">
+                <View style={styles.iconContainer}>
+                  <AlertIllustration color="#EF4444" size={180} />
+                </View>
+              </AnimatedIllustration>
+            </Animated.View>
           </View>
 
           {/* === EYEBROW + TITLE === */}

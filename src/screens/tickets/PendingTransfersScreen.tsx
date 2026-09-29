@@ -475,7 +475,7 @@ export default function PendingTransfersScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => { setRefreshing(true); fetchTransfers(); }}
-              colors={[colors.primary]}
+              colors={[colors.primary, colors.secondary, colors.accent]} progressBackgroundColor={colors.card}
               tintColor={colors.primary}
             />
           }

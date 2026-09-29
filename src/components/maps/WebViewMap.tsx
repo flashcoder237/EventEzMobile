@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { View, StyleSheet } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useTranslation } from 'react-i18next';
@@ -59,6 +60,9 @@ export default function WebViewMap({
   isDark = false,
 }: WebViewMapProps) {
   const { t } = useTranslation();
+  // F5 — transmis à la WebView : ses animations CSS (pop, halo, cascade)
+  // sont coupées si l'utilisateur a réduit les animations du système.
+  const reduceMotion = useReducedMotion();
   const webViewRef = useRef<WebView>(null);
   const [isLoading, setIsLoading] = useState(true);
   const mapReadyRef = useRef(false);
@@ -151,11 +155,40 @@ export default function WebViewMap({
       transition: transform 0.15s ease, box-shadow 0.15s ease;
       cursor: pointer;
     }
+    .ev-marker { position: relative; }
     .ev-marker-selected {
       transform: scale(1.25);
       border-width: 3px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.35);
       z-index: 1000 !important;
+      animation: evPop .32s cubic-bezier(.22,1,.36,1);
+    }
+    @keyframes evPop { 0% { transform: scale(1); } 55% { transform: scale(1.35); } 100% { transform: scale(1.25); } }
+    /* Halo en dégradé qui fait deux tours autour du marqueur choisi. */
+    @property --ev-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+    .ev-marker-selected::after {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 24px;
+      padding: 2px;
+      background: conic-gradient(from var(--ev-a), #4F46E5, #A855F7, #FF6B6B, #4F46E5);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      animation: evSpin 1s linear 2, evHaloOut .4s ease 2s forwards;
+    }
+    @keyframes evSpin { to { --ev-a: 360deg; } }
+    @keyframes evHaloOut { to { opacity: 0; } }
+    /* Apparition en cascade après un chargement (20 premiers seulement). */
+    .ev-marker-in { animation: evIn .36s cubic-bezier(.22,1,.36,1) backwards; }
+    @keyframes evIn { from { opacity: 0; transform: scale(.6) translateY(4px); } }
+    .rm .ev-marker, .rm .ev-marker::after { animation: none !important; }
+    .rm .ev-marker-selected::after { display: none; }
+    @media (prefers-reduced-motion: reduce) {
+      .ev-marker, .ev-marker::after { animation: none !important; }
+      .ev-marker-selected::after { display: none; }
     }
     .ev-marker-outside {
       opacity: 0.45;
@@ -260,27 +293,34 @@ export default function WebViewMap({
       return d <= currentRadiusKm;
     }
 
-    function createMarkerIcon(marker, isSelected) {
+    function createMarkerIcon(marker, isSelected, enterIndex) {
       var inR = isInRadius(marker.lat, marker.lng);
       var color = inR ? getCatColor(marker.category) : '#9CA3AF';
-      var cls = 'ev-marker' + (isSelected ? ' ev-marker-selected' : '') + (!inR ? ' ev-marker-outside' : '');
+      var entering = typeof enterIndex === 'number';
+      var cls = 'ev-marker' + (isSelected ? ' ev-marker-selected' : '') + (!inR ? ' ev-marker-outside' : '') + (entering ? ' ev-marker-in' : '');
+      var delay = entering ? 'animation-delay:' + (enterIndex * 25) + 'ms;' : '';
       var label = formatPrice(marker);
       return L.divIcon({
         className: '',
-        html: '<div class="' + cls + '" style="background:' + color + ';">' + label + '</div>',
+        html: '<div class="' + cls + '" style="background:' + color + ';' + delay + '">' + label + '</div>',
         iconSize: [0, 0],
         iconAnchor: [0, 0]
       });
     }
 
+    var enterResetTimer = null;
     function updateMarkers(markers) {
       clusterGroup.clearLayers();
       currentMarkers = {};
+      var entered = [];
       markers.forEach(function(m) {
         if (!m.lat || !m.lng) return;
         var isSelected = m.id === currentSelectedId;
+        // Cascade plafonnée aux 20 premiers marqueurs.
+        var enterIndex = entered.length < 20 ? entered.length : undefined;
+        if (enterIndex !== undefined) entered.push(m.id);
         var leafMarker = L.marker([m.lat, m.lng], {
-          icon: createMarkerIcon(m, isSelected),
+          icon: createMarkerIcon(m, isSelected, enterIndex),
           zIndexOffset: isSelected ? 1000 : 0
         });
         leafMarker.bindTooltip(m.title, { permanent: false, direction: 'top', offset: [0, -5] });
@@ -291,6 +331,15 @@ export default function WebViewMap({
         currentMarkers[m.id] = leafMarker;
         clusterGroup.addLayer(leafMarker);
       });
+      // Une fois la cascade jouée, on retire la classe d'entrée : sinon le
+      // cluster la rejouerait à chaque zoom (il recrée le DOM des marqueurs).
+      if (enterResetTimer) clearTimeout(enterResetTimer);
+      enterResetTimer = setTimeout(function() {
+        entered.forEach(function(id) {
+          var lm = currentMarkers[id];
+          if (lm) lm.setIcon(createMarkerIcon(lm._evData, id === currentSelectedId));
+        });
+      }, 1200);
     }
 
     function updateSelection(newId) {
@@ -391,6 +440,9 @@ export default function WebViewMap({
           case 'setCenter':
             setCenter(msg.lat, msg.lng, msg.zoom);
             break;
+          case 'reduceMotion':
+            document.body.classList.toggle('rm', !!msg.value);
+            break;
         }
       } catch(e) { if (__DEV__) console.error('handleRNMessage:', e); }
     };
@@ -440,6 +492,12 @@ export default function WebViewMap({
     if (!mapReadyRef.current) return;
     sendToWebView({ type: 'updateMarkers', markers });
   }, [markers, sendToWebView]);
+
+  // Réduire les animations : passé par message (le flag arrive en asynchrone ;
+  // régénérer le HTML rechargerait toute la carte). Mis en file si pas prêt.
+  useEffect(() => {
+    sendToWebView({ type: 'reduceMotion', value: reduceMotion });
+  }, [reduceMotion, sendToWebView]);
 
   // Update selection when it changes
   useEffect(() => {

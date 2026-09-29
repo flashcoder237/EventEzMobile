@@ -28,7 +28,7 @@ import Animated, {
   withTiming,
   runOnJS,
 } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
 
 import { useStatus } from '../../contexts/StatusContext';
@@ -69,7 +69,7 @@ export default function IncidentBanner() {
       // Slide in
       translateY.value = withSpring(0, { damping: 18, stiffness: 200 });
       opacity.value = withTiming(1, { duration: 220 });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      haptics.warning();
 
       // Auto-dismiss
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
@@ -108,14 +108,14 @@ export default function IncidentBanner() {
         : '#F97316';
 
   const handleViewDetails = () => {
-    Haptics.selectionAsync().catch(() => {});
+    haptics.selection();
     navigation.navigate('IncidentDetails', { incidentId: incident.id });
     // On ne clear pas tout de suite — l'utilisateur revient peut-être.
     // Le banner se cachera après 45s ou s'il clique X.
   };
 
   const handleDismiss = () => {
-    Haptics.selectionAsync().catch(() => {});
+    haptics.selection();
     clearServiceIncident();
   };
 

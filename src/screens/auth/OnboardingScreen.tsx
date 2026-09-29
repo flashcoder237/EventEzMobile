@@ -28,7 +28,15 @@ import Animated, {
   withTiming,
   withSequence,
   Easing,
+  interpolate,
+  interpolateColor,
+  Extrapolation,
+  useAnimatedScrollHandler,
+  SharedValue,
 } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import { haptics } from '../../utils/haptics';
+import { GradientBorder } from '../../components/ui/motion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 import { FontFamily } from '../../constants/theme';
@@ -171,9 +179,24 @@ export default function OnboardingScreen({ onComplete }: Props) {
     opacity: pulseOpacity.value,
   }));
 
+  // F4 — position de défilement en « pages » : les points s'étirent en continu
+  // pendant le glissement (plus de saut), sur le thread UI.
+  const pageProgress = useSharedValue(0);
+  const onPagerScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      pageProgress.value = e.contentOffset.x / Math.max(1, CARD_WIDTH);
+    },
+  });
+
+  const lastIndexRef = useRef(0);
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (viewableItems.length > 0 && viewableItems[0].index !== null) {
-      setIndex(viewableItems[0].index ?? 0);
+      const next = viewableItems[0].index ?? 0;
+      if (next !== lastIndexRef.current) {
+        lastIndexRef.current = next;
+        haptics.selection();
+      }
+      setIndex(next);
     }
   }).current;
 
@@ -335,9 +358,11 @@ export default function OnboardingScreen({ onComplete }: Props) {
 
         {/* === FEATURE PAGER (full-bleed cards with hero illustration) === */}
         <View style={styles.pagerSection}>
-          <FlatList
-            ref={flatListRef}
+          <Animated.FlatList
+            ref={flatListRef as any}
             data={SLIDES}
+            onScroll={onPagerScroll}
+            scrollEventThrottle={16}
             renderItem={renderCard}
             keyExtractor={(s) => s.id}
             horizontal
@@ -349,7 +374,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
             bounces={false}
             onViewableItemsChanged={onViewableItemsChanged}
             viewabilityConfig={viewabilityConfig}
-            getItemLayout={(_, i) => ({ length: CARD_WIDTH, offset: CARD_WIDTH * i, index: i })}
+            getItemLayout={(_: unknown, i: number) => ({ length: CARD_WIDTH, offset: CARD_WIDTH * i, index: i })}
           />
         </View>
 
@@ -359,19 +384,28 @@ export default function OnboardingScreen({ onComplete }: Props) {
           {/* Pager dots */}
           <View style={styles.dotsRow}>
             {SLIDES.map((_, i) => (
-              <View
+              <PagerDot
                 key={i}
-                style={[
-                  styles.dot,
-                  i === index
-                    ? { width: 24, backgroundColor: colors.primary }
-                    : { width: 6, backgroundColor: colors.primary + '33' },
-                ]}
+                index={i}
+                progress={pageProgress}
+                activeColor={colors.primary}
+                idleColor={colors.primary + '33'}
+                gradient={isDark ? ['#818CF8', '#C084FC', '#FF8A8A'] : ['#4F46E5', '#A855F7', '#FF6B6B']}
               />
             ))}
           </View>
 
-          {/* Primary CTA */}
+          {/* Primary CTA — sur la dernière slide, une aura fait UN tour autour. */}
+          <View>
+          <GradientBorder
+            mode="idle"
+            trigger={isLastSlide ? 'last' : undefined}
+            radius={999}
+            width={2}
+            backgroundColor="transparent"
+            baseBorderColor="transparent"
+            style={styles.ctaAura}
+          />
           <TouchableOpacity
             style={[
               styles.primaryCTA,
@@ -391,6 +425,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
               color="#FFFFFF"
             />
           </TouchableOpacity>
+          </View>
 
           {/* "J'ai déjà un compte" — bouton secondaire bordé (action
               principale pour un revenant, ne doit pas être un lien discret). */}
@@ -598,6 +633,14 @@ const styles = StyleSheet.create({
   dot: {
     height: 6,
     borderRadius: 3,
+    overflow: 'hidden',
+  },
+  ctaAura: {
+    position: 'absolute',
+    top: -3,
+    left: -3,
+    right: -3,
+    bottom: -3,
   },
 
   primaryCTA: {
@@ -632,3 +675,55 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
 });
+
+/**
+ * F4 — point de pagination piloté par le défilement : largeur 6 → 24 et
+ * couleur interpolées en continu (aucun ressort : la largeur est du layout),
+ * le point actif se remplit du dégradé de marque.
+ */
+function PagerDot({
+  index,
+  progress,
+  activeColor,
+  idleColor,
+  gradient,
+}: {
+  index: number;
+  progress: SharedValue<number>;
+  activeColor: string;
+  idleColor: string;
+  gradient: readonly [string, string, ...string[]];
+}) {
+  const dotStyle = useAnimatedStyle(() => {
+    const t = interpolate(
+      progress.value,
+      [index - 1, index, index + 1],
+      [0, 1, 0],
+      Extrapolation.CLAMP,
+    );
+    return {
+      width: 6 + 18 * t,
+      backgroundColor: interpolateColor(t, [0, 1], [idleColor, activeColor]),
+    };
+  });
+  const gradStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      progress.value,
+      [index - 0.6, index, index + 0.6],
+      [0, 1, 0],
+      Extrapolation.CLAMP,
+    ),
+  }));
+  return (
+    <Animated.View style={[styles.dot, dotStyle]}>
+      <Animated.View style={[StyleSheet.absoluteFillObject, gradStyle]}>
+        <LinearGradient
+          colors={gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </Animated.View>
+    </Animated.View>
+  );
+}

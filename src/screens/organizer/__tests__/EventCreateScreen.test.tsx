@@ -231,6 +231,17 @@ jest.mock('../../../components/common/MapPickerModal', () => {
   const RN = require('react-native');
   return { __esModule: true, default: () => RN.View };
 });
+// E6 — la feuille « Événement soumis » (tampon animé) remplace l'alerte de
+// succès en création : on la réduit à un marqueur testable.
+jest.mock('../../../components/organizer/EventSubmittedSheet', () => {
+  const { Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: ({ visible, eventTitle }: { visible: boolean; eventTitle?: string }) =>
+      visible ? <Text testID="event-submitted-sheet">{eventTitle}</Text> : null,
+  };
+});
+
 jest.mock('../../../components/events/AIUsageBadge', () => {
   const RN = require('react-native');
   return { __esModule: true, default: () => RN.View };
@@ -298,30 +309,27 @@ describe('EventCreateScreen — create mode', () => {
     expect(getByText("Publier l'événement")).toBeTruthy();
   });
 
-  it('calls handleSubmit and shows the success alert when submit succeeds', async () => {
+  it('calls handleSubmit and shows the "submitted" sheet when submit succeeds', async () => {
     mockCurrentForm = { ...baseForm(), currentStep: 4 };
     mockHandleSubmit.mockResolvedValueOnce('event-99');
 
-    const { getByLabelText } = render(<EventCreateScreen />);
+    const { getByLabelText, findByTestId } = render(<EventCreateScreen />);
 
     fireEvent.press(getByLabelText("Créer l'événement"));
 
     await waitFor(() => {
       expect(mockHandleSubmit).toHaveBeenCalled();
     });
-    await waitFor(() => {
-      expect(mockShowAlert).toHaveBeenCalled();
-    });
-    // Vérifie que c'est bien l'alerte "Succès" (1er argument du dernier appel)
-    const lastCall = mockShowAlert.mock.calls[mockShowAlert.mock.calls.length - 1];
-    expect(lastCall[0]).toBe('Succès');
+    // Feuille dédiée (tampon « EN REVUE ») au lieu de l'alerte générique.
+    expect(await findByTestId('event-submitted-sheet')).toBeTruthy();
+    expect(mockShowAlert).not.toHaveBeenCalled();
   });
 
   it('does NOT show the success alert when handleSubmit returns null', async () => {
     mockCurrentForm = { ...baseForm(), currentStep: 4 };
     mockHandleSubmit.mockResolvedValueOnce(null);
 
-    const { getByLabelText } = render(<EventCreateScreen />);
+    const { getByLabelText, queryByTestId } = render(<EventCreateScreen />);
 
     fireEvent.press(getByLabelText("Créer l'événement"));
 
@@ -329,6 +337,7 @@ describe('EventCreateScreen — create mode', () => {
       expect(mockHandleSubmit).toHaveBeenCalled();
     });
     expect(mockShowAlert).not.toHaveBeenCalled();
+    expect(queryByTestId('event-submitted-sheet')).toBeNull();
   });
 
   it('navigates back when the back arrow is pressed', () => {

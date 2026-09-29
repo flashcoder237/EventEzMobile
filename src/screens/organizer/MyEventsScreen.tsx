@@ -1601,7 +1601,7 @@ export default function MyEventsScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={colors.primary}
-            colors={[colors.primary]}
+            colors={[colors.primary, colors.secondary, colors.accent]} progressBackgroundColor={colors.card}
           />
         }
         initialNumToRender={8}

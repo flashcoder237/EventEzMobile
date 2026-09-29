@@ -32,6 +32,14 @@ import {
 import { useTheme } from '../../contexts/ThemeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { formatDuration } from '../../lib/utils/messagingHelpers';
+import Reanimated, {
+  ZoomIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+import { haptics } from '../../utils/haptics';
 
 // #9 Mini-waveform live affichee pendant l'enregistrement. Maintient un
 // ring-buffer des N derniers niveaux audio pour donner l'illusion d'un
@@ -184,10 +192,47 @@ function InputToolbar({
 
   const canSend = (value.trim().length > 0 || attachedFiles.length > 0) && !sending;
 
+  // Envoi : vibration légère + l'avion « décolle » (+10/−10 px, fondu 160 ms)
+  // puis revient du bas-gauche (140 ms). L'envoi part IMMÉDIATEMENT, l'avion
+  // décolle en parallèle ; le verrou couvre la durée du vol (anti double envoi).
+  const planeX = useSharedValue(0);
+  const planeO = useSharedValue(1);
+  const sendLock = useRef(false);
+  const planeStyle = useAnimatedStyle(() => ({
+    opacity: planeO.value,
+    transform: [{ translateX: planeX.value }, { translateY: -planeX.value }],
+  }));
+
+  // Échange micro ↔ envoyer : fondu + échelle 0,6 → 1, jamais au montage.
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+  }, []);
+  const swapEntering = mountedRef.current && !reducedMotion ? ZoomIn.duration(160) : undefined;
+
   const handleSend = () => {
-    if (!canSend) return;
+    if (!canSend || sendLock.current) return;
+    haptics.light();
+    if (reducedMotion) {
+      onSend();
+      Keyboard.dismiss();
+      return;
+    }
+    sendLock.current = true;
     onSend();
     Keyboard.dismiss();
+    planeX.value = withSequence(
+      withTiming(10, { duration: 160 }),
+      withTiming(-8, { duration: 0 }),
+      withTiming(0, { duration: 140 }),
+    );
+    planeO.value = withSequence(
+      withTiming(0, { duration: 160 }),
+      withTiming(1, { duration: 140 }),
+    );
+    setTimeout(() => {
+      sendLock.current = false;
+    }, 300);
   };
 
   // Reply Preview
@@ -376,6 +421,7 @@ function InputToolbar({
 
         {/* Send or Mic Button */}
         {canSend ? (
+          <Reanimated.View key="send" entering={swapEntering}>
           <TouchableOpacity
             style={[styles.sendButton, { backgroundColor: colors.primary }, sending && styles.sendButtonDisabled]}
             onPress={handleSend}
@@ -387,10 +433,14 @@ function InputToolbar({
             {sending ? (
               <ActivityIndicator size="small" color={Colors.white} />
             ) : (
-              <Ionicons name="send" size={18} color={Colors.white} />
+              <Reanimated.View style={planeStyle}>
+                <Ionicons name="send" size={18} color={Colors.white} />
+              </Reanimated.View>
             )}
           </TouchableOpacity>
+          </Reanimated.View>
         ) : (
+          <Reanimated.View key="mic" entering={swapEntering}>
           <TouchableOpacity
             style={[styles.micButton, { backgroundColor: colors.gray100 }]}
             onPress={onStartRecording}
@@ -400,6 +450,7 @@ function InputToolbar({
           >
             <Ionicons name="mic" size={22} color={colors.primary} />
           </TouchableOpacity>
+          </Reanimated.View>
         )}
       </View>
 

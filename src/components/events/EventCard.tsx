@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -13,12 +13,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import AnimatedPressable from '../ui/AnimatedPressable';
 import { AnimatedBookmark } from '../ui/Animations';
+import { GlintSweep, GradientIcon, moments } from '../ui/motion';
 import {
   formatCardPrice,
   formatPriceShort,
 } from '../../lib/utils/eventCardFormatters';
 import { getMediaUrl } from '../../api';
-import { DEFAULT_BLUR_DATA_URL } from '../../utils/imageUtils';
+import { DEFAULT_BLUR_DATA_URL, prefetchImageUrls } from '../../utils/imageUtils';
 import {
   Colors,
   FontFamily,
@@ -107,6 +108,9 @@ interface EventCardProps {
   fullWidth?: boolean;
   onPress?: () => void;
   onLikePress?: () => void;
+  /** Image du héros de l'écran détail (medium/original), préchargée sur
+   *  `onPressIn` pour qu'elle soit en cache à l'arrivée sur EventDetails. */
+  prefetchImageUrl?: string | null;
   /** Cover video uploadee (URL absolue ou chemin relatif) */
   coverVideo?: string | null;
   /** Cover video embed (URL YouTube/Vimeo iframe-ready) */
@@ -141,12 +145,37 @@ function EventCardComponent({
   coverVideo,
   coverVideoEmbed,
   isVisible = false,
+  prefetchImageUrl,
 }: EventCardProps) {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, gradients } = useTheme();
   const { t } = useTranslation();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
+  // E1 — l'éclat du favori ne joue qu'après un VRAI geste : si `isLiked`
+  // arrive du serveur après le 1er affichage (statut chargé en différé), le
+  // signet passe à « actif » sans rebond ni particules.
+  const likeGestureAt = useRef(0);
+
+  // C4 — reflet unique sur la carte « À la une » : la première fois de la
+  // session qu'elle devient visible (isVisible fourni par le viewport du
+  // parent). Jamais sur les cartes de liste.
+  const [glint, setGlint] = useState(0);
+  useEffect(() => {
+    if (variant !== 'featured' || !isVisible) return;
+    if (moments.once(`featured-glint:${id}`)) setGlint((g) => g + 1);
+  }, [variant, isVisible, id]);
+  const handleLikePress = useCallback(() => {
+    likeGestureAt.current = Date.now();
+    onLikePress?.();
+  }, [onLikePress]);
+  const likeAnimate = Date.now() - likeGestureAt.current < 4000;
+  // Garde `undefined` quand le parent ne gère pas le favori (pas de bouton focusable).
+  const likePress = onLikePress ? handleLikePress : undefined;
+
   const resolvedImageUrl = getMediaUrl(imageUrl);
+  const handlePressIn = prefetchImageUrl
+    ? () => prefetchImageUrls([getMediaUrl(prefetchImageUrl)], 1)
+    : undefined;
   const resolvedVideoUrl = coverVideo ? getMediaUrl(coverVideo) : null;
   const blurPlaceholder = imagePlaceholder || DEFAULT_BLUR_DATA_URL;
   const hasCardVideo = !!resolvedVideoUrl;
@@ -208,6 +237,7 @@ function EventCardComponent({
     return (
       <AnimatedPressable
         onPress={onPress}
+        onPressIn={handlePressIn}
         style={[
           styles.horizontalCard,
           { backgroundColor: colors.card, borderColor: hairline },
@@ -281,11 +311,11 @@ function EventCardComponent({
         </View>
 
         <TouchableOpacity
-          onPress={onLikePress}
+          onPress={likePress}
           style={[styles.bookmarkSideBtn, { backgroundColor: colors.gray100 }]}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <AnimatedBookmark isActive={isLiked}>
+          <AnimatedBookmark isActive={isLiked} animate={likeAnimate}>
             <Ionicons
               name={isLiked ? 'bookmark' : 'bookmark-outline'}
               size={16}
@@ -304,6 +334,7 @@ function EventCardComponent({
     return (
       <TouchableOpacity
         onPress={onPress}
+        onPressIn={handlePressIn}
         style={[
           styles.compactCard,
           { backgroundColor: colors.card, borderColor: hairline },
@@ -358,6 +389,7 @@ function EventCardComponent({
     return (
       <AnimatedPressable
         onPress={onPress}
+        onPressIn={handlePressIn}
         style={[
           styles.featuredCard,
           { backgroundColor: colors.card, borderColor: hairline },
@@ -384,26 +416,30 @@ function EventCardComponent({
             pointerEvents="none"
           />
 
+          <GlintSweep trigger={glint} />
+
           {/* Top-left: featured pill */}
           {isFeatured && (
             <View style={[styles.featuredEyebrowPill, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
-              <Ionicons name="star" size={10} color={colors.accent} />
+              <GradientIcon name="star" size={10} colors={gradients?.coralViolet ?? ["#FF6B6B", "#A855F7"]} />
               <Text style={[styles.featuredEyebrowText, { color: Colors.gray900 }]}>{t('componentsEvents.eventCardFeatured')}</Text>
             </View>
           )}
 
           {/* Top-right: bookmark disc */}
           <TouchableOpacity
-            onPress={onLikePress}
+            onPress={likePress}
             style={[styles.featuredBookmarkDisc, { backgroundColor: 'rgba(255,255,255,0.95)' }]}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <AnimatedBookmark isActive={isLiked}>
-              <Ionicons
-                name={isLiked ? 'bookmark' : 'bookmark-outline'}
-                size={16}
-                color={isLiked ? colors.accent : Colors.gray900}
-              />
+            <AnimatedBookmark isActive={isLiked} animate={likeAnimate}>
+              {/* E1 — variante « À la une » (peu d'instances, pas en liste) :
+                  le signet plein passe en dégradé corail → violet. */}
+              {isLiked ? (
+                <GradientIcon name="bookmark" size={16} colors={gradients.coralViolet} />
+              ) : (
+                <Ionicons name="bookmark-outline" size={16} color={Colors.gray900} />
+              )}
             </AnimatedBookmark>
           </TouchableOpacity>
 
@@ -469,6 +505,7 @@ function EventCardComponent({
     return (
       <AnimatedPressable
         onPress={onPress}
+        onPressIn={handlePressIn}
         style={[
           styles.gridCard,
           { backgroundColor: colors.card, borderColor: hairline },
@@ -501,11 +538,11 @@ function EventCardComponent({
             <Text style={[styles.dateTileMonthSmall, { color: colors.accent }]}>{month}</Text>
           </View>
           <TouchableOpacity
-            onPress={onLikePress}
+            onPress={likePress}
             style={[styles.gridBookmark, { backgroundColor: 'rgba(255,255,255,0.95)' }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <AnimatedBookmark isActive={isLiked}>
+            <AnimatedBookmark isActive={isLiked} animate={likeAnimate}>
               <Ionicons
                 name={isLiked ? 'bookmark' : 'bookmark-outline'}
                 size={14}
@@ -549,6 +586,7 @@ function EventCardComponent({
   return (
     <AnimatedPressable
       onPress={onPress}
+      onPressIn={handlePressIn}
       style={[
         styles.defaultCard,
         fullWidth && { width: '100%' },
@@ -594,11 +632,11 @@ function EventCardComponent({
 
         {/* Top-right: bookmark disc */}
         <TouchableOpacity
-          onPress={onLikePress}
+          onPress={likePress}
           style={[styles.defaultBookmarkDisc, { backgroundColor: 'rgba(255,255,255,0.95)' }]}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <AnimatedBookmark isActive={isLiked}>
+          <AnimatedBookmark isActive={isLiked} animate={likeAnimate}>
             <Ionicons
               name={isLiked ? 'bookmark' : 'bookmark-outline'}
               size={16}
@@ -974,6 +1012,7 @@ const styles = StyleSheet.create({
   featuredImageContainer: {
     height: 280,
     position: 'relative',
+    overflow: 'hidden',
   },
   featuredImage: {
     width: '100%',
@@ -1100,6 +1139,7 @@ function arePropsEqual(prev: EventCardProps, next: EventCardProps): boolean {
     prev.time === next.time &&
     prev.location === next.location &&
     prev.imageUrl === next.imageUrl &&
+    prev.prefetchImageUrl === next.prefetchImageUrl &&
     prev.imagePlaceholder === next.imagePlaceholder &&
     prev.category === next.category &&
     prev.price === next.price &&
@@ -1113,6 +1153,7 @@ function arePropsEqual(prev: EventCardProps, next: EventCardProps): boolean {
     prev.currency === next.currency &&
     prev.variant === next.variant &&
     prev.fullWidth === next.fullWidth &&
+    prev.isVisible === next.isVisible &&
     prev.onPress === next.onPress &&
     prev.onLikePress === next.onLikePress
   );

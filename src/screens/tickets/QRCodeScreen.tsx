@@ -25,6 +25,18 @@ import { formatEventDateRange } from '../../lib/utils/dateFormatters';
 import * as Print from 'expo-print';
 import { useSaveOrShareSheet } from '../../hooks/useSaveOrShareSheet';
 import QRCode from 'react-native-qrcode-svg';
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  ZoomIn,
+} from 'react-native-reanimated';
+import { GestureDetector } from 'react-native-gesture-handler';
+import { useTilt, HoloSheen, FirstSeenStamp } from '../../components/ui/motion';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { haptics } from '../../utils/haptics';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useFeedback } from '../../contexts/FeedbackContext';
@@ -78,13 +90,72 @@ export default function QRCodeScreen() {
   const { isEnabled: ticketLockEnabled, loading: lockPrefLoading } = useTicketLockPref();
   const [revealed, setRevealed] = useState(false);
   const isLocked = ticketLockEnabled && biometric.isSupported && !revealed;
+  // E3 — révélation : le cadenas s'efface (calque absolu le temps de sortir),
+  // le QR zoome, puis les 4 coins arrivent en cascade ; haptique « succès »
+  // calée sur l'arrivée du dernier coin.
+  const [lockExiting, setLockExiting] = useState(false);
+  const [revealTick, setRevealTick] = useState(0);
+  const reducedMotion = useReducedMotion();
 
   const handleReveal = useCallback(async () => {
     const confirmed = await biometric.confirm({
       promptMessage: t('qrCode.biometricPromptMessage'),
     });
-    if (confirmed) setRevealed(true);
+    if (confirmed) {
+      setLockExiting(true);
+      setRevealed(true);
+      setRevealTick((n) => n + 1);
+      setTimeout(() => setLockExiting(false), 220);
+    }
   }, [biometric, t]);
+
+  const cornersIn = useSharedValue(1);
+  const lockFade = useSharedValue(0);
+  const lockExitStyle = useAnimatedStyle(() => ({
+    opacity: lockFade.value,
+    transform: [{ scale: 0.9 + 0.1 * lockFade.value }],
+  }));
+  const onCornersIn = useCallback(() => haptics.success(), []);
+  useEffect(() => {
+    if (revealTick === 0) return;
+    if (reducedMotion) {
+      cornersIn.value = 1;
+      onCornersIn();
+      return;
+    }
+    lockFade.value = 1;
+    lockFade.value = withTiming(0, { duration: 180, easing: Easing.out(Easing.cubic) });
+    cornersIn.value = 0;
+    cornersIn.value = withTiming(1, { duration: 390, easing: Easing.linear }, (finished) => {
+      if (finished) runOnJS(onCornersIn)();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revealTick]);
+  // Coin i : arrive de ±10 px, décalé de 30 ms (fenêtre de 300 ms chacun).
+  const cornerStyle = (i: number, dx: number, dy: number) => {
+    'worklet';
+    const local = Math.max(0, Math.min(1, (cornersIn.value * 390 - i * 30) / 300));
+    const e = 1 - Math.pow(1 - local, 3);
+    return {
+      opacity: local,
+      transform: [{ translateX: dx * 10 * (1 - e) }, { translateY: dy * 10 * (1 - e) }],
+    };
+  };
+  const cornerTL = useAnimatedStyle(() => cornerStyle(0, -1, -1));
+  const cornerTR = useAnimatedStyle(() => cornerStyle(1, 1, -1));
+  const cornerBL = useAnimatedStyle(() => cornerStyle(2, -1, 1));
+  const cornerBR = useAnimatedStyle(() => cornerStyle(3, 1, 1));
+
+  // E3 — billet holographique : inclinaison ±2,5° (gyroscope, repli au doigt
+  // horizontal) + reflet irisé limité à l'en-tête. Le QR n'est jamais couvert.
+  const { tiltX, tiltY, gesture: tiltGesture, sensorElement } = useTilt({ enabled: !loading });
+  const cardTiltStyle = useAnimatedStyle(() => ({
+    transform: [
+      { perspective: 800 },
+      { rotateY: `${tiltX.value * 2.5}deg` },
+      { rotateX: `${-tiltY.value * 2.5}deg` },
+    ],
+  }));
 
   // Ref vers le composant QRCode SVG affiché : permet de récupérer son contenu
   // en base64 PNG (toDataURL) pour l'embed dans le PDF — évite de dépendre d'une
@@ -452,9 +523,11 @@ export default function QRCodeScreen() {
 
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollInner} showsVerticalScrollIndicator={false}>
           {/* Card principale : event info + QR + détails */}
-          <View
-            style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray200, shadowColor: colors.primary }]}
+          <GestureDetector gesture={tiltGesture}>
+          <Animated.View
+            style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray200, shadowColor: colors.primary }, cardTiltStyle]}
           >
+            {sensorElement}
             {/* Event Info */}
             <View style={styles.eventInfo}>
               {/* Type pill : BILLET */}
@@ -547,6 +620,8 @@ export default function QRCodeScreen() {
                 <Text style={[styles.editorialChipCTAText, { color: colors.gray800 }]}>{t('qrCode.viewEvent')}</Text>
                 <Ionicons name="arrow-forward" size={14} color={colors.gray700} />
               </TouchableOpacity>
+              {/* Reflet holographique : en-tête uniquement, jamais sur le QR */}
+              <HoloSheen tiltX={tiltX} tiltY={tiltY} />
             </View>
 
             {/* Divider */}
@@ -599,22 +674,39 @@ export default function QRCodeScreen() {
                         </Text>
                       </TouchableOpacity>
                     ) : (
-                      <QRCode
-                        value={verificationUrl}
-                        size={QR_SIZE}
-                        color={isDark ? '#4C1D95' : '#5B21B6'}
-                        backgroundColor="#FFFFFF"
-                        getRef={(c: any) => {
-                          qrSvgRef.current = c;
-                        }}
-                      />
+                      <Animated.View
+                        entering={revealTick > 0 && !reducedMotion ? ZoomIn.springify().damping(18) : undefined}
+                      >
+                        <QRCode
+                          value={verificationUrl}
+                          size={QR_SIZE}
+                          color="#000000" // noir pur sur blanc : fiabilité de scan (aucun effet sur le QR)
+                          backgroundColor="#FFFFFF"
+                          getRef={(c: any) => {
+                            qrSvgRef.current = c;
+                          }}
+                        />
+                      </Animated.View>
+                    )}
+                    {/* Cadenas qui s'efface (fade + scale .9) par-dessus le QR révélé */}
+                    {!isLocked && lockExiting && !reducedMotion && (
+                      <Animated.View
+                        pointerEvents="none"
+                        style={[styles.qrLockExit, { backgroundColor: '#FFFFFF' }, lockExitStyle]}
+                      >
+                        <Ionicons
+                          name={biometric.type === 'face' ? 'scan-circle-outline' : 'finger-print'}
+                          size={64}
+                          color={colors.primary}
+                        />
+                      </Animated.View>
                     )}
                   </View>
-                  {/* Scanner corners éditoriaux */}
-                  <View style={[styles.qrCorner, styles.qrCornerTL, { borderColor: colors.primary }]} />
-                  <View style={[styles.qrCorner, styles.qrCornerTR, { borderColor: colors.primary }]} />
-                  <View style={[styles.qrCorner, styles.qrCornerBL, { borderColor: colors.primary }]} />
-                  <View style={[styles.qrCorner, styles.qrCornerBR, { borderColor: colors.primary }]} />
+                  {/* Scanner corners éditoriaux (arrivent en cascade à la révélation) */}
+                  <Animated.View style={[styles.qrCorner, styles.qrCornerTL, { borderColor: colors.primary }, cornerTL]} />
+                  <Animated.View style={[styles.qrCorner, styles.qrCornerTR, { borderColor: colors.primary }, cornerTR]} />
+                  <Animated.View style={[styles.qrCorner, styles.qrCornerBL, { borderColor: colors.primary }, cornerBL]} />
+                  <Animated.View style={[styles.qrCorner, styles.qrCornerBR, { borderColor: colors.primary }, cornerBR]} />
                 </View>
                 <View style={styles.qrHintRow}>
                   <Ionicons
@@ -696,7 +788,8 @@ export default function QRCodeScreen() {
                 </Text>
               </View>
             </View>
-          </View>
+          </Animated.View>
+          </GestureDetector>
 
           {/* Online access (si applicable) */}
           {(isOnlineEvent || isHybridEvent) && (
@@ -800,6 +893,17 @@ export default function QRCodeScreen() {
                   </Text>
                 )}
               </View>
+              {/* E4 — tampon « VALIDÉ » : s'écrase la 1re fois que l'app voit
+                  ce billet scanné, statique ensuite. */}
+              <FirstSeenStamp
+                storageKey="eventez_checkin_stamp_seen"
+                id={`t:${ticket.id}`}
+                label={t('qrCode.stampValidated')}
+                color={colors.success}
+                size="sm"
+                onImpact={haptics.medium}
+                testID="qr-checkin-stamp"
+              />
             </View>
           )}
 
@@ -1062,6 +1166,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 22,
     height: 22,
+  },
+  qrLockExit: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: BorderRadius.lg,
   },
   qrLockPlaceholder: {
     alignItems: 'center',

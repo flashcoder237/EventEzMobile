@@ -19,7 +19,7 @@
  */
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '../utils/haptics';
 import EventActionsSheet, { EventAction } from '../components/organizer/EventActionsSheet';
 import { useFeedback } from '../contexts/FeedbackContext';
 import { saveToGallery, shareFile, MediaActionResult } from '../lib/media/mediaActions';
@@ -54,7 +54,7 @@ export function useSaveOrShareSheet() {
     (res: MediaActionResult, successMsg?: string) => {
       if (res.ok) {
         if (successMsg) toastSuccess(successMsg);
-        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { /* ignore */ }
+        haptics.success();
         return;
       }
       switch (res.reason) {

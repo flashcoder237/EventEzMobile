@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  Animated,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
-import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { LiveDot } from '../../components/ui/motion';
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
 import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import { registrationsAPI } from '../../api';
@@ -77,8 +76,6 @@ export default function LiveOpsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
-  const pulse = useRef(new Animated.Value(1)).current;
-  const reducedMotion = useReducedMotion();
 
   const load = useCallback(async () => {
     try {
@@ -97,24 +94,12 @@ export default function LiveOpsScreen() {
     useCallback(() => {
       load();
       const id = setInterval(load, POLL_MS);
-      // Pulsation « live » — coupée en reduced-motion (indicateur statique).
-      let anim: ReturnType<typeof Animated.loop> | undefined;
-      if (reducedMotion) {
-        pulse.setValue(1);
-      } else {
-        anim = Animated.loop(
-          Animated.sequence([
-            Animated.timing(pulse, { toValue: 0.3, duration: 700, useNativeDriver: true }),
-            Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true }),
-          ]),
-        );
-        anim.start();
-      }
+      // Point « live » : LiveDot (radar unique, se met en pause tout seul
+      // écran masqué / app en arrière-plan / animations réduites).
       return () => {
         clearInterval(id);
-        anim?.stop();
       };
-    }, [load, pulse, reducedMotion]),
+    }, [load]),
   );
 
   const onRefresh = useCallback(async () => {
@@ -142,7 +127,7 @@ export default function LiveOpsScreen() {
             <Ionicons name="chevron-back" size={20} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.liveTag}>
-            <Animated.View style={[styles.liveDot, { opacity: pulse }]} />
+            <LiveDot size={7} color="#EF4444" />
             <Text style={styles.liveTagText}>{t('organizer.liveOps.live')}</Text>
           </View>
           <View style={styles.backBtn} />
@@ -302,7 +287,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(239,68,68,0.12)', paddingHorizontal: 12, paddingVertical: 5,
     borderRadius: BorderRadius.full,
   },
-  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#EF4444' },
   liveTagText: { fontFamily: FontFamily.bold, fontSize: 11, letterSpacing: 1.5, color: '#EF4444' },
 
   content: { padding: Spacing.lg, paddingBottom: Spacing.xl * 2, gap: Spacing.md, ...centeredContent(WIDE_MAX) },

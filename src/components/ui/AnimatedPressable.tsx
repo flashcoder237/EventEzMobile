@@ -11,7 +11,7 @@ import Animated, {
   withSpring,
   interpolate,
 } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '../../utils/haptics';
 import { SpringPresets } from '../../constants/theme';
 
 const AnimatedPressableComponent = Animated.createAnimatedComponent(Pressable);
@@ -43,12 +43,7 @@ export default function AnimatedPressable({
 
   const triggerHaptic = useCallback(() => {
     if (!haptic) return;
-    const style = haptic === true || haptic === 'light'
-      ? Haptics.ImpactFeedbackStyle.Light
-      : haptic === 'medium'
-        ? Haptics.ImpactFeedbackStyle.Medium
-        : Haptics.ImpactFeedbackStyle.Heavy;
-    Haptics.impactAsync(style).catch(() => {});
+    haptics[haptic === true ? 'light' : haptic]();
   }, [haptic]);
 
   const handlePressIn = useCallback(

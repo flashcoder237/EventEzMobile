@@ -1,5 +1,5 @@
-import React, { memo, useRef, useEffect } from 'react';
-import { useWindowDimensions, Platform } from 'react-native';
+import React, { memo, useRef, useEffect, useState } from 'react';
+import { AccessibilityInfo, useWindowDimensions, Platform } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 
 const BRAND_COLORS = ['#4F46E5', '#A855F7', '#818CF8', '#C084FC', '#BEFF5A', '#FF6B6B'];
@@ -35,12 +35,27 @@ function ConfettiEffectComponent({
   // Origine par défaut : centre horizontal de la fenêtre courante (réactif à la
   // rotation / au split-view iPad, contrairement à un Dimensions.get au module).
   const resolvedOrigin = origin ?? { x: screenWidth / 2, y: -20 };
+  // « Réduire les animations » : aucun confetti. On attend la réponse de
+  // l'OS avant de monter le canon (sinon il partirait au premier rendu).
+  const [motion, setMotion] = useState<'pending' | 'on' | 'off'>('pending');
 
   useEffect(() => {
-    if (autoStart && confettiRef.current) {
+    let alive = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((reduced) => alive && setMotion(reduced ? 'off' : 'on'))
+      .catch(() => alive && setMotion('on'));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (motion === 'on' && autoStart && confettiRef.current) {
       confettiRef.current.start();
     }
-  }, [autoStart]);
+  }, [autoStart, motion]);
+
+  if (motion !== 'on') return null;
 
   return (
     <ConfettiCannon

@@ -36,6 +36,7 @@ import { ScrollTopFab } from '../../components/common/FloatingActionButton';
 
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { eventsAPI, categoriesAPI } from '../../api';
+import { getEventImageUrl, prefetchImageUrls } from '../../utils/imageUtils';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
@@ -59,6 +60,8 @@ import EventCard from '../../components/events/EventCard';
 import { EmptyState } from '../../components/ui';
 import { EventCardSkeleton, SkeletonList } from '../../components/ui/Skeleton';
 import { toEventPreview } from '../../lib/utils/eventNavPreview';
+import { GradientBorder, GradientIcon, SpringChip, EdgeFadeScroll } from '../../components/ui/motion';
+import { haptics } from '../../utils/haptics';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'EventSearch'>;
 type RouteProps = RouteProp<RootStackParamList, 'EventSearch'>;
@@ -605,6 +608,9 @@ export default function EventSearchScreen() {
         const res = await eventsAPI.getEvents(params);
         const results = getApiResults<Event>(res);
         const meta = extractPaginationMeta(res);
+        // Précharge les images de la page reçue AVANT le montage des cellules
+        // (même taille que celle affichée ; lot plafonné à 10, dédupliqué).
+        prefetchImageUrls(results.map((e) => getEventImageUrl(e, columns > 1 ? 'thumb' : 'medium')));
 
         if (append) {
           dispatch({ type: 'SEARCH_MORE_SUCCESS', results, hasMore: !!meta.next });
@@ -627,7 +633,7 @@ export default function EventSearchScreen() {
     [
       state.debouncedQuery, state.categoryId, state.city, state.sortBy, state.datePreset,
       state.locationType, state.priceFilter, state.nearMe, state.hasTickets,
-      userLocation, addSearchHistory,
+      userLocation, addSearchHistory, columns,
     ]
   );
 
@@ -679,6 +685,43 @@ export default function EventSearchScreen() {
     state.nearMe ||
     state.hasTickets;
 
+  // === A2/A4 — anneau « vivant » du champ ===
+  // focus : allumé, rotation lente ; frappe : impulsion ; chargement : rapide ;
+  // résultats (recherche > 400 ms) : flash + vibration « sélection » ;
+  // 0 résultat : teinte corail brève, sans vibration.
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [resultFlash, setResultFlash] = useState(0);
+  const [noResultTint, setNoResultTint] = useState(false);
+  const searchStartedAt = useRef<number | null>(null);
+  const wasLoading = useRef(state.loading);
+  useEffect(() => {
+    const before = wasLoading.current;
+    wasLoading.current = state.loading;
+    if (state.loading && !before) {
+      searchStartedAt.current = Date.now();
+      return;
+    }
+    if (!before || state.loading || !hasActiveSearch) return;
+    const took = searchStartedAt.current ? Date.now() - searchStartedAt.current : 0;
+    searchStartedAt.current = null;
+    if (state.total > 0) {
+      if (took > 400) {
+        haptics.selection();
+        setResultFlash((n) => n + 1);
+      }
+      return;
+    }
+    setNoResultTint(true);
+    const id = setTimeout(() => setNoResultTint(false), 900);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.loading]);
+  const searchBusy = state.loading && hasActiveSearch;
+  const ringColors = useMemo(
+    () => (noResultTint ? [colors.accent, colors.accent] : undefined),
+    [noResultTint, colors.accent],
+  );
+
   const renderEvent = useCallback(
     ({ item }: { item: Event }) => {
       const range = getEventPriceRange(item);
@@ -690,7 +733,10 @@ export default function EventSearchScreen() {
             date={item.start_date}
             time={(item as any).start_time}
             location={item.location_city || item.location_address || t('discover.placeIfPlaceMissing')}
-            imageUrl={item.banner_image || item.category?.default_event_image || item.display_image}
+            // Grille : vignette WebP 400px ; carte pleine largeur : 960px
+            // (une 400px étirée sur ~1000px physiques serait floue).
+            imageUrl={getEventImageUrl(item, columns > 1 ? 'thumb' : 'medium') ?? undefined}
+            prefetchImageUrl={getEventImageUrl(item, 'medium')}
             imagePlaceholder={item.banner_placeholder || item.category?.default_event_image_placeholder || item.display_placeholder}
             category={item.category?.name}
             price={range?.min}
@@ -842,7 +888,16 @@ export default function EventSearchScreen() {
             </Animated.View>
 
             {/* Search row — ALWAYS visible (back + input + filter) */}
-            <View style={[styles.searchBox, { backgroundColor: colors.card, borderColor: hairline }]}>
+            <GradientBorder
+              mode={searchBusy ? 'busy' : 'focus'}
+              active={searchFocused || searchBusy || noResultTint}
+              energy={`${state.query.length}:${resultFlash}`}
+              colors={ringColors}
+              radius={BorderRadius.xl}
+              baseBorderColor={hairline}
+              backgroundColor={colors.card}
+              innerStyle={styles.searchBox}
+            >
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
                 style={styles.searchBackBtn}
@@ -854,13 +909,15 @@ export default function EventSearchScreen() {
                 <Ionicons name="chevron-back" size={18} color={colors.gray600} />
               </TouchableOpacity>
               <View style={[styles.searchDivider, { backgroundColor: hairline }]} />
-              <Ionicons name="search" size={16} color={colors.gray500} />
+              <GradientIcon name="search" size={16} active={searchFocused} color={colors.gray500} />
               <TextInput
                 ref={inputRef}
                 style={[styles.searchInput, { color: colors.text }]}
                 placeholder={t('eventSearch.placeholder')}
                 placeholderTextColor={colors.gray400}
                 value={state.query}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
                 onChangeText={(text) => dispatch({ type: 'SET_QUERY', query: text })}
                 returnKeyType="search"
                 autoCorrect={false}
@@ -889,37 +946,33 @@ export default function EventSearchScreen() {
                   </View>
                 )}
               </TouchableOpacity>
-            </View>
+            </GradientBorder>
 
             {/* Quick filter chips — collapsible */}
             <Animated.View style={quickFiltersStyle}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
+              <EdgeFadeScroll
                 style={styles.quickFiltersScroll}
                 contentContainerStyle={styles.quickFiltersRow}
               >
                 {QUICK_FILTERS.map((qf, idx) => (
-                  <TouchableOpacity
+                  <SpringChip
                     key={idx}
+                    active={qf.active}
+                    activeColor={colors.text}
+                    inactiveColor={colors.card}
                     style={[
                       styles.quickFilterChip,
-                      qf.active
-                        ? { backgroundColor: colors.text, ...Shadows.sm }
-                        : {
-                            backgroundColor: colors.card,
-                            borderColor: hairline,
-                            borderWidth: 1,
-                          },
+                      { borderWidth: 1, borderColor: qf.active ? 'transparent' : hairline },
                     ]}
                     onPress={qf.onPress}
-                    activeOpacity={0.75}
+                    icon={
+                      <Ionicons
+                        name={qf.icon}
+                        size={13}
+                        color={qf.active ? colors.background : colors.gray700}
+                      />
+                    }
                   >
-                    <Ionicons
-                      name={qf.icon}
-                      size={13}
-                      color={qf.active ? colors.background : colors.gray700}
-                    />
                     <Text
                       style={[
                         styles.quickFilterText,
@@ -930,9 +983,9 @@ export default function EventSearchScreen() {
                     >
                       {qf.label}
                     </Text>
-                  </TouchableOpacity>
+                  </SpringChip>
                 ))}
-              </ScrollView>
+              </EdgeFadeScroll>
             </Animated.View>
           </View>
 
@@ -1529,13 +1582,12 @@ const styles = StyleSheet.create({
   },
 
   // === SEARCH BOX ===
+  // Contenu intérieur de <GradientBorder> (anneau 1,5 px) : hauteur totale = 48.
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    height: 48,
-    borderRadius: BorderRadius.xl,
-    borderWidth: 1,
+    height: 45,
     paddingLeft: 8,
     paddingRight: 6,
   },

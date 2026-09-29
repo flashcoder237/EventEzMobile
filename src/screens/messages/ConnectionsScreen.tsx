@@ -252,7 +252,7 @@ export default function ConnectionsScreen() {
               refreshing={refreshing}
               onRefresh={() => { setRefreshing(true); fetchConnections(); }}
               tintColor={colors.primary}
-              colors={[colors.primary]}
+              colors={[colors.primary, colors.secondary, colors.accent]} progressBackgroundColor={colors.card}
             />
           }
           ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}

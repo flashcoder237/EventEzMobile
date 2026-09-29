@@ -19,7 +19,8 @@ import { View, Text, Pressable, StyleSheet, Platform, AccessibilityInfo } from '
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
+import { haptics } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
 import Animated, {
   useSharedValue,
@@ -104,7 +105,7 @@ export const InAppToast: React.FC<InAppToastProps> = ({
   anchor = 'top',
 }) => {
   const insets = useSafeAreaInsets();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const reducedMotion = useReducedMotion();
 
@@ -115,6 +116,7 @@ export const InAppToast: React.FC<InAppToastProps> = ({
   // En reduced-motion : pas de slide (translateY reste à 0), on garde le fondu.
   const translateY = useSharedValue(reducedMotion ? 0 : OFFSCREEN);
   const opacity = useSharedValue(0);
+  const glow = useSharedValue(0);
 
   const iconConfig = ICON_MAP[icon];
   const hasSeverity = SEVERITY_ICONS.includes(icon);
@@ -145,13 +147,20 @@ export const InAppToast: React.FC<InAppToastProps> = ({
     // Haptique proportionnée : un simple toast d'info ne vibre pas. Sur-notifier
     // apprend à ignorer TOUS les retours.
     if (icon === 'success') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      haptics.success();
     } else if (icon === 'error') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      haptics.error();
     } else if (icon === 'warning') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      haptics.warning();
     } else if (icon === 'message' || icon === 'notification') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      // Légère (et non medium) et plafonnée : une rafale de messages ne doit
+      // pas faire vibrer le téléphone à chaque bulle.
+      haptics.throttled('light', 3000, 'in-app-toast');
+    }
+
+    // F3 — la lumière descend une fois le long du liseré, pendant l'entrée.
+    if (!reducedMotion) {
+      glow.value = withTiming(1, { duration: 450, easing: Easing.out(Easing.cubic) });
     }
 
     // Annonce lecteur d'écran : un toast ne prend pas le focus, donc sans ceci
@@ -201,6 +210,11 @@ export const InAppToast: React.FC<InAppToastProps> = ({
       }
     });
 
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(glow.value, [0, 0.15, 0.85, 1], [0, 1, 1, 0]),
+    transform: [{ translateY: interpolate(glow.value, [0, 1], [-18, 60]) }],
+  }));
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
     opacity: opacity.value,
@@ -244,6 +258,19 @@ export const InAppToast: React.FC<InAppToastProps> = ({
             body: body ?? '',
           })}
         >
+          {/* F3 — liseré en dégradé pour les messages et notifications
+              (les toasts de gravité gardent leur liseré de couleur). */}
+          {!hasSeverity && (
+            <View style={styles.accentRail} pointerEvents="none">
+              <LinearGradient
+                colors={isDark ? ['#818CF8', '#C084FC', '#FF8A8A'] : ['#4F46E5', '#A855F7', '#FF6B6B']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+              <Animated.View style={[styles.accentGlow, glowStyle]} />
+            </View>
+          )}
           {/* Avatar (messages) ou icon */}
           {avatarUrl ? (
             <Image
@@ -292,6 +319,23 @@ const styles = StyleSheet.create({
     left: Spacing.md,
     right: Spacing.md,
     zIndex: 9999,
+  },
+  accentRail: {
+    position: 'absolute',
+    left: 4,
+    top: 10,
+    bottom: 10,
+    width: 3,
+    borderRadius: 1.5,
+    overflow: 'hidden',
+  },
+  accentGlow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 18,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 1.5,
   },
   toast: {
     flexDirection: 'row',

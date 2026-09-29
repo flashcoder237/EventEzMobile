@@ -30,7 +30,7 @@ import Animated, {
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '../../utils/haptics';
 import * as Clipboard from 'expo-clipboard';
 import { useTranslation } from 'react-i18next';
 import { getMediaUrl } from '../../api';
@@ -481,11 +481,11 @@ function MessageBubble({
   // absence faisait « swiper dans le vide » les utilisateurs habitués.
   const translateX = useSharedValue(0);
   const triggerSwipeReply = useCallback(() => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+    haptics.light();
     onSwipeReply?.(message);
   }, [onSwipeReply, message]);
   const triggerQuickReact = useCallback(() => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+    haptics.light();
     onQuickReact?.(message);
   }, [onQuickReact, message]);
 
@@ -590,7 +590,7 @@ function MessageBubble({
   const openImageAt = useCallback((index: number) => {
     setImageViewerIndex(Math.max(0, Math.min(index, imageSources.length - 1)));
     setImageViewerOpen(true);
-    try { Haptics.selectionAsync(); } catch { /* ignore */ }
+    haptics.selection();
   }, [imageSources.length]);
 
   // Strategie hybride pour ouvrir un attachment :
@@ -747,7 +747,7 @@ function MessageBubble({
         }
         await MediaLibrary.saveToLibraryAsync(targetUri);
         showSuccess(t('componentsMessages.attachmentMenuSavedSuccess'));
-        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { /* ignore */ }
+        haptics.success();
       } else {
         // Fallback pour les builds sans expo-media-library : on ouvre la
         // sheet de partage qui permet "Save to Photos" / "Save to Gallery".
@@ -770,7 +770,7 @@ function MessageBubble({
   }, [t, showError, showSuccess]);
 
   const showAttachmentMenu = useCallback((attachment: any) => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch { /* ignore */ }
+    haptics.medium();
     setAttachSheetTarget(attachment);
   }, []);
 

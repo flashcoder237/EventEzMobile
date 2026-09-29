@@ -24,6 +24,7 @@ import { RootStackParamList } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { formatCompactNumber } from '../../lib/utils/numberFormatters';
+import { AnimatedBookmark } from '../ui/Animations';
 import {
   Colors,
   FontSizes,
@@ -68,6 +69,9 @@ function FollowEventButtonImpl({
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [isFollowing, setIsFollowing] = useState(initialFollowing);
+  // E1 — l'éclat ne joue qu'après un geste de l'utilisateur, jamais quand
+  // le statut « suivi » arrive du serveur.
+  const [userToggled, setUserToggled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [showPreferences, setShowPreferences] = useState(false);
@@ -143,7 +147,9 @@ function FollowEventButtonImpl({
       const next = !isFollowing;
       // UI OPTIMISTE : on bascule immédiatement (feel instantané), on rollback
       // seulement si l'API échoue.
-      haptics.selection();
+      // E1 — vibration légère à l'activation uniquement, rien au retrait.
+      if (next) haptics.light();
+      setUserToggled(true);
       setIsFollowing(next);
       if (showFollowerCount) {
         setFollowersCount(prev => (next ? prev + 1 : Math.max(0, prev - 1)));
@@ -245,11 +251,13 @@ function FollowEventButtonImpl({
         {isLoading ? (
           <ActivityIndicator size="small" color={isFollowing ? colors.accent : colors.gray500} />
         ) : (
-          <Ionicons
-            name={isFollowing ? 'bookmark' : 'bookmark-outline'}
-            size={22}
-            color={isFollowing ? colors.accent : colors.gray600}
-          />
+          <AnimatedBookmark isActive={isFollowing} animate={userToggled} haptic={false}>
+            <Ionicons
+              name={isFollowing ? 'bookmark' : 'bookmark-outline'}
+              size={22}
+              color={isFollowing ? colors.accent : colors.gray600}
+            />
+          </AnimatedBookmark>
         )}
       </TouchableOpacity>
     );
@@ -276,11 +284,13 @@ function FollowEventButtonImpl({
           <ActivityIndicator size="small" color={isFollowing ? colors.accent : colors.gray600} />
         ) : (
           <>
-            <Ionicons
-              name={isFollowing ? 'bookmark' : 'bookmark-outline'}
-              size={16}
-              color={isFollowing ? colors.accent : colors.gray600}
-            />
+            <AnimatedBookmark isActive={isFollowing} animate={userToggled} haptic={false}>
+              <Ionicons
+                name={isFollowing ? 'bookmark' : 'bookmark-outline'}
+                size={16}
+                color={isFollowing ? colors.accent : colors.gray600}
+              />
+            </AnimatedBookmark>
             <Text style={[styles.compactText, { color: colors.gray700 }, isFollowing && { color: colors.accent }]}>
               {isFollowing ? t('componentsEvents.followSaveLabel') : t('componentsEvents.followSaveLabelDefault')}
             </Text>
@@ -311,11 +321,13 @@ function FollowEventButtonImpl({
             <ActivityIndicator size="small" color={isFollowing ? colors.accent : Colors.white} />
           ) : (
             <>
-              <Ionicons
-                name={isFollowing ? 'bookmark' : 'bookmark-outline'}
-                size={20}
-                color={isFollowing ? colors.accent : Colors.white}
-              />
+              <AnimatedBookmark isActive={isFollowing} animate={userToggled} haptic={false}>
+                <Ionicons
+                  name={isFollowing ? 'bookmark' : 'bookmark-outline'}
+                  size={20}
+                  color={isFollowing ? colors.accent : Colors.white}
+                />
+              </AnimatedBookmark>
               <Text style={[styles.mainButtonText, isFollowing && { color: colors.accent }]}>
                 {isFollowing ? t('componentsEvents.followMainSaved') : t('componentsEvents.followMainDefault')}
               </Text>

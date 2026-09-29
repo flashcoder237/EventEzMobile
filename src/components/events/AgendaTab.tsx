@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { LiveDot } from '../ui/motion';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -8,6 +9,7 @@ import { Session, RootStackParamList } from '../../types';
 import { FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
+import { appDateLocale, shortMonthLabel } from '../../lib/utils/dateFormatters';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -47,9 +49,9 @@ function fmtDuration(start: Date, end: Date): string {
 
 function fmtDayLabel(d: Date): { dow: string; dom: string; mon: string } {
   return {
-    dow: d.toLocaleDateString('fr-FR', { weekday: 'long' }).toUpperCase(),
+    dow: d.toLocaleDateString(appDateLocale(), { weekday: 'long' }).toUpperCase(),
     dom: d.getDate().toString().padStart(2, '0'),
-    mon: d.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase().replace('.', ''),
+    mon: shortMonthLabel(d),
   };
 }
 
@@ -264,7 +266,7 @@ export default function AgendaTab({ sessions, loadingSessions }: AgendaTabProps)
                       <View style={styles.cardTopRow}>
                         {status === 'live' && (
                           <View style={[styles.livePill, { backgroundColor: colors.accent }]}>
-                            <View style={styles.livePulse} />
+                            <LiveDot size={5} color="#fff" />
                             <Text style={styles.livePillText}>{t('componentsEvents.agendaLive')}</Text>
                           </View>
                         )}
@@ -542,12 +544,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: BorderRadius.full,
-  },
-  livePulse: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: '#fff',
   },
   livePillText: {
     fontFamily: FontFamily.bold,

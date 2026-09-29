@@ -430,6 +430,13 @@ export const Gradients = {
   // Brand gradient: violet → pink (web parity)
   brand: ['#4F46E5', '#7C3AED'] as const,
   brandDark: ['#818CF8', '#A78BFA'] as const,
+  // Aurora — indigo → violet → corail. Réservé aux effets « micro-delight »
+  // (bordures qui s'allument, icônes actives). Voir components/ui/motion.
+  aurora: ['#4F46E5', '#A855F7', '#FF6B6B'] as const,
+  auroraDark: ['#818CF8', '#C084FC', '#FF8A8A'] as const,
+  // Corail → violet : cœur / favori actif, étoile « À la une ».
+  coralViolet: ['#FF6B6B', '#A855F7'] as const,
+  coralVioletDark: ['#FF8A8A', '#C084FC'] as const,
   subtle: ['rgba(79, 70, 229, 0.03)', 'rgba(79, 70, 229, 0.01)'] as const,
   dark: ['transparent', 'rgba(0,0,0,0.7)'] as const,
   light: ['rgba(255,255,255,0)', 'rgba(255,255,255,1)'] as const,

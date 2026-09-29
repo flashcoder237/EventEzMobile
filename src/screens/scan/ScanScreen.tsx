@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Vibration,
   Modal,
   ActivityIndicator,
   Dimensions,
@@ -25,7 +24,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '../../utils/haptics';
 import {
   ticketTransfersAPI,
   usersAPI,
@@ -231,7 +230,8 @@ export default function ScanScreen() {
     if (scanned) return;
 
     setScanned(true);
-    Vibration.vibrate(100);
+    // Une seule vibration « code lu » ; le résultat (succès/erreur) a la sienne.
+    haptics.light();
     setScanState('loading');
 
     const parsed = parseQRCode(data);
@@ -299,7 +299,6 @@ export default function ScanScreen() {
           },
         });
       } else if (parsed.type === 'connection') {
-        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { /* ignore */ }
         const response = await connectionsAPI.fromQr(parsed.token);
         const conn = response.data as any;
         const cu = conn?.user || {};
@@ -324,6 +323,8 @@ export default function ScanScreen() {
             },
           },
         });
+        // Succès au moment où la connexion existe vraiment (pas avant l'appel).
+        haptics.success();
       } else {
         setResult({ type: 'error', errorMessage: t('scanForm.unknownQR') });
       }

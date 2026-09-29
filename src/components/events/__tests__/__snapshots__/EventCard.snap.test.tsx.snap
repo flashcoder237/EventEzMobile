@@ -1626,6 +1626,7 @@ exports[`EventCard snapshots renders featured variant 1`] = `
     style={
       {
         "height": 280,
+        "overflow": "hidden",
         "position": "relative",
       }
     }
@@ -1723,6 +1724,68 @@ exports[`EventCard snapshots renders featured variant 1`] = `
       }
     />
     <View
+      onLayout={[Function]}
+      pointerEvents="none"
+      style={
+        [
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          },
+          undefined,
+        ]
+      }
+    >
+      <View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "top": 0,
+              "width": 60,
+            },
+            {},
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "rgba(255,255,255,0)",
+              "rgba(255,255,255,0.28)",
+              "rgba(255,255,255,0)",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0.5,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0.5,
+            }
+          }
+          style={
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            }
+          }
+        />
+      </View>
+    </View>
+    <View
       style={
         [
           {
@@ -1742,13 +1805,107 @@ exports[`EventCard snapshots renders featured variant 1`] = `
         ]
       }
     >
-      <Text
-        color="#FF6B6B"
-        name="star"
-        size={10}
+      <View
+        pointerEvents="none"
+        style={
+          [
+            {
+              "height": 10,
+              "width": 10,
+            },
+            undefined,
+          ]
+        }
       >
-        star
-      </Text>
+        <View
+          style={
+            [
+              {
+                "left": 0,
+                "position": "absolute",
+                "top": 0,
+              },
+              {},
+            ]
+          }
+        >
+          <Text
+            color="#374151"
+            name="star"
+            size={10}
+          >
+            star
+          </Text>
+        </View>
+        <View
+          style={
+            [
+              {
+                "left": 0,
+                "position": "absolute",
+                "top": 0,
+              },
+              {},
+            ]
+          }
+        >
+          <RNCMaskedView
+            style={
+              {
+                "height": 10,
+                "width": 10,
+              }
+            }
+          >
+            <View
+              pointerEvents="none"
+              style={
+                {
+                  "bottom": 0,
+                  "left": 0,
+                  "position": "absolute",
+                  "right": 0,
+                  "top": 0,
+                }
+              }
+            >
+              <Text
+                color="#000"
+                name="star"
+                size={10}
+              >
+                star
+              </Text>
+            </View>
+            <View
+              colors={
+                [
+                  "#FF6B6B",
+                  "#A855F7",
+                ]
+              }
+              end={
+                {
+                  "x": 1,
+                  "y": 1,
+                }
+              }
+              start={
+                {
+                  "x": 0,
+                  "y": 0,
+                }
+              }
+              style={
+                {
+                  "height": 10,
+                  "width": 10,
+                }
+              }
+            />
+          </RNCMaskedView>
+        </View>
+      </View>
       <Text
         style={
           [

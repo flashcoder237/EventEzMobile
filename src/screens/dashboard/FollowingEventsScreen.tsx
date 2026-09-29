@@ -30,6 +30,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useFeedback } from '../../contexts/FeedbackContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { eventsAPI, usersAPI, getMediaUrl } from '../../api';
+import { getEventImageUrl, prefetchEventHero } from '../../utils/imageUtils';
 import CacheService from '../../services/CacheService';
 import { SaveToBookmarks, Authentication, AnimatedIllustration } from '../../components/illustrations';
 import { RootStackParamList, Event } from '../../types';
@@ -200,11 +201,12 @@ function HeroCardComponent({
       activeOpacity={0.88}
       style={[styles.heroCard, { backgroundColor: colors.card }, Shadows.lg]}
       onPress={() => onPress(event)}
+      onPressIn={() => prefetchEventHero(event)}
     >
       {/* Workaround LQIP : placeholder rendu comme `source` de fond
           (placeholderContentFit non honoré sur petits data URIs en natif). */}
       <EventImage
-        uri={getMediaUrl(event.banner_image || event.category?.default_event_image)}
+        uri={getEventImageUrl(event, 'medium')}
         fallbackSource={require('../../../assets/defaults/default-event.png')}
         placeholder={event.banner_placeholder || event.category?.default_event_image_placeholder || undefined}
         style={StyleSheet.absoluteFillObject}
@@ -311,12 +313,13 @@ function MasonryCardComponent({
         { backgroundColor: colors.card, borderColor: colors.border },
       ]}
       onPress={() => onPress(event)}
+      onPressIn={() => prefetchEventHero(event)}
     >
       {hasImage && (
         <View style={[styles.masonryImageWrap, { height: imageHeight }]}>
           {/* Workaround LQIP : placeholder en source de fond. */}
           <EventImage
-            uri={getMediaUrl(event.banner_image || event.category?.default_event_image)}
+            uri={getEventImageUrl(event, 'thumb')}
             fallbackSource={require('../../../assets/defaults/default-event.png')}
             placeholder={event.banner_placeholder || event.category?.default_event_image_placeholder || undefined}
             style={StyleSheet.absoluteFillObject}
@@ -1006,7 +1009,7 @@ export default function FollowingEventsScreen() {
           <RefreshControl
             refreshing={loadingOrganizers}
             onRefresh={() => loadFollowedOrganizers(true)}
-            tintColor={colors.primary}
+            tintColor={colors.primary} colors={[colors.primary, colors.secondary, colors.accent]} progressBackgroundColor={colors.card}
           />
         }
       >
@@ -1280,7 +1283,7 @@ export default function FollowingEventsScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={colors.primary}
+                tintColor={colors.primary} colors={[colors.primary, colors.secondary, colors.accent]} progressBackgroundColor={colors.card}
               />
             }
           >

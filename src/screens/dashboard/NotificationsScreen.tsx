@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect, useMemo, useRef } from 'react';
+import React, { useReducer, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -159,6 +160,93 @@ interface NotificationTypeConfig {
   label: string;
   eyebrow: string;
 }
+
+// Ligne de notification mémoïsée : ne se redessine que si SA notification
+// (ou le libellé d'heure / le thème) change.
+interface NotificationCardProps {
+  item: Notification;
+  index: number;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  eyebrow: string;
+  timeLabel: string;
+  onPress: (n: Notification) => void;
+  onLongPress: (id: string) => void;
+}
+
+const NotificationCard = memo(function NotificationCard({
+  item,
+  index,
+  icon,
+  color,
+  eyebrow,
+  timeLabel,
+  onPress,
+  onLongPress,
+}: NotificationCardProps) {
+  const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
+  const unread = !item.is_read;
+  return (
+      <StaggeredItem index={index}>
+        <TouchableOpacity
+          style={[
+            styles.notifCard,
+            {
+              backgroundColor: colors.card,
+              borderColor: unread ? `${color}55` : hairline,
+            },
+          ]}
+          onPress={() => onPress(item)}
+          onLongPress={() => onLongPress(item.id)}
+          activeOpacity={0.85}
+        >
+          {/* Left rail color stripe for unread */}
+          {unread && (
+            <View style={[styles.unreadRail, { backgroundColor: color }]} />
+          )}
+
+          <View style={[styles.notifIconWrap, { backgroundColor: `${color}15` }]}>
+            <Ionicons name={icon} size={20} color={color} />
+          </View>
+
+          <View style={styles.notifBody}>
+            {/* Eyebrow + time */}
+            <View style={styles.notifTopRow}>
+              <View style={[styles.eyebrowPill, { backgroundColor: `${color}15` }]}>
+                <Text style={[styles.eyebrowText, { color: color }]}>
+                  {eyebrow}
+                </Text>
+              </View>
+              <Text style={[styles.notifTime, { color: colors.gray400 }]}>
+                {timeLabel}
+              </Text>
+            </View>
+
+            {/* Display title */}
+            <Text
+              style={[
+                styles.notifTitle,
+                { color: colors.text },
+                unread ? null : { opacity: 0.75 },
+              ]}
+              numberOfLines={2}
+            >
+              {item.title}
+            </Text>
+
+            {/* Body message */}
+            <Text style={[styles.notifMessage, { color: colors.gray500 }]} numberOfLines={2}>
+              {item.message}
+            </Text>
+          </View>
+
+          {/* Unread dot at right */}
+          {unread && <View style={[styles.unreadDot, { backgroundColor: color }]} />}
+        </TouchableOpacity>
+      </StaggeredItem>
+  );
+});
 
 // typeConfig and filters are computed inside the component to access t()
 
@@ -409,70 +497,36 @@ export default function NotificationsScreen() {
     resolveNotificationTarget(notification) !== null;
 
   // === EDITORIAL NOTIFICATION CARD ===
-  const renderNotification = ({ item, index }: { item: Notification; index: number }) => {
-    const config = getTypeConfig(item.notification_type);
-    const unread = !item.is_read;
+  // Handlers via ref « dernière version » : le renderItem reste STABLE (la
+  // SectionList ne redessine plus toutes les lignes à chaque rendu de l'écran)
+  // tout en appelant toujours les handlers à jour.
+  const rowHandlersRef = useRef({ press: handleNotificationPress, remove: handleDelete });
+  rowHandlersRef.current = { press: handleNotificationPress, remove: handleDelete };
+  const onRowPress = useCallback((n: Notification) => rowHandlersRef.current.press(n), []);
+  const onRowLongPress = useCallback((id: string) => rowHandlersRef.current.remove(id), []);
 
-    return (
-      <StaggeredItem index={index}>
-        <TouchableOpacity
-          style={[
-            styles.notifCard,
-            {
-              backgroundColor: colors.card,
-              borderColor: unread ? `${config.color}55` : hairline,
-            },
-          ]}
-          onPress={() => handleNotificationPress(item)}
-          onLongPress={() => handleDelete(item.id)}
-          activeOpacity={0.85}
-        >
-          {/* Left rail color stripe for unread */}
-          {unread && (
-            <View style={[styles.unreadRail, { backgroundColor: config.color }]} />
-          )}
+  const renderNotification = useCallback(
+    ({ item, index }: { item: Notification; index: number }) => {
+      const config = typeConfig[item.notification_type] || typeConfig.default;
+      return (
+        <NotificationCard
+          item={item}
+          index={index}
+          icon={config.icon}
+          color={config.color}
+          eyebrow={config.eyebrow}
+          timeLabel={formatTime(item.created_at)}
+          onPress={onRowPress}
+          onLongPress={onRowLongPress}
+        />
+      );
+    },
+    // typeConfig ne dépend que de t ; formatTime est pur.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [t, onRowPress, onRowLongPress],
+  );
 
-          <View style={[styles.notifIconWrap, { backgroundColor: `${config.color}15` }]}>
-            <Ionicons name={config.icon} size={20} color={config.color} />
-          </View>
-
-          <View style={styles.notifBody}>
-            {/* Eyebrow + time */}
-            <View style={styles.notifTopRow}>
-              <View style={[styles.eyebrowPill, { backgroundColor: `${config.color}15` }]}>
-                <Text style={[styles.eyebrowText, { color: config.color }]}>
-                  {config.eyebrow}
-                </Text>
-              </View>
-              <Text style={[styles.notifTime, { color: colors.gray400 }]}>
-                {formatTime(item.created_at)}
-              </Text>
-            </View>
-
-            {/* Display title */}
-            <Text
-              style={[
-                styles.notifTitle,
-                { color: colors.text },
-                unread ? null : { opacity: 0.75 },
-              ]}
-              numberOfLines={2}
-            >
-              {item.title}
-            </Text>
-
-            {/* Body message */}
-            <Text style={[styles.notifMessage, { color: colors.gray500 }]} numberOfLines={2}>
-              {item.message}
-            </Text>
-          </View>
-
-          {/* Unread dot at right */}
-          {unread && <View style={[styles.unreadDot, { backgroundColor: config.color }]} />}
-        </TouchableOpacity>
-      </StaggeredItem>
-    );
-  };
+  const notificationKeyExtractor = useCallback((item: Notification) => String(item.id), []);
 
   const renderSectionHeader = ({ section }: { section: { title: string } }) => (
     <View style={styles.sectionHeader}>
@@ -690,7 +744,12 @@ export default function NotificationsScreen() {
             sections={groupedNotifications}
             renderItem={renderNotification}
             renderSectionHeader={renderSectionHeader}
-            keyExtractor={(item) => item.id}
+            keyExtractor={notificationKeyExtractor}
+            // Fenêtrage : la liste peut compter des centaines de notifs.
+            initialNumToRender={10}
+            maxToRenderPerBatch={8}
+            windowSize={7}
+            removeClippedSubviews={Platform.OS === 'android'}
             contentContainerStyle={[
               styles.listContent,
               { paddingBottom: insets.bottom + 140 },
@@ -711,7 +770,7 @@ export default function NotificationsScreen() {
                 refreshing={refreshing}
                 onRefresh={onRefresh}
                 tintColor={colors.primary}
-                colors={[colors.primary]}
+                colors={[colors.primary, colors.secondary, colors.accent]} progressBackgroundColor={colors.card}
               />
             }
           />

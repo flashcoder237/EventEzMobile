@@ -85,6 +85,66 @@ exports[`InAppToast snapshots renders info icon 1`] = `
     }
   >
     <View
+      pointerEvents="none"
+      style={
+        {
+          "borderRadius": 1.5,
+          "bottom": 10,
+          "left": 4,
+          "overflow": "hidden",
+          "position": "absolute",
+          "top": 10,
+          "width": 3,
+        }
+      }
+    >
+      <ViewManagerAdapter_ExpoLinearGradient
+        colors={
+          [
+            4283385573,
+            4289222135,
+            4294929259,
+          ]
+        }
+        endPoint={
+          [
+            0,
+            1,
+          ]
+        }
+        startPoint={
+          [
+            0,
+            0,
+          ]
+        }
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+      />
+      <View
+        style={
+          [
+            {
+              "backgroundColor": "rgba(255,255,255,0.85)",
+              "borderRadius": 1.5,
+              "height": 18,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+            },
+            {},
+          ]
+        }
+      />
+    </View>
+    <View
       style={
         [
           {
@@ -247,6 +307,66 @@ exports[`InAppToast snapshots renders message icon (default chat type) 1`] = `
       ]
     }
   >
+    <View
+      pointerEvents="none"
+      style={
+        {
+          "borderRadius": 1.5,
+          "bottom": 10,
+          "left": 4,
+          "overflow": "hidden",
+          "position": "absolute",
+          "top": 10,
+          "width": 3,
+        }
+      }
+    >
+      <ViewManagerAdapter_ExpoLinearGradient
+        colors={
+          [
+            4283385573,
+            4289222135,
+            4294929259,
+          ]
+        }
+        endPoint={
+          [
+            0,
+            1,
+          ]
+        }
+        startPoint={
+          [
+            0,
+            0,
+          ]
+        }
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+      />
+      <View
+        style={
+          [
+            {
+              "backgroundColor": "rgba(255,255,255,0.85)",
+              "borderRadius": 1.5,
+              "height": 18,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+            },
+            {},
+          ]
+        }
+      />
+    </View>
     <View
       style={
         [
@@ -427,6 +547,66 @@ exports[`InAppToast snapshots renders notification icon 1`] = `
       ]
     }
   >
+    <View
+      pointerEvents="none"
+      style={
+        {
+          "borderRadius": 1.5,
+          "bottom": 10,
+          "left": 4,
+          "overflow": "hidden",
+          "position": "absolute",
+          "top": 10,
+          "width": 3,
+        }
+      }
+    >
+      <ViewManagerAdapter_ExpoLinearGradient
+        colors={
+          [
+            4283385573,
+            4289222135,
+            4294929259,
+          ]
+        }
+        endPoint={
+          [
+            0,
+            1,
+          ]
+        }
+        startPoint={
+          [
+            0,
+            0,
+          ]
+        }
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+      />
+      <View
+        style={
+          [
+            {
+              "backgroundColor": "rgba(255,255,255,0.85)",
+              "borderRadius": 1.5,
+              "height": 18,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+            },
+            {},
+          ]
+        }
+      />
+    </View>
     <View
       style={
         [
@@ -956,6 +1136,66 @@ exports[`InAppToast snapshots renders with avatar (overrides icon) 1`] = `
       ]
     }
   >
+    <View
+      pointerEvents="none"
+      style={
+        {
+          "borderRadius": 1.5,
+          "bottom": 10,
+          "left": 4,
+          "overflow": "hidden",
+          "position": "absolute",
+          "top": 10,
+          "width": 3,
+        }
+      }
+    >
+      <ViewManagerAdapter_ExpoLinearGradient
+        colors={
+          [
+            4283385573,
+            4289222135,
+            4294929259,
+          ]
+        }
+        endPoint={
+          [
+            0,
+            1,
+          ]
+        }
+        startPoint={
+          [
+            0,
+            0,
+          ]
+        }
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+      />
+      <View
+        style={
+          [
+            {
+              "backgroundColor": "rgba(255,255,255,0.85)",
+              "borderRadius": 1.5,
+              "height": 18,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+            },
+            {},
+          ]
+        }
+      />
+    </View>
     <Image
       cachePolicy="memory-disk"
       source="https://test.local/avatar.jpg"

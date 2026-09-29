@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList } from '../../types';
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
+import { CountUpText } from '../ui/motion';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -73,7 +74,11 @@ export default function DashboardHeroCard({ stats }: Props) {
           {cells.map((cell, idx) => (
             <React.Fragment key={cell.label}>
               <View style={styles.statCell}>
-                <Text style={styles.statValue}>{cell.value}</Text>
+                {typeof cell.value === 'number' ? (
+                  <CountUpText value={cell.value} style={styles.statValue} />
+                ) : (
+                  <Text style={styles.statValue}>{cell.value}</Text>
+                )}
                 <Text style={styles.statLabel}>{cell.label}</Text>
               </View>
               {idx < cells.length - 1 && <View style={styles.divider} />}

@@ -819,7 +819,7 @@ export default function RegistrationDetailsScreen() {
                     <QRCode
                       value={getVerificationUrl(String(registration.id))}
                       size={QR_SIZE}
-                      color={isDark ? '#4C1D95' : '#5B21B6'}
+                      color="#000000" // noir pur sur blanc : fiabilité de scan (aucun effet sur le QR)
                       backgroundColor="#FFFFFF"
                       getRef={(c: any) => {
                         qrSvgRef.current = c;

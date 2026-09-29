@@ -559,7 +559,7 @@ export default function EventReviewsScreen() {
               refreshing={state.refreshing}
               onRefresh={() => loadFirstPage(state.sort, true)}
               tintColor={colors.primary}
-              colors={[colors.primary]}
+              colors={[colors.primary, colors.secondary, colors.accent]} progressBackgroundColor={colors.card}
             />
           }
           contentContainerStyle={[
