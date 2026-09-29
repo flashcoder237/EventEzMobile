@@ -18,7 +18,7 @@ import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { formatEventDateRange } from '../../lib/utils/dateFormatters';
 import ImageView from 'react-native-image-viewing';
-import { DEFAULT_BLUR_DATA_URL } from '../../utils/imageUtils';
+import { DEFAULT_BLUR_DATA_URL, getEventImageUrl } from '../../utils/imageUtils';
 import { getSaleState } from '../../utils/ticketSaleWindow';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RouteProp, useRoute, useFocusEffect } from '@react-navigation/native';
@@ -160,6 +160,12 @@ export default function EventDetailsScreen() {
     user,
     showError,
   } = useEventDetails(eventId, previewEvent);
+  // Héros : variante WebP 960px (display_image_medium) dès l'aperçu de
+  // navigation, repli sur l'originale puis sur l'image passée par la carte.
+  const heroImageUrl =
+    getEventImageUrl(event as any, 'medium')
+    || getEventImageUrl(initialEvent as any, 'medium')
+    || getMediaUrl(routeImageUrl ?? null);
   // Attribution : sans cet appel, tout le trafic issu de l'application
   // etait absent du tableau de bord UTM (le client existait mais n'etait
   // branche nulle part), et l'organisateur en concluait que son
@@ -637,7 +643,7 @@ export default function EventDetailsScreen() {
                 onExpand={() => setVideoPlayerOpen(true)}
                 onVideoUnavailable={() => setVideoUnavailable(true)}
                 style={{ width: '100%', height: '100%' }}
-                fallbackImageUri={getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)}
+                fallbackImageUri={heroImageUrl}
                 fallbackPlaceholder={event?.banner_placeholder || event?.category?.default_event_image_placeholder || DEFAULT_BLUR_DATA_URL}
               />
             </Animated.View>
@@ -655,8 +661,8 @@ export default function EventDetailsScreen() {
               )}
               <Image
                 source={
-                  getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)
-                    ? { uri: getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)! }
+                  heroImageUrl
+                    ? { uri: heroImageUrl }
                     : require('../../../assets/defaults/default-event.png')
                 }
                 contentFit="cover"
@@ -890,7 +896,13 @@ export default function EventDetailsScreen() {
                   <FollowUserButton
                     userId={Number(event.organizer.id)}
                     variant="compact"
-                    initialFollowing={!!(event.organizer as any).is_following}
+                    // État fourni par UserSerializer → pas de fetch au montage
+                    // (undefined si l'embed ne le porte pas → le bouton le charge).
+                    initialFollowing={
+                      typeof (event.organizer as any).is_following === 'boolean'
+                        ? (event.organizer as any).is_following
+                        : undefined
+                    }
                   />
                 </View>
                 {/* Bouton Message — déclenche handleContactOrganizer du hook,

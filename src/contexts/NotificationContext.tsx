@@ -468,45 +468,81 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [isAuthenticated, pushEnabled]);
 
+  // Mark-read OPTIMISTE : l'UI (pastille « non lu », compteur, badge OS) bascule
+  // immédiatement, l'API suit. En cas d'échec on RESTAURE l'état précédent puis
+  // on resynchronise les compteurs depuis le serveur (source de vérité) — c'est
+  // ce qui garantit l'absence de désync badge/backend (l'ancien flux attendait
+  // l'API avant de toucher l'UI pour la même raison, au prix d'un délai visible).
+  // Le backend ne renvoie pas de compteur dans la réponse ; en succès il diffuse
+  // le compteur réel via WS (`onNotificationRead`), qui recale le state.
   const markNotificationAsRead = useCallback(async (id: string) => {
-    // Fix badge desync : on appelle l'API D'ABORD, puis on décrémente le state
-    // local seulement après confirmation. Sinon, si l'API échoue, le badge
-    // diverge de la réalité backend (badge=0 mais backend=1 unread).
-    try {
-      await notificationsAPI.markAsRead(id);
+    const target = notifications.find(n => n.id === id);
+    // Notif hors de la page chargée : on suppose non lue (comportement historique).
+    const wasUnread = target ? !target.is_read : true;
+    const prevCount = unreadNotificationCount;
+    const newCount = wasUnread ? Math.max(0, prevCount - 1) : prevCount;
+
+    if (wasUnread) {
       setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, is_read: true } : n)
       );
-      const newCount = Math.max(0, unreadNotificationCount - 1);
       setUnreadNotificationCount(newCount);
-
-      // Update badge
       if (pushEnabled) {
-        await pushNotificationService.setBadgeCount(newCount);
+        pushNotificationService.setBadgeCount(newCount).catch(() => {});
       }
+    }
+
+    try {
+      await notificationsAPI.markAsRead(id);
     } catch (error) {
       if (__DEV__) console.error('[Notification] markAsRead failed:', error);
+      if (wasUnread) {
+        // Rollback local immédiat…
+        setNotifications(prev =>
+          prev.map(n => n.id === id ? { ...n, is_read: false } : n)
+        );
+        setUnreadNotificationCount(prevCount);
+        if (pushEnabled) {
+          pushNotificationService.setBadgeCount(prevCount).catch(() => {});
+        }
+        // …puis recalage depuis le serveur (actions concurrentes, WS manqué).
+        fetchUnreadCounts().catch(() => {});
+      }
       // Re-throw pour que le caller puisse afficher un toast d'erreur si besoin.
       throw error;
     }
-  }, [unreadNotificationCount, pushEnabled]);
+  }, [notifications, unreadNotificationCount, pushEnabled, fetchUnreadCounts]);
 
   const markAllNotificationsAsRead = useCallback(async () => {
-    // Fix badge desync : API d'abord, badge=0 après confirmation.
+    // Optimiste (cf. markNotificationAsRead) : tout passe « lu » + badge 0
+    // tout de suite ; rollback ciblé (seules les notifs qui étaient non lues)
+    // + resync serveur si l'API échoue.
+    const prevUnreadIds = new Set(
+      notifications.filter(n => !n.is_read).map(n => n.id)
+    );
+    const prevCount = unreadNotificationCount;
+
+    setNotifications(prev => prev.map(n => (n.is_read ? n : { ...n, is_read: true })));
+    setUnreadNotificationCount(0);
+    if (pushEnabled) {
+      pushNotificationService.setBadgeCount(0).catch(() => {});
+    }
+
     try {
       await notificationsAPI.markAllAsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      setUnreadNotificationCount(0);
-
-      // Clear badge
-      if (pushEnabled) {
-        await pushNotificationService.setBadgeCount(0);
-      }
     } catch (error) {
       if (__DEV__) console.error('[Notification] markAllAsRead failed:', error);
+      setNotifications(prev =>
+        prev.map(n => (prevUnreadIds.has(n.id) ? { ...n, is_read: false } : n))
+      );
+      setUnreadNotificationCount(prevCount);
+      if (pushEnabled) {
+        pushNotificationService.setBadgeCount(prevCount).catch(() => {});
+      }
+      fetchUnreadCounts().catch(() => {});
       throw error;
     }
-  }, [pushEnabled]);
+  }, [notifications, unreadNotificationCount, pushEnabled, fetchUnreadCounts]);
 
   const refreshCounts = useCallback(async () => {
     await fetchUnreadCounts();

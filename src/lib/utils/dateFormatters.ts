@@ -3,6 +3,27 @@
  * Locale: fr-FR
  */
 
+import i18n from '../../i18n';
+
+/** Locale Intl de la langue courante de l'app (FR par défaut). */
+export function appDateLocale(): string {
+  return (i18n.language || 'fr').startsWith('en') ? 'en-US' : 'fr-FR';
+}
+
+// Libellés fixes (3 lettres, capitales) plutôt qu'Intl : le rendu de
+// `month: 'short'` varie selon le moteur (« févr. », « Feb »…) et casse la
+// largeur des pastilles date.
+const SHORT_MONTHS: Record<'fr' | 'en', string[]> = {
+  fr: ['JAN', 'FÉV', 'MAR', 'AVR', 'MAI', 'JUI', 'JUL', 'AOÛ', 'SEP', 'OCT', 'NOV', 'DÉC'],
+  en: ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'],
+};
+
+/** Mois abrégé en capitales dans la langue de l'app : « FÉV » / « FEB ». */
+export function shortMonthLabel(date: Date): string {
+  const lang = (i18n.language || 'fr').startsWith('en') ? 'en' : 'fr';
+  return SHORT_MONTHS[lang][date.getMonth()] ?? '';
+}
+
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;

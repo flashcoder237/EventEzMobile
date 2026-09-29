@@ -25,6 +25,9 @@ export interface EventNavPreview {
   banner_image?: string;
   banner_placeholder?: string;
   display_image?: string;
+  /** Variantes WebP (400px / 960px) — le héros détail affiche `medium` d'emblée. */
+  display_image_thumb?: string;
+  display_image_medium?: string;
   start_date?: string;
   end_date?: string;
   location_type?: Event['location_type'];
@@ -66,6 +69,8 @@ export function toEventPreview(event: Partial<Event> | null | undefined): EventN
     banner_image: str(event.banner_image),
     banner_placeholder: smallUri(event.banner_placeholder),
     display_image: str(event.display_image),
+    display_image_thumb: str(event.display_image_thumb),
+    display_image_medium: str(event.display_image_medium),
     start_date: str(event.start_date),
     end_date: str(event.end_date),
     location_type: str(event.location_type) as EventNavPreview['location_type'],

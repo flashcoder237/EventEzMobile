@@ -16,6 +16,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import EventImage from '../events/EventImage';
+import { prefetchImageUrls } from '../../utils/imageUtils';
 
 interface MapEventCardProps {
   marker: MapMarker;
@@ -43,7 +44,8 @@ function MapEventCardComponent({
     }
     return t('componentsMaps.free');
   };
-  const imageUrl = getMediaUrl(marker.banner_image);
+  // Vignette WebP 400px si disponible, sinon l'originale.
+  const imageUrl = getMediaUrl(marker.display_image_thumb || marker.banner_image);
 
   const distance = userLocation && marker.lat && marker.lng && calculateDistance
     ? Math.round(calculateDistance(userLocation.lat, userLocation.lng, marker.lat, marker.lng))
@@ -53,6 +55,8 @@ function MapEventCardComponent({
     <TouchableOpacity
       style={[styles.card, { backgroundColor: colors.card }, bottomOffset !== undefined && { bottom: bottomOffset }, isDark && styles.cardDark]}
       onPress={onPress}
+      // Précharge le héros de l'écran détail pendant l'appui.
+      onPressIn={() => prefetchImageUrls([getMediaUrl(marker.display_image_medium || marker.banner_image)], 1)}
       activeOpacity={0.92}
     >
       {/* Image */}
@@ -121,6 +125,7 @@ export default memo(MapEventCardComponent, (prev, next) => {
     prev.marker.id === next.marker.id &&
     prev.marker.title === next.marker.title &&
     prev.marker.banner_image === next.marker.banner_image &&
+    prev.marker.display_image_thumb === next.marker.display_image_thumb &&
     prev.marker.category === next.marker.category &&
     prev.marker.start_date === next.marker.start_date &&
     prev.marker.location_city === next.marker.location_city &&

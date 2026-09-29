@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   getOutboxForConversation,
+  onOutboxChange,
   removeOutbox,
   resetOutboxRetry,
   type OutboxEntry,
@@ -47,12 +48,25 @@ export function useOutboxUI(conversationId: string | number | null, isConnected:
     }
   }, [conversationId]);
 
-  // Rafraîchit au montage + périodiquement (l'outbox évolue via handleSend /
-  // flushOutbox qui écrivent en base sans passer par ce state).
+  // Rafraîchit au montage puis À CHAQUE écriture de l'outbox (enqueue, envoi,
+  // ack, échec, retry, suppression — notifiées par outboxRepository), au lieu
+  // de sonder SQLite toutes les 3 s tant que la conversation est ouverte.
+  // Les rafales (flushOutbox = N écritures) sont regroupées en une lecture.
+  // Filet de sécurité : relecture lente (30 s) si une écriture échappait au
+  // module (ex. purge de la base).
   useEffect(() => {
     refresh();
-    const t = setInterval(refresh, 3000);
-    return () => clearInterval(t);
+    let pending: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = onOutboxChange(() => {
+      if (pending) return;
+      pending = setTimeout(() => { pending = null; refresh(); }, 50);
+    });
+    const safety = setInterval(refresh, 30000);
+    return () => {
+      unsubscribe();
+      clearInterval(safety);
+      if (pending) clearTimeout(pending);
+    };
   }, [refresh]);
 
   // Rejeu à la reconnexion (flushOutbox est idempotent / verrouillé).

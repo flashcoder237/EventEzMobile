@@ -12,6 +12,7 @@ import { getEventUrl } from '../constants/urls';
 import { findExistingDirectConversation } from '../lib/utils/messagingHelpers';
 import { getApiErrorMessage } from '../lib/utils/errorHandling';
 import CacheService from '../services/CacheService';
+import { appDateLocale, shortMonthLabel } from '../lib/utils/dateFormatters';
 
 // Cache du détail d'event (stale-while-revalidate) : réouvrir un event déjà vu
 // l'affiche instantanément, le fetch réseau rafraîchit en arrière-plan. Le
@@ -506,9 +507,9 @@ export function useEventDetails(
 
   const formatDateShort = (dateString: string) => {
     const date = new Date(dateString);
-    const day = date.toLocaleDateString('fr-FR', { weekday: 'short' }).slice(0, 3).toUpperCase();
+    const day = date.toLocaleDateString(appDateLocale(), { weekday: 'short' }).slice(0, 3).toUpperCase();
     const dayNum = date.getDate();
-    const month = date.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase();
+    const month = shortMonthLabel(date);
     return { day, dayNum, month };
   };
 

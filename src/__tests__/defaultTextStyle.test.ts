@@ -41,7 +41,9 @@ describe('style de texte par défaut', () => {
   it('injecte le style par défaut AVANT le style utilisateur (surchargeable)', () => {
     // L'ordre compte : le style local doit pouvoir écraser la valeur par
     // défaut, jamais l'inverse.
-    expect(appSource).toContain('style: [DEFAULT_TEXT_STYLE, element.props.style]');
+    // (Sans style user, l'objet constant est réutilisé tel quel — perf.)
+    expect(appSource).toContain('[DEFAULT_TEXT_STYLE, userStyle]');
+    expect(appSource).toContain('const userStyle = element.props.style');
   });
 
   it('applique le patch à Text ET TextInput', () => {

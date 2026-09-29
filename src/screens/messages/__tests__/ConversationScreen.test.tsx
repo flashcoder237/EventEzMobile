@@ -126,6 +126,7 @@ jest.mock('../../../db/outboxRepository', () => ({
   getOutboxForConversation: jest.fn(() => Promise.resolve([])),
   removeOutbox: jest.fn(() => Promise.resolve()),
   resetOutboxRetry: jest.fn(() => Promise.resolve()),
+  onOutboxChange: jest.fn(() => () => {}),
 }));
 jest.mock('../../../db/outboxSync', () => ({
   flushOutbox: jest.fn(() => Promise.resolve(0)),

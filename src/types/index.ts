@@ -183,6 +183,9 @@ export interface Event {
   banner_placeholder?: string; // Data URI JPEG blurre (LQIP) pour chargement progressif
   display_image?: string; // SerializerMethodField
   display_placeholder?: string; // LQIP correspondant a display_image
+  // Variantes WebP redimensionnées de display_image (null tant que non générées)
+  display_image_thumb?: string | null; // 400px — cartes de liste
+  display_image_medium?: string | null; // 960px — héros / cartes pleine largeur
   cover_video?: string | null; // URL absolue de la video uploadee
   cover_video_url?: string; // URL externe (YouTube/Vimeo) brute
   cover_video_embed?: string; // URL embed prete pour iframe/WebView (genere serveur)
@@ -1425,6 +1428,9 @@ export interface MapMarker {
   start_date: string;
   category: string | null;
   banner_image: string | null;
+  // Variantes WebP de l'image (optionnelles, null tant que non générées)
+  display_image_thumb?: string | null;
+  display_image_medium?: string | null;
   registration_count: number;
   // Filter fields
   event_type?: 'billetterie' | 'inscription';

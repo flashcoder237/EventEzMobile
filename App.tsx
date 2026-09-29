@@ -67,6 +67,7 @@ import { loadNavigationState, saveNavigationState } from './src/lib/navigationPe
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
+import { loadAsync as loadFontsAsync } from 'expo-font';
 import {
   useFonts,
   // Montserrat_300Light retiré : zero usage (FontFamily.light pointe vers regular)
@@ -118,6 +119,11 @@ import { RootStackParamList } from './src/types';
 import { initAnalytics, trackScreenView } from './src/services/analyticsService';
 import { initCrashReporting } from './src/services/crashReporting';
 import QuickActionsBridge from './src/components/common/QuickActionsBridge';
+// Import side-effect EXPLICITE : avec `inlineRequires` (metro.config.js), un
+// import nommé n'est évalué qu'au premier usage du binding (ici le useEffect
+// de <App>). On veut au contraire que i18n.init + la lecture AsyncStorage de la
+// langue démarrent dès l'évaluation de ce module, en parallèle des polices.
+import './src/i18n';
 import { i18nReady } from './src/i18n';
 
 // Init Sentry au plus tôt — avant tout require de modules métier — pour
@@ -153,6 +159,26 @@ try {
 
 // Keep native splash visible while we load fonts
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// Polices chargées au runtime (expo-font). Pas d'embarquement natif via le
+// config plugin `expo-font` : sur iOS une police embarquée n'est adressable
+// que par son nom PostScript (« Montserrat-Regular »), incompatible avec les
+// noms `Montserrat_400Regular` utilisés partout (FontFamily, DEFAULT_FONT_FAMILY),
+// et les binaires déjà publiés (mises à jour OTA) n'auraient pas les fichiers.
+// On lance donc le chargement DÈS l'évaluation du module — en parallèle de la
+// lecture i18n — plutôt qu'au premier rendu de <App> ; `useFonts` ci-dessous
+// réutilise la même promesse (expo-font déduplique par nom de police).
+const APP_FONTS = {
+  Montserrat_400Regular,
+  Montserrat_500Medium,
+  Montserrat_600SemiBold,
+  Montserrat_700Bold,
+  FunnelDisplay_400Regular,
+  FunnelDisplay_600SemiBold,
+  FunnelDisplay_700Bold,
+  FunnelDisplay_800ExtraBold,
+};
+loadFontsAsync(APP_FONTS).catch(() => { /* useFonts remonte l'erreur */ });
 
 const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [
@@ -482,16 +508,10 @@ function AppContent() {
 }
 
 function App() {
-  const [fontsLoaded] = useFonts({
-    Montserrat_400Regular,
-    Montserrat_500Medium,
-    Montserrat_600SemiBold,
-    Montserrat_700Bold,
-    FunnelDisplay_400Regular,
-    FunnelDisplay_600SemiBold,
-    FunnelDisplay_700Bold,
-    FunnelDisplay_800ExtraBold,
-  });
+  const [fontsLoaded, fontError] = useFonts(APP_FONTS);
+  // Une police qui échoue ne doit pas figer l'app sur le splash : on rend avec
+  // la police système (dégradé visuel, pas un écran bloqué).
+  const fontsReady = fontsLoaded || fontError != null;
 
   const [showSplash, setShowSplash] = useState(true);
   // Bloque le rendu jusqu'a ce que l'override AsyncStorage de la langue ait
@@ -511,17 +531,17 @@ function App() {
 
   // Once fonts AND i18n are loaded, hide the native splash and show our animated one
   useEffect(() => {
-    if (fontsLoaded && i18nResolved) {
+    if (fontsReady && i18nResolved) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [fontsLoaded, i18nResolved]);
+  }, [fontsReady, i18nResolved]);
 
   const handleSplashFinish = useCallback(() => {
     setShowSplash(false);
   }, []);
 
   // While fonts/i18n load, the native splash screen stays visible (preventAutoHideAsync)
-  if (!fontsLoaded || !i18nResolved) {
+  if (!fontsReady || !i18nResolved) {
     return null;
   }
 

@@ -87,6 +87,24 @@ function rowToEntry(row: OutboxRow): OutboxEntry {
   };
 }
 
+// ─── Notification de changement ───────────────────────────────────────────────
+// Toute écriture dans `outbox` passe par ce module : on notifie les abonnés
+// (useOutboxUI…) au lieu de les laisser sonder SQLite en boucle.
+type OutboxListener = () => void;
+const outboxListeners = new Set<OutboxListener>();
+
+/** S'abonne aux changements de l'outbox. Retourne la fonction de désabonnement. */
+export function onOutboxChange(listener: OutboxListener): () => void {
+  outboxListeners.add(listener);
+  return () => { outboxListeners.delete(listener); };
+}
+
+function notifyOutboxChange(): void {
+  outboxListeners.forEach((l) => {
+    try { l(); } catch { /* un abonné ne doit pas casser l'écriture */ }
+  });
+}
+
 /** Ajoute un message à la file d'envoi (offline ou en cours). */
 export async function enqueueOutbox(entry: {
   tempId: string;
@@ -131,6 +149,7 @@ export async function enqueueOutbox(entry: {
     persisted.length ? JSON.stringify(persisted) : null,
     new Date().toISOString(),
   );
+  notifyOutboxChange();
 }
 
 /**
@@ -159,6 +178,7 @@ export async function enqueueDeletion(
     new Date().toISOString(),
     JSON.stringify(ids),
   );
+  notifyOutboxChange();
 }
 
 /** Récupère les entrées à (re)jouer, les plus anciennes d'abord. */
@@ -174,6 +194,7 @@ export async function getPendingOutbox(limit = 20): Promise<OutboxEntry[]> {
 export async function markOutboxSending(tempId: string): Promise<void> {
   const db = await getDatabase();
   await db.runAsync("UPDATE outbox SET state = 'sending' WHERE temp_id = ?", tempId);
+  notifyOutboxChange();
 }
 
 export async function markOutboxFailed(tempId: string): Promise<void> {
@@ -182,6 +203,7 @@ export async function markOutboxFailed(tempId: string): Promise<void> {
     "UPDATE outbox SET state = 'failed', retry_count = retry_count + 1 WHERE temp_id = ?",
     tempId,
   );
+  notifyOutboxChange();
 }
 
 /** Réarme une entrée échouée pour un nouvel essai manuel (reset retry). */
@@ -191,6 +213,7 @@ export async function resetOutboxRetry(tempId: string): Promise<void> {
     "UPDATE outbox SET state = 'pending', retry_count = 0 WHERE temp_id = ?",
     tempId,
   );
+  notifyOutboxChange();
 }
 
 /** Retire une entrée de la file (envoi confirmé). */
@@ -208,6 +231,7 @@ export async function removeOutbox(tempId: string): Promise<void> {
     /* best-effort */
   }
   await db.runAsync('DELETE FROM outbox WHERE temp_id = ?', tempId);
+  notifyOutboxChange();
 }
 
 /** Nombre d'entrées en attente pour une conversation (badge « X en attente »). */

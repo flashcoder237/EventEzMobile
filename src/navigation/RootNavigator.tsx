@@ -37,22 +37,29 @@ type PreloadableScreen<P> = ComponentType<P> & { preload: () => Promise<unknown>
 function lazyScreen<P extends object>(
   factory: () => Promise<{ default: ComponentType<P> }>,
 ): PreloadableScreen<P> {
-  let Resolved: ComponentType<P> | null = null;
-  let promise: Promise<{ default: ComponentType<P> }> | null = null;
+  // État mutable dans un objet (pas un `let` capturé) : React Compiler
+  // transforme mal les composants qui lisent une variable de closure réassignée
+  // hors rendu → « ReferenceError: Property 'Resolved' doesn't exist ».
+  const state: {
+    Resolved: ComponentType<P> | null;
+    promise: Promise<{ default: ComponentType<P> }> | null;
+  } = { Resolved: null, promise: null };
   const load = () => {
-    if (!promise) {
-      promise = factory().then((mod) => {
-        Resolved = mod.default;
+    if (!state.promise) {
+      const p = factory().then((mod) => {
+        state.Resolved = mod.default;
         return mod;
       });
+      state.promise = p;
       // Échec (rare) : on autorise une nouvelle tentative au prochain appel.
-      promise.catch(() => { promise = null; });
+      p.catch(() => { state.promise = null; });
     }
-    return promise;
+    return state.promise;
   };
   const LazyComp = lazy(load);
   const Wrapped = (props: P) => {
-    const [Direct] = useState(() => Resolved);
+    'use no memo';
+    const [Direct] = useState(() => state.Resolved);
     if (Direct) return <Direct {...props} />;
     return (
       <Suspense fallback={<LoadingSpinner />}>

@@ -13,7 +13,8 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useTranslation } from 'react-i18next';
-import { recommendationsAPI, getMediaUrl } from '../../api';
+import { recommendationsAPI } from '../../api';
+import { getEventImageUrl, prefetchEventHero } from '../../utils/imageUtils';
 import { Event, RootStackParamList } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
@@ -47,12 +48,14 @@ const SimilarEventCard = memo(function SimilarEventCard({
 }) {
   const { colors } = useTheme();
   const { t } = useTranslation();
-  const banner = getMediaUrl(event.banner_image || event.display_image);
+  // Vignette WebP 400px si générée, sinon l'originale.
+  const banner = getEventImageUrl(event, 'thumb');
 
   return (
     <TouchableOpacity
       style={[styles.card, { backgroundColor: colors.card, borderColor: 'rgba(0,0,0,0.06)' }, Shadows.sm]}
       onPress={onPress}
+      onPressIn={() => prefetchEventHero(event)}
       activeOpacity={0.85}
       accessibilityRole="button"
       accessibilityLabel={t('componentsEvents.similarEventA11y', { title: event.title })}

@@ -21,6 +21,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { usersAPI, eventsAPI, messagesAPI, connectionsAPI, getMediaUrl } from '../../api';
+import { getEventImageUrl, prefetchEventHero } from '../../utils/imageUtils';
 import { useFeedback } from '../../contexts/FeedbackContext';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { ProfileSkeleton } from '../../components/ui/Skeleton';
@@ -367,7 +368,18 @@ export default function OrganizerProfileScreen() {
                     userId={Number((organizer as any).id)}
                     variant="default"
                     showFollowerCount
-                    initialFollowing={!!(organizer as any)?.is_following}
+                    // is_following / followers_count viennent déjà du
+                    // (Public)UserSerializer : on évite 2 requêtes au montage.
+                    initialFollowing={
+                      typeof (organizer as any)?.is_following === 'boolean'
+                        ? (organizer as any).is_following
+                        : undefined
+                    }
+                    initialFollowersCount={
+                      typeof (organizer as any)?.followers_count === 'number'
+                        ? (organizer as any).followers_count
+                        : undefined
+                    }
                   />
                 )}
               </View>
@@ -510,6 +522,7 @@ export default function OrganizerProfileScreen() {
                     <TouchableOpacity
                       style={[styles.eventRow, { backgroundColor: colors.card, borderColor: colors.border }]}
                       onPress={() => navigateToEvent(event.id, event)}
+                      onPressIn={() => prefetchEventHero(event)}
                       activeOpacity={TOUCH_OPACITY}
                     >
                       {/* Date tile orange à gauche */}
@@ -524,7 +537,7 @@ export default function OrganizerProfileScreen() {
                         </View>
                       ) : event.banner_image ? (
                         <Image
-                          source={getMediaUrl(event.banner_image)!}
+                          source={getEventImageUrl(event, 'thumb')!}
                           style={styles.eventDateTile}
                           cachePolicy="memory-disk"
                           transition={200}

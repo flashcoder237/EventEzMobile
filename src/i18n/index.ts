@@ -1,18 +1,21 @@
 /**
  * i18n Configuration
  *
- * Charge SEULEMENT la langue détectée du device au boot. L'autre langue est
- * chargée à la demande via `loadLanguage()` (e.g. depuis SettingsScreen quand
- * l'utilisateur change de langue manuellement).
- *
- * Gain : économise ~8KB de bundle pour la langue non utilisée. Surtout utile
- * si on ajoute d'autres langues plus tard (es, pt, etc.).
+ * Perf démarrage : seule la langue INITIALE (déduite de la locale device) est
+ * évaluée au boot. fr.json (~380KB) et en.json (~350KB) restent tous deux
+ * bundlés (base offline), mais la seconde n'est `require()`-ée qu'à la demande
+ * (`ensureBundledLanguage`), soit :
+ *  - quand l'utilisateur/la préférence stockée bascule dessus (`changeLanguage`),
+ *  - en tâche de fond après le boot quand il s'agit de `en` (fallbackLng), pour
+ *    qu'une clé FR manquante retombe bien sur l'anglais.
+ * Metro embarque les deux JSON (require littéral, statiquement analysable) ;
+ * seule leur ÉVALUATION est différée.
  *
  * Stratégie de résolution de la langue active :
- * 1. Init synchrone avec la langue du device (default = EN sauf si device locale = fr)
- * 2. Override async via AsyncStorage : si une préférence est déjà persistée
- *    (auto-détectée au premier launch par RootNavigator, ou changée depuis
- *    SettingsScreen), on l'applique.
+ * 1. Init synchrone avec la langue du device (défaut = FR sauf si device = en)
+ * 2. Override async via AsyncStorage (`i18nReady`) : si une préférence est déjà
+ *    persistée (auto-détectée ou changée depuis Paramètres), on l'applique.
+ * Les autres langues (es, pt…) sont chargées en OTA (cf. ./translations).
  *
  * NB : il n'y a PAS d'écran de choix de langue au premier launch. La langue est
  * auto-détectée depuis la locale du device (cf. RootNavigator) ; l'utilisateur
@@ -57,10 +60,24 @@ const deviceLocale = getLocales()[0]?.languageCode ?? 'fr';
 const initialLang: 'fr' | 'en' = deviceLocale === 'en' ? 'en' : 'fr';
 
 // fr + en sont toujours bundlés : base offline + langue de fallback universelle.
-// Les autres langues sont chargées en OTA à la demande (cf. ./translations).
+// `require` DANS une fonction : Metro bundle les deux fichiers mais aucun n'est
+// évalué tant qu'on ne l'appelle pas. Les littéraux doivent rester statiques.
+function requireBundledTranslation(lang: 'fr' | 'en'): Record<string, any> {
+  return lang === 'en' ? require('./locales/en.json') : require('./locales/fr.json');
+}
+
+/**
+ * Ajoute à i18next la ressource bundlée `fr`/`en` si elle n'y est pas encore.
+ * No-op pour toute autre langue (OTA, cf. loadLanguage) ou si déjà présente.
+ */
+export function ensureBundledLanguage(lang: string): void {
+  if (lang !== 'fr' && lang !== 'en') return;
+  if (i18n.hasResourceBundle(lang, 'translation')) return;
+  i18n.addResourceBundle(lang, 'translation', requireBundledTranslation(lang), true, true);
+}
+
 const initialResources: Record<string, { translation: any }> = {
-  en: { translation: require('./locales/en.json') },
-  fr: { translation: require('./locales/fr.json') },
+  [initialLang]: { translation: requireBundledTranslation(initialLang) },
 };
 
 i18n.use(initReactI18next).init({
@@ -80,9 +97,15 @@ i18n.use(initReactI18next).init({
  * À appeler depuis SettingsScreen quand l'user choisit une autre langue.
  */
 export async function loadLanguage(lang: string): Promise<void> {
+  // fr/en : bundlées, évaluées à la demande (synchrone, pas de réseau).
+  if (lang === 'en' || lang === 'fr') {
+    ensureBundledLanguage(lang);
+    return;
+  }
+  // Toute autre langue retombe sur fallbackLng ('en') pour les clés manquantes.
+  ensureBundledLanguage('en');
   if (i18n.hasResourceBundle(lang, 'translation')) return;
-  // fr/en sont déjà chargées (bundle). Toute autre langue : OTA + cache disque.
-  if (lang === 'en' || lang === 'fr') return;
+  // OTA + cache disque.
   const remote = await getRemoteTranslation(lang);
   if (remote) {
     i18n.addResourceBundle(lang, 'translation', remote, true, true);
@@ -117,23 +140,30 @@ export async function changeLanguage(lang: string): Promise<void> {
 export const i18nReady: Promise<void> = (async () => {
   try {
     const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-    let stored = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+    // Une seule lecture groupée (multiGet) au lieu de 3 getItem séquentiels :
+    // ce bloc gate le premier rendu (App.tsx), chaque aller-retour natif compte.
+    const entries: ReadonlyArray<readonly [string, string | null]> = await AsyncStorage.multiGet([
+      LANGUAGE_STORAGE_KEY,
+      LANGUAGE_MIGRATION_KEY,
+      LANGUAGE_EXPLICIT_KEY,
+    ]);
+    const read = (key: string): string | null =>
+      entries?.find?.((e) => e[0] === key)?.[1] ?? null;
+    let stored = read(LANGUAGE_STORAGE_KEY);
 
-    // ── Migration one-shot : défaut EN → FR ────────────────────────────────
-    // Les installs antérieures ont persisté `en` par simple auto-détection
-    // (l'ancien défaut basculait en EN dès que la locale device n'était pas
-    // exactement `fr`). Ces utilisateurs restaient bloqués sur une UI anglaise
-    // pour toujours, même après correction du défaut. On re-dérive donc leur
-    // préférence UNE FOIS — sans jamais toucher à un choix explicite.
-    const migrated = await AsyncStorage.getItem(LANGUAGE_MIGRATION_KEY);
+    const migrated = read(LANGUAGE_MIGRATION_KEY);
     if (migrated !== LANGUAGE_MIGRATION_VERSION) {
-      const explicit = await AsyncStorage.getItem(LANGUAGE_EXPLICIT_KEY);
+      const explicit = read(LANGUAGE_EXPLICIT_KEY);
+      // Écritures fire-and-forget : la valeur utile (`stored`) est déjà en
+      // mémoire, inutile de bloquer le premier rendu sur le disque. Si le
+      // process meurt avant l'écriture, la migration (idempotente) rejouera.
+      const writes: [string, string][] = [[LANGUAGE_MIGRATION_KEY, LANGUAGE_MIGRATION_VERSION]];
       if (explicit !== 'true' && stored === 'en' && initialLang !== 'en') {
         stored = initialLang;
-        await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, initialLang);
+        writes.unshift([LANGUAGE_STORAGE_KEY, initialLang]);
         if (__DEV__) console.log('[i18n] migration: auto-detected "en" -> "fr"');
       }
-      await AsyncStorage.setItem(LANGUAGE_MIGRATION_KEY, LANGUAGE_MIGRATION_VERSION);
+      Promise.resolve(AsyncStorage.multiSet(writes)).catch(() => {});
     }
 
     if (stored && typeof stored === 'string') {
@@ -147,6 +177,13 @@ export const i18nReady: Promise<void> = (async () => {
     }
   } catch (err) {
     if (__DEV__) console.warn('[i18n] async override skipped', err);
+  }
+  // Charge le fallback `en` HORS du chemin critique (après le premier rendu) :
+  // filet pour une éventuelle clé absente de la langue active.
+  if (i18n.language !== 'en') {
+    setTimeout(() => {
+      try { ensureBundledLanguage('en'); } catch { /* silent */ }
+    }, 3000);
   }
 })();
 
