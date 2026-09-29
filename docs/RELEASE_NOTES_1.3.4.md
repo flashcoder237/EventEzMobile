@@ -262,3 +262,6 @@ What's new in this version:
       spinner coloré (Android), anneau de l'avatar du Profil, liseré des
       notifications in-app, points de l'onboarding (Android bas de gamme),
       marqueurs de la carte (pop, halo, cascade, zoom sans rejouer).
+
+> La suite (micro-delight « round 2 », retours de fin de cycle) est dans
+> `RELEASE_NOTES_1.3.5.md`.
