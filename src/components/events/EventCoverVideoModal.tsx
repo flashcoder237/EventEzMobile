@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { buildEmbedSource } from '../../lib/utils/videoUrl';
 import { WEB_BASE_URL } from '../../constants/urls';
+import { getYouTubeId } from './YouTubeCoverPlayer';
 
 /**
  * Lecteur PLEIN ÉCRAN de la cover video d'un événement — AVEC LE SON.
@@ -53,10 +54,19 @@ export default function EventCoverVideoModal({
 
   const useUploaded = !!videoUri;
   // Mémorisé : un nouvel objet `source` à chaque rendu rechargerait le lecteur.
-  const embedSource = useMemo(
-    () => (embedUrl ? buildEmbedSource(embedUrl, WEB_BASE_URL) : null),
-    [embedUrl],
-  );
+  // YouTube : page lecteur hébergée sur notre site (vrai Referer, contre
+  // l'erreur 153), en mode « full » (contrôles YouTube + son). Repli sur la
+  // page locale si elle n'est pas encore déployée (404). Vimeo : page locale.
+  const [embedInline, setEmbedInline] = useState(false);
+  const embedSource = useMemo(() => {
+    if (!embedUrl) return null;
+    const ytId = getYouTubeId(embedUrl);
+    if (ytId && !embedInline) {
+      const site = WEB_BASE_URL.replace(/\/+$/, '');
+      return { uri: `${site}/embed/youtube.html?v=${encodeURIComponent(ytId)}&mode=full` };
+    }
+    return buildEmbedSource(embedUrl, WEB_BASE_URL);
+  }, [embedUrl, embedInline]);
   // Autoplay avec son : on est en plein écran suite à un tap explicite de
   // l'utilisateur, donc le son est légitime (contrairement à l'autoplay de la
   // bannière qui DOIT rester muet côté iOS/Android).
@@ -121,6 +131,7 @@ export default function EventCoverVideoModal({
             domStorageEnabled
             startInLoadingState
             onLoadEnd={() => setLoading(false)}
+            onHttpError={() => setEmbedInline(true)}
           />
         ) : null}
 

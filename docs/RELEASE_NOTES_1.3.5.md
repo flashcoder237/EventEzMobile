@@ -319,6 +319,13 @@ What's new in this version:
   erreur et l'app arrête de la redemander pour la session ; les signaux
   restent simplement vides.
 
+- Vidéo YouTube invisible sur la fiche : YouTube refusait encore le lecteur
+  (une page chargée localement dans la WebView n'envoie pas de Referer fiable
+  sur Android). Le lecteur charge désormais une vraie page hébergée,
+  `https://eventez.online/embed/youtube.html` (modes cover / preview / full),
+  avec repli sur la page locale si elle n'est pas encore déployée. Le plein
+  écran vidéo utilise la même page.
+
 ---
 
 ### Avant publication
@@ -333,7 +340,8 @@ What's new in this version:
       (d'abord `--dry-run`), `compilemessages`, redémarrer Celery beat ET
       workers, Redis joignable par le cache, le channel layer et les workers,
       redémarrer Daphne (ws).
-- [ ] Web déployé en même temps (mêmes contrats temps réel).
+- [ ] Web déployé en même temps (mêmes contrats temps réel) — il sert aussi la
+      page lecteur `/embed/youtube.html` dont dépendent les vidéos YouTube.
 
 #### Tests sur appareil — liste consolidée et priorisée
 

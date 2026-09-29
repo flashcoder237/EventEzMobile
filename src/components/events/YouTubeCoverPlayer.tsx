@@ -87,16 +87,30 @@ export default function YouTubeCoverPlayer({ videoId, playing, muted, preview = 
   const ref = useRef<WebView>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  // 1er choix : la page lecteur HÉBERGÉE sur notre site (vrai Referer, seule
+  // solution fiable contre l'erreur 153 sur Android). Si elle n'est pas encore
+  // déployée (404), repli sur la page locale avec baseUrl.
+  const [useInline, setUseInline] = useState(false);
   const posterOpacity = useSharedValue(1);
 
   // Source mémorisée : un nouvel objet à chaque rendu rechargerait le lecteur.
-  const source = useMemo(
-    () => ({
-      html: buildPlayerHtml(videoId, WEB_BASE_URL.replace(/\/+$/, ''), preview),
-      baseUrl: `${WEB_BASE_URL.replace(/\/+$/, '')}/`,
-    }),
-    [videoId, preview],
-  );
+  const source = useMemo(() => {
+    const site = WEB_BASE_URL.replace(/\/+$/, '');
+    if (!useInline) {
+      return { uri: `${site}/embed/youtube.html?v=${encodeURIComponent(videoId)}&mode=${preview ? 'preview' : 'cover'}` };
+    }
+    return { html: buildPlayerHtml(videoId, site, preview), baseUrl: `${site}/` };
+  }, [videoId, preview, useInline]);
+
+  const fallbackToInline = () => {
+    if (!useInline) {
+      setReady(false);
+      setUseInline(true);
+    } else {
+      setFailed(true);
+      onError?.();
+    }
+  };
 
   const run = (js: string) => ref.current?.injectJavaScript(`window.__ez&&window.__ez.${js};true;`);
 
@@ -123,8 +137,11 @@ export default function YouTubeCoverPlayer({ videoId, playing, muted, preview = 
     if (msg.type === 'ready') setReady(true);
     else if (msg.type === 'playing' && playing) posterOpacity.value = withTiming(0, { duration: 260 });
     else if (msg.type === 'error') {
-      setFailed(true);
+      if (__DEV__) console.log(`[YouTube] erreur lecteur ${(msg as any).code} (${useInline ? 'page locale' : 'page hébergée'})`);
       posterOpacity.value = 1;
+      // Erreur de configuration (Referer) sur la page locale uniquement : rien
+      // à retenter. Sur la page hébergée, une 150/101 = vidéo non intégrable.
+      setFailed(true);
       onError?.();
     }
   };
@@ -140,10 +157,8 @@ export default function YouTubeCoverPlayer({ videoId, playing, muted, preview = 
           originWhitelist={['*']}
           style={styles.web}
           onMessage={onMessage}
-          onError={() => {
-            setFailed(true);
-            onError?.();
-          }}
+          onError={fallbackToInline}
+          onHttpError={fallbackToInline}
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
           allowsFullscreenVideo={false}
