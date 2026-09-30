@@ -40,7 +40,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "net.overbrand.eventez",
-      "predictiveBackGestureEnabled": true,
+      "predictiveBackGestureEnabled": false,
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.WRITE_EXTERNAL_STORAGE",

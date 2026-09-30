@@ -112,7 +112,9 @@ What's new in this version:
   n'importe où dans l'écran pour les écrans sans carrousel (Session,
   Intervenant, Organisateur, Avis, Villes, Réglages, Confidentialité, CGU,
   Utilisateurs bloqués) — jamais sur la fiche événement. Retour prédictif
-  Android 14 activé (`android.predictiveBackGestureEnabled` dans `app.json`).
+  Android 14 essayé puis DÉSACTIVÉ (`predictiveBackGestureEnabled: false`) : avec
+  lui, React Navigation ne reçoit plus le bouton retour et l'app se fermait
+  au lieu de revenir à l'écran précédent.
   Le paiement garde `gestureEnabled: false`.
 - Feuilles natives à crans (T4) : l'écran QR en feuille à 60 % a été essayé
   puis RETIRÉ à la demande de l'utilisateur (il préfère que le billet s'ouvre
@@ -326,13 +328,19 @@ What's new in this version:
   avec repli sur la page locale si elle n'est pas encore déployée. Le plein
   écran vidéo utilise la même page.
 
+- Bouton retour Android : dans l'APK 1.3.5, il fermait directement l'app. Le
+  retour prédictif activé au lot T3 empêchait React Navigation de recevoir
+  l'événement retour. Désactivé dans `app.json` (comme en 1.3.4) : nouveau
+  build natif nécessaire.
+
 ---
 
 ### Avant publication
 
 - [ ] Relire le texte store (FR/EN ci-dessus) et le texte promotionnel.
 - [ ] **Build store requis** (pas d'`expo-updates`, donc pas d'OTA) ; `app.json`
-      a changé (retour prédictif Android), aucune dépendance native ajoutée.
+      a changé (retour prédictif Android explicitement désactivé), aucune
+      dépendance native ajoutée.
       Numéro de build géré par EAS (`appVersionSource: remote` + `autoIncrement`).
 - [ ] **Backend déployé AVANT la sortie** (sinon les écrans du round 2 restent
       vides ou en erreur) : `migrate` (accounts 0030-0031, events 0058,
@@ -387,7 +395,7 @@ sombre. Backend B1 + B2 déployés (migrations, Redis, Daphne) pour 8 à 10.
 Ensuite, si le temps le permet : horloge du billet (changer l'heure du
 téléphone), raccourci d'icône « Mon billet », « Vous y étiez », « L'année
 EventEz », carte (halo, « ce soir »), onboarding, pull-to-refresh coloré,
-retour prédictif Android 14, feuilles SpringSheet (filtres, sélecteur).
+feuilles SpringSheet (filtres, sélecteur).
 
 - [ ] **Vidéo YouTube** (priorité) : sur la fiche, lecture muette, pause au
       scroll / en arrière-plan, son, agrandir ; à l'accueil, aperçu de 3
