@@ -7898,5 +7898,13 @@
     "saleWindow": "+{{count}} in 1 min",
     "saleLive": "Live sales",
     "checkinPushed": "Live arrival"
+  },
+  "reminders": {
+    "channelName": "Event reminders",
+    "dayBeforeTitle": "Reminder: tomorrow",
+    "dayBeforeBody": "“{{title}}” starts tomorrow.",
+    "hourBeforeTitle": "Reminder: in 1 hour",
+    "hourBeforeBody": "“{{title}}” starts soon.",
+    "hourBeforeBodyAt": "“{{title}}” starts soon at {{location}}."
   }
 }

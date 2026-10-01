@@ -8,6 +8,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import i18n from '../i18n';
 
 const REMINDERS_KEY = 'eventez_scheduled_reminders';
 const NOTIFICATION_SETTINGS_KEY = 'eventez_notification_settings';
@@ -101,13 +102,17 @@ export function useEventReminders() {
 
       // Configuration spécifique Android
       if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('event-reminders', {
-          name: 'Rappels d\'événements',
+        // Même canal que les rappels push (« event_reminders ») : avant, un 2e
+        // canal « event-reminders » doublait l'entrée dans les réglages Android.
+        await Notifications.setNotificationChannelAsync('event_reminders', {
+          name: i18n.t('reminders.channelName', { defaultValue: 'Rappels d’événements' }),
           // DEFAULT (pas HIGH) : rappels = notif normale, pas heads-up agressif.
           importance: Notifications.AndroidImportance.DEFAULT,
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#6366F1',
         });
+        // Nettoyage de l'ancien canal en double (installations existantes).
+        Notifications.deleteNotificationChannelAsync?.('event-reminders').catch(() => {});
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur initialisation notifications:', error);
@@ -171,8 +176,8 @@ export function useEventReminders() {
       if (reminder24hTime > now) {
         const id = await Notifications.scheduleNotificationAsync({
           content: {
-            title: '📅 Rappel: Demain',
-            body: `L'événement "${event.title}" commence demain!`,
+            title: i18n.t('reminders.dayBeforeTitle', { defaultValue: 'Rappel : demain' }),
+            body: i18n.t('reminders.dayBeforeBody', { title: event.title, defaultValue: '« {{title}} » commence demain.' }),
             data: {
               type: 'event_reminder',
               eventId: event.slug || event.id,
@@ -181,9 +186,12 @@ export function useEventReminders() {
             },
             sound: true,
           },
+          // `type: DATE` est OBLIGATOIRE (expo-notifications 0.32) : sans lui, le
+          // déclencheur était lu comme « canal seul » = AFFICHER MAINTENANT.
           trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
             date: reminder24hTime,
-            channelId: 'event-reminders',
+            channelId: 'event_reminders',
           },
         });
         reminder.notificationIds.reminder24h = id;
@@ -197,8 +205,10 @@ export function useEventReminders() {
         const location = event.location_city || event.location_name;
         const id = await Notifications.scheduleNotificationAsync({
           content: {
-            title: '⏰ Rappel: Dans 1 heure',
-            body: `"${event.title}" commence bientôt${location ? ` à ${location}` : ''}!`,
+            title: i18n.t('reminders.hourBeforeTitle', { defaultValue: 'Rappel : dans 1 heure' }),
+            body: location
+              ? i18n.t('reminders.hourBeforeBodyAt', { title: event.title, location, defaultValue: '« {{title}} » commence bientôt à {{location}}.' })
+              : i18n.t('reminders.hourBeforeBody', { title: event.title, defaultValue: '« {{title}} » commence bientôt.' }),
             data: {
               type: 'event_reminder',
               eventId: event.slug || event.id,
@@ -207,9 +217,12 @@ export function useEventReminders() {
             },
             sound: true,
           },
+          // `type: DATE` est OBLIGATOIRE (expo-notifications 0.32) : sans lui, le
+          // déclencheur était lu comme « canal seul » = AFFICHER MAINTENANT.
           trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
             date: reminder1hTime,
-            channelId: 'event-reminders',
+            channelId: 'event_reminders',
           },
         });
         reminder.notificationIds.reminder1h = id;

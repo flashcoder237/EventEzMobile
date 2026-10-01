@@ -354,6 +354,12 @@ What's new in this version:
   iOS, symboles système (`symbol:safari`, `symbol:ticket`,
   `symbol:qrcode.viewfinder`). Nouveau build natif nécessaire.
 
+- Rappels d'événement qui partaient IMMÉDIATEMENT au lieu de la veille et 1 h
+  avant : le déclencheur n'avait pas `type: 'date'` (exigé par
+  expo-notifications 0.32), lu comme « afficher maintenant ». Corrigé, textes
+  traduits FR/EN, et un seul canal Android « Rappels » (l'ancien
+  `event-reminders` en double est supprimé).
+
 ---
 
 ### Avant publication
