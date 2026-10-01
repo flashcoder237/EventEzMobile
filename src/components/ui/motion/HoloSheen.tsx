@@ -17,7 +17,18 @@ export interface HoloSheenProps {
   tiltY: SharedValue<number>;
   /** Amplitude horizontale du déplacement de la bande (px). */
   travel?: number;
+  /** Teinte du reflet (G17 : dorure du faire-part). Défaut : irisé. */
+  colors?: readonly [string, string, ...string[]];
 }
+
+/** G17 — dorure : reflet chaud sur un filet doré. */
+export const GOLD_SHEEN = [
+  'rgba(255,255,255,0)',
+  'rgba(201,169,97,0.35)',
+  'rgba(255,236,179,0.95)',
+  'rgba(201,169,97,0.35)',
+  'rgba(255,255,255,0)',
+] as const;
 
 const COLORS = [
   'rgba(255,255,255,0)',
@@ -28,7 +39,7 @@ const COLORS = [
   'rgba(255,255,255,0)',
 ] as const;
 
-function HoloSheenComponent({ tiltX, tiltY, travel = 140 }: HoloSheenProps) {
+function HoloSheenComponent({ tiltX, tiltY, travel = 140, colors = COLORS }: HoloSheenProps) {
   const band = useAnimatedStyle(() => {
     const energy = Math.min(1, Math.abs(tiltX.value) + Math.abs(tiltY.value));
     return {
@@ -45,7 +56,7 @@ function HoloSheenComponent({ tiltX, tiltY, travel = 140 }: HoloSheenProps) {
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.clip]}>
       <Animated.View style={[styles.band, band]}>
         <LinearGradient
-          colors={COLORS}
+          colors={colors}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={StyleSheet.absoluteFill}

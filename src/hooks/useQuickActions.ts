@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import * as QuickActions from 'expo-quick-actions';
+import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import { getTodayTicket, subscribeTodayTicket, TodayTicket } from '../lib/todayTicket';
 
@@ -91,14 +92,16 @@ function routeForAction(id: string): void {
 export function useQuickActions(): void {
   const { isAuthenticated, user } = useAuth();
   const today = useTodayTicket();
+  // Les libellés suivent la langue de l'app (raccourcis redéfinis au changement).
+  const { i18n: { language } } = useTranslation();
 
   // (Re)définit la liste des raccourcis selon l'état d'auth / le rôle.
   useEffect(() => {
     const items: QuickActions.Action[] = [
       {
         id: IDS.discover,
-        title: 'Découvrir',
-        subtitle: 'Événements près de vous',
+        title: i18n.t('quickActions.discover'),
+        subtitle: i18n.t('quickActions.discoverSubtitle'),
         icon: ICONS.discover,
       },
     ];
@@ -111,16 +114,16 @@ export function useQuickActions(): void {
       });
     }
     if (isAuthenticated) {
-      items.push({ id: IDS.tickets, title: 'Mes billets', icon: ICONS.tickets });
+      items.push({ id: IDS.tickets, title: i18n.t('quickActions.tickets'), icon: ICONS.tickets });
       const role = user?.role;
       if (role === 'organizer' || role === 'admin' || role === 'moderator') {
-        items.push({ id: IDS.scan, title: 'Scanner un billet', icon: ICONS.scan });
+        items.push({ id: IDS.scan, title: i18n.t('quickActions.scan'), icon: ICONS.scan });
       }
     }
     QuickActions.setItems(items).catch(() => {
       /* non supporté (vieux Android) → on ignore */
     });
-  }, [isAuthenticated, user?.role, today]);
+  }, [isAuthenticated, user?.role, today, language]);
 
   // Cold start : l'app a été lancée via un raccourci. On laisse la navigation
   // se monter avant de router.

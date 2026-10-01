@@ -67,3 +67,6 @@ export { SwipeToSave } from './SwipeToSave';
 export type { SwipeToSaveProps } from './SwipeToSave';
 export { PeekHost, PeekTrigger, peek } from './Peek';
 export type { PeekAction, PeekPreview, PeekTriggerProps } from './Peek';
+// Round 3 — lot 2 : gestes du téléphone (G0).
+export { usePhonePosture, postureTouch, shouldDeliverPosture } from './usePhonePosture';
+export type { PostureEvent, PostureHandlers, PhonePostureResult } from './usePhonePosture';

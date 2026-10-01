@@ -36,6 +36,7 @@ import {
 } from '../../constants/theme';
 import { centeredContent } from '../../constants/layout';
 import { dayLightFor } from '../../components/ui/editorial/editorialTokens';
+import ContextGreeting from '../../components/dashboard/ContextGreeting';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -212,9 +213,12 @@ export default function DashboardScreen() {
             >
               <Ionicons name="arrow-back" size={24} color={colors.gray700} />
             </TouchableOpacity>
-            <View>
+            <View style={{ flexShrink: 1 }}>
               <Text style={[styles.eyebrow, { color: colors.accent }]}>{getGreeting()}</Text>
               <Text style={[styles.userName, { color: colors.text }]}>{user?.first_name || t('dashboard.userPlaceholder')}</Text>
+              {/* R3 W3/W4 — une ligne de contexte (attention du jour, météo du
+                  prochain billet, nouveautés suivies) ; rien sans donnée. */}
+              <ContextGreeting user={user as any} />
             </View>
           </View>
           <TouchableOpacity
@@ -463,6 +467,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
+    flexShrink: 1,
   },
   backButton: {
     width: 40,

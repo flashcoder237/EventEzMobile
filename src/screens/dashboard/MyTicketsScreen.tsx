@@ -10,6 +10,7 @@ import {
   TextInput,
   ActivityIndicator,
   LayoutChangeEvent,
+  Platform,
 } from 'react-native';
 import Animated, {
   FadeIn,
@@ -33,8 +34,11 @@ import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import LoadingLine from '../../components/ui/LoadingLine';
+import EmptySuggestion from '../../components/ui/EmptySuggestion';
+import { useCityPulseLine, useDailyLine } from '../../hooks/useEmptySuggestion';
 import { useTranslation } from 'react-i18next';
-import { registrationsAPI, ticketTransfersAPI } from '../../api';
+import { registrationsAPI, ticketTransfersAPI, sessionsAPI } from '../../api';
 import { Searching, Empty, AnimatedIllustration } from '../../components/illustrations';
 import { Registration, RootStackParamList, Event } from '../../types';
 import {
@@ -72,11 +76,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useOfflineTickets } from '../../hooks/useOfflineTickets';
 import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
 import CacheService from '../../services/CacheService';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { isRegistrationUnsettled, isRegistrationPresentable } from '../../utils/paymentSettled';
 import { eventTint, tintFor } from '../../lib/utils/themeTint';
 import { getTicketPhase, SPOTLIGHT_PHASES, TicketPhase } from '../../lib/utils/ticketPhase';
 import TicketClockCard, { useMinuteNow } from '../../components/tickets/TicketClockCard';
 import { setTodayTicket } from '../../lib/todayTicket';
+import { ongoingEvent, currentSessionTitle, OngoingTicket } from '../../services/ongoingEventNotification';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'upcoming' | 'past' | 'cancelled';
@@ -379,6 +385,72 @@ function ShimmerBand({
 // shows a neutral "tap to reveal" placeholder instead.
 
 // ============================================================
+// TicketStubPress — degage le billet touche de la liasse
+// ============================================================
+/**
+ * Les billets se chevauchent legerement (liasse). Au toucher, celui qu'on
+ * tient se DEGAGE de la pile : il remonte de son recouvrement et passe
+ * au-dessus de ses voisins, qui eux ne bougent pas.
+ *
+ * On anime `translateY` (transform), JAMAIS `marginTop` : animer la marge
+ * repousserait toutes les cartes suivantes — la liste « danserait » sous le
+ * doigt. Le transform sort la carte de son flux sans toucher ses voisines.
+ *
+ * `zIndex` passe en dur pendant l'appui (et non en valeur animee) : il n'est
+ * pas interpolable, et une carte qui se souleve sous ses voisines donnerait
+ * l'effet inverse de celui recherche.
+ */
+function TicketStubPress({
+  lift,
+  baseZIndex,
+  style,
+  children,
+}: {
+  /** Amplitude du degagement en px (0 = carte non chevauchee : rien a liberer). */
+  lift: number;
+  baseZIndex: number;
+  style?: any;
+  children: (handlers: { onPressIn: () => void; onPressOut: () => void }) => React.ReactNode;
+}) {
+  const reduced = useReducedMotion();
+  const pressed = useSharedValue(0);
+  const [isPressed, setIsPressed] = React.useState(false);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: pressed.value * -lift }],
+  }));
+
+  // Amplitude nulle (1er billet d'un mois, archives) ou mouvement reduit :
+  // aucun degagement a jouer, on rend la carte telle quelle.
+  const active = lift > 0 && !reduced;
+
+  const onPressIn = useCallback(() => {
+    if (!active) return;
+    setIsPressed(true);
+    pressed.value = withSpring(1, springConfig('press'));
+  }, [active, pressed]);
+
+  const onPressOut = useCallback(() => {
+    if (!active) return;
+    setIsPressed(false);
+    pressed.value = withSpring(0, springConfig('press'));
+  }, [active, pressed]);
+
+  return (
+    <Animated.View
+      style={[
+        style,
+        animatedStyle,
+        // Au-dessus de TOUTES les voisines tant que le doigt est pose.
+        isPressed ? { zIndex: 999 } : { zIndex: baseZIndex },
+      ]}
+    >
+      {children({ onPressIn, onPressOut })}
+    </Animated.View>
+  );
+}
+
+// ============================================================
 // Component
 // ============================================================
 export default function MyTicketsScreen() {
@@ -390,7 +462,7 @@ export default function MyTicketsScreen() {
   // « Mes events en cours » (source partagée) : badge EN DIRECT + bouton
   // Rejoindre par carte — accès per-event que la bannière globale ne donne pas.
   const { live: liveRegs, isEventLive, joinLive, joiningId } = useLiveRegistrations();
-  const { toastInfo } = useFeedback();
+  const { toastInfo, toastError } = useFeedback();
   const tour = useTour();
   // Tracks one-shot auto-redirect to OfflineTickets per offline session.
   // Reset quand l'utilisateur repasse online — si la connexion retombe,
@@ -546,6 +618,14 @@ export default function MyTicketsScreen() {
       refreshOfflineTicketCache(data);
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement inscriptions:', error);
+      // Rafraîchissement demandé par l'utilisateur : on dit ce qui se passe et
+      // ce qui reste sûr (billets hors ligne). Les chargements de fond restent muets.
+      if (bypassCache) {
+        toastError(t('errors.loadingFailed'), {
+          body: getApiErrorMessage(error, t, { fallbackKey: 'errors.loadingFailed', context: 'tickets' }).message,
+          dedupKey: 'tickets-load-error',
+        });
+      }
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
@@ -701,6 +781,9 @@ export default function MyTicketsScreen() {
     [getEventData],
   );
 
+  // R3 W2 — état vide utile : phrase tournante + pouls de la ville (au-dessus du seuil serveur).
+  const ticketsEmptyLine = useDailyLine('tickets', 3);
+  const ticketsCityPulse = useCityPulseLine(!loading && activeTab === 'upcoming' && registrations.length === 0);
   const filteredRegistrations = useMemo(() => {
     const filtered = filterRegistrations(activeTab, typeFilter, statusFilter, searchQuery);
     return sortRegistrations(filtered, sortBy);
@@ -839,7 +922,12 @@ export default function MyTicketsScreen() {
     // overlap slightly. Sans `isFirstInMonth`, le 1er ticket d'un mois suivant
     // (index > 0) chevaucherait le header de mois et le masquerait.
     const isFirst = index === 0;
-    const overlapMargin = !isFirstInMonth && !isArchived ? -Spacing.xl - 20 : 0;
+    // Liasse LEGERE : ~-12px au lieu de ~-42px. On garde la signature (pile,
+    // zIndex, ombres degressives) mais chaque billet reste lisible seul.
+    // Sous le seuil de sectionnement (10), aucun groupement par mois n'existe :
+    // seul l'index 0 echappait a l'overlap et TOUS les autres s'empilaient
+    // d'affilee — d'ou l'impression de billets « colles ».
+    const overlapMargin = !isFirstInMonth && !isArchived ? -Spacing.md : 0;
 
     // Dimensions for accent fills
     const accentColor = isArchived
@@ -868,12 +956,21 @@ export default function MyTicketsScreen() {
 
     return (
       <StaggeredItem index={index} staggerDelay={60}>
-        <View style={[styles.ticketWrap, { marginTop: overlapMargin, zIndex: 100 - index }]}>
+        {/* Le billet touche se degage de la liasse : il remonte exactement de
+            son recouvrement (`-overlapMargin`) et passe au-dessus des voisins. */}
+        <TicketStubPress
+          lift={-overlapMargin}
+          baseZIndex={100 - index}
+          style={[styles.ticketWrap, { marginTop: overlapMargin }]}
+        >
+        {({ onPressIn: liftIn, onPressOut: liftOut }) => (
+          <>
           {/* T14 — le billet « se soulève » jusqu'au détail (où vit le vrai QR). */}
           <HeroSlot token={`ticket-${item.id}`} heroKey={item.id} radius={24}>
           <TouchableOpacity
             activeOpacity={0.85}
-            onPressIn={() => captureHero(`ticket-${item.id}`)}
+            onPressIn={() => { captureHero(`ticket-${item.id}`); liftIn(); }}
+            onPressOut={liftOut}
             onPress={() =>
               navigation.navigate('RegistrationDetails', withHeroOrigin({ registrationId: item.id }, item.id))
             }
@@ -1279,7 +1376,9 @@ export default function MyTicketsScreen() {
             />
           </TouchableOpacity>
           </HeroSlot>
-        </View>
+          </>
+        )}
+        </TicketStubPress>
       </StaggeredItem>
     );
   }, [
@@ -1402,6 +1501,39 @@ export default function MyTicketsScreen() {
     );
   }, [spotlight]);
 
+  // X2 — notification « jour J » épinglée (Android) : planifiée pour les
+  // billets proches, retirée pour ceux qui ne le sont plus. Pendant
+  // l'événement, la session en cours si l'agenda est disponible.
+  useEffect(() => {
+    if (Platform.OS !== 'android' || loading) return;
+    let alive = true;
+    (async () => {
+      const tickets: OngoingTicket[] = [];
+      for (const reg of registrations) {
+        if (String(reg.status) !== 'confirmed' || isRegistrationUnsettled(reg)) continue;
+        const ev: any = getEventData(reg);
+        if (!ev?.start_date) continue;
+        tickets.push({ registrationId: String(reg.id), event: ev });
+      }
+      if (spotlight?.phase === 'EN_COURS') {
+        const tk = tickets.find((x) => x.registrationId === String(spotlight.reg.id));
+        const evId = spotlight.event?.id;
+        if (tk && evId) {
+          try {
+            const res: any = await sessionsAPI.getSessions({ event: evId });
+            tk.currentSession = currentSessionTitle(res?.data?.results || res?.data || []);
+          } catch {
+            /* agenda indisponible : notification sans session */
+          }
+        }
+      }
+      if (alive) ongoingEvent.sync(tickets).catch(() => {});
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [registrations, loading, spotlight?.reg?.id, spotlight?.phase, getEventData]);
+
   const spotlightOffline = useMemo(() => {
     const tks: any[] = (spotlight?.reg as any)?.tickets || [];
     return tks.some((tk) => !!(cachedTickets as any)?.[String(tk.id)]);
@@ -1417,6 +1549,7 @@ export default function MyTicketsScreen() {
         tint={eventTint(spotlight.event)}
         offlineReady={spotlightOffline}
         onOpenTicket={() => navigation.navigate('RegistrationDetails', { registrationId: String(regId) })}
+        registrationId={regId}
       />
     );
   }, [activeTab, spotlight, spotlightOffline, navigation]);
@@ -1437,9 +1570,10 @@ export default function MyTicketsScreen() {
       </Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {activeTab === 'upcoming'
-          ? t('tickets.emptyHint')
+          ? ticketsEmptyLine
           : t('tickets.emptyHintOther')}
       </Text>
+      {activeTab === 'upcoming' && <EmptySuggestion pulse={ticketsCityPulse} style={{ marginTop: 0, marginBottom: 4 }} />}
       {activeTab === 'upcoming' && (
         <TouchableOpacity
           style={[styles.emptyButton, { backgroundColor: colors.primary }]}
@@ -1536,6 +1670,7 @@ export default function MyTicketsScreen() {
       <EditorialCanvas edges={['top']}>
         <WatermarkNumeral>TIX</WatermarkNumeral>
         <MyTicketsScreenSkeleton />
+        <LoadingLine context="tickets" floating />
       </EditorialCanvas>
     );
   }

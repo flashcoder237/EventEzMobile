@@ -24,6 +24,8 @@ import notifee, {
   AndroidGroupAlertBehavior,
 } from '@notifee/react-native';
 import { Platform } from 'react-native';
+import i18n from '../i18n';
+import { androidActionsFor, categoryForData } from '../lib/notifications/notificationActions';
 
 const DEFAULT_COLOR = '#4F46E5';
 
@@ -194,27 +196,12 @@ export async function displayRichNotification(
           // Group conversation = pas pour 1-1, on laisse à false
           group: false,
         };
-        // Actions de réponse rapide
-        baseConfig.android.actions = [
-          {
-            title: 'Marquer comme lu',
-            pressAction: { id: 'mark_read' },
-          },
-          {
-            title: 'Répondre',
-            pressAction: {
-              id: 'reply',
-              launchActivity: 'default',
-            },
-            // input.choices doit etre un array de strings non vide ou OMIS.
-            // Notifee throw "expected an array of string values" si on
-            // passe `choices: []`. On omet completement → quick-reply free
-            // text via le keyboard, pas de suggestions.
-            input: {
-              placeholder: 'Tapez votre message…',
-            },
-          },
-        ];
+        // Actions de réponse rapide (catégorie « message ») : « Répondre »
+        // n'ouvre PAS l'app — la réponse part depuis la notification, y compris
+        // app fermée (notifee.onBackgroundEvent dans index.ts).
+        // input.choices doit etre un array de strings non vide ou OMIS :
+        // Notifee throw "expected an array of string values" sur `choices: []`.
+        baseConfig.android.actions = androidActionsFor('message');
         break;
       }
 
@@ -236,9 +223,11 @@ export async function displayRichNotification(
         break;
     }
 
-    // Actions par type de notif (si pas déjà posées par messaging)
+    // Actions : catégorie posée par le backend (ou déduite du type), sinon
+    // boutons historiques par type (si pas déjà posées par messaging).
     if (!baseConfig.android.actions) {
-      baseConfig.android.actions = buildActionsForType(data);
+      const category = categoryForData(data);
+      baseConfig.android.actions = category ? androidActionsFor(category) : buildActionsForType(data);
     }
 
     // Group summary : agrège les notifs du même type sous une seule en haut.
@@ -264,8 +253,8 @@ export async function displayRichNotification(
       try {
         await notifee.displayNotification({
           id: `summary-${groupId}`,
-          title: data.sender_name || 'Messages',
-          body: 'Nouveaux messages',
+          title: data.sender_name || i18n.t('notifications.actions.summaryTitle'),
+          body: i18n.t('notifications.actions.summaryBody'),
           android: {
             channelId,
             smallIcon: 'ic_notification',
@@ -296,28 +285,28 @@ function buildActionsForType(data: RichNotificationData): any[] {
 
   if (type === 'event_validated' || type === 'event_reminder' || type === 'event_suggestion') {
     actions.push({
-      title: "Voir l'événement",
+      title: i18n.t('notifications.actions.viewEvent'),
       pressAction: { id: 'view_event', launchActivity: 'default' },
     });
   }
 
   if (type === 'payment_confirmation' || type === 'payment_failed') {
     actions.push({
-      title: 'Voir mes billets',
+      title: i18n.t('notifications.actions.viewTickets'),
       pressAction: { id: 'view_tickets', launchActivity: 'default' },
     });
   }
 
   if (type === 'event_cancelled') {
     actions.push({
-      title: 'Voir le remboursement',
+      title: i18n.t('notifications.actions.viewRefund'),
       pressAction: { id: 'view_refund', launchActivity: 'default' },
     });
   }
 
   if (type === 'new_follower') {
     actions.push({
-      title: 'Voir le profil',
+      title: i18n.t('notifications.actions.viewProfile'),
       pressAction: { id: 'view_user', launchActivity: 'default' },
     });
   }

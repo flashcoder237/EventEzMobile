@@ -293,6 +293,13 @@ jest.mock('../../components/events/FollowEventButton', () => {
   return { __esModule: true, default: RN.View };
 });
 
+// G14 — couche double tap (GestureDetector) : le mock reanimated local n'a
+// pas `useEvent`, et le geste n'entre pas dans la mesure du montage.
+jest.mock('../../components/gestures/DoubleTapSaveLayer', () => {
+  const RN = require('react-native');
+  return { __esModule: true, default: RN.View };
+});
+
 jest.mock('../../components/common/FollowUserButton', () => {
   const RN = require('react-native');
   return { __esModule: true, default: RN.View };

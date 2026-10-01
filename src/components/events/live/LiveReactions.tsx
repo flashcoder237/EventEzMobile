@@ -7,8 +7,8 @@
  * nombre de spectateurs. Bulles : transform + opacité, timing, sans boucle.
  * « Réduire les animations » : aucune bulle, le tap reste possible.
  */
-import React, { forwardRef, memo, useCallback, useImperativeHandle, useRef, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -16,6 +16,14 @@ import { haptics } from '../../../utils/haptics';
 import { sendRealtime } from '../../../lib/realtime/socketBus';
 import { REACTION_EMOJIS, bubblesFor } from '../../../lib/realtime/live';
 import { useMotionGate } from '../../ui/motion';
+import {
+  APPLAUSE_A11Y_COUNT,
+  clampApplause,
+  isApplauseEmoji,
+  nextApplauseDelay,
+  pushCapped,
+  shouldTickHaptic,
+} from '../../../lib/gestures/applause';
 
 const RISE = 140;
 const BUBBLE_MS = 1600;
@@ -101,6 +109,68 @@ export const LiveReactions = memo(
       [eventId, enabled],
     );
 
+    // G12 — maintenir 👏 / 🔥 : rafale croissante de bulles locales et
+    // d'haptiques légères, UN seul envoi `{emoji, count}` au relâcher.
+    const hold = useRef<{ emoji: string; count: number; timer: ReturnType<typeof setTimeout> | null } | null>(null);
+    const addLocalBubble = useCallback(
+      (emoji: string) => {
+        if (!canAnimate) return;
+        const spec = {
+          key: ++seq.current,
+          emoji,
+          x: 10 + Math.random() * 70,
+          drift: (Math.random() - 0.5) * 40,
+          delay: 0,
+        };
+        setBubbles((prev) => pushCapped(prev, spec));
+      },
+      [canAnimate],
+    );
+    const tick = useCallback(() => {
+      const h = hold.current;
+      if (!h) return;
+      h.count = clampApplause(h.count + 1);
+      if (shouldTickHaptic(h.count)) haptics.light();
+      addLocalBubble(h.emoji);
+      if (h.count >= 30) {
+        h.timer = null;
+        return;
+      }
+      h.timer = setTimeout(tick, nextApplauseDelay(h.count));
+    }, [addLocalBubble]);
+    const startHold = useCallback(
+      (emoji: string) => {
+        if (!eventId || !enabled || !isApplauseEmoji(emoji)) return;
+        hold.current = { emoji, count: 0, timer: null };
+        tick();
+      },
+      [enabled, eventId, tick],
+    );
+    const endHold = useCallback(() => {
+      const h = hold.current;
+      hold.current = null;
+      if (!h) return;
+      if (h.timer) clearTimeout(h.timer);
+      if (!eventId || h.count < 1) return;
+      sendRealtime({ type: 'reaction', topic: `live:${eventId}`, emoji: h.emoji, count: clampApplause(h.count) });
+    }, [eventId]);
+    useEffect(
+      () => () => {
+        if (hold.current?.timer) clearTimeout(hold.current.timer);
+        hold.current = null;
+      },
+      [],
+    );
+    const longApplause = useCallback(
+      (emoji: string) => {
+        if (!eventId || !enabled) return;
+        haptics.light();
+        for (let i = 0; i < 6; i++) addLocalBubble(emoji);
+        sendRealtime({ type: 'reaction', topic: `live:${eventId}`, emoji, count: APPLAUSE_A11Y_COUNT });
+      },
+      [addLocalBubble, enabled, eventId],
+    );
+
     if (!eventId || !enabled) return null;
     return (
       <View style={styles.wrap}>
@@ -110,18 +180,32 @@ export const LiveReactions = memo(
           ))}
         </View>
         <View style={[styles.bar, { backgroundColor: colors.gray50 }]} accessibilityLabel={t('liveSignals.reactionsTitle')}>
-          {REACTION_EMOJIS.map((e) => (
-            <TouchableOpacity
-              key={e}
-              onPress={() => react(e)}
-              style={[styles.btn, { backgroundColor: colors.card }]}
-              accessibilityRole="button"
-              accessibilityLabel={t('liveSignals.reactionA11y', { emoji: e })}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.emoji}>{e}</Text>
-            </TouchableOpacity>
-          ))}
+          {REACTION_EMOJIS.map((e) => {
+            const applause = isApplauseEmoji(e);
+            return (
+              <Pressable
+                key={e}
+                onPress={() => react(e)}
+                onLongPress={applause ? () => startHold(e) : undefined}
+                delayLongPress={350}
+                onPressOut={applause ? endHold : undefined}
+                style={({ pressed }) => [styles.btn, { backgroundColor: colors.card, opacity: pressed ? 0.7 : 1 }]}
+                accessibilityRole="button"
+                accessibilityLabel={t('liveSignals.reactionA11y', { emoji: e })}
+                accessibilityHint={applause ? t('gestures.applause.hint') : undefined}
+                accessibilityActions={applause ? [{ name: 'longApplause', label: t('gestures.applause.a11y') }] : undefined}
+                onAccessibilityAction={
+                  applause
+                    ? (ev) => {
+                        if (ev.nativeEvent.actionName === 'longApplause') longApplause(e);
+                      }
+                    : undefined
+                }
+              >
+                <Text style={styles.emoji}>{e}</Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
     );

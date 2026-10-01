@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -51,6 +51,7 @@ import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import { haptics } from '../../utils/haptics';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TicketPurchaseRouteProp = RouteProp<RootStackParamList, 'TicketPurchase'>;
@@ -362,6 +363,19 @@ export default function TicketPurchaseScreen() {
     return tt ? getSaleState(tt, nowTs) === 'open' : true;
   };
 
+  // H4 — butée « stock / jauge » : note en ligne sous le sélecteur (au lieu
+  // d'une alerte), effacée après quelques secondes ou au prochain changement.
+  const [limitNote, setLimitNote] = useState<{ ticketTypeId: string; max: number } | null>(null);
+  const limitNoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (limitNoteTimer.current) clearTimeout(limitNoteTimer.current);
+  }, []);
+  const showLimitNote = (ticketTypeId: string, max: number) => {
+    setLimitNote({ ticketTypeId, max });
+    if (limitNoteTimer.current) clearTimeout(limitNoteTimer.current);
+    limitNoteTimer.current = setTimeout(() => setLimitNote(null), 4000);
+  };
+
   const updateQuantity = (ticketTypeId: string, delta: number) => {
     // Garde defensive : les boutons +/- sont deja masques hors fenetre de
     // vente, mais la modale de saisie directe peut rester ouverte au moment ou
@@ -375,25 +389,29 @@ export default function TicketPurchaseScreen() {
       // « contacter l'organisateur » n'a de sens que s'il peut lever la
       // limite lui-meme. Sur un stock epuise ou une salle pleine, c'est
       // une fausse piste.
-      const negotiable = reason === 'per_order';
+      if (reason !== 'per_order') {
+        // Stock ou jauge : une butée physique + « Plus que N places » en ligne
+        // (pas d'alerte : l'organisateur n'y peut rien, inutile d'interrompre).
+        haptics.pattern('wall');
+        showLimitNote(ticketTypeId, maxQty);
+        return;
+      }
+      // Plafond par commande : seul cas où « contacter l'organisateur » a un
+      // sens (il peut le lever) → alerte conservée.
       showAlert(
         t('ticketPurchase.limitReachedTitle'),
-        reason === 'event_capacity'
-          ? t('ticketPurchase.limitEventCapacity', { max: maxQty })
-          : reason === 'stock'
-            ? t('ticketPurchase.limitStock', { max: maxQty })
-            : t('ticketPurchase.limitReachedMessage', { max: maxQty }),
-        negotiable
-          ? [
-              { text: t('common.ok'), style: 'cancel' },
-              { text: t('ticketPurchase.contactOrganizer'), onPress: handleGroupInquiry },
-            ]
-          : [{ text: t('common.ok'), style: 'cancel' }],
+        t('ticketPurchase.limitReachedMessage', { max: maxQty }),
+        [
+          { text: t('common.ok'), style: 'cancel' },
+          { text: t('ticketPurchase.contactOrganizer'), onPress: handleGroupInquiry },
+        ],
         'warning',
       );
       return;
     }
     const newQuantity = Math.max(0, Math.min(maxQty, intended));
+    if (newQuantity !== current) haptics.pattern('tick');
+    if (limitNote?.ticketTypeId === ticketTypeId && delta < 0) setLimitNote(null);
     const newSelections = new Map(selections);
 
     if (newQuantity === 0) {
@@ -1145,6 +1163,15 @@ export default function TicketPurchaseScreen() {
                             <Ionicons name="add" size={16} color={Colors.white} />
                           </TouchableOpacity>
                         </View>
+                        {limitNote?.ticketTypeId === String(ticketType.id) && (
+                          <Text
+                            style={[styles.bpLimitNote, { color: colors.warning }]}
+                            accessibilityLiveRegion="polite"
+                            numberOfLines={2}
+                          >
+                            {t('ticketPurchase.onlyNLeft', { count: limitNote.max })}
+                          </Text>
+                        )}
                       </>
                     ) : (
                       <View style={[styles.bpSoldOut, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
@@ -1667,6 +1694,12 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
+  },
+  bpLimitNote: {
+    marginTop: 6,
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+    textAlign: 'center',
   },
   ticketCardUnavailable: {
     opacity: 0.5,

@@ -7,9 +7,16 @@
  * bouton), en cours (hub « sur place »). Ce sont des ÉTATS : on passe de l'un
  * à l'autre par un fondu, jamais par un ressort sur la mise en page.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -19,6 +26,15 @@ import { TicketPhase, directionsUrl } from '../../lib/utils/ticketPhase';
 import { tintAlpha, tintFor } from '../../lib/utils/themeTint';
 import { appDateLocale } from '../../lib/utils/dateFormatters';
 import ShareTicketCardButton from './ShareTicketCardButton';
+import VenueCompass from './VenueCompass';
+import { useMotionGate, moments, usePhonePosture, useFirstSeen, markFirstSeen } from '../ui/motion';
+import { useVenueLocation } from '../../hooks/useVenueLocation';
+import { venueCoords, VENUE } from '../../lib/utils/venueCompass';
+import { eventPushWithin } from '../../lib/notifications/recentEventPush';
+import haptics from '../../utils/haptics';
+
+/** H2 : pas de battement si une notification d'événement vient de vibrer. */
+const PUSH_GUARD_MS = 5 * 60 * 1000;
 
 /** Horloge à la minute (côté client) : suffisant pour changer de phase. */
 export function useMinuteNow(): Date {
@@ -36,6 +52,8 @@ export interface TicketClockCardProps {
   tint: any;
   offlineReady?: boolean;
   onOpenTicket: () => void;
+  /** Inscription affichée (H2 : battement une fois par inscription). */
+  registrationId?: string | number;
 }
 
 function timeLabel(iso?: string | null): string {
@@ -60,10 +78,68 @@ function dayLabel(iso?: string | null): string {
   }
 }
 
-export default function TicketClockCard({ phase, event, tint, offlineReady, onOpenTicket }: TicketClockCardProps) {
+export default function TicketClockCard({ phase, event, tint, offlineReady, onOpenTicket, registrationId }: TicketClockCardProps) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const accent = tintFor(tint, isDark);
+  const { reduced, focused, appActive } = useMotionGate();
+  const visible = focused && appActive;
+  const isDoorsPhase = phase === 'PORTES';
+  const eventKey = String(event?.id ?? event?.slug ?? '');
+
+  // H2 — portes ouvertes VUES à l'écran : un battement « lub-dub », une seule
+  // fois par inscription, sauf si un rappel vient de faire vibrer le téléphone.
+  const doorsFirst = useFirstSeen(
+    'eventez_doors_heartbeat',
+    isDoorsPhase && visible && registrationId != null ? String(registrationId) : null,
+  );
+  useEffect(() => {
+    if (doorsFirst === true && !eventPushWithin(PUSH_GUARD_MS)) haptics.pattern('heartbeat');
+  }, [doorsFirst]);
+
+  // G8/G9 — position (jamais demandée : seulement si déjà accordée).
+  const venue = venueCoords(event);
+  const onDay = phase === 'JOUR_J' || phase === 'PORTES';
+  const loc = useVenueLocation(venue, onDay);
+  const near = loc.granted === true && loc.distance != null && loc.distance < VENUE.NEAR_M;
+
+  // G8 — portes ouvertes, sur place : lever le téléphone ouvre le billet (une
+  // fois par événement). Sinon, le bouton « Afficher mon billet » pulse une fois.
+  const pulse = useSharedValue(1);
+  const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
+  const onOpenRef = useRef(onOpenTicket);
+  onOpenRef.current = onOpenTicket;
+  const nearRef = useRef(near);
+  nearRef.current = near;
+  const onRaise = useCallback(() => {
+    if (!eventKey) return;
+    if (nearRef.current) {
+      markFirstSeen('eventez_raise_open', eventKey)
+        .then((first) => {
+          if (first) {
+            haptics.selection();
+            onOpenRef.current();
+          }
+        })
+        .catch(() => {});
+      return;
+    }
+    if (reduced || !moments.once(`doors-pulse:${eventKey}`)) return;
+    pulse.value = withSequence(withTiming(1.04, { duration: 160 }), withTiming(1, { duration: 220 }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventKey, reduced]);
+  const { sensorElement: postureElement } = usePhonePosture({ raise: onRaise }, { enabled: isDoorsPhase });
+
+  const showCompass =
+    onDay &&
+    visible &&
+    !!venue &&
+    loc.granted === true &&
+    !loc.arrived &&
+    loc.position != null &&
+    loc.distance != null &&
+    loc.distance < VENUE.COMPASS_MAX_M &&
+    loc.distance >= VENUE.ARRIVED_M;
   const title = event?.title || '';
   const place = [event?.location_name, event?.location_city].filter(Boolean).join(', ');
   const maps = directionsUrl(event || {});
@@ -94,6 +170,7 @@ export default function TicketClockCard({ phase, event, tint, offlineReady, onOp
       exiting={FadeOut.duration(Durations.exit)}
       style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray200 }]}
     >
+      {postureElement}
       <View style={[styles.head, { backgroundColor: accent }]}>
         <Text style={styles.eyebrow} numberOfLines={1}>{eyebrow}</Text>
         {!isDoors && <Text style={styles.title} numberOfLines={2}>{title}</Text>}
@@ -149,6 +226,7 @@ export default function TicketClockCard({ phase, event, tint, offlineReady, onOp
 
         {showBigButton && (
           <>
+            <Animated.View style={pulseStyle}>
             <Pressable
               onPress={onOpenTicket}
               accessibilityRole="button"
@@ -159,6 +237,16 @@ export default function TicketClockCard({ phase, event, tint, offlineReady, onOp
                 {t('ticketClock.showTicket', { defaultValue: 'Afficher mon billet' })}
               </Text>
             </Pressable>
+            </Animated.View>
+            {showCompass && (
+              <VenueCompass
+                venue={venue!}
+                position={loc.position!}
+                distance={loc.distance!}
+                accent={accent}
+                reduced={reduced}
+              />
+            )}
             {!isDoors && !!maps && (
               <Pressable
                 onPress={openMaps}

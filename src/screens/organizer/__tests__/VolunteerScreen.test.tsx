@@ -130,7 +130,7 @@ describe('VolunteerScreen — create role (organizer)', () => {
     fireEvent.press(await findByLabelText('Créer un rôle bénévole'));
 
     expect(await findByText('NOUVEAU RÔLE')).toBeTruthy();
-    expect(await findByText('Recrute des bénévoles')).toBeTruthy();
+    expect(await findByText('Recrutez des bénévoles')).toBeTruthy();
   });
 
   it('rejects submit when title is empty', async () => {

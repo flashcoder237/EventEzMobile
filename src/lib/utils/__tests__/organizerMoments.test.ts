@@ -161,3 +161,15 @@ describe('scanner (O9)', () => {
     expect(isDuplicateScan({ code: 'X', at: 0 }, 'Y', 100)).toBe(false);
   });
 });
+
+describe('crossedLiveOpsNotch (H4)', () => {
+  const { crossedLiveOpsNotch } = require('../organizerMoments');
+  it('palier franchi en montant uniquement', () => {
+    expect(crossedLiveOpsNotch(48, 52)).toBe(50);
+    expect(crossedLiveOpsNotch(70, 92)).toBe(90); // plus haut palier franchi
+    expect(crossedLiveOpsNotch(99, 100)).toBe(100);
+    expect(crossedLiveOpsNotch(52, 48)).toBeNull(); // baisse
+    expect(crossedLiveOpsNotch(51, 60)).toBeNull();
+    expect(crossedLiveOpsNotch(null, 80)).toBeNull(); // premier chargement
+  });
+});

@@ -46,6 +46,11 @@ import {
   editorial,
 } from '../../components/ui/editorial';
 import { centeredContent, CARD_MAX } from '../../constants/layout';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { File, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import { haptics } from '../../utils/haptics';
+import { RowRect, addToSelection, buildSelectionCsv, rowAt, shouldTick } from '../../lib/gestures/dragSelect';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RoutePropType = RouteProp<RootStackParamList, 'EventRegistrations'>;
@@ -257,6 +262,69 @@ export default function EventRegistrationsScreen() {
     setSelectedIds(new Set());
   }, []);
 
+  // G16 — glisser à deux doigts : chaque ligne survolée est cochée (jamais
+  // décochée), un « tick » au plus toutes les 40 ms. Le bouton
+  // « Sélectionner » de l'en-tête est l'équivalent sans geste.
+  const rowRefs = useRef(new Map<string, any>());
+  const rowRects = useRef<RowRect[]>([]);
+  const lastTick = useRef(0);
+  const [dragSelecting, setDragSelecting] = useState(false);
+  const measureRows = useCallback(() => {
+    const rects: RowRect[] = [];
+    rowRefs.current.forEach((node, id) => {
+      node?.measureInWindow?.((_x: number, y: number, _w: number, h: number) => {
+        if (h > 0) rects.push({ id, y, height: h });
+      });
+    });
+    rowRects.current = rects;
+  }, []);
+  const dragHit = useCallback((absoluteY: number) => {
+    const id = rowAt(rowRects.current, absoluteY);
+    if (!id) return;
+    setSelectedIds((prev) => {
+      const next = addToSelection(prev, id);
+      if (next !== prev) {
+        const now = Date.now();
+        if (shouldTick(now, lastTick.current)) {
+          lastTick.current = now;
+          haptics.pattern('tick');
+        }
+      }
+      return next;
+    });
+  }, []);
+  const dragGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .runOnJS(true)
+        .minPointers(2)
+        .onStart((e) => {
+          setDragSelecting(true);
+          setSelectionMode(true);
+          measureRows();
+          // measureInWindow répond à la frame suivante : on vise après.
+          requestAnimationFrame(() => dragHit(e.absoluteY));
+        })
+        .onUpdate((e) => dragHit(e.absoluteY))
+        .onFinalize(() => {
+          setDragSelecting(false);
+          setSelectedIds((prev) => {
+            if (prev.size === 0) setSelectionMode(false);
+            return prev;
+          });
+        }),
+    [dragHit, measureRows],
+  );
+
+  const toggleSelectionMode = useCallback(() => {
+    if (selectionMode) {
+      cancelSelection();
+    } else {
+      haptics.selection();
+      setSelectionMode(true);
+    }
+  }, [cancelSelection, selectionMode]);
+
   // Bulk actions
   const handleBulkApprove = async () => {
     const ids = Array.from(selectedIds);
@@ -437,6 +505,32 @@ export default function EventRegistrationsScreen() {
     return '';
   };
 
+  // G16 — export de la sélection, généré sur le téléphone (CSV partagé).
+  const exportSelection = async () => {
+    const rows = registrations.filter((r) => selectedIds.has(r.id));
+    if (rows.length === 0) return;
+    try {
+      const csv = buildSelectionCsv(
+        [
+          t('gestures.dragSelect.csvName'),
+          t('gestures.dragSelect.csvEmail'),
+          t('gestures.dragSelect.csvReference'),
+          t('gestures.dragSelect.csvStatus'),
+          t('gestures.dragSelect.csvDate'),
+        ],
+        rows.map((r) => [getDisplayName(r), getEmail(r), r.reference_code, r.approval_status || r.status, r.created_at]),
+      );
+      const file = new File(Paths.cache, `inscrits-${String(eventId).slice(0, 8)}.csv`);
+      file.write(csv);
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.uri, { mimeType: 'text/csv', dialogTitle: t('gestures.dragSelect.export') });
+      }
+    } catch (error) {
+      if (__DEV__) console.error('[Registrations] export sélection:', error);
+      showError(t('common.error'), t('gestures.dragSelect.exportError'));
+    }
+  };
+
   const renderRegistration = ({ item }: { item: Registration }) => {
     const approvalInfo = approvalStatusConfig[item.approval_status || 'not_required'];
     const isPending = item.approval_status === 'pending';
@@ -444,6 +538,10 @@ export default function EventRegistrationsScreen() {
 
     return (
       <TouchableOpacity
+        ref={(node: any) => {
+          if (node) rowRefs.current.set(item.id, node);
+          else rowRefs.current.delete(item.id);
+        }}
         style={[
           styles.registrationCard,
           { backgroundColor: colors.card, borderColor: colors.gray100 },
@@ -578,6 +676,16 @@ export default function EventRegistrationsScreen() {
           right={
             <View style={styles.headerActions}>
               <TouchableOpacity
+                style={[styles.headerIconBtn, { backgroundColor: selectionMode ? colors.primary : colors.gray100 }]}
+                onPress={toggleSelectionMode}
+                accessibilityRole="button"
+                accessibilityLabel={t('gestures.dragSelect.select')}
+                accessibilityHint={t('gestures.dragSelect.hint')}
+                accessibilityState={{ selected: selectionMode }}
+              >
+                <Ionicons name="checkbox-outline" size={18} color={selectionMode ? '#FFFFFF' : colors.gray700} />
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={[styles.headerIconBtn, { backgroundColor: colors.gray100 }]}
                 onPress={() => setShowEmailModal(true)}
                 accessibilityLabel={t('organizer.eventRegistrations.sendEmailA11y')}
@@ -673,8 +781,10 @@ export default function EventRegistrationsScreen() {
         </View>
 
           {/* List */}
+          <GestureDetector gesture={dragGesture}>
           <FlatList
             data={filteredRegistrations}
+            scrollEnabled={!dragSelecting}
             renderItem={renderRegistration}
             keyExtractor={(item) => item.id}
             contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + Spacing.lg }, selectionMode && { paddingBottom: insets.bottom + 120 }]}
@@ -700,6 +810,7 @@ export default function EventRegistrationsScreen() {
             windowSize={5}
             removeClippedSubviews
           />
+          </GestureDetector>
 
           {/* Bulk Action Bar */}
           <BulkActionBar
@@ -709,6 +820,8 @@ export default function EventRegistrationsScreen() {
             onCheckIn={handleBulkCheckIn}
             onCancel={cancelSelection}
             loading={bulkLoading}
+            onMessage={() => setShowEmailModal(true)}
+            onExport={exportSelection}
           />
 
           {/* Send Email Modal */}

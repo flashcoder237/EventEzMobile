@@ -899,6 +899,7 @@ export default function ConversationScreen() {
       if (!loadMore && state.messages.length === 0) {
         const { message } = getApiErrorMessage(error, t, {
           fallbackKey: 'conversation.messagesLoadError',
+          context: 'messages',
         });
         setMessagesLoadError(message);
       }
@@ -3038,7 +3039,8 @@ export default function ConversationScreen() {
           } catch (uploadError: any) {
             if (__DEV__) console.error('Erreur upload attachment:', uploadError);
             const data = uploadError?.response?.data || {};
-            const errorMsg: string = data.error || uploadError?.message || t('conversation.errorFallback');
+            const errorMsg: string = data.error
+              || getApiErrorMessage(uploadError, t, { fallbackKey: 'conversation.errorFallback', context: 'upload' }).message;
             // Échec RÉSEAU (pas de réponse serveur) vs REJET applicatif (400
             // quota/taille avec un code). Le réseau → l'attachment doit partir
             // en outbox pour rejeu, pas être abandonné.

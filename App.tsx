@@ -65,6 +65,7 @@ import { NavigationContainer, LinkingOptions, NavigationState, getStateFromPath 
 import { navigationRef } from './src/navigation/navigationRef';
 import { loadNavigationState, saveNavigationState } from './src/lib/navigationPersistence';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { postureTouch } from './src/components/ui/motion/usePhonePosture';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
 import { loadAsync as loadFontsAsync } from 'expo-font';
@@ -110,6 +111,7 @@ import { PeekHost } from './src/components/ui/motion/Peek';
 import CheckinWelcomeMoment from './src/components/moments/CheckinWelcomeMoment';
 import ConnectionArrivedMoment from './src/components/moments/ConnectionArrivedMoment';
 import OrganizerMomentHost from './src/components/moments/OrganizerMomentHost';
+import ShakeHost from './src/components/gestures/ShakeHost';
 import LiveBannerSpacer from './src/components/visio/LiveBannerSpacer';
 import VerificationGuardModal from './src/components/auth/VerificationGuardModal';
 import LockGate from './src/components/auth/LockGate';
@@ -371,8 +373,29 @@ function AppContent() {
     initAnalytics();
   }, []);
 
+  // iOS : boutons d'action des notifications (catégories posées par le
+  // backend via `categoryId`), réenregistrés quand la langue change.
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    void Promise.all([
+      import('./src/lib/notifications/notificationActions'),
+      import('./src/i18n'),
+    ]).then(([{ registerNotificationCategories }, { default: i18n }]) => {
+      void registerNotificationCategories();
+      const onLanguageChanged = () => { void registerNotificationCategories(); };
+      i18n.on('languageChanged', onLanguageChanged);
+      unsubscribe = () => i18n.off('languageChanged', onLanguageChanged);
+    });
+    return () => unsubscribe?.();
+  }, []);
+
   // Pre-charge les sons au boot pour eliminer la latence du premier play
   useEffect(() => {
+    // Préférences sensorielles (vibrations, sons d'interface, gestes) : cache
+    // mémoire amorcé tôt, lu ensuite de façon synchrone.
+    void import('./src/lib/sensoryPrefs').then(({ primeSensoryPrefs }) => primeSensoryPrefs());
+    // R3 W3/W6 — mémorise la visite précédente avant de la remplacer.
+    void import('./src/lib/lastOpen').then(({ primeLastOpen }) => primeLastOpen());
     void import('./src/services/soundService').then(({ default: soundService }) => {
       soundService.initialize();
     });
@@ -506,6 +529,10 @@ function AppContent() {
                       {/* O1/O3 — « Premier participant », « Complet » : jalons
                           organisateur poussés en direct. */}
                       <OrganizerMomentHost />
+                      {/* G1/G2 — secousse : annuler la dernière action
+                          réversible, geste de l'écran, ou (build interne)
+                          signaler un problème. Un seul capteur. */}
+                      <ShakeHost />
                       </LiveRegistrationsProvider>
                       </VisioCallProvider>
                       </FeatureTourProvider>
@@ -561,7 +588,14 @@ function App() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView
+      style={{ flex: 1 }}
+      // Activité tactile globale : une « secousse » pendant un toucher ou un
+      // défilement n'en est pas une (usePhonePosture, G0).
+      onTouchStart={postureTouch.start}
+      onTouchEnd={postureTouch.end}
+      onTouchCancel={postureTouch.end}
+    >
       <KeyboardProvider>
         <SafeAreaProvider>
           <ThemeProvider>

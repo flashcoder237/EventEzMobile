@@ -139,7 +139,7 @@ export default function MyBoothScreen() {
         await WebBrowser.openBrowserAsync(url);
       } else {
         // Certains PSP confirment sans redirection (push USSD) → on informe.
-        showSuccess(t('myBoothMobile.paymentInitiated', { defaultValue: 'Paiement initié. Valide-le sur ton téléphone.' }));
+        showSuccess(t('myBoothMobile.paymentInitiated', { defaultValue: 'Paiement initié. Validez-le sur votre téléphone.' }));
       }
       await load();
     } catch (e: any) {

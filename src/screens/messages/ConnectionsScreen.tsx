@@ -43,6 +43,9 @@ import {
 } from '../../constants/theme';
 import { RootStackParamList } from '../../types';
 import { centeredContent } from '../../constants/layout';
+import { useAuth } from '../../contexts/AuthContext';
+import { useTonightTicket } from '../../hooks/useTonightTicket';
+import ShakeExchange from '../../components/gestures/ShakeExchange';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -72,6 +75,14 @@ export default function ConnectionsScreen() {
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
+  // G13 — échange par secousse : seulement pendant l'événement du jour
+  // (portes ouvertes / en cours), là où l'on peut être scanné.
+  const { user } = useAuth();
+  const tonight = useTonightTicket(user?.id);
+  const onSiteEventId =
+    tonight && (tonight.phase === 'PORTES' || tonight.phase === 'EN_COURS') && tonight.event?.id
+      ? String(tonight.event.id)
+      : null;
 
   const fetchConnections = useCallback(async () => {
     try {
@@ -174,6 +185,7 @@ export default function ConnectionsScreen() {
   };
 
   const renderHeroActions = () => (
+    <View>
     <View style={styles.heroRow}>
       <TouchableOpacity
         style={[styles.heroCard, { backgroundColor: colors.primary }, Shadows.sm]}
@@ -201,6 +213,12 @@ export default function ConnectionsScreen() {
           {t('connections.scanQrHint')}
         </Text>
       </TouchableOpacity>
+    </View>
+    {onSiteEventId && (
+      <View style={{ marginTop: Spacing.sm }}>
+        <ShakeExchange eventId={onSiteEventId} variant="nearby" />
+      </View>
+    )}
     </View>
   );
 

@@ -1,3 +1,4 @@
+import { ongoingEvent } from '../../services/ongoingEventNotification';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
@@ -13,6 +14,7 @@ import {
   Animated,
   Easing,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -75,6 +77,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
+import TorchDoubleTap from '../../components/gestures/TorchDoubleTap';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'QRScanner'>;
@@ -313,6 +316,18 @@ export default function QRScannerScreen() {
       return next;
     });
   }, []);
+
+  // X2 — variante organisateur : « Scanner en service » épinglée (Android)
+  // tant que l'écran de scan est affiché.
+  const scannerTitle = (event as any)?.title ?? null;
+  const scannerTint = (event as any)?.theme_tint ?? null;
+  useFocusEffect(useCallback(() => {
+    if (Platform.OS !== 'android') return;
+    ongoingEvent.scannerOn(String(eventId), scannerTitle, scannerTint).catch(() => {});
+    return () => {
+      ongoingEvent.scannerOff(String(eventId)).catch(() => {});
+    };
+  }, [eventId, scannerTitle, scannerTint]));
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -839,6 +854,8 @@ export default function QRScannerScreen() {
   }
 
   return (
+    // G15 — double tap dans le viseur = torche (le bouton reste).
+    <TorchDoubleTap onToggle={() => setFlashOn((v) => !v)}>
     <View style={styles.container}>
       {/* Camera */}
       <CameraView
@@ -1467,6 +1484,7 @@ export default function QRScannerScreen() {
         </View>
       </SpringSheet>
     </View>
+    </TorchDoubleTap>
   );
 }
 

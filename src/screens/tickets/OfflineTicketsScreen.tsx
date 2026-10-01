@@ -47,7 +47,8 @@ export default function OfflineTicketsScreen() {
   // Cet écran affiche les QR de billets scannables (hors-ligne) → on bloque la
   // capture d'écran (anti-fraude), on pousse la luminosité et on garde l'écran
   // éveillé, comme QRCodeScreen / RegistrationDetailsScreen. Restauré au blur.
-  useTicketDisplayGuard();
+  // G4 — posé face contre table : luminosité rendue au système.
+  const { sensorElement: postureElement } = useTicketDisplayGuard();
   const { t, i18n } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { showSuccess, showConfirm, showError } = useAlert();
@@ -485,6 +486,7 @@ export default function OfflineTicketsScreen() {
     <EditorialCanvas edges={['top', 'bottom']}>
       <WatermarkNumeral>OFF</WatermarkNumeral>
       <View style={{ flex: 1, zIndex: 1 }}>
+      {postureElement}
         <EditorialHeader
           eyebrow={t('offlineTickets.headerEyebrow')}
           title={t('offlineTickets.headerTitle')}

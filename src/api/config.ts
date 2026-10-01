@@ -75,7 +75,7 @@ export async function fetchUpload(
     } catch (error: any) {
       if (error?.name === 'AbortError') {
         const timeoutError: any = new Error(
-          `Upload timeout (${UPLOAD_TIMEOUT_MS / 1000}s) — vérifie ta connexion et réessaie.`,
+          `Upload timeout (${UPLOAD_TIMEOUT_MS / 1000}s) — vérifiez votre connexion et réessayez.`,
         );
         timeoutError.code = 'ECONNABORTED';
         throw timeoutError;

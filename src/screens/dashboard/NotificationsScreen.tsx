@@ -13,6 +13,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import LoadingLine from '../../components/ui/LoadingLine';
+import EmptySuggestion from '../../components/ui/EmptySuggestion';
+import { useCityPulseLine, useDailyLine } from '../../hooks/useEmptySuggestion';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -256,6 +259,8 @@ export default function NotificationsScreen() {
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
+  // R3 W2 — phrase tournante du jour pour l'état vide.
+  const notificationsEmptyLine = useDailyLine('notifications', 3);
 
   const typeConfig: Record<string, NotificationTypeConfig> = {
     event_update: { icon: 'calendar', color: '#3B82F6', label: t('notifications.typeEventUpdate'), eyebrow: 'EVT' },
@@ -547,8 +552,14 @@ export default function NotificationsScreen() {
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {filter === 'unread'
           ? t('notifications.emptyAllReadText')
-          : t('notifications.emptyNoNotifText')}
+          : notificationsEmptyLine}
       </Text>
+      {filter !== 'unread' && (
+        <EmptySuggestion
+          actionLabel={t('delight.empty.exploreAction')}
+          onAction={() => navigation.navigate('Main', { screen: 'Discover' } as any)}
+        />
+      )}
     </View>
   );
 
@@ -557,6 +568,7 @@ export default function NotificationsScreen() {
       <EditorialCanvas edges={['top']}>
         <WatermarkNumeral>BUZZ</WatermarkNumeral>
         <NotificationsScreenSkeleton />
+        <LoadingLine context="notifications" floating />
       </EditorialCanvas>
     );
   }

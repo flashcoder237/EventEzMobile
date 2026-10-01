@@ -54,6 +54,11 @@ export const eventsAPI = {
   getCityPulse: (city: string) =>
     api.get('/events/city-pulse/', { params: { city }, expectedErrorStatuses: [404] } as any),
 
+  /** R3 W3/W6 — nouveautés depuis `ts` (ms) : `{ since, count, items }`.
+   *  404 = backend sans la route : rien à afficher, pas une erreur. */
+  getMeSince: (ts: number) =>
+    api.get('/me/since/', { params: { ts }, expectedErrorStatuses: [404] } as any),
+
   // ── Événements satellites (exposant sous-organisateur) ───────────────────
   getSatelliteEvents: (params: { host_event: string; status?: string }) =>
     api.get('/events/', { params }),

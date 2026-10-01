@@ -153,7 +153,7 @@ describe('AdminAdFormScreen — creation', () => {
     const { getByText, getByPlaceholderText } = render(<AdminAdFormScreen />);
 
     // pick image (le picker mock rend uri='file://ad.jpg')
-    fireEvent.press(getByText('Touche pour choisir (16:9 conseillé)'));
+    fireEvent.press(getByText('Touchez pour choisir (16:9 conseillé)'));
     await waitFor(() => expect(mockLaunchLib).toHaveBeenCalled());
 
     fireEvent.changeText(

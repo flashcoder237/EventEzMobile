@@ -10,6 +10,7 @@ import { FontFamily, FontSizes, Spacing, BorderRadius, Shadows } from '../../con
 import { useTheme } from '../../contexts/ThemeContext';
 import GradientButton from './GradientButton';
 import { GradientIcon } from './motion';
+import EmptySuggestion, { type EmptySuggestionProps } from './EmptySuggestion';
 
 interface EmptyStateProps {
   icon?: keyof typeof Ionicons.glyphMap;
@@ -26,6 +27,8 @@ interface EmptyStateProps {
   withCard?: boolean;
   /** Label d'accessibilite personnalise */
   accessibilityLabel?: string;
+  /** R3 W2 — une phrase utile + une vraie action, sous le contenu principal. */
+  suggestion?: EmptySuggestionProps;
 }
 
 function EmptyStateComponent({
@@ -41,6 +44,7 @@ function EmptyStateComponent({
   style,
   withCard = false,
   accessibilityLabel: a11yLabel,
+  suggestion,
 }: EmptyStateProps) {
   const { colors } = useTheme();
   const resolvedIconColor = iconColor || colors.gray300;
@@ -78,6 +82,7 @@ function EmptyStateComponent({
           />
         </View>
       )}
+      {suggestion && <EmptySuggestion {...suggestion} />}
     </>
   );
 

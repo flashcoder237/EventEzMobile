@@ -156,7 +156,7 @@ describe('NewslettersScreen', () => {
       'Hi',
     );
     fireEvent.changeText(
-      await findByPlaceholderText('Écris ton message ici. Du HTML simple est accepté (<b>, <a>, <p>…).'),
+      await findByPlaceholderText('Écrivez votre message ici. Du HTML simple est accepté (<b>, <a>, <p>…).'),
       'Body',
     );
 
@@ -184,7 +184,7 @@ describe('NewslettersScreen', () => {
       'Hi',
     );
     fireEvent.changeText(
-      await findByPlaceholderText('Écris ton message ici. Du HTML simple est accepté (<b>, <a>, <p>…).'),
+      await findByPlaceholderText('Écrivez votre message ici. Du HTML simple est accepté (<b>, <a>, <p>…).'),
       'Body',
     );
     fireEvent.press(await findByText('Créer le brouillon'));

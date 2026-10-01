@@ -29,6 +29,7 @@ import {
   Colors, FontFamily, Spacing, BorderRadius, Shadows,
 } from '../../constants/theme';
 import { RootStackParamList } from '../../types';
+import TorchDoubleTap from '../../components/gestures/TorchDoubleTap';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -43,6 +44,8 @@ export default function ConnectionScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [processing, setProcessing] = useState(false);
+  // G15 — torche : bouton + double tap dans le viseur.
+  const [torchOn, setTorchOn] = useState(false);
 
   const handleScan = useCallback(async ({ data }: { data: string }) => {
     if (scanned || processing) return;
@@ -112,10 +115,12 @@ export default function ConnectionScannerScreen() {
   }
 
   return (
+    <TorchDoubleTap onToggle={() => setTorchOn((v) => !v)}>
     <View style={styles.cameraContainer}>
       <CameraView
         style={StyleSheet.absoluteFill}
         facing="back"
+        enableTorch={torchOn}
         barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
         onBarcodeScanned={scanned ? undefined : handleScan}
       />
@@ -133,6 +138,16 @@ export default function ConnectionScannerScreen() {
             <Text style={styles.overlayEyebrow}>{t('connections.scannerEyebrow')}</Text>
             <Text style={styles.overlayTitle}>{t('connections.scannerTitle')}</Text>
           </View>
+          <TouchableOpacity
+            style={[styles.closeBtn, Shadows.sm]}
+            onPress={() => setTorchOn((v) => !v)}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={torchOn ? t('gestures.torch.offA11y') : t('gestures.torch.onA11y')}
+            accessibilityHint={t('gestures.torch.hint')}
+          >
+            <Ionicons name={torchOn ? 'flash' : 'flash-outline'} size={20} color={torchOn ? '#FCD34D' : '#FFFFFF'} />
+          </TouchableOpacity>
         </View>
 
         {/* Viewfinder centré */}
@@ -158,6 +173,7 @@ export default function ConnectionScannerScreen() {
         </View>
       </SafeAreaView>
     </View>
+    </TorchDoubleTap>
   );
 }
 

@@ -22,6 +22,8 @@ import { FontFamily } from '../../../constants/theme';
 import { Durations, Curves } from '../../../constants/motion';
 import { useMotionGate } from '../../ui/motion';
 import { parseLastSale, type EventPulse } from '../../../lib/realtime/pulse';
+import { countdownHaptic } from '../../../lib/utils/hapticCountdown';
+import { haptics } from '../../../utils/haptics';
 
 // ── V1 — « N personnes regardent » ──────────────────────────────────────────
 
@@ -277,13 +279,23 @@ export const SeatHeldBanner = memo(function SeatHeldBanner({
   const end = expiresAt ? Date.parse(expiresAt) : NaN;
   const [now, setNow] = useState(() => Date.now());
   const expired = !Number.isFinite(end) || now >= end;
+  // H5 — crans haptiques (T-5 min, T-1 min, 5 dernières secondes) seulement
+  // quand l'écran est affiché et l'app au premier plan.
+  const { focused, appActive } = useMotionGate();
+  const visibleRef = useRef(focused && appActive);
+  visibleRef.current = focused && appActive;
 
   useEffect(() => {
     if (!Number.isFinite(end) || Date.now() >= end) return;
+    let prevLeft = end - Date.now();
     // Compte à rebours réel ; l'horloge s'ARRÊTE à l'expiration.
     const timer = setInterval(() => {
       const n = Date.now();
       setNow(n);
+      const leftMs = end - n;
+      const h = countdownHaptic(prevLeft, leftMs);
+      prevLeft = leftMs;
+      if (h && visibleRef.current) haptics.pattern(h);
       if (n >= end) clearInterval(timer);
     }, 1000);
     return () => clearInterval(timer);

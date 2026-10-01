@@ -568,7 +568,7 @@ export default function MyEventsScreen() {
       );
     } catch (error: any) {
       if (__DEV__) console.error('Erreur upload photos:', error);
-      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'organizer.myEvents.photosError' }).message);
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'organizer.myEvents.photosError', context: 'upload' }).message);
     }
   };
 

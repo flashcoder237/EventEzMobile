@@ -56,6 +56,22 @@ export interface ApiErrorResult {
 }
 
 /**
+ * Contexte métier d'une erreur : choisit un message humain en trois temps
+ * (ce qui s'est passé · ce qui est sauf · que faire) sous errors.{context}.{kind}.
+ * Volontairement absent pour le paiement et l'authentification : ces écrans
+ * gardent des messages sobres, sans humour, via leurs codes dédiés.
+ */
+export type ErrorContext = 'tickets' | 'messages' | 'event' | 'upload';
+export type ErrorKind = 'offline' | 'timeout' | 'server' | 'notFound' | 'forbidden' | 'tooLarge';
+
+function contextMessage(t: TFunc, context: ErrorContext | undefined, kind: ErrorKind): string | null {
+  if (!context) return null;
+  const key = `errors.${context}.${kind}`;
+  const msg = t(key);
+  return msg && msg !== key ? msg : null;
+}
+
+/**
  * Résout une erreur API en message TRADUIT + erreurs de champ. À utiliser
  * partout à la place de extractErrorMessage (qui ne prend pas `t`).
  *
@@ -65,15 +81,20 @@ export interface ApiErrorResult {
 export function getApiErrorMessage(
   error: any,
   t: TFunc,
-  opts: { fallbackKey: string; fallbackValues?: Record<string, unknown> },
+  opts: { fallbackKey: string; fallbackValues?: Record<string, unknown>; context?: ErrorContext },
 ): ApiErrorResult {
+  const { context } = opts;
   const noResponse = !error?.response;
   const isTimeout = error?.code === 'ECONNABORTED' || /timeout/i.test(error?.message || '');
   const isNet = noResponse && (
     error?.code === 'ERR_NETWORK' || /network error/i.test(error?.message || '') || !error?.code
   );
-  if (isTimeout) return { message: t('errors.timeout'), fieldErrors: null, code: null, isNetwork: true };
-  if (noResponse && isNet) return { message: t('errors.network'), fieldErrors: null, code: null, isNetwork: true };
+  if (isTimeout) {
+    return { message: contextMessage(t, context, 'timeout') ?? t('errors.timeout'), fieldErrors: null, code: null, isNetwork: true };
+  }
+  if (noResponse && isNet) {
+    return { message: contextMessage(t, context, 'offline') ?? t('errors.network'), fieldErrors: null, code: null, isNetwork: true };
+  }
 
   const status: number | undefined = error?.response?.status;
   const data = error?.response?.data;
@@ -82,6 +103,16 @@ export function getApiErrorMessage(
   if (code && ERROR_CODE_MAP[code]) {
     return { message: t(ERROR_CODE_MAP[code]), fieldErrors: extractFieldErrors(error), code, isNetwork: false };
   }
+
+  // Contexte métier : 404/403/413/5xx reçoivent un message en trois temps.
+  const kind: ErrorKind | null =
+    status === 404 ? 'notFound'
+      : status === 403 ? 'forbidden'
+        : status === 413 ? 'tooLarge'
+          : status && status >= 500 ? 'server'
+            : null;
+  const contextual = kind ? contextMessage(t, context, kind) : null;
+  if (contextual) return { message: contextual, fieldErrors: null, code, isNetwork: false };
 
   const fieldErrors = status === 400 ? nonEmpty(extractFieldErrors(error)) : null;
   let message: string;

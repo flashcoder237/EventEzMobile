@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { trackInteraction } from '../../lib/recommendations';
 import { eventsAPI } from '../../api';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -164,6 +165,8 @@ function FollowEventButtonImpl({
       try {
         if (next) {
           await eventsAPI.followEvent(eventId, preferences);
+          // R3 W7 — signal « follow » (UUID seulement, jamais bloquant).
+          trackInteraction('follow', { eventId });
         } else {
           await eventsAPI.unfollowEvent(eventId);
         }

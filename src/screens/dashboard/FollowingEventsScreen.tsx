@@ -26,6 +26,9 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import LoadingLine from '../../components/ui/LoadingLine';
+import EmptySuggestion from '../../components/ui/EmptySuggestion';
+import { useCityPulseLine, useDailyLine } from '../../hooks/useEmptySuggestion';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -52,6 +55,7 @@ import { toEventPreview } from '../../lib/utils/eventNavPreview';
 import { HeroSlot, captureHero, useHeroToken, withHeroOrigin } from '../../components/ui/motion';
 import { SwipeToSave } from '../../components/ui/motion/SwipeToSave';
 import { useInAppToast } from '../../contexts/InAppToastContext';
+import { undoStack } from '../../lib/gestures/undoStack';
 
 
 // Warm editorial canvas (light) / dark background
@@ -625,6 +629,9 @@ export default function FollowingEventsScreen() {
   const [activeTab, setActiveTab] = useState<TabFilter>('upcoming');
   // Section toggle : on commute entre les events suivis et les organisateurs suivis
   const [activeSection, setActiveSection] = useState<SectionKind>('events');
+  // R3 W2 — état vide utile : phrase tournante + pouls de la ville (au-dessus du seuil serveur).
+  const favoritesEmptyLine = useDailyLine('favorites', 3);
+  const favoritesCityPulse = useCityPulseLine(!loading && follows.length === 0);
 
   const canvasBg = isDark ? colors.background : CANVAS_LIGHT;
 
@@ -733,19 +740,26 @@ export default function FollowingEventsScreen() {
         setFollows((prev) => (prev.some((f) => f.id === follow.id) ? prev : [...prev, follow]));
         toastError(t('followingEvents.unfollowError'));
       });
+      const restore = () =>
+        eventsAPI.followEvent(eventId).then(() => {
+          setFollows((prev) => (prev.some((f) => f.id === follow.id) ? prev : [...prev, follow]));
+          CacheService.invalidate(`following:${user?.id}`);
+        });
+      // G1 — secouer dans les 10 s propose aussi d'annuler (feuille de confirmation).
+      const undoKey = `unfollow:${follow.id}`;
+      undoStack.push({
+        key: undoKey,
+        label: t('gestures.undo.unfollow', { title: follow.event_details?.title ?? '' }),
+        undo: restore,
+      });
       showToast({
         title: t('componentsEvents.swipeRemoved'),
         body: t('componentsEvents.swipeUndo'),
         icon: 'info',
         anchor: 'bottom',
         onPress: () => {
-          eventsAPI
-            .followEvent(eventId)
-            .then(() => {
-              setFollows((prev) => (prev.some((f) => f.id === follow.id) ? prev : [...prev, follow]));
-              CacheService.invalidate(`following:${user?.id}`);
-            })
-            .catch(() => toastError(t('followingEvents.unfollowError')));
+          undoStack.drop(undoKey);
+          restore().catch(() => toastError(t('followingEvents.unfollowError')));
         },
       });
     },
@@ -1006,9 +1020,10 @@ export default function FollowingEventsScreen() {
       </Text>
       <Text style={[styles.emptySubtitle, { color: colors.gray500 }]}>
         {follows.length === 0
-          ? t('followingEvents.emptyMessageNone')
+          ? favoritesEmptyLine
           : t('followingEvents.emptyMessageNoResult')}
       </Text>
+      {follows.length === 0 && <EmptySuggestion pulse={favoritesCityPulse} style={{ marginTop: 0 }} />}
       {follows.length === 0 && (
         <TouchableOpacity
           style={[styles.discoverButton, { backgroundColor: colors.primary }]}
@@ -1326,6 +1341,7 @@ export default function FollowingEventsScreen() {
               <FollowingEventCardSkeleton />
               <FollowingEventCardSkeleton />
               <FollowingEventCardSkeleton />
+              <LoadingLine context="favorites" />
             </View>
           }
           style={{ flex: 1 }}

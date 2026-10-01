@@ -19,6 +19,7 @@ import { Durations } from '../../constants/motion';
 import { tintAlpha, tintFor } from '../../lib/utils/themeTint';
 import { appDateLocale } from '../../lib/utils/dateFormatters';
 import { LiveDot } from '../ui/motion';
+import ShakeExchange from '../gestures/ShakeExchange';
 
 interface SessionLite {
   id: string;
@@ -173,6 +174,8 @@ export default function OnSiteHub({ event, registrationId }: { event: any; regis
           </Pressable>
         ))}
       </View>
+      {/* G13 — échanger son contact en secouant (ou par ce bouton). */}
+      <ShakeExchange eventId={event?.id ? String(event.id) : null} />
     </Animated.View>
   );
 }

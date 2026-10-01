@@ -45,6 +45,7 @@ import { Spacing, BorderRadius, FontFamily, Shadows } from '../../constants/them
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import type { RootStackParamList } from '../../types';
+import TorchDoubleTap from '../../components/gestures/TorchDoubleTap';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type ScreenRoute = RouteProp<RootStackParamList, 'LeadCapture'>;
@@ -94,6 +95,8 @@ export default function LeadCaptureScreen() {
   const [count, setCount] = useState<number | null>(null);
   const [manualCode, setManualCode] = useState('');
   const [manualOpen, setManualOpen] = useState(false);
+  // G15 — torche : bouton + double tap dans le viseur.
+  const [torchOn, setTorchOn] = useState(false);
   const lastScanRef = useRef<{ code: string; at: number } | null>(null);
 
   const hairline = isDark ? colors.gray800 : colors.gray200;
@@ -293,10 +296,12 @@ export default function LeadCaptureScreen() {
       </View>
 
       {/* Caméra */}
+      <TorchDoubleTap onToggle={() => setTorchOn((v) => !v)} enabled={scanning && !outcome}>
       <View style={styles.cameraWrap}>
         {scanning && !outcome ? (
           <CameraView
             style={StyleSheet.absoluteFill}
+            enableTorch={torchOn}
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
             onBarcodeScanned={({ data }) => submitScan(String(data || '').trim())}
           />
@@ -304,12 +309,25 @@ export default function LeadCaptureScreen() {
           <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.gray900 }]} />
         )}
         <View style={styles.reticle} pointerEvents="none" />
+        {scanning && !outcome && (
+          <TouchableOpacity
+            onPress={() => setTorchOn((v) => !v)}
+            style={styles.torchBtn}
+            accessibilityRole="button"
+            accessibilityLabel={torchOn ? t('gestures.torch.offA11y') : t('gestures.torch.onA11y')}
+            accessibilityHint={t('gestures.torch.hint')}
+            hitSlop={8}
+          >
+            <Ionicons name={torchOn ? 'flash' : 'flash-outline'} size={20} color={torchOn ? '#FCD34D' : '#FFFFFF'} />
+          </TouchableOpacity>
+        )}
         {busy && (
           <View style={styles.busyOverlay}>
             <ActivityIndicator size="large" color="#fff" />
           </View>
         )}
       </View>
+      </TorchDoubleTap>
 
       {/* Résultat */}
       <ScrollView
@@ -583,6 +601,10 @@ const styles = StyleSheet.create({
   reticle: {
     position: 'absolute', top: 50, left: '18%', right: '18%', bottom: 50,
     borderWidth: 2, borderColor: 'rgba(255,255,255,0.85)', borderRadius: BorderRadius.lg,
+  },
+  torchBtn: {
+    position: 'absolute', top: 12, right: 12, width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center',
   },
   busyOverlay: {
     ...StyleSheet.absoluteFillObject,

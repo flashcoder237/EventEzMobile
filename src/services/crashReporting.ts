@@ -142,6 +142,31 @@ export function captureMessage(
 }
 
 /**
+ * G2 — retour testeur (secouer pour signaler) : message + capture d'écran en
+ * pièce jointe + contexte (route, version, build). Renvoie false si Sentry
+ * n'est pas initialisé (pas de DSN, Expo Go) : l'appelant le dit à l'écran.
+ */
+export function captureFeedback(input: {
+  message: string;
+  tags?: Record<string, string>;
+  attachment?: { filename: string; data: Uint8Array; contentType: string } | null;
+}): boolean {
+  if (!initialized || !Sentry?.captureFeedback) return false;
+  try {
+    Sentry.captureFeedback(
+      { message: input.message, tags: input.tags },
+      {
+        captureContext: { tags: input.tags },
+        attachments: input.attachment ? [input.attachment] : undefined,
+      },
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Associe le user courant à toutes les futures captures (jusqu'au prochain
  * setUser ou clearUser). À appeler après login/checkAuth réussi.
  */

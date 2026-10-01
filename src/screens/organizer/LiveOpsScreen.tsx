@@ -31,13 +31,14 @@ import {
   checkinKey,
   LiveOpsMoment,
   newCheckins,
-  pickLiveOpsMoment,
+  pickLiveOpsMoment, crossedLiveOpsNotch,
   PEAK_MIN_ENTRIES,
 } from '../../lib/utils/organizerMoments';
 import { appDateLocale } from '../../lib/utils/dateFormatters';
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
 import { centeredContent, WIDE_MAX } from '../../constants/layout';
 import { registrationsAPI } from '../../api';
+import { haptics } from '../../utils/haptics';
 import { RootStackParamList } from '../../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -118,6 +119,10 @@ export default function LiveOpsScreen() {
       const prev = prevRef.current;
       prevRef.current = next;
       const m = pickLiveOpsMoment(prev, next);
+      // H4 — palier de remplissage franchi en montant : un cran (50/75/90/100 %).
+      if (crossedLiveOpsNotch(prev?.check_in_percentage, next.check_in_percentage) != null) {
+        haptics.pattern('notch');
+      }
       if (m) setMoment({ kind: m, key: Date.now() });
       const fresh = newCheckins(prev?.recent, next.recent);
       setData(next);

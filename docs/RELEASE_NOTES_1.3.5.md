@@ -360,6 +360,330 @@ What's new in this version:
   traduits FR/EN, et un seul canal Android « Rappels » (l'ancien
   `event-reminders` en double est supprimé).
 
+#### Round 3 — lot 1 (prérequis)
+- Réglages → Préférences : trois nouveaux interrupteurs locaux, à côté de
+  « Sons des moments forts » : « Sons d'interface » (coupé par défaut),
+  « Vibrations » (actif ; un aperçu tactile confirme l'activation), « Gestes de
+  mouvement » (actif, lu par les capteurs du round 3). Lecture synchrone depuis
+  un cache mémoire amorcé au démarrage (`lib/sensoryPrefs`). `haptics.safe()`
+  respecte « Vibrations » ; `soundService.playUi()` respecte « Sons
+  d'interface ». « Réduire les animations » coupe les futurs motifs composés,
+  pas les retours de base.
+- Vouvoiement : `fr.json` passé du tutoiement au vouvoiement, chaîne par
+  chaîne (484 chaînes, impératifs, possessifs, pronoms, accords ; noms
+  communs comme « Demande », « Paie », « Note » laissés intacts). Les
+  `defaultValue` FR en dur dans le code et le guide des onglets suivent.
+  Garde-fou : `i18n/__tests__/vouvoiement.test.ts`. Charte « Ton » ajoutée au
+  `docs/MOBILE_STYLE_GUIDE.md` (§12).
+- Erreurs humaines : `getApiErrorMessage(…, { context })` avec
+  `errors.{tickets|messages|event|upload}.{offline|timeout|server|notFound|forbidden|tooLarge}`,
+  en trois temps (ce qui s'est passé · ce qui est sauf · que faire). Branché :
+  rafraîchissement de « Mes billets » (toast), détail d'une inscription, fiche
+  événement introuvable/hors ligne, chargement des conversations et des
+  messages, envoi de pièce jointe, photo de profil, photos d'événement.
+  Paiement et authentification inchangés (pas d'humour, codes dédiés).
+- Actions de notification : catégories `ticket_day`, `reminder`, `message`,
+  `live`, `seat_held`, `connection` (contrat avec `categoryId` du backend).
+  iOS : `setNotificationCategoryAsync` au démarrage, réenregistrées au
+  changement de langue. Android : boutons Notifee par catégorie, et
+  `notifee.onBackgroundEvent` dans `index.ts` (marquer lu et réponse rapide
+  app fermée) ; « Répondre » n'ouvre plus l'app. Navigation par
+  `resolveNotificationTarget` ; « J'y vais » appelle
+  `POST /registrations/{id}/attendance-intent/` (404 toléré) puis ouvre le
+  billet. Les taps push transmettent désormais toute leur `data` au résolveur
+  (place gardée et « Lui écrire » perdaient leur contexte).
+- Traductions : raccourcis de l'icône (`quickActions.*`, suivent la langue),
+  boutons et résumé des notifications riches (`notifications.actions.*`),
+  libellés météo (`componentsEvents.weather.*`).
+
+#### Round 3 — lot 2 (jour J sans natif, gestes, haptique)
+Tout est en JS (Reanimated, expo-location, expo-haptics et Notifee déjà
+présents), sans nouvelle dépendance ni nouvelle permission.
+- Socle gestes (G0) : `usePhonePosture()` (`components/ui/motion`). Un seul
+  pont capteurs (GRAVITY + ACCELEROMETER Reanimated, 50 Hz), monté seulement
+  écran affiché + app au premier plan + réglage « Gestes de mouvement ».
+  Détecteurs PURS testés (`lib/utils/posture.ts`) : `shake` (> 13 m/s²
+  utiles, ≥ 4 inversions en 700 ms, pause 1,5 s ; coupé en `__DEV__`, ignoré
+  doigt posé ou < 300 ms après un toucher), `faceDown` (z < -9 stable 1,2 s,
+  immobile), `faceUp` (150 ms), `presentAway`/`presentBack` (> 100° 400 ms /
+  < 80° 300 ms), `raise` (à plat 1 s puis > 60° en 700 ms avec élan). Signe de
+  la gravité normalisé (iOS = convention CoreMotion inversée → négation des
+  trois axes). Activité tactile globale branchée sur la racine (`App.tsx`).
+- Motifs haptiques (H1) : `haptics.pattern('heartbeat'|'tick'|'notch'|'wall'|'rise')`.
+  Android : `performAndroidHapticsAsync` (Clock_Tick, Segment_Tick, Reject,
+  Confirm…) quand dispo. Verrou global (une séquence à la fois), annulé en
+  arrière-plan, respecte « Vibrations » ; « Réduire les animations » ramène un
+  motif composé à son premier pas.
+- Portes ouvertes (H2) : battement « lub-dub » quand la carte « Les portes
+  sont ouvertes » est VUE, une fois par inscription (`useFirstSeen`), sauf si
+  un rappel d'événement a vibré il y a moins de 5 min
+  (`lib/notifications/recentEventPush`).
+- Achat (H4) : `tick` sur +/− ; butée stock/jauge → motif `wall` + « Plus que
+  N places » sous le sélecteur (plus d'alerte) ; l'alerte reste pour le
+  plafond par commande (seul cas où « contacter l'organisateur » a un sens).
+  Live Ops : `notch` au franchissement montant de 50/75/90/100 %.
+- Place gardée (H5) : `notch` à T-5 min et T-1 min, `tick` chaque seconde des
+  5 dernières, seulement écran affiché.
+- Billet face contre table (G4) : la luminosité revient au système
+  (adaptative Android) et l'écran peut s'éteindre ; retourné → luminosité max
+  + vibration « sélection ». API propre `suspendTicketBrightness()` /
+  `resumeTicketBrightness()` sur le compteur partagé de
+  `useTicketDisplayGuard` (QR, détail d'inscription, billets hors ligne).
+  Écran éteint pendant la suspension → au retour dans l'app, luminosité max
+  (le capteur démonté n'aurait jamais vu « faceUp »).
+- Mode « présenter » (G6) : écran tendu vers le contrôleur OU tap sur le QR →
+  QR à 92 % de la largeur sur blanc pur, le reste s'efface en 150 ms,
+  inclinaison et reflet figés. Le geste inverse (s'il l'a ouvert), un tap ou
+  le retour Android reviennent.
+- Preuve de validité (G7) : appui long 350 ms sur le QR → anneau en dégradé
+  qui tourne AUTOUR du cadre blanc (jamais sur le QR) et suit l'inclinaison,
+  heure à la seconde, cran léger chaque seconde tant que le doigt reste.
+  Action d'accessibilité « Afficher la preuve de validité » (6 s). Animations
+  réduites : l'heure seule.
+- Lever pour ouvrir (G8) : phase « portes », Mes billets affiché, permission
+  de localisation DÉJÀ accordée (jamais demandée) et < 300 m du lieu → lever
+  le téléphone ouvre le billet, une fois par événement. Sinon, le geste fait
+  pulser une fois le bouton « Afficher mon billet ».
+- Boussole (G9) dans la carte du billet : jour J ou portes, < 3 km,
+  permission déjà accordée. Flèche teintée + distance, cran « sélection »
+  aligné ±12° pendant 500 ms (au plus 1 fois / 10 s), « Étalonnez la
+  boussole » si le cap est imprécis. Coupée au blur, en arrière-plan et à
+  moins de 40 m. Animations réduites : paliers de 15°. Lecteur d'écran :
+  « Le lieu est à X m, à N heures ».
+- Notification « jour J » épinglée (X2, Android) : de H-3 à la fin,
+  teintée, chronomètre (jusqu'au début, puis jusqu'à la fin), actions « Mon
+  billet » / « Itinéraire », session en cours pendant l'événement (si
+  l'agenda répond, rafraîchie à l'ouverture de Mes billets). Déclencheurs
+  Notifee TIMESTAMP sans alarmManager (WorkManager, INEXACT : jamais
+  SCHEDULE_EXACT_ALARM ni service au premier plan) ; retrait automatique via
+  `timeoutAfter`. Retirée au scan (`checkin_welcome`, push ou WebSocket) et
+  jamais recréée. Événements en ligne exclus. Variante organisateur
+  « Scanner en service » tant que l'écran de scan est ouvert. Réglage
+  « Billet épinglé le jour J » (Android) ; rien si les notifications sont
+  coupées. Au plus 3 événements des 7 prochains jours.
+
+Tests sur appareil (lot 2) — iOS ET Android :
+1. [ ] **Signe de la gravité** (à vérifier en premier) : billet posé face
+       contre table 2 s → luminosité rendue ; retourné → max + vibration.
+       Si c'est inversé sur une plateforme, inverser `normalizeAxes`.
+2. [ ] **Présenter** : tendre l'écran vers quelqu'un (au-delà de la
+       verticale) → QR plein écran blanc ; le ramener → retour. Tap QR →
+       plein écran ; tap → retour ; retour Android → billet (pas l'écran
+       d'avant). Le QR plein écran se scanne.
+3. [ ] **Preuve** : appui long sur le QR → anneau autour (pas sur le QR),
+       heure qui défile, un cran par seconde ; relâcher → tout s'arrête.
+       TalkBack/VoiceOver : action « Afficher la preuve de validité ».
+4. [ ] **Faux positifs** : marcher, monter un escalier, téléphone en poche,
+       défilement rapide → aucun geste déclenché.
+5. [ ] **Achat** : +/− donnent un cran ; dépasser le stock → butée + « Plus
+       que N places » sans alerte ; dépasser le plafond par commande → alerte
+       avec « contacter l'organisateur ».
+6. [ ] **Jour J** (changer l'heure ou un événement de test proche, permission
+       de localisation déjà donnée) : boussole qui pointe le lieu, cran
+       aligné, message d'étalonnage près d'un aimant, disparaît < 40 m ;
+       sans permission : rien n'est demandé. Phase portes : battement une
+       fois ; lever le téléphone sur place → billet ouvert une seule fois.
+7. [ ] **Notification épinglée (Android)** : visible à H-3 (± retard
+       WorkManager), chronomètre, « Mon billet » et « Itinéraire » app
+       fermée ; disparaît au scan et à la fin ; « Scanner en service »
+       pendant le scan ; réglage coupé → tout disparaît.
+8. [ ] **Place gardée** : crans à 5 min, 1 min et 5 dernières secondes,
+       rien écran quitté. Live Ops : un cran à 50/75/90/100 %.
+9. [ ] Réglages « Vibrations » coupé → plus aucun motif ; « Gestes de
+       mouvement » coupé → plus aucun geste téléphone.
+
+#### Round 3 — lot 3 (gestes et direct)
+
+- **Secousse : un seul capteur pour toute l'app.** `ShakeHost` (App.tsx)
+  écoute la secousse et l'aiguille (`lib/gestures/shakeRouter.ts`) :
+  annulation en attente > geste de l'écran (`useShakeAction`) > signalement.
+  Le capteur ne tourne que s'il y a quelque chose à faire ; « Gestes de
+  mouvement » le coupe entièrement (socle `usePhonePosture`).
+- **G1 Secouer pour annuler.** `undoStack` : une entrée, 10 s. Alimentée par
+  le retrait d'un favori par balayage (Mes favoris) et l'archivage d'une
+  conversation. Secousse → feuille « Annuler la dernière action ? », jamais
+  d'annulation directe ; haptique « avertissement » à l'ouverture, « succès »
+  à l'annulation. Le toast « Annuler » reste. **Suppression d'un message
+  exclue** : pas de restauration côté serveur (tombstone local + WS).
+- **G2 Secouer pour signaler** (build interne seulement,
+  `EXPO_PUBLIC_SHAKE_TO_REPORT=1`) : capture `captureScreen`, bouton
+  « Flouter » (c'est l'image floutée qui part), champ texte, envoi
+  `Sentry.captureFeedback` avec la capture, la route, la version et le build.
+  Jamais de capture sur billet, paiement, portefeuille, conversations.
+  ✅ `"EXPO_PUBLIC_SHAKE_TO_REPORT": "1"` ajouté dans `eas.json` >
+  `build.preview.env` et `build.development.env` — jamais en `production`.
+  Sans DSN Sentry, la feuille le dit au lieu de faire semblant.
+- **G3 Surprends-moi** (Découvrir) : secousse en haut du flux ou chip « Au
+  hasard ». Tire un événement à venir, non réservé (via
+  `getMyRegistrations`, une fois), parmi « Pour vous », recommandations et
+  « près de vous » ; ouvert en aperçu Peek avec « Ouvrir » / « Encore »
+  (jamais le même deux fois de suite). Haptique « sélection ».
+- **G5 Chut en visio** : téléphone face contre table dans la visio Jitsi
+  (écran Browser ET overlay persistant) → micro et caméra COUPÉS via
+  `APP.conference.muteAudio/muteVideo(true)` (jamais de bascule « m »/« v »
+  qui pourrait réactiver), double haptique « avertissement ». Au retour (ou
+  en revenant dans l'app), toast « Micro et caméra coupés… » avec
+  « Touchez pour les réactiver ». Jamais de réactivation automatique ; aucun
+  toast si la page n'a pas confirmé la coupure. Écran Q&R du direct : coupe
+  seulement les sons de l'APP (`soundService.setTransientMute`).
+- **G11 Mode briquet** (direct à ambiance « nuit ») : bouton « Briquet »,
+  écran noir, flamme qui penche (`useTilt`, fixe si mouvement réduit),
+  luminosité max via le compteur partagé des billets
+  (`holdMaxBrightness`), écran éveillé. WS `lighter on` toutes les 10 s
+  tant que le téléphone n'est pas posé, `on:false` à la fermeture. « N
+  briquets levés » depuis `live.update kind=lighters` (seuil serveur 5).
+  Extinction après 3 min. Haptique légère au premier allumage.
+- **G12 Maintenir pour applaudir** (👏 / 🔥) : rafale croissante de bulles
+  locales (plafond 6) et d'haptiques légères ; un seul envoi
+  `{emoji, count 1..30}` au relâcher. Action d'accessibilité « Applaudir
+  longuement » (count 15).
+- **G13 Échanger son contact en secouant** : réglage serveur
+  `allow_shake_exchange` (Vie privée, désactivé par défaut, texte sur la
+  position). Hub sur place (« Échanger par secousse ») et Connexions
+  pendant l'événement du jour (« Chercher autour de moi ») ; secousse
+  seulement si la localisation est DÉJÀ autorisée (le bouton peut la
+  demander). Position arrondie (4 décimales), second essai 1,5 s plus tard,
+  liste de candidats sans choix automatique, « Se connecter ? » →
+  `/bump/confirm/` (en attente → connectés, haptique « succès »). Erreurs :
+  `shake_disabled` (lien Réglages), `not_checked_in`, `clock_skew`, 429,
+  `no_pair`.
+- **G14 Double tap sur la bannière** de la fiche : enregistre (suit),
+  jamais de retrait ; signet corail au point touché + particules, haptique
+  légère. `Gesture.Exclusive(double, simple)` : le tap simple ouvre toujours
+  la galerie. Pas de couche si vidéo de couverture (ses contrôles gardent
+  les taps). Action d'accessibilité « Enregistrer l'événement ».
+- **G15 Double tap dans le viseur = torche** : scanner organisateur, scan,
+  scanner de connexions et capture de contacts exposant. Bouton torche
+  ajouté là où il n'existait pas (connexions, exposant).
+- **G16 Sélection à deux doigts** (Inscrits) : bouton « Sélectionner »
+  dans l'en-tête ; glisser à deux doigts coche chaque ligne survolée (jamais
+  décochée), `tick` au plus toutes les 40 ms, défilement bloqué pendant le
+  geste. Barre d'actions : check-in manuel (existant), « Écrire aux
+  inscrits sélectionnés » (modale e-mail existante), « Exporter la
+  sélection » (CSV généré sur le téléphone : l'export serveur ne filtre pas
+  par ids).
+- **G17 Faire-part** (invitation « célébration ») : dorure qui glisse sur le
+  filet (`HoloSheen` teinte or + `useTilt`) ; haptique « succès » quand
+  « Je serai présent(e) » est confirmé.
+- Logique pure testée : `src/lib/gestures/__tests__/gestures.test.ts`.
+
+Tests sur appareil (lot 3) — iOS ET Android :
+1. [ ] **Annuler** : balayer un favori puis secouer < 10 s → feuille, rien
+       n'est annulé sans « Annuler l'action » ; après 10 s → rien. Même
+       chose avec l'archivage d'une conversation. Secouer en tapant ou en
+       faisant défiler → rien.
+2. [ ] **Signaler** (APK preview avec la variable) : secousse sur Découvrir
+       → capture + « Flouter » ; vérifier dans Sentry > User Feedback que
+       l'image (floutée si demandé), la route et la version arrivent. Sur un
+       billet / paiement / conversation → rien. Build production → rien.
+3. [ ] **Surprends-moi** : en haut de Découvrir, secouer → aperçu ; « Encore »
+       → un autre ; « Ouvrir » → fiche ; plus bas dans le flux → rien. Chip
+       « Au hasard » équivalent. Un événement réservé n'apparaît jamais.
+4. [ ] **Chut** : en visio, poser le téléphone face contre table → les autres
+       ne vous entendent / voient plus ; retourner → toast, « Réactiver »
+       rallume ; sans toucher au toast → reste coupé.
+5. [ ] **Briquet** (direct « nuit », 5+ téléphones pour voir le compteur) :
+       flamme qui penche, luminosité max puis rendue (adaptative Android) à
+       la fermeture, extinction à 3 min ; mouvement réduit → flamme fixe.
+6. [ ] **Applaudir** : maintenir 👏 → rafale qui s'accélère, un seul envoi
+       au relâcher (les autres voient la rafale) ; tap simple inchangé.
+7. [ ] **Échange** (2 téléphones scannés au même événement, réglage activé) :
+       secouer ensemble → liste ; confirmer des deux côtés → connectés.
+       Réglage coupé → message + lien Réglages ; heure manuelle décalée →
+       message d'horloge ; localisation refusée → la secousse ne demande rien.
+8. [ ] **Double tap bannière** : signet au doigt, l'événement est suivi ;
+       re-double tap → ne retire pas ; tap simple → galerie ; tirer pour
+       fermer et défiler non perturbés.
+9. [ ] **Torche** : double tap dans les 4 viseurs ; boutons toujours OK.
+10. [ ] **Deux doigts** : sélection fluide, ticks réguliers, défilement à un
+        doigt intact ; export CSV partagé ; e-mail aux seuls sélectionnés.
+11. [ ] **Faire-part** : reflet doré qui glisse ; vibration à la confirmation.
+12. [ ] « Gestes de mouvement » coupé → aucune secousse ni chut ni briquet
+        levé n'agit (boutons toujours disponibles).
+
+#### Round 3 — lot 4 (mots et rituels)
+
+Contrats backend B3 utilisés : `GET /me/since/?ts=` (`{since, count, items}`),
+`GET`/`DELETE /recommendations/preferences/`, `POST
+/recommendations/record_interaction/` (`event_id` UUID / `category_id`). 404
+= rien affiché, jamais d'erreur visible. Chaînes dans le namespace `delight.*`
+(FR vouvoiement / EN).
+
+- **W1 Chargement qui raconte.** `useLoadingLine` / `LoadingLine` : rien sous
+  1,2 s, puis une ligne par contexte (billets, favoris, notifications,
+  messages, recherche, fiche), en fondu d'opacité, en pastille flottante sur
+  les squelettes plein écran. **Mobile Money** (`PollingProgressBar`) : récit
+  indexé sur le temps réel écoulé (0-20 s demande envoyée, 20-60 s code PIN,
+  60-120 s confirmation opérateur, > 120 s « débité une seule fois ») ; aucun
+  état affirmé que le serveur n'a pas renvoyé, logique de vérification
+  inchangée.
+- **W2 États vides utiles.** `EmptySuggestion` + prop `suggestion` sur
+  `EmptyState`. Mes billets / Favoris : phrase tournante (graine journalière,
+  3 variantes) + pouls de la ville (`city-pulse`, rien sous le seuil serveur) ;
+  Notifications : « Découvrir des événements » ; Messages : « Scanner un
+  code » ; Découvrir vide : « Rechercher un événement ». Recherche sans
+  résultat : « Vouliez-vous dire « … » ? » (catégories + tags connus,
+  `didYouMean`), sinon « Élargir à 50 km autour de vous » (ville → près de
+  moi), sinon « Retirer les filtres ».
+- **W3 Salutation contextuelle** (tableau de bord, une ligne sous le prénom) :
+  attention du jour > météo PRÉVUE au lieu du prochain billet de J0 à J+2
+  (coordonnées de l'ÉVÉNEMENT ; `fetchForecast` extrait d'`EventWeather` dans
+  `lib/weather.ts`, cache partagé) > nouveautés des organisateurs suivis
+  (`/me/since`) > rien. Prochain billet lu dans le cache « Mes billets ».
+- **W4/W5 Rituels** (`lib/utils/rituals.ts`, pur, testé) : anniversaire
+  (jamais l'âge ; 29 février fêté le 28), ancienneté du compte (filet doré
+  `CELEBRATION_GOLD`), fête nationale (table extensible CM/CI/SN/FR…), Nouvel
+  An. Une fois par jour (`lib/dailyOnce.ts`), interrupteur « Petites
+  attentions » dans Réglages (actif par défaut), aucune notification push.
+  Saison des pluies : seulement via la ligne météo.
+- **W6 « Bon retour ».** `lib/lastOpen.ts` mémorise la visite précédente
+  (démarrage + longue absence en arrière-plan). Au-delà de 21 jours : une
+  carte en tête de Découvrir (3 éléments max, « Et N autres »), masquable.
+  Rien si vide / 404 / annonce en cours (`useOptionalAnnouncements`). Jamais
+  « vous nous avez manqué ».
+- **W7 Personnalisation transparente.** **Bug corrigé** : le mobile envoyait
+  `event` au lieu de `event_id` → AUCUN signal (même `view`) n'était
+  enregistré. `lib/recommendations.ts` : `follow` (bouton, cœur, double tap),
+  `register` (écran de succès), `share`, `search` (choix de catégorie). Deux
+  premières chips de Découvrir selon les goûts (lus une fois par démarrage à
+  froid), « Parce que vous aimez X et Y » sous « Pour vous », « Oublier mes
+  préférences » (Réglages, confirmation, message honnête si 404/échec).
+  Passage : « Tu pourrais aussi aimer » / « taillées pour toi » codés en dur
+  → i18n au vouvoiement.
+- **W8 Attente utile.** Paiement Mobile Money au-delà de 30 s, ou retour dans
+  l'app pendant la vérification : « En attendant, préparez votre carte « J'y
+  vais » » (teinte + message), SOUS la réassurance anti-double débit, les
+  instructions et les boutons. Le billet sort d'une fente au rythme du temps
+  réel (translation, aucune animation de layout) ; statique en mouvement
+  réduit. Au succès, la carte « se détache » au moment de la fête et la carte
+  story reprend teinte + message. Brouillon local, oublié après usage.
+- Tests : `src/lib/__tests__/lot4Words.test.ts`,
+  `src/lib/utils/__tests__/rituals.test.ts`,
+  `src/components/dashboard/__tests__/lot4Rituals.test.tsx`.
+
+Tests sur appareil (lot 4) — iOS ET Android :
+1. [ ] **Mobile Money** : pendant l'attente, les 4 phrases défilent aux bons
+       moments ; à 30 s la carte « J'y vais » apparaît sous les boutons (rien
+       de masqué) ; quitter / revenir dans l'app avant 30 s → elle apparaît ;
+       au succès, la mini-carte s'incline et le partage story reprend teinte
+       + message. Mouvement réduit → carte fixe.
+2. [ ] **Chargements lents** (réseau bridé) : la pastille n'apparaît qu'après
+       ~1 s, jamais sur un chargement rapide.
+3. [ ] **États vides** : compte neuf → Mes billets, Favoris, Notifications,
+       Messages, recherche « concrets » → « Vouliez-vous dire « Concerts » ? » ;
+       recherche avec une ville → « Élargir à 50 km » (demande la position).
+4. [ ] **Tableau de bord** : billet demain avec coordonnées → ligne météo ;
+       anniversaire (date de naissance du jour) → message + filet doré, rien
+       à la session suivante du même jour ; « Petites attentions » coupé →
+       rien.
+5. [ ] **Bon retour** : régler `@eventez_last_open_at` à J-30 (ou attendre) →
+       carte en tête de Découvrir ; masquer ; pas de carte si une annonce
+       s'affiche.
+6. [ ] **Recommandations** : suivre / s'inscrire / partager → vérifier en
+       admin que `UserInteraction` est créé (`event_id`) ; après quelques
+       signaux, chips et « Parce que vous aimez » au démarrage suivant ;
+       « Oublier mes préférences » → confirmation puis message.
+
 ---
 
 ### Avant publication

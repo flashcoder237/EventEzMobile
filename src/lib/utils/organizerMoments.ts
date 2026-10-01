@@ -291,3 +291,18 @@ export function isDuplicateScan(
 ): boolean {
   return !!last && last.code === code && now - last.at < windowMs;
 }
+
+/** H4 — paliers de remplissage du direct qui donnent un cran haptique. */
+export const LIVEOPS_NOTCHES = [50, 75, 90, 100] as const;
+
+/**
+ * Plus haut palier franchi EN MONTANT entre deux lectures (null sinon, et
+ * jamais au premier chargement : `prev` absent). Une baisse (annulation de
+ * check-in) ne donne rien.
+ */
+export function crossedLiveOpsNotch(prev: number | null | undefined, next: number | null | undefined): number | null {
+  if (prev == null || next == null || !(next > prev)) return null;
+  let hit: number | null = null;
+  for (const n of LIVEOPS_NOTCHES) if (prev < n && next >= n) hit = n;
+  return hit;
+}

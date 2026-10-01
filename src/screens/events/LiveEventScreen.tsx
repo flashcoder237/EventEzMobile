@@ -31,6 +31,11 @@ import { applyPollUpdate, applyQuestionUpdate } from '../../lib/realtime/live';
 import { LiveReactions, type LiveReactionsHandle } from '../../components/events/live/LiveReactions';
 import { useMotionGate } from '../../components/ui/motion';
 import { appDateLocale } from '../../lib/utils/dateFormatters';
+import { getEventAmbience } from '../../lib/utils/eventKind';
+import LighterMode from '../../components/events/live/LighterMode';
+import { readLighters } from '../../lib/gestures/lighter';
+import { usePhonePosture } from '../../components/ui/motion/usePhonePosture';
+import soundService from '../../services/soundService';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type LiveEventRouteProp = RouteProp<RootStackParamList, 'LiveEvent'>;
@@ -127,6 +132,28 @@ export default function LiveEventScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [votingId, setVotingId] = useState<string | null>(null);
   const reactionsRef = useRef<LiveReactionsHandle>(null);
+  // G11 — briquet (directs « nuit » seulement) et compteur de briquets levés.
+  const [ambience, setAmbience] = useState<string>('neutral');
+  const [lighters, setLighters] = useState(0);
+  const [lighterOn, setLighterOn] = useState(false);
+  // G5 — téléphone retourné sur le direct : coupe les sons de l'APP seulement.
+  const posture = usePhonePosture({
+    faceDown: () => soundService.setTransientMute(true),
+    faceUp: () => soundService.setTransientMute(false),
+  });
+  useEffect(() => () => soundService.setTransientMute(false), []);
+  useEffect(() => {
+    let alive = true;
+    eventsAPI
+      .getEvent(eventId)
+      .then((res: any) => {
+        if (alive) setAmbience(getEventAmbience(res?.data));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [eventId]);
 
   // V6 — Q&R, sondages et réactions en temps réel sur le topic `live:{uuid}`.
   const liveId = UUID_RE.test(resolvedEventId) ? resolvedEventId : null;
@@ -162,6 +189,8 @@ export default function LiveEventScreen() {
       });
     } else if (kind === 'reactions' && data && typeof data === 'object') {
       reactionsRef.current?.burst(data as Record<string, number>);
+    } else if (kind === 'lighters') {
+      setLighters(readLighters(data));
     }
   });
 
@@ -400,6 +429,27 @@ export default function LiveEventScreen() {
     );
   }
 
+  const lighterButton =
+    liveId && ambience === 'night' ? (
+      <View style={styles.lighterRow}>
+        <TouchableOpacity
+          onPress={() => setLighterOn(true)}
+          style={[styles.lighterBtn, { backgroundColor: colors.gray900 }]}
+          accessibilityRole="button"
+          accessibilityLabel={t('gestures.lighter.button')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="flame" size={16} color="#FF9F43" />
+          <Text style={styles.lighterBtnText}>{t('gestures.lighter.button')}</Text>
+        </TouchableOpacity>
+        {lighters > 0 && (
+          <Text style={[styles.lighterCount, { color: colors.textLight }]}>
+            {t('gestures.lighter.count', { count: lighters })}
+          </Text>
+        )}
+      </View>
+    ) : null;
+
   return (
     <EditorialCanvas edges={['top']}>
       <WatermarkNumeral>LIVE</WatermarkNumeral>
@@ -470,6 +520,7 @@ export default function LiveEventScreen() {
           />
 
           {/* V6 — réactions en direct (au plus 6 bulles par fenêtre de 2 s). */}
+          {lighterButton}
           <LiveReactions ref={reactionsRef} eventId={liveId} />
 
           {/* Question Input */}
@@ -537,16 +588,25 @@ export default function LiveEventScreen() {
           renderItem={renderPoll}
         />
         <View style={{ paddingBottom: insets.bottom }}>
+          {lighterButton}
           <LiveReactions ref={reactionsRef} eventId={liveId} />
         </View>
         </>
       )}
     </KeyboardAvoidingView>
+    {posture.sensorElement}
+    {liveId && ambience === 'night' && (
+      <LighterMode visible={lighterOn} eventId={liveId} lighters={lighters} onClose={() => setLighterOn(false)} />
+    )}
     </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
+  lighterRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingTop: 6 },
+  lighterBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 17 },
+  lighterBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  lighterCount: { fontSize: 13 },
   container: { flex: 1, backgroundColor: Colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },

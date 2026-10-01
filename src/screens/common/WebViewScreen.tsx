@@ -18,6 +18,7 @@ import { FontFamily, FontSizes, Spacing, BorderRadius } from '../../constants/th
 import { usePictureInPicture } from '../../hooks/usePictureInPicture';
 import { virtualRoomsAPI } from '../../api/content';
 import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
+import { useVisioHush } from '../../hooks/useVisioHush';
 
 type BrowserRoute = RouteProp<RootStackParamList, 'Browser'>;
 
@@ -71,6 +72,8 @@ export default function WebViewScreen() {
   const MAX_ATTEMPTS = 3;
   const canRetry = attempt < MAX_ATTEMPTS;
   const [pageTitle, setPageTitle] = useState(title ?? '');
+  // G5 — téléphone retourné : micro et caméra coupés dans la page Jitsi.
+  const hush = useVisioHush(webViewRef, isVisio && !hasError);
 
   const retry = useCallback(() => {
     setAutoRetryIn(null);
@@ -187,6 +190,7 @@ export default function WebViewScreen() {
         onNavigationStateChange={(state) => {
           if (!title && state.title) setPageTitle(state.title);
         }}
+        onMessage={isVisio ? hush.onMessage : undefined}
         allowsBackForwardNavigationGestures
         sharedCookiesEnabled
         mediaPlaybackRequiresUserAction={false}
@@ -210,6 +214,8 @@ export default function WebViewScreen() {
         setSupportMultipleWindows={false}
         mixedContentMode="always"
       />
+
+      {hush.sensorElement}
 
       {/* Connexion lente detectee : prevenir AVANT que le forfait soit
           consomme. `useNetworkSpeed` etait utilise partout sauf ici — l'ecran

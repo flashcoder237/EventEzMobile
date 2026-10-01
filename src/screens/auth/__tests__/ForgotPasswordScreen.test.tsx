@@ -102,7 +102,7 @@ describe('ForgotPasswordScreen', () => {
     fireEvent.changeText(getByPlaceholderText('votre@email.com'), 'alice@example.com');
     fireEvent.press(getByText('Envoyer le lien'));
 
-    expect(await findByText('Check ta boîte mail')).toBeTruthy();
+    expect(await findByText('Consultez votre boîte mail')).toBeTruthy();
   });
 
   it('shows the success state even when API returns generic error (security)', async () => {
@@ -113,7 +113,7 @@ describe('ForgotPasswordScreen', () => {
     fireEvent.press(getByText('Envoyer le lien'));
 
     // Le composant affiche succès même si l'email n'existe pas (anti-énumération)
-    expect(await findByText('Check ta boîte mail')).toBeTruthy();
+    expect(await findByText('Consultez votre boîte mail')).toBeTruthy();
   });
 
   it('shows a generic validation toast when API returns a field-specific error (raw field text never shown)', async () => {

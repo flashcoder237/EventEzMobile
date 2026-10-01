@@ -105,6 +105,14 @@ import { shortMonthLabel } from '../../lib/utils/dateFormatters';
 import TonightCard from '../../components/tickets/TonightCard';
 import { CityPulseLine, type CityPulse } from '../../components/events/live/SocialSignals';
 import { useTonightTicket } from '../../hooks/useTonightTicket';
+import { useShakeAction } from '../../hooks/useShakeAction';
+import { peek } from '../../components/ui/motion/Peek';
+import { pickSurprise, registeredEventKeys, surpriseCandidates } from '../../lib/gestures/surprise';
+import { registrationsAPI } from '../../api';
+import WelcomeBackCard from '../../components/discover/WelcomeBackCard';
+import EmptySuggestion from '../../components/ui/EmptySuggestion';
+import { rememberUserCity, useDailyLine } from '../../hooks/useEmptySuggestion';
+import { loadTastePreferences, orderCategoriesByTaste, topTasteCategories, type TasteCategory } from '../../lib/recommendations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -279,7 +287,7 @@ export default function DiscoverScreen() {
   const { width: discoverWidth } = useWindowDimensions();
   const categoryCardWidth = Math.floor((Math.min(discoverWidth, 520) - Spacing.lg * 2 - Spacing.sm) / 2);
   const { t } = useTranslation();
-  const { toastSuccess, toastWarning } = useFeedback();
+  const { toastSuccess, toastWarning, toastInfo } = useFeedback();
   const { currency: platformCurrency } = useCommissionConfig();
   const { unreadNotificationCount } = useUnreadCounts();
   const { isSlowCellular, isOffline } = useNetworkSpeed();
@@ -298,6 +306,34 @@ export default function DiscoverScreen() {
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [freeEvents, setFreeEvents] = useState<Event[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  // R3 W7 — goûts lus une fois par démarrage à froid : les 2 premières chips
+  // suivent les goûts, le reste ne bouge pas ; « Parce que vous aimez X et Y ».
+  const [tasteTop, setTasteTop] = useState<TasteCategory[]>([]);
+  useEffect(() => {
+    if (!user) {
+      setTasteTop([]);
+      return undefined;
+    }
+    let alive = true;
+    loadTastePreferences().then((prefs) => {
+      if (alive) setTasteTop(topTasteCategories(prefs, 2));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [user]);
+  const chipCategories = useMemo(
+    () => orderCategoriesByTaste(categories, tasteTop.map((c) => c.category_id)),
+    [categories, tasteTop],
+  );
+  const becauseLine = useMemo(() => {
+    const names = tasteTop.map((c) => String(c.category_name || '').trim()).filter(Boolean);
+    if (names.length >= 2) return t('delight.reco.becauseTwo', { first: names[0], second: names[1] });
+    if (names.length === 1) return t('delight.reco.becauseOne', { first: names[0] });
+    return null;
+  }, [tasteTop, t]);
+  // R3 W2 — état vide de l'accueil : phrase tournante du jour.
+  const discoverEmptyLine = useDailyLine('discover', 2);
   const [recommendations, setRecommendations] = useState<Event[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -399,6 +435,8 @@ export default function DiscoverScreen() {
   const feedRef = useAnimatedRef<FlatList<Event>>();
   // Bouton flottant « remonter en haut » : visible au-delà d'un seuil de scroll.
   const [showScrollTop, setShowScrollTop] = useState(false);
+  // G3 — la secousse « surprends-moi » n'agit qu'en haut du flux.
+  const [atFeedTop, setAtFeedTop] = useState(true);
   const scrollToTop = useCallback(() => {
     runOnUI(() => {
       'worklet';
@@ -480,6 +518,10 @@ export default function DiscoverScreen() {
       const shouldShow = y > SCROLL_TOP_THRESHOLD;
       if (shouldShow !== showScrollTop) {
         runOnJS(setShowScrollTop)(shouldShow);
+      }
+      const top = y < 400;
+      if (top !== atFeedTop) {
+        runOnJS(setAtFeedTop)(top);
       }
     },
     // Aimantage : jamais d'en-tête à moitié replié au repos. Lâcher sans élan
@@ -786,11 +828,11 @@ export default function DiscoverScreen() {
       const granted = await pushNotificationService.requestPermissions();
       if (granted) {
         toastSuccess(
-          t('discover.notifyOnBody', { defaultValue: 'Tu seras prévenu dès que les premiers événements arrivent.' }),
+          t('discover.notifyOnBody', { defaultValue: 'Vous serez prévenu dès que les premiers événements arrivent.' }),
         );
       } else {
         toastWarning(
-          t('discover.notifyOffBody', { defaultValue: 'Active les notifications dans les réglages pour être prévenu.' }),
+          t('discover.notifyOffBody', { defaultValue: 'Activez les notifications dans les réglages pour être prévenu.' }),
         );
       }
     } catch {
@@ -829,7 +871,10 @@ export default function DiscoverScreen() {
       });
       const p = places?.[0];
       const city = p?.city || p?.subregion || p?.region || null;
-      if (city) setUserCity(city);
+      if (city) {
+        setUserCity(city);
+        rememberUserCity(city);
+      }
     } catch {
       // Reverse-geocoding indisponible (offline, quota) → on garde le libellé générique.
     }
@@ -966,6 +1011,54 @@ export default function DiscoverScreen() {
     },
     [navigation],
   );
+  // G3 — « surprends-moi » : un événement à venir, pas encore réservé, parmi
+  // « Pour vous » et « près de vous », ouvert en aperçu (Ouvrir / Encore).
+  const registeredKeysRef = React.useRef<Set<string> | null>(null);
+  const lastSurpriseRef = React.useRef<string | null>(null);
+  const surprise = useCallback(async () => {
+    if (peek.isOpen()) return;
+    if (user && !registeredKeysRef.current) {
+      try {
+        const res = await registrationsAPI.getMyRegistrations();
+        registeredKeysRef.current = registeredEventKeys(getApiResults(res.data) as unknown[]);
+      } catch {
+        registeredKeysRef.current = new Set();
+      }
+    }
+    const candidates = surpriseCandidates(
+      [forYouEvents, recommendations, nearbyEvents],
+      registeredKeysRef.current ?? new Set(),
+    );
+    const ev = pickSurprise(candidates, lastSurpriseRef.current);
+    if (!ev) {
+      toastInfo(t('gestures.surprise.none'));
+      return;
+    }
+    lastSurpriseRef.current = String(ev.id);
+    haptics.selection();
+    const imageUrl = eventImage(ev, 'medium');
+    const w = Math.min(discoverWidth - 64, 300);
+    peek.open({
+      rect: { x: (discoverWidth - w) / 2, y: 180, width: w, height: w * 0.6 },
+      preview: {
+        id: String(ev.id),
+        title: ev.title,
+        subtitle: [`${splitDate(ev.start_date).day} ${splitDate(ev.start_date).month}`, ev.location_city]
+          .filter(Boolean)
+          .join(' · '),
+        imageUrl,
+      },
+      actions: [
+        { key: 'again', label: t('gestures.surprise.again'), icon: 'shuffle', onSelect: () => { surprise(); } },
+        { key: 'open', label: t('componentsEvents.peekOpen'), icon: 'arrow-forward', onSelect: () => openEventFromCard(ev, imageUrl), hero: true },
+      ],
+    });
+    // Ouvert sans doigt posé : le fond doit pouvoir fermer l'aperçu.
+    peek.release();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, forYouEvents, recommendations, nearbyEvents, discoverWidth, openEventFromCard, t, toastInfo]);
+  useShakeAction(surprise, atFeedTop);
+
   const goToNotifications = () =>
     user ? navigation.navigate('Notifications') : navigation.navigate('Login' as any);
 
@@ -1692,6 +1785,9 @@ export default function DiscoverScreen() {
           />
         )}
 
+        {/* R3 W6 — « Bon retour » après plus de 21 jours d'absence (une carte, ou rien). */}
+        <WelcomeBackCard enabled={!!user} />
+
         {/* === ADS — haut du feed === */}
         {ads.filter((a) => a.placement === 'feed_top').map((ad) => (
           <View key={ad.id} style={{ paddingHorizontal: Spacing.lg }}>
@@ -1951,7 +2047,7 @@ export default function DiscoverScreen() {
                       CONNEXION
                     </Text>
                     <Text style={[styles.loginCtaTitle, { color: colors.text }]}>
-                      Des recommandations taillées pour toi
+                      {t('delight.reco.loginCtaTitle')}
                     </Text>
                   </View>
                   <Ionicons name="arrow-forward" size={18} color={colors.primary} />
@@ -2044,7 +2140,7 @@ export default function DiscoverScreen() {
                   maxWidth: 300,
                 }}
               >
-                {t('discover.emptyDesc', { defaultValue: 'Sois le premier informé quand ça bouge près de chez toi.' })}
+                {t('discover.emptyDesc', { defaultValue: 'Soyez le premier informé quand ça bouge près de chez vous.' })}
               </Text>
               <TouchableOpacity
                 onPress={handleEnableNotifications}
@@ -2062,9 +2158,16 @@ export default function DiscoverScreen() {
               >
                 <Ionicons name="notifications-outline" size={16} color="#FFFFFF" />
                 <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 14, color: '#FFFFFF' }}>
-                  {t('discover.emptyNotifyCta', { defaultValue: 'Préviens-moi' })}
+                  {t('discover.emptyNotifyCta', { defaultValue: 'Prévenez-moi' })}
                 </Text>
               </TouchableOpacity>
+              {/* R3 W2 — une vraie piste en plus : chercher, avec le pouls de la ville s'il existe. */}
+              <EmptySuggestion
+                text={discoverEmptyLine}
+                actionLabel={t('delight.empty.searchAction')}
+                actionIcon="search-outline"
+                onAction={() => navigation.navigate('EventSearch', undefined)}
+              />
             </View>
           )}
 
@@ -2079,11 +2182,17 @@ export default function DiscoverScreen() {
         {hasForYou && (
           <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.xl }}>
             <Text style={[styles.forYouEyebrow, { color: colors.accent }]}>
-              POUR VOUS · BASÉ SUR VOS GOÛTS
+              {t('delight.reco.forYouEyebrow')}
             </Text>
             <Text style={[styles.forYouTitle, { color: colors.text }]}>
-              Tu pourrais aussi aimer
+              {t('delight.reco.forYouTitle')}
             </Text>
+            {/* R3 W7 — pourquoi ces suggestions, seulement si le goût est réel. */}
+            {!!becauseLine && (
+              <Text style={[styles.forYouBecause, { color: colors.gray500 }]} numberOfLines={2}>
+                {becauseLine}
+              </Text>
+            )}
           </View>
         )}
       </>
@@ -2096,7 +2205,7 @@ export default function DiscoverScreen() {
       localOrganizerCity, countryIsDistinctive, recommendations, upcomingEvents,
       freeEvents, initialLoading, platformCurrency, categoryCardWidth, hasForYou,
       navigation, requestLocation, handleEnableNotifications, stableOnRefresh,
-      headerHeight, tonight, cityPulse,
+      headerHeight, tonight, cityPulse, becauseLine, discoverEmptyLine,
     ],
   );
 
@@ -2384,7 +2493,17 @@ export default function DiscoverScreen() {
                         <Text style={[styles.chipText, { color: Colors.white }]}>{t('common.all')}</Text>
                       </SpringChip>
                     </TourTarget>
-                    {categories.slice(0, 8).map((cat) => (
+                    {/* G3 — bouton équivalent à la secousse « surprends-moi ». */}
+                    <SpringChip
+                      style={styles.chip}
+                      inactiveColor={colors.gray100}
+                      onPress={surprise}
+                      icon={<Ionicons name="shuffle" size={13} color={colors.gray600} />}
+                      accessibilityLabel={t('gestures.surprise.chipA11y')}
+                    >
+                      <Text style={[styles.chipText, { color: colors.gray600 }]}>{t('gestures.surprise.chip')}</Text>
+                    </SpringChip>
+                    {chipCategories.slice(0, 8).map((cat) => (
                       <SpringChip
                         key={cat.id}
                         style={styles.chip}
@@ -3218,6 +3337,11 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginBottom: 4,
+  },
+  forYouBecause: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    marginTop: 4,
   },
   forYouTitle: {
     fontFamily: FontFamily.displayExtraBold,

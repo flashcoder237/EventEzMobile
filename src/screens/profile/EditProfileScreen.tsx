@@ -23,7 +23,7 @@ import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import PhoneNumberInput from '../../components/common/PhoneNumberInput';
 import SearchableSelectModal from '../../components/common/SearchableSelectModal';
 import { COUNTRIES, Country, countryName, flagEmoji } from '../../constants/countries';
-import { extractErrorMessage } from '../../lib/utils/errorHandling';
+import { extractErrorMessage, getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { FormErrors } from '../../lib/validation';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import { usersAPI } from '../../api';
@@ -256,7 +256,7 @@ export default function EditProfileScreen() {
     } catch (error: any) {
       if (__DEV__) console.error('Erreur upload image:', error);
       setProfileImage(user?.profile_picture || user?.image || null);
-      showError(t('common.error'), extractErrorMessage(error));
+      showError(t('common.error'), getApiErrorMessage(error, t, { fallbackKey: 'errors.uploadFailed', context: 'upload' }).message);
     }
   };
 

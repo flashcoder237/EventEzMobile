@@ -23,6 +23,8 @@ import { getSaleState } from '../../utils/ticketSaleWindow';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RouteProp, useRoute, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import LoadingLine from '../../components/ui/LoadingLine';
+import { trackInteraction } from '../../lib/recommendations';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Animated, {
@@ -48,6 +50,7 @@ import { isWeddingEvent } from '../../lib/utils/eventKind';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows, TextStyles } from '../../constants/theme';
 import BlurHeader from '../../components/ui/BlurHeader';
 import FollowEventButton from '../../components/events/FollowEventButton';
+import DoubleTapSaveLayer from '../../components/gestures/DoubleTapSaveLayer';
 import EventCoverMedia from '../../components/events/EventCoverMedia';
 import EventCoverVideoModal from '../../components/events/EventCoverVideoModal';
 import FollowUserButton from '../../components/common/FollowUserButton';
@@ -142,6 +145,7 @@ export default function EventDetailsScreen() {
   const {
     event,
     loading,
+    loadErrorMessage,
     isPreview,
     isFollowing,
     setIsFollowing,
@@ -423,6 +427,8 @@ export default function EventDetailsScreen() {
   // Groupe 3 : la barre de réservation monte depuis 100 % à 120 ms.
   // Rien au retour sur l'écran ni au pull-to-refresh : l'écran reste monté.
   const reducedAtMount = useRef(isReducedMotionCached()).current;
+  // G14 — un seul enregistrement en vol pour le double tap bannière.
+  const saveInFlight = useRef(false);
   const arrive = useSharedValue(heroFlight.flying || reducedAtMount ? 1 : 0);
   useEffect(() => {
     if (heroFlight.flying || reducedAtMount) return;
@@ -580,7 +586,7 @@ export default function EventDetailsScreen() {
         <View style={[styles.errorContainer, { zIndex: 1 }]}>
           <Text style={[editorialStyles.eyebrow, { color: colors.primary }]}>{t('eventDetails.loadingErrorEyebrow')}</Text>
           <Text style={[editorialStyles.errorTitle, { color: colors.gray900 }]}>{t('eventDetails.loadingError')}</Text>
-          <Text style={[styles.errorText, { color: colors.gray500 }]}>{t('eventDetails.loadingErrorMessage')}</Text>
+          <Text style={[styles.errorText, { color: colors.gray500 }]}>{loadErrorMessage ?? t('eventDetails.loadingErrorMessage')}</Text>
           <View style={{ marginTop: 24, flexDirection: 'row', alignSelf: 'stretch' }}>
             <EditorialPillCTA
               eyebrow={t('eyebrow.back')}
@@ -723,6 +729,29 @@ export default function EventDetailsScreen() {
     setFollowersCount(prev => following ? prev + 1 : Math.max(0, prev - 1));
   };
 
+  // G14 — double tap sur la bannière : enregistre seulement (déjà enregistré =
+  // simple confirmation visuelle, jamais de retrait).
+  const doSaveFromDoubleTap = () => {
+    if (isFollowing || saveInFlight.current || !eventId) return;
+    saveInFlight.current = true;
+    handleFollowChange(true);
+    eventsAPI
+      .followEvent(eventId)
+      .then(() => trackInteraction('follow', { eventId: event?.id }))
+      .catch(() => {
+        handleFollowChange(false);
+        toastError(t('componentsEvents.followError'));
+      })
+      .finally(() => {
+        saveInFlight.current = false;
+      });
+  };
+  // Gardé au moment du geste (connexion requise), jamais au rendu.
+  const saveFromDoubleTap = () => {
+    const guarded = requireAuth(doSaveFromDoubleTap);
+    if (typeof guarded === 'function') guarded();
+  };
+
   // Event details mini-tour. Skipped in preview mode (organizer previewing
   // their own event doesn't need the tour). Gated on loaded event so the
   // sticky CTA target exists.
@@ -853,12 +882,14 @@ export default function EventDetailsScreen() {
               contrôles (son / agrandir / play) qui doivent recevoir les taps.
               Sinon le tap bannière rouvrait la galerie photo par-dessus la vidéo
               (le bug d'origine). La galerie reste accessible via sa section. */}
+          {/* G14 — double tap = enregistrer (jamais retirer), exclusif avec
+              le tap simple qui ouvre la galerie. */}
           {!hasCoverVideo && (
-            <Pressable
-              style={StyleSheet.absoluteFill}
-              onPress={() => openViewer(0)}
-              accessibilityRole="button"
+            <DoubleTapSaveLayer
+              onSingleTap={() => openViewer(0)}
+              onDoubleTap={saveFromDoubleTap}
               accessibilityLabel={t('eventDetails.viewPhotosFullscreenA11y')}
+              saveActionLabel={t('gestures.doubleTapSave.a11y')}
             />
           )}
 
@@ -954,6 +985,7 @@ export default function EventDetailsScreen() {
             <View style={{ height: 16, width: '60%', backgroundColor: colors.gray200, borderRadius: 4, marginBottom: 8 }} />
             <View style={{ height: 16, width: '90%', backgroundColor: colors.gray200, borderRadius: 4, marginBottom: 8 }} />
             <View style={{ height: 16, width: '70%', backgroundColor: colors.gray200, borderRadius: 4 }} />
+            <LoadingLine context="event" />
           </View>
         ) : event ? (
         // Pas de délai : le contenu apparaît dès qu'il est prêt. Aucune

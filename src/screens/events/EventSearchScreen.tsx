@@ -13,6 +13,7 @@ import {
   Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import LoadingLine from '../../components/ui/LoadingLine';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -34,7 +35,9 @@ import Animated, {
 import { ScrollTopFab } from '../../components/common/FloatingActionButton';
 
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
-import { eventsAPI, categoriesAPI } from '../../api';
+import { eventsAPI, categoriesAPI, tagsAPI } from '../../api';
+import { didYouMean } from '../../lib/utils/didYouMean';
+import { trackInteraction } from '../../lib/recommendations';
 import { getEventImageUrl, prefetchImageUrls } from '../../utils/imageUtils';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -121,6 +124,23 @@ type Action =
   | { type: 'SET_CATEGORIES'; cats: Category[] }
   | { type: 'RESET_FILTERS' }
   | { type: 'RESET' };
+
+// Tags connus (pour « Vouliez-vous dire … ? ») : une lecture par session.
+let knownTagsOnce: Promise<Array<{ id: number | string; name: string }>> | null = null;
+function loadKnownTags() {
+  if (!knownTagsOnce) {
+    knownTagsOnce = Promise.resolve()
+      .then(() => tagsAPI.getTags({ page_size: 200 }))
+      .then((res: any) => {
+        const list = res?.data?.results || res?.data || [];
+        return (Array.isArray(list) ? list : [])
+          .filter((tg: any) => tg && typeof tg.name === 'string' && tg.name.trim())
+          .map((tg: any) => ({ id: tg.id, name: tg.name.trim() }));
+      })
+      .catch(() => []);
+  }
+  return knownTagsOnce;
+}
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -346,6 +366,80 @@ export default function EventSearchScreen() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const inputRef = useRef<TextInput>(null);
 
+  // R3 W7 — choisir une catégorie = signal « search » pour les recommandations.
+  useEffect(() => {
+    if (state.categoryId !== null) trackInteraction('search', { categoryId: state.categoryId });
+  }, [state.categoryId]);
+
+  // R3 W2 — recherche sans résultat : « Vouliez-vous dire … ? » (catégories et
+  // tags CONNUS uniquement), sinon élargir à 50 km, sinon retirer les filtres.
+  const noResults = !state.loading && state.results.length === 0;
+  const [knownTags, setKnownTags] = useState<Array<{ id: number | string; name: string }>>([]);
+  const wantsTags = noResults && state.debouncedQuery.trim().length >= 3;
+  useEffect(() => {
+    if (!wantsTags || knownTags.length) return undefined;
+    let alive = true;
+    loadKnownTags().then((tags) => {
+      if (alive && tags.length) setKnownTags(tags);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [wantsTags, knownTags.length]);
+
+  const emptySuggestion = useMemo(() => {
+    if (!noResults) return null;
+    const q = state.debouncedQuery.trim();
+    if (q.length >= 3) {
+      const match = didYouMean<{ kind: 'category' | 'tag'; id?: number | string; name: string }>(q, [
+        ...state.categories
+          .filter((c) => c.id !== state.categoryId)
+          .map((c) => ({ label: c.name, value: { kind: 'category' as const, id: c.id, name: c.name } })),
+        ...knownTags.map((tg) => ({ label: tg.name, value: { kind: 'tag' as const, name: tg.name } })),
+      ]);
+      if (match && match.value.name.toLowerCase() !== q.toLowerCase()) {
+        return {
+          actionLabel: t('delight.empty.didYouMean', { term: match.value.name }),
+          actionIcon: 'sparkles-outline' as const,
+          onAction: () => {
+            if (match.value.kind === 'category') {
+              dispatch({ type: 'SET_QUERY', query: '' });
+              dispatch({ type: 'SET_DEBOUNCED', query: '' });
+              dispatch({ type: 'SET_CATEGORY', id: match.value.id as any });
+            } else {
+              dispatch({ type: 'SET_QUERY', query: match.value.name });
+              dispatch({ type: 'SET_DEBOUNCED', query: match.value.name });
+            }
+          },
+        };
+      }
+    }
+    if (state.city && !state.nearMe) {
+      return {
+        actionLabel: t('delight.empty.widen'),
+        actionIcon: 'locate-outline' as const,
+        onAction: () => {
+          dispatch({ type: 'SET_CITY', city: null });
+          dispatch({ type: 'TOGGLE_NEAR_ME' });
+        },
+      };
+    }
+    const filtered =
+      state.categoryId !== null || state.city !== null || state.datePreset !== 'any' ||
+      state.locationType !== 'any' || state.priceFilter !== 'any' || state.nearMe || state.hasTickets;
+    if (filtered) {
+      return {
+        actionLabel: t('delight.empty.clearFilters'),
+        actionIcon: 'close-circle-outline' as const,
+        onAction: () => dispatch({ type: 'RESET_FILTERS' }),
+      };
+    }
+    return null;
+  }, [
+    noResults, state.debouncedQuery, state.categories, state.categoryId, state.city, state.nearMe,
+    state.datePreset, state.locationType, state.priceFilter, state.hasTickets, knownTags, t,
+  ]);
+
   // Viewport tracking pour autoplay video sur cards visibles
   const visibleIdsRef = useRef<Set<string>>(new Set());
   const [visibleVersion, setVisibleVersion] = useState(0);
@@ -503,8 +597,8 @@ export default function EventSearchScreen() {
     try {
       await Share.share(
         Platform.OS === 'ios'
-          ? { url, message: t('eventSearch.shareMessage', { defaultValue: 'Découvre ces événements sur EventEz' }) }
-          : { message: `${t('eventSearch.shareMessage', { defaultValue: 'Découvre ces événements sur EventEz' })}\n${url}` },
+          ? { url, message: t('eventSearch.shareMessage', { defaultValue: 'Découvrez ces événements sur EventEz' }) }
+          : { message: `${t('eventSearch.shareMessage', { defaultValue: 'Découvrez ces événements sur EventEz' })}\n${url}` },
       );
     } catch {
       // partage annulé / indisponible → non bloquant.
@@ -1141,6 +1235,7 @@ export default function EventSearchScreen() {
         ) : state.loading && state.results.length === 0 ? (
           <View style={{ flex: 1, paddingHorizontal: containerPadding, paddingTop: headerH + Spacing.sm }}>
             <SkeletonList count={4} Component={EventCardSkeleton} />
+            <LoadingLine context="search" />
           </View>
         ) : state.results.length === 0 ? (
           <View style={{ flex: 1, paddingTop: headerH }}>
@@ -1148,6 +1243,7 @@ export default function EventSearchScreen() {
               icon="search-outline"
               title={t('eventSearch.emptyTitle')}
               description={t('eventSearch.emptyDescription')}
+              suggestion={emptySuggestion ?? undefined}
             />
           </View>
         ) : (

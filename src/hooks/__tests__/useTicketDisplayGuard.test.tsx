@@ -29,7 +29,14 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 import { renderHook } from '@testing-library/react-native';
-import { useTicketDisplayGuard, __resetTicketBrightness } from '../useTicketDisplayGuard';
+import {
+  useTicketDisplayGuard,
+  __resetTicketBrightness,
+  suspendTicketBrightness,
+  resumeTicketBrightness,
+  isTicketBrightnessSuspended,
+} from '../useTicketDisplayGuard';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 
 const flush = () => new Promise((r) => setImmediate(r));
 
@@ -87,5 +94,36 @@ describe('useTicketDisplayGuard — luminosité', () => {
     jest.advanceTimersByTime(300);
     expect(mockGet).toHaveBeenCalledTimes(1); // origine lue une seule fois
     expect(mockSet).toHaveBeenLastCalledWith(0.4);
+  });
+
+  it('face contre table (G4) : rend au système puis reprend le max, sans toucher au compteur', async () => {
+    Platform.OS = 'android';
+    const blur = focusScreen();
+    await flush();
+    (deactivateKeepAwake as jest.Mock).mockClear();
+    (activateKeepAwakeAsync as jest.Mock).mockClear();
+    expect(suspendTicketBrightness()).toBe(true);
+    expect(isTicketBrightnessSuspended()).toBe(true);
+    expect(mockRestore).toHaveBeenCalledTimes(1);
+    expect(deactivateKeepAwake).toHaveBeenCalled();
+    expect(suspendTicketBrightness()).toBe(false); // idempotent
+    expect(resumeTicketBrightness()).toBe(true);
+    expect(mockSet).toHaveBeenLastCalledWith(1);
+    expect(activateKeepAwakeAsync).toHaveBeenCalled();
+    blur();
+    jest.advanceTimersByTime(300);
+    expect(mockRestore).toHaveBeenCalledTimes(2);
+  });
+
+  it('suspend sans écran billet affiché → no-op ; sortie pendant la suspension → état propre', async () => {
+    Platform.OS = 'android';
+    expect(suspendTicketBrightness()).toBe(false);
+    const blur = focusScreen();
+    await flush();
+    suspendTicketBrightness();
+    blur();
+    jest.advanceTimersByTime(300);
+    expect(isTicketBrightnessSuspended()).toBe(false);
+    expect(resumeTicketBrightness()).toBe(false);
   });
 });

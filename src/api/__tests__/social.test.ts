@@ -337,7 +337,7 @@ describe('recommendationsAPI', () => {
   });
 
   it('recordInteraction() POSTs /recommendations/record_interaction/', async () => {
-    const data = { event: 'eid', interaction_type: 'view' };
+    const data = { event_id: 'eid', interaction_type: 'view' as const };
     await recommendationsAPI.recordInteraction(data);
     expect(api.post).toHaveBeenCalledWith('/recommendations/record_interaction/', data);
     expect(api.post).toHaveBeenCalledTimes(1);

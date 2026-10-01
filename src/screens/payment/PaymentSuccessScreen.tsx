@@ -59,6 +59,9 @@ import { getMediaUrl } from '../../api/config';
 import { maybeRequestReview } from '../../services/reviewService';
 import { eventTint, tintFor } from '../../lib/utils/themeTint';
 import { appDateLocale } from '../../lib/utils/dateFormatters';
+import { trackInteraction } from '../../lib/recommendations';
+import { clearGoingCardDraft, getGoingCardDraft } from '../../lib/goingCardDraft';
+import { GoingCardPreview } from '../../components/payment/GoingCardPrep';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PaymentSuccessRouteProp = RouteProp<RootStackParamList, 'PaymentSuccess'>;
@@ -415,6 +418,32 @@ export default function PaymentSuccessScreen() {
   // Confettis APRÈS le trait de la coche (ConfettiEffect se coupe seul en
   // « Réduire les animations »).
   const showConfetti = content.isSuccess && checkDone;
+
+  // R3 W7 — inscription réussie = signal « register » (UUID seulement, jamais bloquant).
+  useEffect(() => {
+    if (content.isSuccess && eventId) trackInteraction('register', { eventId });
+  }, [content.isSuccess, eventId]);
+
+  // R3 W8 — carte « J'y vais » préparée pendant l'attente : appliquée seulement
+  // sur un vrai succès, puis oubliée. Elle « se détache » au moment de la fête.
+  const goingDraft = useMemo(
+    () => (content.isSuccess ? getGoingCardDraft(registrationId) : null),
+    [content.isSuccess, registrationId],
+  );
+  useEffect(() => {
+    if (goingDraft && registrationId) clearGoingCardDraft(registrationId);
+  }, [goingDraft, registrationId]);
+  const detach = useSharedValue(0);
+  useEffect(() => {
+    if (!goingDraft || !checkDone) return;
+    detach.value = reducedMotion ? 1 : withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) });
+  }, [goingDraft, checkDone, reducedMotion, detach]);
+  const detachStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: -6 * detach.value },
+      { rotate: `${-3 * detach.value}deg` },
+    ],
+  }));
   const drawsCheck = content.icon === 'checkmark';
 
   // Fin du trait de la coche = pic visuel : haptique de fête, anneau unique,
@@ -734,12 +763,24 @@ export default function PaymentSuccessScreen() {
 
           {/* Carte « J'y vais » partageable en story (boucle virale) — sur un
               vrai succès avec un titre d'event. */}
+          {content.isSuccess && !!eventTitle && goingDraft && (
+            <Animated.View style={[styles.goingDetached, detachStyle]} accessibilityLabel={t('delight.goingCard.ready')}>
+              <GoingCardPreview
+                tint={goingDraft.tint}
+                message={t(`delight.goingCard.messages.${goingDraft.message}`)}
+                title={eventTitle}
+                dateLabel={shareDateLabel}
+              />
+            </Animated.View>
+          )}
           {content.isSuccess && !!eventTitle && (
             <ShareTicketCardButton
               eventTitle={eventTitle}
               dateLabel={shareDateLabel}
               imageUrl={eventImage}
-              tint={eventTintValue ? tintFor(eventTintValue, isDark) : null}
+              tint={goingDraft ? goingDraft.tint : eventTintValue ? tintFor(eventTintValue, isDark) : null}
+              eyebrow={goingDraft ? t(`delight.goingCard.messages.${goingDraft.message}`) : undefined}
+              label={goingDraft ? t('delight.goingCard.share') : undefined}
             />
           )}
 
@@ -1087,6 +1128,14 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: 13,
     letterSpacing: 0.2,
+  },
+  goingDetached: {
+    width: 220,
+    alignSelf: 'center',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+    borderRadius: 14,
+    overflow: 'hidden',
   },
   invitePill: {
     flexDirection: 'row',

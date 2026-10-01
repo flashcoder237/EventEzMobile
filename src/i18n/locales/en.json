@@ -1713,7 +1713,17 @@
     "rowYearInReview": "My EventEz year",
     "rowYearInReviewSubtitle": "A private recap of your year, in December. Nobody else sees it.",
     "madeInDouala": "Made in Douala, with care.",
-    "madeInDoualaSub": "Thanks for bringing your events to life with us."
+    "madeInDoualaSub": "Thanks for bringing your events to life with us.",
+    "rowUiSounds": "Interface sounds",
+    "rowUiSoundsSubtitle": "Very subtle sounds on a few gestures (sending a message, refreshing). Off by default.",
+    "vibrationsEyebrow": "TOUCH",
+    "rowVibrations": "Vibrations",
+    "rowVibrationsSubtitle": "Haptic feedback on key actions: payment, scan, favorites.",
+    "rowMotionGestures": "Motion gestures",
+    "rowMotionGesturesSubtitle": "Shake, flip or hold out your phone for some actions. A button is always available too.",
+    "notificationsEyebrowOngoing": "Notifications",
+    "rowOngoingEvent": "Pinned ticket on event day",
+    "rowOngoingEventSubtitle": "A quiet notification, 3 h before and during the event, with your ticket and directions."
   },
   "messages": {
     "title": "Messages",
@@ -1884,7 +1894,26 @@
     "statTotal": "TOTAL",
     "statUnread": "UNREAD",
     "statToday": "TODAY",
-    "viewDetails": "View details"
+    "viewDetails": "View details",
+    "actions": {
+      "showTicket": "Show my ticket",
+      "directions": "Directions",
+      "going": "I'm going",
+      "viewTicket": "View ticket",
+      "reply": "Reply",
+      "replyPlaceholder": "Your message…",
+      "replySubmit": "Send",
+      "markRead": "Mark as read",
+      "joinLive": "Join",
+      "payNow": "Pay now",
+      "writeTo": "Message them",
+      "viewEvent": "View event",
+      "viewTickets": "View my tickets",
+      "viewRefund": "View refund",
+      "viewProfile": "View profile",
+      "summaryTitle": "Messages",
+      "summaryBody": "New messages"
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -2162,6 +2191,35 @@
       "payoutLocked": "This payout can no longer be changed because processing has already started. Contact support if this is a mistake.",
       "planLimitReached": "You've reached your plan's limit. Upgrade your plan to continue.",
       "countryNotSupported": "Payments aren't available in this country yet. You can create the event in a supported country, or contact us."
+    },
+    "tickets": {
+      "offline": "You're offline right now. Tickets you've already loaded stay available offline. Try again once you're back online.",
+      "timeout": "Your tickets are taking a while to load. Nothing is lost: they're safely saved. Try again in a moment.",
+      "server": "Our servers are having a brief hiccup. Your tickets are safe on our side. Try again in a few minutes.",
+      "notFound": "We can't find this ticket. Your other tickets aren't affected. Refresh the list or check your confirmation email.",
+      "forbidden": "This ticket belongs to another account. Your own tickets are untouched. Sign in with the account used for the purchase."
+    },
+    "messages": {
+      "offline": "You're offline right now. Your messages aren't lost: pending ones will go out once you're back online. Try again when the network returns.",
+      "timeout": "Messaging is slow to respond. Your messages aren't lost. Try again in a moment.",
+      "server": "Messaging is having a brief hiccup on our side. Your conversations are intact. Try again in a few minutes.",
+      "notFound": "This conversation no longer exists. Your other conversations aren't affected. Head back to your messages.",
+      "forbidden": "You no longer have access to this conversation. Your other conversations are still available. Head back to your messages."
+    },
+    "event": {
+      "offline": "You're offline, so we can't show this event. Your tickets stay available offline. Try again once you're back online.",
+      "timeout": "This event page is taking a while to load. Nothing has changed on your side. Try again in a moment.",
+      "server": "A brief hiccup is keeping us from showing this event. Your tickets and registrations aren't affected. Try again in a few minutes.",
+      "notFound": "This event is no longer online: the organizer may have removed it. Any tickets you have stay in \"My tickets\". More events are waiting in Discover.",
+      "forbidden": "This event is private. Your account isn't the issue. Ask the organizer for an invitation to get access."
+    },
+    "upload": {
+      "offline": "The upload couldn't start: you're offline. Your file is still on your phone. Try again once you're back online.",
+      "timeout": "The upload took too long. Your file is still on your phone. Try again, ideally on Wi-Fi or with a lighter file.",
+      "server": "The server couldn't receive the file. It's still safe on your phone. Try again in a few minutes.",
+      "notFound": "The upload destination no longer exists. Your file is still safe on your phone. Refresh the screen and try again.",
+      "forbidden": "You're not allowed to upload this file here. It's still safe on your phone. Check that you're signed in with the right account.",
+      "tooLarge": "This file is too large to upload. It's still safe on your phone. Pick a lighter file or crop the image."
     }
   },
   "errorBoundary": {
@@ -4470,7 +4528,9 @@
       "hybrid": "In person + online"
     },
     "limitStock": "Only {{max}} ticket(s) of this type left.",
-    "limitEventCapacity": "Only {{max}} place(s) left for this event."
+    "limitEventCapacity": "Only {{max}} place(s) left for this event.",
+    "onlyNLeft_one": "Only one place left",
+    "onlyNLeft_other": "Only {{count}} places left"
   },
   "registrationDetails": {
     "headerInscription": "My registration",
@@ -4701,7 +4761,13 @@
     "statusCancelled": "Cancelled",
     "statusValidated": "Validated",
     "pdfOnline": "Online event",
-    "statusUnknown": "Unknown status"
+    "statusUnknown": "Unknown status",
+    "presentHint": "Tap to enlarge the code, long-press for proof of validity.",
+    "presentA11yAction": "Enlarge the code for the check",
+    "proofA11yAction": "Show proof of validity",
+    "proofClockA11y": "Live ticket, it is {{time}}",
+    "presentExitA11y": "Back to the ticket",
+    "presentExitHint": "Tap to go back"
   },
   "offlineTickets": {
     "headerTitle": "Offline",
@@ -5101,7 +5167,18 @@
     "swipeHint": "Swipe to save",
     "swipeRemoved": "Removed from saved",
     "swipeUndo": "Undo",
-    "swipeRemove": "Remove"
+    "swipeRemove": "Remove",
+    "weather": {
+      "sunny": "Sunny",
+      "partlySunny": "Sunny spells",
+      "cloudy": "Cloudy",
+      "fog": "Fog",
+      "rain": "Rain",
+      "snow": "Snow",
+      "showers": "Showers",
+      "thunderstorm": "Thunderstorms",
+      "variable": "Changeable"
+    }
   },
   "componentsCommon": {
     "exportTitle": "Choose format",
@@ -7723,7 +7800,11 @@
     "directions": "Directions",
     "viewTicket": "View ticket",
     "goThere": "Go",
-    "quickAction": "My ticket · {{title}}"
+    "quickAction": "My ticket · {{title}}",
+    "compassA11y": "The venue is {{distance}} away, at {{hour}} o'clock",
+    "compassA11yNoHeading": "The venue is {{distance}} away",
+    "compassCalibrate": "Calibrate the compass: draw a figure 8 with your phone",
+    "compassHint": "Follow the arrow to the venue"
   },
   "onSite": {
     "eyebrow": "You're on site",
@@ -7906,5 +7987,232 @@
     "hourBeforeTitle": "Reminder: in 1 hour",
     "hourBeforeBody": "“{{title}}” starts soon.",
     "hourBeforeBodyAt": "“{{title}}” starts soon at {{location}}."
+  },
+  "quickActions": {
+    "discover": "Discover",
+    "discoverSubtitle": "Events near you",
+    "tickets": "My tickets",
+    "scan": "Scan a ticket"
+  },
+  "ongoing": {
+    "channelName": "Event day",
+    "eventFallback": "Your event",
+    "beforeBodyAt": "Starting soon · {{place}}",
+    "beforeBody": "Starting soon",
+    "duringSession": "Now: {{session}}",
+    "duringBody": "On now · your ticket is ready",
+    "scannerTitle": "Scanner on duty"
+  },
+  "gestures": {
+    "undo": {
+      "title": "Undo the last action?",
+      "confirm": "Undo",
+      "keep": "Keep",
+      "failed": "Undo didn't go through. Check your connection and try again.",
+      "unfollow": "Put “{{title}}” back in your favourites.",
+      "archive": "Move the conversation out of the archive."
+    },
+    "report": {
+      "title": "Report a problem",
+      "subtitle": "Test build: the screenshot, the screen and the version are sent with your message.",
+      "noNote": "Report without a comment",
+      "blur": "Blur",
+      "noShot": "No screenshot available on this screen.",
+      "placeholder": "What happened?",
+      "send": "Send",
+      "sent": "Thank you, your report has been sent.",
+      "unavailable": "Can't send: error tracking isn't active on this build."
+    },
+    "applause": {
+      "hint": "Hold to applaud for longer.",
+      "a11y": "Long applause"
+    },
+    "hush": {
+      "title": "Mic and camera turned off while the phone was face down",
+      "reactivate": "Tap to turn them back on"
+    },
+    "lighter": {
+      "button": "Lighter",
+      "off": "Put it out",
+      "alone": "Raise your phone, the flame follows your moves.",
+      "count_one": "{{count}} lighter up",
+      "count_other": "{{count}} lighters up"
+    },
+    "surprise": {
+      "chip": "Surprise me",
+      "chipA11y": "Suggest a random event",
+      "again": "Another",
+      "none": "No upcoming event to suggest right now."
+    },
+    "bump": {
+      "settingTitle": "Swap contacts by shaking",
+      "settingSubtitle": "On site, once your ticket is scanned: shake at the same time as someone else to find each other. Your approximate location is used for a few seconds to match you and is never stored. Nothing happens without your confirmation. Off by default.",
+      "button": "Swap by shaking",
+      "nearbyButton": "Look around me",
+      "hint": "Shake your phone at the same time as the other person.",
+      "title": "Swap contacts",
+      "searching": "Looking for people shaking near you…",
+      "none": "Nobody found. Shake at the same moment as the other person, then try again.",
+      "pick": "Pick the right person. Nothing is shared without your consent.",
+      "connect": "Connect?",
+      "connectA11y": "Connect with {{name}}",
+      "waiting": "Waiting for their confirmation",
+      "connected": "Connected",
+      "openSettings": "Open settings",
+      "error": {
+        "disabled": "Turn on “Swap contacts by shaking” in your settings.",
+        "notCheckedIn": "Available once your ticket has been scanned at the entrance.",
+        "clockSkew": "Your phone's clock is off. Set it to automatic and try again.",
+        "rateLimited": "Too many attempts. Try again in a minute.",
+        "expired": "The swap expired. Start again.",
+        "noLocation": "Location is needed to find the person near you.",
+        "generic": "The swap didn't go through. Try again."
+      }
+    },
+    "doubleTapSave": {
+      "a11y": "Save the event"
+    },
+    "torch": {
+      "onA11y": "Turn the torch on",
+      "offA11y": "Turn the torch off",
+      "hint": "Double-tap the viewfinder to turn the torch on or off."
+    },
+    "dragSelect": {
+      "select": "Select",
+      "hint": "Or drag two fingers down the list to tick several attendees.",
+      "message": "Message the selected attendees",
+      "export": "Export the selection",
+      "exportError": "Exporting the selection failed.",
+      "csvName": "Name",
+      "csvEmail": "Email",
+      "csvReference": "Reference",
+      "csvStatus": "Status",
+      "csvDate": "Registered"
+    }
+  },
+  "delight": {
+    "loading": {
+      "tickets": "Fetching your tickets…",
+      "favorites": "Fetching your favorites…",
+      "notifications": "Fetching your notifications…",
+      "messages": "Fetching your conversations…",
+      "search": "Looking for matching events…",
+      "event": "Preparing the event page…"
+    },
+    "mobileMoney": {
+      "sent": "Your payment request has been sent to your operator.",
+      "pin": "Approve it with your PIN on your phone, in your operator’s prompt.",
+      "operator": "Operator confirmation can take a little while. That’s normal, please stay on this page.",
+      "once": "You will only be charged once, even if the wait goes on."
+    },
+    "empty": {
+      "tickets": {
+        "v0": "Your tickets will appear here as soon as you register for an event.",
+        "v1": "A concert, a conference, a workshop? It all starts with an event.",
+        "v2": "Your next outing may already be online."
+      },
+      "favorites": {
+        "v0": "Tap the heart on an event to find it here and hear about changes.",
+        "v1": "Follow an event so you never miss its news.",
+        "v2": "One heart is enough to keep an event at hand."
+      },
+      "notifications": {
+        "v0": "News from the events and organizers you follow will show up here.",
+        "v1": "Follow an event to be notified of what’s new.",
+        "v2": "We’ll let you know as soon as something happens."
+      },
+      "messages": {
+        "v0": "Met someone at an event? Scan their code to connect.",
+        "v1": "Your event connections show up here: one code scan is enough.",
+        "v2": "Swap contact details on site by scanning an attendee’s code."
+      },
+      "discover": {
+        "v0": "A keyword search sometimes finds what the home page doesn’t show yet.",
+        "v1": "Search by city or category: new events arrive every week."
+      },
+      "exploreAction": "See what’s on",
+      "scanAction": "Scan a code",
+      "searchAction": "Search for an event",
+      "didYouMean": "Did you mean “{{term}}”?",
+      "widen": "Widen to 50 km around you",
+      "clearFilters": "Clear filters"
+    },
+    "greeting": {
+      "when": {
+        "today": "today",
+        "tomorrow": "tomorrow",
+        "dayAfter": "the day after tomorrow"
+      },
+      "there": "on site",
+      "weather": {
+        "rain": "Rain expected {{when}} in {{city}} for “{{title}}”: bring an umbrella.",
+        "rainProb": "Rain likely ({{prob}}%) {{when}} in {{city}} for “{{title}}”: bring an umbrella.",
+        "storm": "Storms possible {{when}} in {{city}} for “{{title}}”: bring something to cover up.",
+        "clear": "Fine weather expected {{when}} in {{city}} for “{{title}}”, {{temp}}°.",
+        "cloudy": "Cloudy weather expected {{when}} in {{city}} for “{{title}}”, {{temp}}°."
+      },
+      "news": {
+        "v0_one": "{{count}} new event from organizers you follow.",
+        "v0_other": "{{count}} new events from organizers you follow.",
+        "v1_one": "Organizers you follow published {{count}} event.",
+        "v1_other": "Organizers you follow published {{count}} events."
+      },
+      "ritual": {
+        "birthday": "Happy birthday! Have a lovely day.",
+        "accountAnniversary_one": "One year on EventEz already. Thank you for your trust.",
+        "accountAnniversary_other": "{{count}} years on EventEz already. Thank you for your trust.",
+        "nationalDay": "Happy national day!",
+        "newYear": "Happy New Year {{year}}! May it bring you wonderful moments."
+      }
+    },
+    "welcomeBack": {
+      "title": "Welcome back",
+      "subtitle_one": "One new thing since your last visit.",
+      "subtitle_other": "{{count}} new things since your last visit.",
+      "more_one": "And one more from what you follow.",
+      "more_other": "And {{count}} more from what you follow.",
+      "dismiss": "Hide",
+      "reason": {
+        "followed_organizer": "Organizer you follow",
+        "new_edition": "New edition of an event you attended",
+        "other": "New"
+      },
+      "byOrganizer": "by {{name}}"
+    },
+    "reco": {
+      "becauseOne": "Because you like {{first}}",
+      "becauseTwo": "Because you like {{first}} and {{second}}",
+      "forYouEyebrow": "FOR YOU · BASED ON YOUR TASTE",
+      "forYouTitle": "You might also like",
+      "loginCtaTitle": "Recommendations tailored to you"
+    },
+    "settings": {
+      "ritualsEyebrow": "LITTLE TOUCHES",
+      "ritualsTitle": "Little touches",
+      "ritualsSubtitle": "A word on your birthday, your account anniversary or national day, once during the day. Your age is never shown, no notification.",
+      "forgetEyebrow": "RECOMMENDATIONS",
+      "forgetTitle": "Forget my preferences",
+      "forgetSubtitle": "Erases what followed events, registrations and searches taught your recommendations.",
+      "forgetConfirmTitle": "Forget your preferences?",
+      "forgetConfirmMessage": "Your recommendations will start from scratch. Your tickets, favorites and follows don’t change.",
+      "forgetDone": "Done: your recommendations start from scratch.",
+      "forgetUnavailable": "This option isn’t available yet. Nothing was erased.",
+      "forgetError": "Your preferences could not be erased. They are unchanged; please try again in a moment."
+    },
+    "goingCard": {
+      "title": "While you wait, prepare your “I’m going” card",
+      "subtitle": "It will be ready to share as soon as the payment is confirmed.",
+      "tintLabel": "Color",
+      "messageLabel": "Message",
+      "messages": {
+        "going": "I’M GOING",
+        "meetThere": "SEE YOU THERE?",
+        "seeYou": "MEET ME THERE"
+      },
+      "tintA11y": "Color {{index}}",
+      "printing": "Your card prints while you wait.",
+      "ready": "Your card is ready",
+      "share": "Share my card"
+    }
   }
 }

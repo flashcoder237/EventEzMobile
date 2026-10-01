@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { cachedForecast, fetchForecast, type Forecast } from '../../lib/weather';
 
 interface Props {
   latitude?: number | null;
@@ -12,40 +14,17 @@ interface Props {
   date?: string | null;
 }
 
-interface Forecast {
-  code: number;
-  tMax: number;
-  tMin: number;
-  precip: number | null;
-}
-
-// Cache mémoire (session) — clé lat,lon,jour → évite tout refetch au remount.
-const cache = new Map<string, Forecast | null>();
-
-// Open-Meteo n'a pas d'horizon de prévision au-delà de ~16 jours.
-const MAX_FORECAST_DAYS = 15;
-
-function toDay(iso: string): string {
-  return new Date(iso).toISOString().slice(0, 10); // YYYY-MM-DD
-}
-
-function daysFromNow(iso: string): number {
-  const d = new Date(toDay(iso)).getTime();
-  const today = new Date(new Date().toISOString().slice(0, 10)).getTime();
-  return Math.round((d - today) / 86400000);
-}
-
-// WMO weather_code → icône Ionicons + libellé FR.
-function describe(code: number): { icon: keyof typeof Ionicons.glyphMap; label: string } {
-  if (code === 0) return { icon: 'sunny-outline', label: 'Ensoleillé' };
-  if (code <= 2) return { icon: 'partly-sunny-outline', label: 'Éclaircies' };
-  if (code === 3) return { icon: 'cloud-outline', label: 'Nuageux' };
-  if (code === 45 || code === 48) return { icon: 'cloud-outline', label: 'Brouillard' };
-  if (code >= 51 && code <= 67) return { icon: 'rainy-outline', label: 'Pluie' };
-  if (code >= 71 && code <= 77) return { icon: 'snow-outline', label: 'Neige' };
-  if (code >= 80 && code <= 82) return { icon: 'rainy-outline', label: 'Averses' };
-  if (code >= 95) return { icon: 'thunderstorm-outline', label: 'Orages' };
-  return { icon: 'partly-sunny-outline', label: 'Variable' };
+// WMO weather_code → icône Ionicons + clé i18n du libellé.
+function describe(code: number): { icon: keyof typeof Ionicons.glyphMap; labelKey: string } {
+  if (code === 0) return { icon: 'sunny-outline', labelKey: 'componentsEvents.weather.sunny' };
+  if (code <= 2) return { icon: 'partly-sunny-outline', labelKey: 'componentsEvents.weather.partlySunny' };
+  if (code === 3) return { icon: 'cloud-outline', labelKey: 'componentsEvents.weather.cloudy' };
+  if (code === 45 || code === 48) return { icon: 'cloud-outline', labelKey: 'componentsEvents.weather.fog' };
+  if (code >= 51 && code <= 67) return { icon: 'rainy-outline', labelKey: 'componentsEvents.weather.rain' };
+  if (code >= 71 && code <= 77) return { icon: 'snow-outline', labelKey: 'componentsEvents.weather.snow' };
+  if (code >= 80 && code <= 82) return { icon: 'rainy-outline', labelKey: 'componentsEvents.weather.showers' };
+  if (code >= 95) return { icon: 'thunderstorm-outline', labelKey: 'componentsEvents.weather.thunderstorm' };
+  return { icon: 'partly-sunny-outline', labelKey: 'componentsEvents.weather.variable' };
 }
 
 /**
@@ -58,54 +37,31 @@ function describe(code: number): { icon: keyof typeof Ionicons.glyphMap; label: 
  */
 function EventWeather({ latitude, longitude, date }: Props) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [forecast, setForecast] = useState<Forecast | null>(null);
 
-  const hasCoords = typeof latitude === 'number' && typeof longitude === 'number';
-  const inRange = !!date && daysFromNow(date) >= 0 && daysFromNow(date) <= MAX_FORECAST_DAYS;
-
   useEffect(() => {
-    if (!hasCoords || !inRange || !date) return;
-    const day = toDay(date);
-    const key = `${latitude},${longitude},${day}`;
-
-    if (cache.has(key)) {
-      setForecast(cache.get(key) || null);
+    // Prévision partagée (lib/weather) : coordonnées de l'événement, horizon
+    // ~15 j, cache de session. Hors horizon ou erreur → rien.
+    if (typeof latitude !== 'number' || typeof longitude !== 'number' || !date) return;
+    const known = cachedForecast(latitude, longitude, date);
+    if (known !== undefined) {
+      setForecast(known);
       return;
     }
-
-    const ctrl = new AbortController();
-    (async () => {
-      try {
-        const url =
-          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
-          `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max` +
-          `&timezone=auto&start_date=${day}&end_date=${day}`;
-        const res = await fetch(url, { signal: ctrl.signal });
-        if (!res.ok) throw new Error('weather');
-        const json: any = await res.json();
-        const d = json?.daily;
-        if (d && Array.isArray(d.weather_code) && d.weather_code.length > 0) {
-          const f: Forecast = {
-            code: d.weather_code[0],
-            tMax: Math.round(d.temperature_2m_max?.[0]),
-            tMin: Math.round(d.temperature_2m_min?.[0]),
-            precip: d.precipitation_probability_max?.[0] ?? null,
-          };
-          cache.set(key, f);
-          setForecast(f);
-        } else {
-          cache.set(key, null);
-        }
-      } catch {
-        /* réseau/annulation → on n'affiche simplement rien */
-      }
-    })();
-    return () => ctrl.abort();
-  }, [hasCoords, inRange, latitude, longitude, date]);
+    let alive = true;
+    fetchForecast(latitude, longitude, date).then((f) => {
+      if (alive) setForecast(f);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [latitude, longitude, date]);
 
   if (!forecast) return null;
 
-  const { icon, label } = describe(forecast.code);
+  const { icon, labelKey } = describe(forecast.code);
+  const label = t(labelKey);
   return (
     <View style={[styles.chip, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <Ionicons name={icon} size={16} color={colors.primary} />

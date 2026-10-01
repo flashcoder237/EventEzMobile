@@ -8,6 +8,7 @@ import {
   Share,
   useWindowDimensions,
   Linking,
+  BackHandler,
 } from 'react-native';
 import {
   EditorialCanvas,
@@ -32,8 +33,11 @@ import Animated, {
   useSharedValue,
   withTiming,
   ZoomIn,
+  FadeIn,
+  FadeOut,
 } from 'react-native-reanimated';
-import { GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { ValidityProofRing, ProofClock } from '../../components/tickets/ValidityProofRing';
 import { useTilt, HoloSheen, FirstSeenStamp } from '../../components/ui/motion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { haptics } from '../../utils/haptics';
@@ -67,21 +71,58 @@ type QRCodeRouteProp = RouteProp<RootStackParamList, 'QRCode'>;
 
 export default function QRCodeScreen() {
   const { t, i18n } = useTranslation();
-  // Écran QR : luminosité max + écran éveillé + anti-capture pendant l'affichage
-  useTicketDisplayGuard();
+  // G6 — mode « présenter » : QR agrandi sur blanc pur. Entré par le geste
+  // (écran tendu vers le contrôleur) ou par un tap sur le QR. Le geste inverse
+  // ou un tap en sort.
+  const [presenting, setPresenting] = useState<null | 'gesture' | 'tap'>(null);
+  const presentingRef = useRef(presenting);
+  presentingRef.current = presenting;
+  const canPresentRef = useRef(false);
+  const enterPresent = useCallback((how: 'gesture' | 'tap') => {
+    if (presentingRef.current || !canPresentRef.current) return;
+    presentingRef.current = how;
+    setPresenting(how);
+    haptics.selection();
+  }, []);
+  const exitPresent = useCallback((how: 'gesture' | 'tap') => {
+    const cur = presentingRef.current;
+    if (!cur) return;
+    // Le retour du geste ne ferme qu'un mode ouvert par le geste.
+    if (how === 'gesture' && cur !== 'gesture') return;
+    presentingRef.current = null;
+    setPresenting(null);
+    haptics.selection();
+  }, []);
+  // Retour Android en mode présenter : on revient au billet, pas à l'écran précédent.
+  useEffect(() => {
+    if (!presenting) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      exitPresent('tap');
+      return true;
+    });
+    return () => sub.remove();
+  }, [presenting, exitPresent]);
+  // Écran QR : luminosité max + écran éveillé + anti-capture pendant
+  // l'affichage ; face contre table → luminosité rendue au système (G4).
+  const { sensorElement: postureElement } = useTicketDisplayGuard({
+    posture: {
+      presentAway: () => enterPresent('gesture'),
+      presentBack: () => exitPresent('gesture'),
+    },
+  });
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   // Taille du QR RÉACTIVE (et non figée au chargement du module) → suit
   // rotation / split-view / letterbox iPad. Le QR est scanné à l'entrée et
   // testé par Apple : il doit rester net et bien calibré partout.
-  const { width: winWidth } = useWindowDimensions();
+  const { width: winWidth, height: winHeight } = useWindowDimensions();
   const QR_SIZE = Math.min(winWidth - Spacing['2xl'] * 5, 260);
   const route = useRoute<QRCodeRouteProp>();
   const { ticketId } = route.params;
   const { showError } = useAlert();
   const { open: openSaveOrShare, sheet: saveOrShareSheet } = useSaveOrShareSheet();
   const { toastError } = useFeedback();
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, gradients } = useTheme();
 
   const [ticket, setTicket] = useState<TicketPurchase | null>(null);
   const [loading, setLoading] = useState(true);
@@ -153,7 +194,50 @@ export default function QRCodeScreen() {
 
   // E3 — billet holographique : inclinaison ±2,5° (gyroscope, repli au doigt
   // horizontal) + reflet irisé limité à l'en-tête. Le QR n'est jamais couvert.
-  const { tiltX, tiltY, gesture: tiltGesture, sensorElement } = useTilt({ enabled: !loading });
+  // Mode présenter : inclinaison et reflet figés (QR parfaitement stable).
+  const { tiltX, tiltY, gesture: tiltGesture, sensorElement } = useTilt({ enabled: !loading && !presenting });
+
+  // G7 — preuve de validité : appui long 350 ms → anneau tournant autour du
+  // QR (piloté par l'inclinaison) + heure à la seconde, cran léger chaque
+  // seconde tant que le doigt reste posé. Action d'accessibilité : 6 s.
+  const [proofHeld, setProofHeld] = useState(false);
+  const [proofA11y, setProofA11y] = useState(false);
+  const proofTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (proofTimer.current) clearTimeout(proofTimer.current);
+  }, []);
+  const startProof = useCallback(() => {
+    setProofHeld(true);
+    haptics.light();
+  }, []);
+  const stopProof = useCallback(() => setProofHeld(false), []);
+  const showProofA11y = useCallback(() => {
+    setProofA11y(true);
+    if (proofTimer.current) clearTimeout(proofTimer.current);
+    proofTimer.current = setTimeout(() => setProofA11y(false), 6000);
+  }, []);
+  const proofActive = proofHeld || proofA11y;
+  const tapPresent = useCallback(() => enterPresent('tap'), [enterPresent]);
+  const tapExitPresent = useCallback(() => exitPresent('tap'), [exitPresent]);
+  const qrGesture = Gesture.Exclusive(
+    Gesture.LongPress()
+      .enabled(!isLocked)
+      .minDuration(350)
+      .maxDistance(24)
+      .onStart(() => {
+        runOnJS(startProof)();
+      })
+      .onFinalize(() => {
+        runOnJS(stopProof)();
+      }),
+    Gesture.Tap()
+      // Verrouillé : le placeholder garde son propre bouton « révéler ».
+      .enabled(!isLocked)
+      .maxDuration(300)
+      .onEnd((_e, success) => {
+        if (success) runOnJS(tapPresent)();
+      }),
+  );
   const cardTiltStyle = useAnimatedStyle(() => ({
     transform: [
       { perspective: 800 },
@@ -458,6 +542,8 @@ export default function QRCodeScreen() {
   }
 
   const event = (ticket as any)?.event;
+  // Le mode présenter n'a de sens qu'avec un QR visible.
+  canPresentRef.current = !isLocked;
   // S4 — teinte de l'événement (en-tête, pastille) ; jamais sur le QR.
   const tint = tintFor(eventTint(event), isDark);
   // S9 — « J'y vais » avant l'événement (une semaine avant, la veille).
@@ -497,6 +583,7 @@ export default function QRCodeScreen() {
     <EditorialCanvas edges={['top']}>
       <WatermarkNumeral>QR</WatermarkNumeral>
       <View style={{ flex: 1, zIndex: 1 }}>
+        {postureElement}
         {/* Header éditorial : eyebrow contexte + actions discrètes (print, dl, share) */}
         <EditorialHeader
           eyebrow={t('qrCode.headerEyebrow', { ref: reference })}
@@ -654,10 +741,37 @@ export default function QRCodeScreen() {
               </View>
               <View style={{ alignItems: 'center' }}>
                 <View style={styles.qrFrame}>
+                  {/* G7 — anneau de preuve : DERRIÈRE le cadre blanc, jamais sur le QR. */}
+                  {!isLocked && (
+                    <ValidityProofRing
+                      active={proofActive}
+                      inset={6}
+                      size={QR_SIZE + Spacing.md * 2 + 16}
+                      radius={BorderRadius.lg + 8}
+                      colors={isDark ? gradients.auroraDark : gradients.aurora}
+                      tiltX={tiltX}
+                      tiltY={tiltY}
+                      reduced={reducedMotion}
+                    />
+                  )}
+                  <GestureDetector gesture={qrGesture}>
                   <View
                     style={[styles.qrContainer, { borderColor: colors.gray100, backgroundColor: '#FFFFFF' }]}
                     accessibilityLabel={t('qrCode.qrA11y')}
                     accessibilityRole="image"
+                    accessibilityHint={isLocked ? undefined : t('qrCode.presentHint')}
+                    accessibilityActions={
+                      isLocked
+                        ? undefined
+                        : [
+                            { name: 'activate', label: t('qrCode.presentA11yAction') },
+                            { name: 'proof', label: t('qrCode.proofA11yAction') },
+                          ]
+                    }
+                    onAccessibilityAction={(e) => {
+                      if (e.nativeEvent.actionName === 'proof') showProofA11y();
+                      else if (e.nativeEvent.actionName === 'activate') enterPresent('tap');
+                    }}
                   >
                     {isLocked ? (
                       // Placeholder verrouillé : carré de la même taille que le QR pour
@@ -713,12 +827,20 @@ export default function QRCodeScreen() {
                       </Animated.View>
                     )}
                   </View>
+                  </GestureDetector>
                   {/* Scanner corners éditoriaux (arrivent en cascade à la révélation) */}
                   <Animated.View style={[styles.qrCorner, styles.qrCornerTL, { borderColor: colors.primary }, cornerTL]} />
                   <Animated.View style={[styles.qrCorner, styles.qrCornerTR, { borderColor: colors.primary }, cornerTR]} />
                   <Animated.View style={[styles.qrCorner, styles.qrCornerBL, { borderColor: colors.primary }, cornerBL]} />
                   <Animated.View style={[styles.qrCorner, styles.qrCornerBR, { borderColor: colors.primary }, cornerBR]} />
                 </View>
+                {/* G7 — heure à la seconde pendant la preuve (seule, si animations réduites). */}
+                <ProofClock
+                  active={proofActive && !isLocked}
+                  tickHaptic={proofHeld}
+                  style={[styles.proofClock, { color: colors.gray900 }]}
+                  label={(time) => t('qrCode.proofClockA11y', { time })}
+                />
                 <View style={styles.qrHintRow}>
                   <Ionicons
                     name={isOnlineEvent ? 'shield-checkmark-outline' : 'scan-outline'}
@@ -982,6 +1104,32 @@ export default function QRCodeScreen() {
         </ScrollView>
       </View>
       {saveOrShareSheet}
+      {/* G6 — mode présenter : QR à 92 % de largeur sur blanc pur ; le reste
+          s'efface en 150 ms. Un tap n'importe où (ou le geste inverse) revient. */}
+      {presenting && !isLocked && (
+        <Animated.View
+          entering={reducedMotion ? undefined : FadeIn.duration(150)}
+          exiting={reducedMotion ? undefined : FadeOut.duration(150)}
+          style={styles.presentOverlay}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={tapExitPresent}
+            style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}
+            accessibilityRole="button"
+            accessibilityLabel={t('qrCode.presentExitA11y')}
+          >
+            <QRCode
+              value={verificationUrl}
+              size={Math.round(Math.min(winWidth, winHeight - 120) * 0.92)}
+              color="#000000"
+              backgroundColor="#FFFFFF"
+              quietZone={8}
+            />
+            <Text style={styles.presentHint}>{t('qrCode.presentExitHint')}</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
     </EditorialCanvas>
   );
 }
@@ -1177,6 +1325,27 @@ const styles = StyleSheet.create({
   qrFrame: {
     position: 'relative',
     padding: 14,
+  },
+  proofClock: {
+    marginTop: Spacing.xs,
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.semiBold,
+    fontVariant: ['tabular-nums'],
+    letterSpacing: 1,
+  },
+  presentOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 50,
+    elevation: 50,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  presentHint: {
+    position: 'absolute',
+    bottom: 32,
+    fontSize: FontSizes.sm,
+    color: '#6B7280',
   },
   qrContainer: {
     backgroundColor: '#FFFFFF',

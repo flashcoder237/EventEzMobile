@@ -22,6 +22,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { eventsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import CacheService from '../services/CacheService';
+import { trackInteraction } from '../lib/recommendations';
 
 /** Clé de cache de l'écran « Tes Sauvegardes » — à invalider à chaque toggle. */
 export const followingCacheKey = (userId?: string | number | null) =>
@@ -84,8 +85,11 @@ export function useSavedEvents() {
       });
 
       try {
-        if (next) await eventsAPI.followEvent(id);
-        else await eventsAPI.unfollowEvent(id);
+        if (next) {
+          await eventsAPI.followEvent(id);
+          // R3 W7 — signal « follow » (UUID seulement, jamais bloquant).
+          trackInteraction('follow', { eventId: id });
+        } else await eventsAPI.unfollowEvent(id);
         // Sans invalidation, « Tes Sauvegardes » (TTL 2 min) continue d'afficher
         // « Ta collection est vide » juste après une sauvegarde réussie.
         await CacheService.invalidate(followingCacheKey(user?.id));

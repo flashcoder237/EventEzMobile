@@ -165,6 +165,12 @@ export function AnnouncementsProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** Variante tolérante (hors provider → null) pour les éléments qui ne doivent
+ *  simplement pas se cumuler avec une annonce (R3 W6 « Bon retour »). */
+export function useOptionalAnnouncements(): AnnouncementsContextValue | null {
+  return useContext(AnnouncementsContext) ?? null;
+}
+
 export function useAnnouncements(): AnnouncementsContextValue {
   const ctx = useContext(AnnouncementsContext);
   if (!ctx) throw new Error('useAnnouncements must be used within AnnouncementsProvider');

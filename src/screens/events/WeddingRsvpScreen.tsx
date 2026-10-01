@@ -38,6 +38,9 @@ import { centeredContent, FORM_MAX } from '../../constants/layout';
 import { RootStackParamList } from '../../types';
 import { getEventAmbience } from '../../lib/utils/eventKind';
 import { CELEBRATION_GOLD, SERIF_FAMILY } from '../../lib/utils/ambience';
+import { useTilt } from '../../components/ui/motion/useTilt';
+import { HoloSheen, GOLD_SHEEN } from '../../components/ui/motion/HoloSheen';
+import { haptics } from '../../utils/haptics';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'WeddingRsvp'>;
@@ -172,6 +175,8 @@ export default function WeddingRsvpScreen() {
         setInfo((prev: any) => ({ ...(prev || {}), status: 'declined' }));
       }
       setAcceptedFinal(attending);
+      // G17 — « Je viens » confirmé : haptique « succès ».
+      if (attending) haptics.success();
       setPhase('done');
     } catch (e) {
       // Feedback explicite : sans message, l'invité ne savait pas si sa réponse
@@ -194,6 +199,8 @@ export default function WeddingRsvpScreen() {
   // S5 — registre « célébration » (mariage, anniversaire…) : titre de
   // l'événement en serif et filet doré. Les autres invitations restent neutres.
   const isCelebration = getEventAmbience(ev as any) === 'celebration';
+  // G17 — la dorure du filet glisse avec l'inclinaison (fixe si mouvement réduit).
+  const tilt = useTilt({ enabled: isCelebration });
   const bcp47 = i18n.language === 'en' ? 'en-US' : 'fr-FR';
   const eventDate = ev?.start_date
     ? new Date(ev.start_date).toLocaleDateString(bcp47, {
@@ -240,8 +247,11 @@ export default function WeddingRsvpScreen() {
             </Text>
           )}
           {isCelebration && !!eventTitle && (
-            <View style={{ width: 48, height: 2, borderRadius: 1, backgroundColor: CELEBRATION_GOLD, marginVertical: 6 }} />
+            <View style={{ width: 48, height: 2, borderRadius: 1, backgroundColor: CELEBRATION_GOLD, marginVertical: 6, overflow: 'hidden' }}>
+              <HoloSheen tiltX={tilt.tiltX} tiltY={tilt.tiltY} travel={30} colors={GOLD_SHEEN} />
+            </View>
           )}
+          {isCelebration && tilt.sensorElement}
           {!!inviterName && (
             <Text style={[styles.muted, { color: colors.textSecondary }]}>
               {t('wedding.invitedBy', { name: inviterName, defaultValue: `Invité par ${inviterName}` })}

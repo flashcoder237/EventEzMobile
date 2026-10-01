@@ -95,7 +95,7 @@ describe('ReportMessageModal', () => {
     );
     fireEvent.press(getByText('Harcèlement'));
     fireEvent.changeText(
-      getByPlaceholderText('Ajoute du contexte si tu le souhaites…'),
+      getByPlaceholderText('Ajoutez du contexte si vous le souhaitez…'),
       '  Insultes répétées  '
     );
     fireEvent.press(getByText('Envoyer'));

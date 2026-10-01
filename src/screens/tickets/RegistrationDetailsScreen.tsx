@@ -56,6 +56,7 @@ import { getEventAmbience } from '../../lib/utils/eventKind';
 import { SERIF_FAMILY } from '../../lib/utils/ambience';
 import { getTicketPhase } from '../../lib/utils/ticketPhase';
 import { eventTint, tintAlpha, tintFor } from '../../lib/utils/themeTint';
+import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RegistrationDetailsRouteProp = RouteProp<RootStackParamList, 'RegistrationDetails'>;
@@ -63,7 +64,8 @@ type RegistrationDetailsRouteProp = RouteProp<RootStackParamList, 'RegistrationD
 export default function RegistrationDetailsScreen() {
   const { t } = useTranslation();
   // Écran billet (QR) : luminosité max + écran éveillé + anti-capture
-  useTicketDisplayGuard();
+  // G4 — posé face contre table : luminosité rendue au système.
+  const { sensorElement: postureElement } = useTicketDisplayGuard();
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   // Taille du QR RÉACTIVE (suit rotation/split-view/letterbox iPad) — le QR est
@@ -94,6 +96,8 @@ export default function RegistrationDetailsScreen() {
 
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
+  // Message humain (errors.tickets.*) si l'inscription n'a pas pu être chargée.
+  const [loadErrorMessage, setLoadErrorMessage] = useState<string | null>(null);
   const [transferModalVisible, setTransferModalVisible] = useState(false);
   const [selectedTicketForTransfer, setSelectedTicketForTransfer] = useState<{
     id: number;
@@ -212,6 +216,9 @@ export default function RegistrationDetailsScreen() {
       }
     } catch (error) {
       if (__DEV__) console.error('Error fetching registration:', error);
+      setLoadErrorMessage(
+        getApiErrorMessage(error, t, { fallbackKey: 'registrationDetails.notFound', context: 'tickets' }).message,
+      );
       // Pas de modale : l'ecran rend deja son propre etat « introuvable »
       // (en-tete + retour). La modale n'ajoutait qu'une interruption a
       // acquitter par-dessus un ecran qui disait deja la meme chose.
@@ -500,7 +507,7 @@ export default function RegistrationDetailsScreen() {
           />
           <View style={styles.errorContainer}>
             <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
-            <Text style={[styles.errorText, { color: colors.gray500 }]}>{t('registrationDetails.notFound')}</Text>
+            <Text style={[styles.errorText, { color: colors.gray500 }]}>{loadErrorMessage ?? t('registrationDetails.notFound')}</Text>
           </View>
         </View>
       </EditorialCanvas>
@@ -565,6 +572,7 @@ export default function RegistrationDetailsScreen() {
     <EditorialCanvas edges={['top']}>
       <WatermarkNumeral>INS</WatermarkNumeral>
       <View style={{ flex: 1, zIndex: 1 }}>
+      {postureElement}
       {/* Header éditorial : eyebrow contextuel + actions discrètes à droite */}
       <EditorialHeader
         eyebrow={isBilletterie

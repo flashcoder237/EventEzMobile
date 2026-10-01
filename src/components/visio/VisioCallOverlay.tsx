@@ -20,6 +20,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useVisioCall } from '../../contexts/VisioCallContext';
 import { FontFamily, FontSizes, Spacing } from '../../constants/theme';
 import { enterPip, isPipSupported } from '../../../modules/eventez-pip/src';
+import { useVisioHush } from '../../hooks/useVisioHush';
 
 /**
  * Overlay VISIO PERSISTANT — monté UNE fois à la racine. Rend UNE SEULE WebView
@@ -48,6 +49,9 @@ export default function VisioCallOverlay() {
   const insets = useSafeAreaInsets();
   const webViewRef = useRef<WebView>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // G5 — même « chut » que l'écran visio : téléphone retourné = micro et
+  // caméra coupés dans la page, « Réactiver » au retour (jamais automatique).
+  const hush = useVisioHush(webViewRef, !!call);
   const [bubbleLarge, setBubbleLarge] = useState(false);
   // Mention d'enregistrement : TEMPORAIRE. Affichee en permanence, elle
   // recouvrait l'interface Jitsi (nom de salle, vignette camera) et
@@ -189,7 +193,9 @@ export default function VisioCallOverlay() {
             setSupportMultipleWindows={false}
             mixedContentMode="always"
             sharedCookiesEnabled
+            onMessage={hush.onMessage}
           />
+          {hush.sensorElement}
           {isLoading && !isBubble && (
             <View style={styles.loadingOverlay}>
               <ActivityIndicator size="large" color={colors.primary} />

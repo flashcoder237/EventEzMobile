@@ -12,6 +12,7 @@
 import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AudioPlayer, createAudioPlayer, setAudioModeAsync } from 'expo-audio';
+import { getSensoryPref } from '../lib/sensoryPrefs';
 
 /** Sons réellement embarqués (fichiers dans assets/sounds). */
 type BaseSoundKey = 'payment-success' | 'scan-success' | 'scan-fail';
@@ -112,6 +113,28 @@ class SoundServiceImpl {
     return this.enabled;
   }
 
+  /**
+   * G5 — « chut » : téléphone retourné sur un écran de direct. Coupe les sons
+   * de l'APP seulement (jamais ceux du téléphone), sans toucher au réglage.
+   */
+  private transientMute = false;
+  setTransientMute(value: boolean): void {
+    this.transientMute = value;
+  }
+  isTransientlyMuted(): boolean {
+    return this.transientMute;
+  }
+
+  /**
+   * Sons d'interface (round 3, P1) : réglage séparé, COUPÉ par défaut, en plus
+   * du réglage des sons des moments forts. À utiliser pour tout son d'interface
+   * (envoi de message, tirer pour rafraîchir…), jamais pour un moment fort.
+   */
+  async playUi(key: SoundKey): Promise<void> {
+    if (!getSensoryPref('uiSounds')) return;
+    return this.play(key);
+  }
+
   async setEnabled(value: boolean): Promise<void> {
     this.enabled = value;
     try {
@@ -129,7 +152,7 @@ class SoundServiceImpl {
    *  - lecture deja en cours pour ce son (pas de spam)
    */
   async play(key: SoundKey): Promise<void> {
-    if (!this.enabled) return;
+    if (!this.enabled || this.transientMute) return;
     if (AppState.currentState !== 'active') return;
 
     if (!this.initialized) {

@@ -26,6 +26,9 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import LoadingLine from '../../components/ui/LoadingLine';
+import EmptySuggestion from '../../components/ui/EmptySuggestion';
+import { useDailyLine } from '../../hooks/useEmptySuggestion';
 import { haptics } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -70,6 +73,7 @@ import { NewMessage, PeopleSearch, AnimatedIllustration } from '../../components
 import { StaggeredItem } from '../../components/ui/Animations';
 import { CountBadge } from '../../components/ui/motion';
 import EventActionsSheet, { EventAction } from '../../components/organizer/EventActionsSheet';
+import { undoStack } from '../../lib/gestures/undoStack';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'all' | 'unread' | 'events' | 'requests' | 'archived';
@@ -589,6 +593,8 @@ export default function MessagesScreen() {
   const { isMuted, toggle: toggleMute } = useMutedConversations();
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
+  // R3 W2 — phrase tournante du jour pour l'état vide (connexion par code).
+  const messagesEmptyLine = useDailyLine('messages', 3);
   const { width: winW } = useWindowDimensions();
   // Sur iPad, plafonner la colonne d'inbox (pas de 2 colonnes : rows pleine largeur).
   const listMaxWidth = winW >= 700 ? 620 : undefined;
@@ -1116,6 +1122,7 @@ export default function MessagesScreen() {
         if (prev.length === 0) {
           const { message } = getApiErrorMessage(error, t, {
             fallbackKey: 'messages.loadErrorFallback',
+            context: 'messages',
           });
           setLoadError(message);
         }
@@ -1197,9 +1204,24 @@ export default function MessagesScreen() {
 
   const handleArchive = async (conversationId: string) => {
     try {
+      const conv = conversations.find((c) => String(c.id) === String(conversationId));
+      const wasArchived = !!conv?.is_archived;
       await messagesAPI.archiveConversation(conversationId);
       CacheService.invalidate(`convos:${user?.id}`);
       fetchConversations(true);
+      // G1 — l'archivage (pas le désarchivage) peut s'annuler d'une secousse
+      // dans les 10 s : le backend bascule l'état, un second appel le rétablit.
+      if (!wasArchived) {
+        undoStack.push({
+          key: `archive:${conversationId}`,
+          label: t('gestures.undo.archive'),
+          undo: async () => {
+            await messagesAPI.archiveConversation(conversationId);
+            CacheService.invalidate(`convos:${user?.id}`);
+            fetchConversations(true);
+          },
+        });
+      }
     } catch (error) {
       if (__DEV__) console.error('Erreur archivage:', error);
     }
@@ -1545,6 +1567,14 @@ export default function MessagesScreen() {
             </View>
           </TouchableOpacity>
         )}
+        {activeTab === 'all' && (
+          <EmptySuggestion
+            text={messagesEmptyLine}
+            actionLabel={t('delight.empty.scanAction')}
+            actionIcon="qr-code-outline"
+            onAction={() => navigation.navigate('ConnectionScanner' as any)}
+          />
+        )}
       </View>
     );
   };
@@ -1557,6 +1587,7 @@ export default function MessagesScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <MessagesScreenSkeleton />
+        <LoadingLine context="messages" floating />
       </SafeAreaView>
     );
   }

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Switch,
   Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
@@ -29,6 +30,10 @@ import { useTranslation } from 'react-i18next';
 import { changeLanguage, LANGUAGE_STORAGE_KEY, LANGUAGE_EXPLICIT_KEY } from '../../i18n';
 import { getAvailableLanguageCodes } from '../../i18n/translations';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
+import { useSensoryPref } from '../../hooks/useSensoryPrefs';
+import { forgetTastePreferences } from '../../lib/recommendations';
+import { ongoingEvent, isOngoingEnabled } from '../../services/ongoingEventNotification';
+import { haptics } from '../../utils/haptics';
 import { useAppLock } from '../../hooks/useAppLock';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import { useBiometricPrefs } from '../../hooks/useBiometricPrefs';
@@ -366,6 +371,44 @@ export default function SettingsScreen() {
 
   // Effets sonores
   const { enabled: soundsEnabled, setEnabled: setSoundsEnabled, play: playSound } = useSoundEffect();
+  // Round 3, P1 — tout se coupe : vibrations, sons d'interface, gestes physiques.
+  const [vibrationsEnabled, setVibrationsEnabled] = useSensoryPref('vibrations');
+  const [uiSoundsEnabled, setUiSoundsEnabled] = useSensoryPref('uiSounds');
+  const [motionGesturesEnabled, setMotionGesturesEnabled] = useSensoryPref('motionGestures');
+  // R3 W4/W5 — « Petites attentions » (anniversaire, ancienneté, fête nationale).
+  const [ritualsEnabled, setRitualsEnabled] = useSensoryPref('rituals');
+  const [forgettingTaste, setForgettingTaste] = useState(false);
+
+  // R3 W7 — « Oublier mes préférences » : confirmation, puis résultat honnête
+  // (rien n'est prétendu effacé si le serveur n'a pas confirmé).
+  const handleForgetPreferences = () => {
+    if (forgettingTaste) return;
+    showConfirm(
+      t('delight.settings.forgetConfirmTitle'),
+      t('delight.settings.forgetConfirmMessage'),
+      async () => {
+        setForgettingTaste(true);
+        try {
+          const result = await forgetTastePreferences();
+          if (result === 'done') showSuccess(t('delight.settings.forgetTitle'), t('delight.settings.forgetDone'));
+          else if (result === 'unavailable') showError(t('delight.settings.forgetTitle'), t('delight.settings.forgetUnavailable'));
+          else showError(t('delight.settings.forgetTitle'), t('delight.settings.forgetError'));
+        } finally {
+          setForgettingTaste(false);
+        }
+      },
+    );
+  };
+  // X2 — notification « jour J » épinglée (Android uniquement).
+  const [ongoingEnabled, setOngoingEnabled] = useState(true);
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    let alive = true;
+    isOngoingEnabled().then((v) => alive && setOngoingEnabled(v)).catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // Notifications
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -391,6 +434,8 @@ export default function SettingsScreen() {
   const [showInAttendees, setShowInAttendees] = useState(true);
   // Round 2 — trois consentements explicites (vie privée, souvenirs, bilan annuel).
   const [shareAttendance, setShareAttendance] = useState(false);
+  // G13 — échange de contact en secouant (serveur, désactivé par défaut).
+  const [allowShakeExchange, setAllowShakeExchange] = useState(false);
   const [notifyMemories, setNotifyMemories] = useState(false);
   const [showYearInReview, setShowYearInReview] = useState(true);
   // S13 — 7 taps sur la version : « Fait à Douala ».
@@ -567,6 +612,7 @@ export default function SettingsScreen() {
         setPublicProfile(settings.public_profile ?? true);
         setShowInAttendees(settings.show_in_attendees ?? true);
         setShareAttendance(settings.share_attendance_with_connections ?? false);
+        setAllowShakeExchange(settings.allow_shake_exchange ?? false);
         setNotifyMemories(settings.notify_memories ?? false);
         setShowYearInReview(settings.show_year_in_review ?? true);
         setShowReadReceipts(settings.show_read_receipts ?? true);
@@ -811,6 +857,7 @@ export default function SettingsScreen() {
     t('settings.preferencesSectionEyebrow'),
     t('settings.languageEyebrow'), t('eyebrow.theme'), t('eyebrow.timezoneSoon'),
     t('settings.rowSounds'), t('settings.rowSoundsSubtitle'),
+    t('delight.settings.ritualsTitle'), t('delight.settings.forgetTitle'),
     t('settings.securitySectionEyebrow'),
     t('settings.rowTwoFA'), t('settings.rowAppLock'), t('settings.rowTicketLock'),
     t('settings.rowPaymentLock'), t('settings.rowAccountLock'), t('settings.rowAdminLock'),
@@ -1184,6 +1231,8 @@ export default function SettingsScreen() {
           t('eyebrow.theme'), getThemeLabel(),
           t('eyebrow.timezoneSoon'), getTimezoneLabel(),
           t('settings.rowSounds'), t('settings.rowSoundsSubtitle'), t('eyebrow.soundEffects'),
+          t('settings.rowVibrations'), t('settings.rowUiSounds'), t('settings.rowMotionGestures'),
+          t('delight.settings.ritualsTitle'), t('delight.settings.forgetTitle'),
         ]) && (
         <View style={styles.sectionBlock}>
           <View style={styles.sectionHeaderRow}>
@@ -1232,6 +1281,79 @@ export default function SettingsScreen() {
                 onToggle={async (v) => {
                   await setSoundsEnabled(v);
                   if (v) playSound('payment-success');
+                }}
+              />
+            }
+          />
+          )}
+          {matchesQuery(searchQuery, [t('settings.preferencesSectionEyebrow'), t('settings.rowUiSounds'), t('settings.rowUiSoundsSubtitle')]) && (
+          <OptionCard
+            icon="volume-low-outline"
+            eyebrow={t('eyebrow.soundEffects')}
+            title={t('settings.rowUiSounds')}
+            subtitle={t('settings.rowUiSoundsSubtitle')}
+            right={<SoftToggle value={uiSoundsEnabled} onToggle={(v) => setUiSoundsEnabled(v)} />}
+          />
+          )}
+          {matchesQuery(searchQuery, [t('settings.preferencesSectionEyebrow'), t('settings.rowVibrations'), t('settings.rowVibrationsSubtitle')]) && (
+          <OptionCard
+            icon="phone-portrait-outline"
+            eyebrow={t('settings.vibrationsEyebrow')}
+            title={t('settings.rowVibrations')}
+            subtitle={t('settings.rowVibrationsSubtitle')}
+            right={
+              <SoftToggle
+                value={vibrationsEnabled}
+                onToggle={async (v) => {
+                  await setVibrationsEnabled(v);
+                  // Aperçu tactile : on sent tout de suite ce qu'on vient d'activer.
+                  if (v) haptics.success();
+                }}
+              />
+            }
+          />
+          )}
+          {matchesQuery(searchQuery, [t('settings.preferencesSectionEyebrow'), t('settings.rowMotionGestures'), t('settings.rowMotionGesturesSubtitle')]) && (
+          <OptionCard
+            icon="move-outline"
+            eyebrow={t('settings.vibrationsEyebrow')}
+            title={t('settings.rowMotionGestures')}
+            subtitle={t('settings.rowMotionGesturesSubtitle')}
+            right={<SoftToggle value={motionGesturesEnabled} onToggle={(v) => setMotionGesturesEnabled(v)} />}
+          />
+          )}
+          {matchesQuery(searchQuery, [t('settings.preferencesSectionEyebrow'), t('delight.settings.ritualsTitle'), t('delight.settings.ritualsSubtitle')]) && (
+          <OptionCard
+            icon="gift-outline"
+            eyebrow={t('delight.settings.ritualsEyebrow')}
+            title={t('delight.settings.ritualsTitle')}
+            subtitle={t('delight.settings.ritualsSubtitle')}
+            right={<SoftToggle value={ritualsEnabled} onToggle={(v) => setRitualsEnabled(v)} />}
+          />
+          )}
+          {!!user && matchesQuery(searchQuery, [t('settings.preferencesSectionEyebrow'), t('delight.settings.forgetTitle'), t('delight.settings.forgetSubtitle')]) && (
+          <OptionCard
+            icon="refresh-outline"
+            eyebrow={t('delight.settings.forgetEyebrow')}
+            title={t('delight.settings.forgetTitle')}
+            subtitle={t('delight.settings.forgetSubtitle')}
+            onPress={handleForgetPreferences}
+            disabled={forgettingTaste}
+            right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
+          />
+          )}
+          {Platform.OS === 'android' && matchesQuery(searchQuery, [t('settings.preferencesSectionEyebrow'), t('settings.rowOngoingEvent'), t('settings.rowOngoingEventSubtitle')]) && (
+          <OptionCard
+            icon="pin-outline"
+            eyebrow={t('settings.notificationsEyebrowOngoing')}
+            title={t('settings.rowOngoingEvent')}
+            subtitle={t('settings.rowOngoingEventSubtitle')}
+            right={
+              <SoftToggle
+                value={ongoingEnabled}
+                onToggle={(v) => {
+                  setOngoingEnabled(v);
+                  ongoingEvent.setEnabled(v).catch(() => {});
                 }}
               />
             }
@@ -1426,6 +1548,20 @@ export default function SettingsScreen() {
               <SoftToggle
                 value={shareAttendance}
                 onToggle={(v: boolean) => handleToggle('share_attendance_with_connections', v, setShareAttendance)}
+              />
+            }
+          />
+          )}
+          {matchesQuery(searchQuery, [t('settings.securitySectionEyebrow'), t('gestures.bump.settingTitle')]) && (
+          <OptionCard
+            icon="phone-portrait-outline"
+            eyebrow={t('eyebrow.privacy', { defaultValue: 'Vie privée' })}
+            title={t('gestures.bump.settingTitle')}
+            subtitle={t('gestures.bump.settingSubtitle')}
+            right={
+              <SoftToggle
+                value={allowShakeExchange}
+                onToggle={(v: boolean) => handleToggle('allow_shake_exchange', v, setAllowShakeExchange)}
               />
             }
           />

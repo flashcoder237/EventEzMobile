@@ -20,7 +20,7 @@ jest.mock('react-i18next', () => ({
       if (opts?.count !== undefined) return `${opts.count} évén.`;
       if (key === 'discover.cityEventsCountOne') return '1 évén.';
       if (key === 'discover.citiesEyebrow') return 'PAR VILLE';
-      if (key === 'discover.citiesTitle') return 'Le monde près de toi';
+      if (key === 'discover.citiesTitle') return 'Le monde près de vous';
       if (key === 'common.seeAll') return 'Voir tout';
       return key;
     },
@@ -112,7 +112,7 @@ describe('CitiesSection', () => {
     expect(await findByText('Douala')).toBeTruthy();
     expect(getByText('Abidjan')).toBeTruthy();
     expect(getByText('PAR VILLE')).toBeTruthy();
-    expect(getByText('Le monde près de toi')).toBeTruthy();
+    expect(getByText('Le monde près de vous')).toBeTruthy();
   });
 
   it('masque la section quand getCities renvoie 0 villes', async () => {

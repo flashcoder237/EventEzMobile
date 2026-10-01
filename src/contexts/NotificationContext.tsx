@@ -254,7 +254,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             notification_type: data.notification_type,
             related_object_type: data.related_object_type,
             related_object_id: data.related_object_id,
+            // Toute la data du push : le résolveur lit aussi kind / hold_expires_at
+            // (place gardée), connection_user_id (« Lui écrire »), etc.
             extra_data: {
+              ...(data as Record<string, any>),
               event_id: data.event_id,
               event_slug: (data as any).event_slug,
               registration_id: data.registration_id,
@@ -329,7 +332,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         const consumedId = await AsyncStorage.getItem(LAST_HANDLED_RESPONSE_ID_KEY);
         if (responseId && responseId !== consumedId) {
           await AsyncStorage.setItem(LAST_HANDLED_RESPONSE_ID_KEY, responseId);
-          const data = lastResponse.notification.request.content.data as PushNotificationData;
+          // Bouton d'action iOS (« Afficher mon billet », « J'y vais »…) : effets
+          // de bord puis cible propre à l'action ; null = rien à ouvrir.
+          const data = await pushNotificationService.resolveResponse(lastResponse);
+          if (!data) return;
           // Fix race condition cold start : on attend que le navigationRef
           // soit prêt (poll) au lieu d'utiliser un setTimeout fixe. Si l'auth
           // n'est pas (encore) prête après que la nav le soit, on stocke la

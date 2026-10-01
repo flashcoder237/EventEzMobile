@@ -45,6 +45,7 @@ import {
 } from '../../constants/theme';
 import { CARD_MAX } from '../../constants/layout';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
+import TorchDoubleTap from '../../components/gestures/TorchDoubleTap';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -491,6 +492,8 @@ export default function ScanScreen() {
   // ── Render ──
 
   return (
+    // G15 — double tap dans le viseur = torche (le bouton reste).
+    <TorchDoubleTap onToggle={() => setFlashOn((v) => !v)}>
     <View style={styles.container}>
       {/* Camera */}
       <CameraView
@@ -691,6 +694,7 @@ export default function ScanScreen() {
         </View>
       </Modal>
     </View>
+    </TorchDoubleTap>
   );
 }
 

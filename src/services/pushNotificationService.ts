@@ -1,4 +1,5 @@
 // src/services/pushNotificationService.ts
+import { noteNotificationReceived } from '../lib/notifications/recentEventPush';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
@@ -7,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { notificationsAPI } from '../api';
 import { navigationRef } from '../navigation/navigationRef';
 import { emitInAppToast } from '../contexts/InAppToastContext';
+import { performNotificationAction } from '../lib/notifications/notificationActions';
 
 const PUSH_TOKEN_KEY = '@eventez_push_token';
 const PUSH_REGISTERED_AT_KEY = '@eventez_push_registered_at';
@@ -249,28 +251,22 @@ class PushNotificationService {
     if (!actionId) return;
     try {
       switch (actionId) {
-        case 'mark_read': {
-          const notifId = data?.notification_id;
-          if (notifId) {
-            const { notificationsAPI } = await import('../api');
-            await notificationsAPI.markAsRead(notifId);
+        // Actions de catégorie (round 3) : même traitement qu'iOS et qu'en
+        // arrière-plan (index.ts → notifee.onBackgroundEvent).
+        case 'mark_read':
+        case 'reply':
+        case 'show_ticket':
+        case 'directions':
+        case 'going':
+        case 'join_live':
+        case 'pay_now':
+        case 'write_to': {
+          const target = await performNotificationAction(actionId, data || {}, detail?.input);
+          if (detail?.notification?.id && (actionId === 'mark_read' || actionId === 'reply')) {
+            const { default: notifee } = await import('@notifee/react-native');
+            await notifee.cancelNotification(detail.notification.id).catch(() => {});
           }
-          break;
-        }
-        case 'reply': {
-          // Si l'utilisateur a tapé un texte dans le quick reply
-          const replyText = detail?.input;
-          if (replyText && data?.conversation_id) {
-            const { messagesAPI } = await import('../api');
-            try {
-              await messagesAPI.sendMessage({
-                content: replyText,
-                conversation: data.conversation_id,
-              });
-            } catch (error) {
-              if (__DEV__) console.warn('[Push] reply send failed:', error);
-            }
-          }
+          if (target) this.handleNotificationTap(target as PushNotificationData);
           break;
         }
         case 'view_event':
@@ -696,6 +692,14 @@ class PushNotificationService {
         const data = notification.request.content.data as any;
         const title = notification.request.content.title || '';
         const body = notification.request.content.body || '';
+        // H2 : mémorise un rappel d'événement (l'écran ne revibrera pas dessus).
+        noteNotificationReceived(data?.notification_type ?? data?.type);
+        // X2 : billet scanné → la notification « jour J » disparaît.
+        if (data?.notification_type === 'checkin_welcome') {
+          import('./ongoingEventNotification')
+            .then((m) => m.ongoingEvent.onCheckedIn(data?.registration_id ?? data?.extra_data?.registration_id))
+            .catch(() => {});
+        }
 
         // Si la notif a un style riche (data.style), on la rend nous-mêmes via
         // Notifee avec BigPictureStyle/MessagingStyle/etc. Le setNotificationHandler
@@ -796,10 +800,27 @@ class PushNotificationService {
             // ignore — au pire on re-navigue une fois au prochain cold start
           }
         }
-        const data = response.notification.request.content.data as PushNotificationData;
-        this.handleNotificationTap(data);
+        const target = await this.resolveResponse(response);
+        if (target) this.handleNotificationTap(target);
       }
     );
+  }
+
+  /**
+   * Réponse à une notification (tap ou bouton d'action iOS) → données à
+   * router, après les effets de bord de l'action (marquer lu, réponse rapide,
+   * « J'y vais »). `null` = action terminée sans écran à ouvrir.
+   */
+  async resolveResponse(response: Notifications.NotificationResponse): Promise<PushNotificationData | null> {
+    const data = (response.notification.request.content.data || {}) as PushNotificationData;
+    const actionId = response.actionIdentifier;
+    if (!actionId || actionId === Notifications.DEFAULT_ACTION_IDENTIFIER) return data;
+    try {
+      return (await performNotificationAction(actionId, data as Record<string, any>, response.userText)) as PushNotificationData | null;
+    } catch (error) {
+      if (__DEV__) console.warn('[Push] notification action failed:', error);
+      return data;
+    }
   }
 
   /**

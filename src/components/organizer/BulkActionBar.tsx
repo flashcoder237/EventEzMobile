@@ -13,9 +13,13 @@ interface BulkActionBarProps {
   onCheckIn: () => void;
   onCancel: () => void;
   loading?: boolean;
+  /** G16 — écrire aux inscrits sélectionnés (action existante, ciblée). */
+  onMessage?: () => void;
+  /** G16 — exporter la sélection. */
+  onExport?: () => void;
 }
 
-function BulkActionBar({ selectedCount, onApprove, onReject, onCheckIn, onCancel, loading }: BulkActionBarProps) {
+function BulkActionBar({ selectedCount, onApprove, onReject, onCheckIn, onCancel, loading, onMessage, onExport }: BulkActionBarProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
 
@@ -27,9 +31,36 @@ function BulkActionBar({ selectedCount, onApprove, onReject, onCheckIn, onCancel
         <Text style={[styles.countText, { color: colors.gray900 }]}>
           {t('organizer.bulkAction.selectedCount', { count: selectedCount })}
         </Text>
-        <TouchableOpacity onPress={onCancel} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Ionicons name="close" size={22} color={colors.gray500} />
-        </TouchableOpacity>
+        <View style={styles.topActions}>
+          {onMessage && (
+            <TouchableOpacity
+              onPress={onMessage}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel={t('gestures.dragSelect.message')}
+            >
+              <Ionicons name="mail-outline" size={21} color={colors.gray700} />
+            </TouchableOpacity>
+          )}
+          {onExport && (
+            <TouchableOpacity
+              onPress={onExport}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel={t('gestures.dragSelect.export')}
+            >
+              <Ionicons name="download-outline" size={21} color={colors.gray700} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            onPress={onCancel}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.cancel')}
+          >
+            <Ionicons name="close" size={22} color={colors.gray500} />
+          </TouchableOpacity>
+        </View>
       </View>
       <View style={styles.actions}>
         <TouchableOpacity
@@ -85,6 +116,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.sm,
+  },
+  topActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.lg,
   },
   countText: {
     fontFamily: FontFamily.semiBold,

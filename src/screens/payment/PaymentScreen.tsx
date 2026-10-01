@@ -57,6 +57,11 @@ import {
 } from '../../constants/theme';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { Durations } from '../../constants/motion';
+import { mobileMoneyStage } from '../../lib/utils/loadingNarrative';
+import GoingCardPrep from '../../components/payment/GoingCardPrep';
+import { eventTint, tintFor } from '../../lib/utils/themeTint';
 import GradientButton from '../../components/ui/GradientButton';
 import EmptyState from '../../components/ui/EmptyState';
 import CountryBadgeSelector, {
@@ -211,11 +216,14 @@ function PollingProgressBar({
   trackColor,
   attempt,
   maxAttempts,
+  narrative = false,
 }: {
   primaryColor: string;
   trackColor: string;
   attempt: number;
   maxAttempts: number;
+  /** R3 W1 — Mobile Money : récit indexé sur le temps réellement écoulé. */
+  narrative?: boolean;
 }) {
   const { t } = useTranslation();
   const POLL_DURATION_SECONDS = 180; // 36 attempts × 5s (default config)
@@ -230,8 +238,21 @@ function PollingProgressBar({
   const attemptProgress = maxAttempts > 0 ? attempt / maxAttempts : 0;
   const timeProgress = elapsed / POLL_DURATION_SECONDS;
   const progress = Math.min(1, Math.max(attemptProgress, timeProgress));
+  // Ce qui se passe HABITUELLEMENT à ce moment-là — jamais un état que le
+  // serveur n'a pas renvoyé. La vérification ne dépend pas de ce texte.
+  const stage = narrative ? mobileMoneyStage(elapsed) : null;
   return (
     <>
+      {stage && (
+        <Animated.Text
+          key={stage}
+          entering={FadeIn.duration(Durations.enter)}
+          style={[styles.pollingNarrative, { color: '#555' }]}
+          accessibilityLiveRegion="polite"
+        >
+          {t(`delight.mobileMoney.${stage}`)}
+        </Animated.Text>
+      )}
       <View style={[styles.pollingProgressTrack, { backgroundColor: trackColor }]}>
         <View
           style={[
@@ -925,9 +946,9 @@ export default function PaymentScreen() {
           const ussdPaymentId = payload.payment_id as string;
           setPaymentId(ussdPaymentId);
           showAlert(
-            t('payment.paymentPushSentTitle', { defaultValue: 'Confirme sur ton téléphone' }),
+            t('payment.paymentPushSentTitle', { defaultValue: 'Confirmez sur votre téléphone' }),
             t('payment.paymentPushSentMessage', {
-              defaultValue: 'Une demande de paiement a été envoyée sur ton téléphone. Valide-la (code PIN Mobile Money) pour finaliser.',
+              defaultValue: 'Une demande de paiement a été envoyée sur votre téléphone. Validez-la (code PIN Mobile Money) pour finaliser.',
             }),
             [{ text: t('common.ok', { defaultValue: 'OK' }), onPress: () => startVerification(ussdPaymentId) }],
             'info',
@@ -1424,6 +1445,7 @@ export default function PaymentScreen() {
               trackColor={colors.gray100}
               attempt={pollingAttempt}
               maxAttempts={pollingMaxAttempts}
+              narrative={!!selectedMethod && MOBILE_MONEY_METHODS.has(selectedMethod)}
             />
           )}
 
@@ -1549,6 +1571,17 @@ export default function PaymentScreen() {
             variant="danger"
             fullWidth
           />
+
+          {/* R3 W8 — attente utile (Mobile Money) : préparer sa carte « J'y vais »,
+              SOUS la réassurance anti-double débit, les instructions et les actions. */}
+          {selectedMethod && MOBILE_MONEY_METHODS.has(selectedMethod) && (
+            <GoingCardPrep
+              active={isPolling}
+              registrationId={registrationId}
+              eventTitle={(eventObj as any)?.title}
+              eventTint={eventTint(eventObj) ? tintFor(eventTint(eventObj), false) : null}
+            />
+          )}
         </ScrollView>
       ) : (
         /* ===== Payment Form (normal state) ===== */
@@ -2139,6 +2172,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textAlign: 'center',
     marginTop: 6,
+  },
+  pollingNarrative: {
+    fontFamily: FontFamily.medium,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.md,
   },
 
   // Content

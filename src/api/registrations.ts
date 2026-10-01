@@ -28,6 +28,10 @@ export const registrationsAPI = {
   deleteRegistration: (id: string) =>
     api.delete(`/registrations/${id}/`),
 
+  // « J'y vais » (action de notification) — idempotent, sans effet sur le billet.
+  setAttendanceIntent: (id: string, intent: 'going' | '') =>
+    api.post(`/registrations/${id}/attendance-intent/`, { intent }),
+
   // Mes inscriptions
   getMyRegistrations: () =>
     api.get('/registrations/my_registrations/'),

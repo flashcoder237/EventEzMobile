@@ -303,7 +303,7 @@ describe('SettingsScreen', () => {
     fireEvent.press(deleteRow);
 
     // Le modal s'ouvre → champ password visible
-    expect(getByPlaceholderText('Ton mot de passe')).toBeTruthy();
+    expect(getByPlaceholderText('Votre mot de passe')).toBeTruthy();
   });
 
   it('shows error when deleting without password', async () => {
@@ -331,9 +331,9 @@ describe('SettingsScreen', () => {
     const deleteRow = await findByText('Supprimer mon compte');
     fireEvent.press(deleteRow);
 
-    fireEvent.changeText(getByPlaceholderText('Ton mot de passe'), 'mypassword');
+    fireEvent.changeText(getByPlaceholderText('Votre mot de passe'), 'mypassword');
     fireEvent.changeText(
-      getByPlaceholderText('Pourquoi supprimes-tu ton compte ?'),
+      getByPlaceholderText('Pourquoi supprimez-vous votre compte ?'),
       'No reason',
     );
 
@@ -368,7 +368,7 @@ describe('SettingsScreen', () => {
     const deleteRow = await findByText('Supprimer mon compte');
     fireEvent.press(deleteRow);
 
-    fireEvent.changeText(getByPlaceholderText('Ton mot de passe'), 'mypassword');
+    fireEvent.changeText(getByPlaceholderText('Votre mot de passe'), 'mypassword');
     const deleteBtns = getAllByText('Supprimer');
     fireEvent.press(deleteBtns[deleteBtns.length - 1]);
 

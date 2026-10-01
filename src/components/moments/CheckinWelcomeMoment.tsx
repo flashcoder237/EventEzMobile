@@ -23,6 +23,7 @@ import { feedback } from '../../utils/feedback';
 import { Durations } from '../../constants/motion';
 import { FontFamily, Spacing } from '../../constants/theme';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { ongoingEvent } from '../../services/ongoingEventNotification';
 
 interface Moment {
   key: string;
@@ -62,6 +63,8 @@ export default function CheckinWelcomeMoment() {
       const m = toCheckinMoment(n);
       if (!m || seen.current.has(m.key)) return;
       seen.current.add(m.key);
+      // X2 — billet scanné : la notification « jour J » épinglée disparaît.
+      if (m.registrationId) ongoingEvent.onCheckedIn(m.registrationId).catch(() => {});
       setMoment(m);
       // R2 V12 — son + vibration de la signature « arrivée ».
       feedback.moment('arrival');

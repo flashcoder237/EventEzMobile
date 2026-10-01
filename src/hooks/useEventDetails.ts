@@ -4,7 +4,8 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useFeedback } from '../contexts/FeedbackContext';
-import { eventsAPI, feedbacksAPI, messagesAPI, waitlistAPI, registrationsAPI, sessionsAPI, recommendationsAPI } from '../api';
+import { eventsAPI, feedbacksAPI, messagesAPI, waitlistAPI, registrationsAPI, sessionsAPI } from '../api';
+import { trackInteraction } from '../lib/recommendations';
 import { Event, RootStackParamList, Feedback, WaitlistEntry, Registration, Session } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useAlert } from '../contexts/AlertContext';
@@ -32,10 +33,9 @@ function trackEventInteraction(
   eventId: string,
   interactionType: 'view' | 'share' | 'follow' | 'register' | 'search',
 ) {
-  // Best effort : recommandation = signal, jamais bloquant. On no-op silencieusement.
-  recommendationsAPI
-    .recordInteraction({ event: eventId, interaction_type: interactionType })
-    .catch(() => {});
+  // Best effort : recommandation = signal, jamais bloquant. Le champ attendu
+  // est `event_id` (UUID) : l'ancien `event` était ignoré par le backend.
+  trackInteraction(interactionType, { eventId });
 }
 
 export type TabType = 'about' | 'tickets' | 'agenda' | 'location' | 'reviews' | 'live' | 'sponsors' | 'venue' | 'volunteers' | 'newsletter' | 'cfp' | 'virtual' | 'social';
@@ -46,6 +46,8 @@ export interface UseEventDetailsReturn {
   // Core data
   event: Event | null;
   loading: boolean;
+  /** Message d'erreur humain (errors.event.*) quand la fiche n'a pas pu être chargée. */
+  loadErrorMessage: string | null;
   /** True si le hook a été ouvert avec previewEvent (mode lecture seule). */
   isPreview: boolean;
   // Follow state
@@ -133,6 +135,8 @@ export function useEventDetails(
     isPreview ? (previewEvent as Event) : (memCached?.data ?? null),
   );
   const [loading, setLoading] = useState(!isPreview && !memCached);
+  // Message humain (errors.event.*) quand la fiche n'a pas pu être affichée.
+  const [loadErrorMessage, setLoadErrorMessage] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState(!!memCached?.data?.is_following);
   const [followersCount, setFollowersCount] = useState<number>(
     (memCached?.data as any)?.followers_count || 0,
@@ -242,6 +246,7 @@ export function useEventDetails(
         eventsAPI.getFollowersCount(eventId).catch(() => ({ data: { followers_count: 0 } })),
       ]);
       setEvent(eventResponse.data);
+      setLoadErrorMessage(null);
       CacheService.set(cacheKey, eventResponse.data, EVENT_DETAIL_CACHE_TTL).catch(() => {});
       setIsFollowing(followResponse.data?.is_following || eventResponse.data.is_following || false);
       setFollowersCount(countResponse.data?.followers_count || eventResponse.data.followers_count || 0);
@@ -272,9 +277,15 @@ export function useEventDetails(
         // cachée masquer l'état réel (écran 404).
         CacheService.invalidate(cacheKey).catch(() => {});
         setEvent(null);
-      } else if (__DEV__) {
+        setLoadErrorMessage(
+          getApiErrorMessage(error, t, { fallbackKey: 'eventDetails.loadingErrorMessage', context: 'event' }).message,
+        );
+      } else {
         // Erreur réseau : on garde l'éventuelle copie cachée (mode hors ligne).
-        console.error('Erreur chargement evenement:', error);
+        setLoadErrorMessage(
+          getApiErrorMessage(error, t, { fallbackKey: 'eventDetails.loadingErrorMessage', context: 'event' }).message,
+        );
+        if (__DEV__) console.error('Erreur chargement evenement:', error);
       }
     } finally {
       setLoading(false);
@@ -538,6 +549,7 @@ export function useEventDetails(
     // Core data
     event,
     loading,
+    loadErrorMessage,
     isPreview,
     // Follow state
     isFollowing,

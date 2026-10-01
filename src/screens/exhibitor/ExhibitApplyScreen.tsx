@@ -211,7 +211,7 @@ export default function ExhibitApplyScreen() {
         <View style={styles.center}>
           <Ionicons name="storefront-outline" size={44} color={colors.gray300} />
           <Text style={[styles.stateText, { color: colors.gray600 }]}>
-            {t('exhibitApply.loginRequired', { defaultValue: 'Connecte-toi pour candidater à un stand.' })}
+            {t('exhibitApply.loginRequired', { defaultValue: 'Connectez-vous pour candidater à un stand.' })}
           </Text>
           <TouchableOpacity
             onPress={() => navigation.navigate('Login' as any)}
@@ -235,7 +235,7 @@ export default function ExhibitApplyScreen() {
             {t('exhibitApply.successTitle', { defaultValue: 'Candidature envoyée !' })}
           </Text>
           <Text style={[styles.stateText, { color: colors.gray600 }]}>
-            {t('exhibitApply.successSubtitle', { defaultValue: 'L\'organisateur va l\'examiner. Tu seras notifié de sa décision.' })}
+            {t('exhibitApply.successSubtitle', { defaultValue: 'L\'organisateur va l\'examiner. Vous serez notifié de sa décision.' })}
           </Text>
           <TouchableOpacity
             onPress={() => navigation.navigate('MyBooth')}
@@ -257,7 +257,7 @@ export default function ExhibitApplyScreen() {
         <View style={styles.center}>
           <Ionicons name="information-circle" size={48} color={colors.info} />
           <Text style={[styles.stateText, { color: colors.gray600 }]}>
-            {t('exhibitApply.alreadyApplied', { defaultValue: 'Tu as déjà candidaté à ce salon.' })}
+            {t('exhibitApply.alreadyApplied', { defaultValue: 'Vous avez déjà candidaté à ce salon.' })}
           </Text>
           <TouchableOpacity
             onPress={() => navigation.navigate('MyBooth')}
@@ -286,7 +286,7 @@ export default function ExhibitApplyScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <Text style={[styles.lead, { color: colors.gray600 }]}>
-            {t('exhibitApply.lead', { defaultValue: 'Présente ta société pour tenir un stand à ce salon. L\'organisateur examinera ta demande.' })}
+            {t('exhibitApply.lead', { defaultValue: 'Présentez votre société pour tenir un stand à ce salon. L\'organisateur examinera votre demande.' })}
           </Text>
 
           <Input
@@ -356,7 +356,7 @@ export default function ExhibitApplyScreen() {
             label={t('exhibitApply.pitchLabel', { defaultValue: 'Message à l\'organisateur (optionnel)' })}
             value={pitch}
             onChangeText={setPitch}
-            placeholder={t('exhibitApply.pitchPlaceholder', { defaultValue: 'Décris ton activité, ce que tu exposeras…' })}
+            placeholder={t('exhibitApply.pitchPlaceholder', { defaultValue: 'Décrivez votre activité, ce que vous exposerez…' })}
             multiline
             numberOfLines={4}
             textAlignVertical="top"

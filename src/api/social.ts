@@ -168,8 +168,23 @@ export const recommendationsAPI = {
   getRecommendations: (params?: { limit?: number; page?: number; page_size?: number }) =>
     api.get('/recommendations/', { params }),
 
-  recordInteraction: (data: { event?: string; category?: number; interaction_type: string }) =>
+  // Contrat backend (RecordInteractionSerializer) : `event_id` (UUID, jamais
+  // le slug) et `category_id`. Les anciens champs `event`/`category` étaient
+  // ignorés en silence → aucun signal n'était enregistré.
+  recordInteraction: (data: {
+    event_id?: string;
+    category_id?: number;
+    interaction_type: 'view' | 'register' | 'follow' | 'share' | 'search';
+  }) =>
     api.post('/recommendations/record_interaction/', data),
+
+  /** Goûts déduits (`top_categories`, `explanation`). 404 = backend sans la route. */
+  getPreferences: () =>
+    api.get('/recommendations/preferences/', { expectedErrorStatuses: [404] } as any),
+
+  /** « Oublier mes préférences » — 204. */
+  forgetPreferences: () =>
+    api.delete('/recommendations/preferences/'),
 
   /** Events similaires à un event donné — utilisé en bas de EventDetails.
    *  Le backend utilise `@action(detail=True)` qui génère l'URL DRF standard

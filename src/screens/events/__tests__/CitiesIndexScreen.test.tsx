@@ -22,7 +22,7 @@ jest.mock('react-i18next', () => ({
       if (key === 'discover.cityEventsCountOne') return '1 évén.';
       if (key === 'discover.citiesEyebrow') return 'PAR VILLE';
       if (key === 'discover.citiesIndexTitle') return 'Toutes les villes';
-      if (key === 'discover.citiesNearYou') return 'Près de chez toi';
+      if (key === 'discover.citiesNearYou') return 'Près de chez vous';
       if (key === 'discover.citiesSearchPlaceholder') return 'Rechercher une ville…';
       if (key === 'discover.citiesNoMatch') return `Aucune ville ne correspond`;
       if (key === 'discover.citiesIndexEmpty') return 'Aucune ville';
@@ -127,7 +127,7 @@ describe('CitiesIndexScreen', () => {
     // Section header user-country present (autre header virtualise et donc
     // potentiellement absent du tree de test — on verifie juste que la logique
     // de regroupement par pays user fonctionne).
-    expect(await findByText('Près de chez toi')).toBeTruthy();
+    expect(await findByText('Près de chez vous')).toBeTruthy();
   });
 
   it('debounce search → refetch avec ?search=', async () => {
