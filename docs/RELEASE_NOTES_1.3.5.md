@@ -348,6 +348,12 @@ What's new in this version:
   delta ne la renvoyait jamais (autre appareil, app fermée) — déploiement
   backend nécessaire, sans migration.
 
+- Raccourcis de l'appui long sur l'icône de l'app : icônes invisibles. Les
+  pictogrammes sont blancs et le plugin `expo-quick-actions` les posait sur un
+  fond blanc par défaut (Android). Fond indigo de marque dans `app.json` ; sur
+  iOS, symboles système (`symbol:safari`, `symbol:ticket`,
+  `symbol:qrcode.viewfinder`). Nouveau build natif nécessaire.
+
 ---
 
 ### Avant publication

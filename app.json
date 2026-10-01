@@ -194,9 +194,9 @@
         "expo-quick-actions",
         {
           "androidIcons": {
-            "shortcut_discover": "./assets/icons/shortcut-discover.png",
-            "shortcut_tickets": "./assets/icons/shortcut-tickets.png",
-            "shortcut_scan": "./assets/icons/shortcut-scan.png"
+            "shortcut_discover": { "foregroundImage": "./assets/icons/shortcut-discover.png", "backgroundColor": "#4F46E5" },
+            "shortcut_tickets": { "foregroundImage": "./assets/icons/shortcut-tickets.png", "backgroundColor": "#4F46E5" },
+            "shortcut_scan": { "foregroundImage": "./assets/icons/shortcut-scan.png", "backgroundColor": "#4F46E5" }
           }
         }
       ]

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import * as QuickActions from 'expo-quick-actions';
 import i18n from '../i18n';
 import { getTodayTicket, subscribeTodayTicket, TodayTicket } from '../lib/todayTicket';
@@ -46,11 +47,22 @@ function useTodayTicket(): TodayTicket | null {
  * iOS : accepte en plus les symboles système (`symbol:magnifyingglass`). On
  * garde les mêmes assets pour que les deux plateformes soient cohérentes.
  */
-const ICONS = {
-  discover: 'shortcut_discover',
-  tickets: 'shortcut_tickets',
-  scan: 'shortcut_scan',
-} as const;
+// Android : pictogrammes BLANCS → le plugin doit poser un fond coloré
+// (`backgroundColor` dans app.json). Sans lui, le fond par défaut est blanc et
+// les icônes étaient invisibles dans le menu de l'appui long.
+// iOS : symboles système (SF Symbols), rendus dans la couleur du système.
+const ICONS =
+  Platform.OS === 'ios'
+    ? ({
+        discover: 'symbol:safari',
+        tickets: 'symbol:ticket',
+        scan: 'symbol:qrcode.viewfinder',
+      } as const)
+    : ({
+        discover: 'shortcut_discover',
+        tickets: 'shortcut_tickets',
+        scan: 'shortcut_scan',
+      } as const);
 
 function routeForAction(id: string): void {
   if (!navigationRef.isReady()) return;
