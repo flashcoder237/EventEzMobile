@@ -1,0 +1,12 @@
+{
+  "CFBundleDisplayName": "EventEz",
+  "NSPhotoLibraryUsageDescription": "Lets EventEz add your photos to your messages and events.",
+  "NSPhotoLibraryAddUsageDescription": "Lets EventEz save your tickets and the images you receive to your photo library.",
+  "NSCameraUsageDescription": "Lets EventEz use your camera for video events and to scan ticket QR codes.",
+  "NSMicrophoneUsageDescription": "Lets EventEz record voice messages and let you take part in video events.",
+  "NSFaceIDUsageDescription": "Lets EventEz unlock the app and confirm sensitive actions with Face ID.",
+  "NSLocationWhenInUseUsageDescription": "Lets EventEz use your location to find events near you.",
+  "NSLocationAlwaysAndWhenInUseUsageDescription": "Lets EventEz use your location to find events near you.",
+  "NSCalendarsUsageDescription": "Lets EventEz add your events to your calendar.",
+  "NSCalendarsFullAccessUsageDescription": "Lets EventEz add your events to your calendar."
+}

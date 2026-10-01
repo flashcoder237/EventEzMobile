@@ -1,0 +1,17 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'expo-module-gradle-plugin'
+
+group = 'net.overbrand.eventez.nativebridge'
+version = '1.0.0'
+
+android {
+  namespace = 'net.overbrand.eventez.nativebridge'
+  defaultConfig {
+    minSdkVersion 24
+    // Mêmes champs que modules/eventez-pip : sans eux, le build EAS échoue
+    // avec « 'android.defaultConfig.versionName' is not defined ».
+    versionCode 1
+    versionName "1.0.0"
+  }
+}

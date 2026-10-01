@@ -16,6 +16,9 @@ import * as Sharing from 'expo-sharing';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
+import { useInAppToast } from '../../contexts/InAppToastContext';
+import { addToNativeCalendar, nativeCalendarAvailable } from '../../lib/native/calendar';
+import { NATIVE_NS, registerNativeStrings } from '../../lib/native/i18n';
 import { eventsAPI } from '../../api';
 import { Event } from '../../types';
 import {
@@ -37,7 +40,27 @@ function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
-  const [loading, setLoading] = useState<'google' | 'ical' | null>(null);
+  const [loading, setLoading] = useState<'native' | 'google' | 'ical' | null>(null);
+  registerNativeStrings();
+  const { t: tn } = useTranslation(NATIVE_NS);
+  // useInAppToast (et non useFeedback) : no-op sans provider, sûr dans les tests.
+  const { showToast } = useInAppToast();
+  // X6 — agenda du téléphone en premier choix quand le module est présent.
+  const canAddNative = nativeCalendarAvailable();
+
+  const handleNativeCalendar = async () => {
+    setLoading('native');
+    try {
+      // L'éditeur système se présente PAR-DESSUS la feuille, que l'on ferme
+      // seulement au retour (fermer avant ferait rater la présentation iOS).
+      const result = await addToNativeCalendar(event);
+      if (result === 'saved') showToast({ title: tn('calendar.added'), icon: 'success', anchor: 'bottom' });
+      if (result === 'unavailable') showToast({ title: tn('calendar.failed'), icon: 'error', anchor: 'bottom' });
+      if (result !== 'unavailable') setShowModal(false);
+    } finally {
+      setLoading(null);
+    }
+  };
 
   const handleGoogleCalendar = async () => {
     setLoading('google');
@@ -166,6 +189,33 @@ function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
             <Text style={[styles.sheetTitle, { color: colors.gray900 }]}>
               {t('componentsEvents.calendarSheetTitle')}
             </Text>
+
+            {canAddNative && (
+              <TouchableOpacity
+                style={[styles.option, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}
+                onPress={handleNativeCalendar}
+                disabled={loading !== null}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+              >
+                <View style={[styles.optionIcon, { backgroundColor: isDark ? '#2A1A1A' : '#FFECEC' }]}>
+                  {loading === 'native' ? (
+                    <ActivityIndicator size="small" color="#FF6B6B" />
+                  ) : (
+                    <Ionicons name="calendar-number-outline" size={24} color="#FF6B6B" />
+                  )}
+                </View>
+                <View style={styles.optionText}>
+                  <Text style={[styles.optionTitle, { color: colors.gray900 }]}>
+                    {tn('calendar.addNative')}
+                  </Text>
+                  <Text style={[styles.optionSubtitle, { color: colors.gray500 }]}>
+                    {tn('calendar.addNativeHint')}
+                  </Text>
+                </View>
+                <Ionicons name="add-circle-outline" size={20} color={colors.gray400} />
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={[styles.option, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}

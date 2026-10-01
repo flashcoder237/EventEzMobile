@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="eventez_widget_label">Next ticket</string>
+  <string name="eventez_widget_description">Your next event at a glance.</string>
+  <string name="eventez_widget_header">Next ticket</string>
+  <string name="eventez_widget_empty">No upcoming tickets</string>
+  <string name="eventez_widget_live">Happening now</string>
+  <string name="eventez_tile_label">My next ticket</string>
+  <string name="eventez_tile_empty">No upcoming tickets</string>
+</resources>

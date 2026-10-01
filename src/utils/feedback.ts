@@ -15,9 +15,53 @@
  */
 import { haptics } from './haptics';
 import type { SoundKey } from '../services/soundService';
+import type { ChimeSound } from '../lib/native/uiSounds';
+
+/**
+ * H8 — moments qui ont leur propre signature sonore (carillon synthétisé,
+ * cf. lib/native/uiSounds). Repli sur l'alias soundService si le carillon
+ * n'a pas pu être joué.
+ */
+const CHIMES: Partial<Record<SoundKey, ChimeSound>> = {
+  'ticket-received': 'brand',
+  sale: 'sale',
+};
+
+function chimeOrPlay(sound: SoundKey) {
+  const chime = CHIMES[sound];
+  if (!chime) return false;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { uiSounds } = require('../lib/native/uiSounds');
+    uiSounds
+      .chime(chime)
+      .then((played: boolean) => {
+        if (!played) playBase(sound);
+      })
+      .catch(() => playBase(sound));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** H7 — son d'interface discret (coupé par défaut, cf. sensoryPrefs `uiSounds`). */
+function uiTick() {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    require('../lib/native/uiSounds').uiSounds.ui('tap');
+  } catch {
+    /* silence */
+  }
+}
 
 function play(sound?: SoundKey) {
   if (!sound) return;
+  if (chimeOrPlay(sound)) return;
+  playBase(sound);
+}
+
+function playBase(sound: SoundKey) {
   try {
     // Chargé à la demande : le module audio natif n'est tiré qu'au premier son
     // (et jamais dans les écrans/tests qui ne vibrent que).
@@ -52,13 +96,21 @@ export const feedback = {
   },
   /** Paiement réussi, scan validé. */
   celebrate(sound?: SoundKey) {
-    haptics.celebrate();
+    // H6 — sur iPhone, motif Core Haptics (houle + étincelles) ; ailleurs,
+    // repli automatique sur haptics.celebrate.
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      require('../lib/native/richHaptics').richHaptic('celebrate');
+    } catch {
+      haptics.celebrate();
+    }
     play(sound);
   },
   /** Révélation, choix confirmé : discret. */
   confirm(sound?: SoundKey) {
     haptics.selection();
-    play(sound);
+    if (sound) play(sound);
+    else uiTick();
   },
   warn(sound?: SoundKey) {
     haptics.warning();

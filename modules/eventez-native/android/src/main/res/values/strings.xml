@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Langue par défaut de l'app : français (vouvoiement). Les libellés dynamiques
+     arrivent traduits depuis JS ; ceux-ci ne servent qu'avant le premier envoi. -->
+<resources>
+  <string name="eventez_widget_label">Prochain billet</string>
+  <string name="eventez_widget_description">Votre prochain événement, d’un coup d’œil.</string>
+  <string name="eventez_widget_header">Prochain billet</string>
+  <string name="eventez_widget_empty">Aucun billet à venir</string>
+  <string name="eventez_widget_live">En cours</string>
+  <string name="eventez_tile_label">Mon prochain billet</string>
+  <string name="eventez_tile_empty">Aucun billet à venir</string>
+</resources>
