@@ -117,6 +117,7 @@ import {
   reconcileSent as reconcileLocalSent,
   insertPending as insertLocalPending,
   patchLocalMessage,
+  applyLocalReaction,
   markMessagesPendingDelete,
   clearPendingOp,
   deleteLocalMessage,
@@ -398,9 +399,13 @@ export default function ConversationScreen() {
     },
     onReactionAdded: (data) => {
       actions.addReaction(String(data.messageId), data.emoji, String(data.userId));
+      // Persiste en SQLite (source de vérité) : sinon la réaction disparaît à
+      // la réouverture de la conversation (reçue ou écho de la mienne).
+      applyLocalReaction(data.messageId, 'add', data.emoji, data.userId).catch(() => {});
     },
     onReactionRemoved: (data) => {
       actions.removeReaction(String(data.messageId), data.emoji, String(data.userId));
+      applyLocalReaction(data.messageId, 'remove', data.emoji, data.userId).catch(() => {});
     },
     onMessageUpdated: (data) => {
       const patch = { content: data.content, is_edited: true, edited_at: data.editedAt };
@@ -2699,6 +2704,9 @@ export default function ConversationScreen() {
         await messagesAPI.addReaction(messageIdStr, emoji);
       }
       actions.addReaction(messageIdStr, emoji, String(user?.id));
+      // SQLite = source de vérité : sans cette écriture la réaction ne vivait
+      // qu'en RAM et disparaissait à la réouverture de la discussion.
+      if (user?.id != null) applyLocalReaction(messageIdStr, 'add', emoji, user.id).catch(() => {});
     } catch (error) {
       if (__DEV__) console.error('Erreur ajout réaction:', error);
     }
@@ -2716,6 +2724,7 @@ export default function ConversationScreen() {
         await messagesAPI.addReaction(messageIdStr, emoji);
       }
       actions.addReaction(messageIdStr, emoji, String(user?.id));
+      if (user?.id != null) applyLocalReaction(messageIdStr, 'add', emoji, user.id).catch(() => {});
     } catch (error) {
       if (__DEV__) console.error('Erreur réaction rapide:', error);
     }
@@ -2736,10 +2745,12 @@ export default function ConversationScreen() {
         if (isConnected && isAuthenticated) wsRemoveReaction(messageIdStr, emoji);
         else await messagesAPI.removeReaction(messageIdStr, emoji);
         actions.removeReaction(messageIdStr, emoji, String(user?.id));
+        if (user?.id != null) applyLocalReaction(messageIdStr, 'remove', emoji, user.id).catch(() => {});
       } else {
         if (isConnected && isAuthenticated) wsAddReaction(messageIdStr, emoji);
         else await messagesAPI.addReaction(messageIdStr, emoji);
         actions.addReaction(messageIdStr, emoji, String(user?.id));
+        if (user?.id != null) applyLocalReaction(messageIdStr, 'add', emoji, user.id).catch(() => {});
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur toggle réaction:', error);

@@ -340,6 +340,14 @@ What's new in this version:
   Compteur partagé entre écrans billet, retour au système
   (`restoreSystemBrightnessAsync`) sur Android, valeur d'origine sur iOS.
 
+- Réaction emoji qui disparaissait en revenant dans une discussion : elle
+  n'était appliquée qu'en mémoire, jamais écrite dans SQLite (source de
+  vérité relue à l'ouverture). Les réactions (les miennes et celles reçues par
+  WS) sont désormais persistées (`applyLocalReaction`). Côté backend, une
+  réaction fait maintenant avancer `updated_at` du message, sinon la synchro
+  delta ne la renvoyait jamais (autre appareil, app fermée) — déploiement
+  backend nécessaire, sans migration.
+
 ---
 
 ### Avant publication

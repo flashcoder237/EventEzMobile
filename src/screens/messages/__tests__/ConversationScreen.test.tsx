@@ -119,6 +119,7 @@ jest.mock('../../../db/messageRepository', () => ({
   reconcileSent: jest.fn(() => Promise.resolve()),
   insertPending: jest.fn(() => Promise.resolve()),
   patchLocalMessage: jest.fn(() => Promise.resolve()),
+  applyLocalReaction: jest.fn(() => Promise.resolve()),
   deleteLocalMessage: jest.fn(() => Promise.resolve()),
 }));
 jest.mock('../../../db/outboxRepository', () => ({

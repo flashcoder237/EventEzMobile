@@ -318,6 +318,67 @@ export async function patchLocalMessage(
 }
 
 /**
+ * Pure : applique l'ajout/retrait d'une réaction (emoji, userId) à une liste.
+ * Idempotente (pas de doublon emoji+user ; retrait d'une absente = no-op).
+ * Même sémantique que les cases ADD_REACTION / REMOVE_REACTION du reducer.
+ */
+export function applyReactionToList(
+  reactions: Message['reactions'] | undefined,
+  op: 'add' | 'remove',
+  emoji: string,
+  userId: number,
+): NonNullable<Message['reactions']> {
+  const list = Array.isArray(reactions) ? reactions : [];
+  const same = (r: { emoji: string; user: unknown }) =>
+    r.emoji === emoji && Number(r.user) === userId;
+  if (op === 'remove') return list.filter((r) => !same(r));
+  if (list.some(same)) return list;
+  return [
+    ...list,
+    {
+      id: `temp-${Date.now()}`,
+      emoji,
+      user: userId,
+      user_name: '',
+      created_at: new Date().toISOString(),
+    },
+  ];
+}
+
+/**
+ * Persiste une réaction (ajout/retrait) dans le payload SQLite du message.
+ *
+ * Bug d'origine : la réaction ne vivait que dans le state React. SQLite étant
+ * la source de vérité, la réouverture de la conversation relisait le payload
+ * sans la réaction → « la réaction disparaît quand je reviens ». Appelé à la
+ * fois sur l'action locale (optimiste) et sur l'événement WS reaction.add /
+ * reaction.remove (y compris l'écho de ma propre réaction, idempotent).
+ */
+export async function applyLocalReaction(
+  messageId: string | number,
+  op: 'add' | 'remove',
+  emoji: string,
+  userId: string | number,
+): Promise<void> {
+  const uid = Number(userId);
+  if (!emoji || !Number.isFinite(uid)) return;
+  const db = await getDatabase();
+  const key = String(messageId);
+  await runExclusive(async () => {
+    const row = await db.getFirstAsync<MessageRow>('SELECT * FROM messages WHERE id = ?', key);
+    if (!row) return;
+    let msg: Message;
+    try {
+      msg = JSON.parse(row.payload) as Message;
+    } catch {
+      return;
+    }
+    msg.reactions = applyReactionToList(msg.reactions, op, emoji, uid);
+    await db.runAsync('UPDATE messages SET payload = ? WHERE id = ?', JSON.stringify(msg), key);
+  });
+}
+
+/**
  * Marque des messages comme supprimés LOCALEMENT et de façon persistante, en
  * posant un tombstone `pending_op = 'delete'`.
  *
