@@ -333,6 +333,13 @@ What's new in this version:
   l'événement retour. Désactivé dans `app.json` (comme en 1.3.4) : nouveau
   build natif nécessaire.
 
+- Luminosité qui ne redevenait pas adaptative après avoir affiché un billet :
+  sur Android, la « restauration » réappliquait une valeur fixe (ce qui coupe
+  la luminosité adaptative) ; en enchaînant détail → QR, le max pouvait être
+  pris pour la luminosité d'origine ; quitter trop vite ne restaurait rien.
+  Compteur partagé entre écrans billet, retour au système
+  (`restoreSystemBrightnessAsync`) sur Android, valeur d'origine sur iOS.
+
 ---
 
 ### Avant publication
