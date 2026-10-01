@@ -235,6 +235,7 @@ const TreasuryReportsScreen = withSuspense(lazy(() => import('../screens/admin/t
 import MaintenanceScreen from '../screens/status/MaintenanceScreen';
 import StatusScreen from '../screens/status/StatusScreen';
 import { heroScreenOptions } from '../components/ui/motion/HeroFlight';
+import NativeBridgesHost from '../components/native/NativeBridgesHost';
 
 // Common Screens
 
@@ -362,6 +363,9 @@ export default function RootNavigator() {
   }
 
   return (
+    <>
+    {/* Lot natif round 3 : widgets, Live Activities, Handoff, partage… (ne rend rien). */}
+    <NativeBridgesHost />
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
@@ -645,5 +649,6 @@ export default function RootNavigator() {
       {/* In-app browser */}
       <Stack.Screen name="Browser" component={WebViewScreen} />
     </Stack.Navigator>
+    </>
   );
 }

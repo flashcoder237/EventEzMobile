@@ -54,6 +54,7 @@ import { getTicketVerificationUrl, getEventInviteUrl, WEB_BASE_URL } from '../..
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useTicketDisplayGuard } from '../../hooks/useTicketDisplayGuard';
 import AddToWalletButton from '../../components/tickets/AddToWalletButton';
+import AddToCalendarButton from '../../components/events/AddToCalendarButton';
 import EventCountdown from '../../components/events/EventCountdown';
 import { displayCurrency } from '../../lib/utils/priceFormatters';
 import {
@@ -1097,6 +1098,15 @@ export default function QRCodeScreen() {
             {(ticket.status === 'confirmed' || ticket.status === 'completed') && (
               <AddToWalletButton ticketId={String(ticketId)} />
             )}
+
+            {/* X6 — « Ajouter à mon agenda » (éditeur natif du système, puis
+                Google Agenda / .ics) tant que l'événement n'a pas commencé. */}
+            {(ticket.status === 'confirmed' || ticket.status === 'completed') &&
+              !!event?.start_date && new Date(event.start_date).getTime() > Date.now() && (
+                <View style={{ alignItems: 'center' }}>
+                  <AddToCalendarButton event={event} />
+                </View>
+              )}
           </View>
 
           {/* Spacer dynamique : insets.bottom + breathing room pour clear la nav bar */}

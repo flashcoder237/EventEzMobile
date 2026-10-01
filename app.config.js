@@ -95,6 +95,17 @@ module.exports = ({ config }) => {
     // iOS : désactive la signature des resource bundles (Xcode 14+ l'exige
     // sinon, ce qui casse le build EAS sur des pods comme GoogleMaps).
     './plugins/withIosResourceBundleSigning',
+    // X12 : « Partager vers EventEz » (texte/lien) sur Android.
+    './plugins/withAndroidShareIntent',
+    // Lot natif round 3 — iOS en OPT-IN par variable d'env (eas.json > env),
+    // à activer profil par profil : development → preview → production.
+    //  - EVENTEZ_IOS_EXTENSIONS=1 : extension widget + Live Activities + App
+    //    Group (déclarée à EAS pour son provisioning) ;
+    //  - EVENTEZ_IOS_APP_INTENTS=1 : « Montrer mon billet » (Siri/Raccourcis) ;
+    //  - EVENTEZ_IOS_TIME_SENSITIVE=1 : entitlement notifications urgentes.
+    ...(process.env.EVENTEZ_IOS_EXTENSIONS === '1' ? ['./plugins/withEventezIosExtensions'] : []),
+    ...(process.env.EVENTEZ_IOS_APP_INTENTS === '1' ? ['./plugins/withEventezAppIntents'] : []),
+    ...(process.env.EVENTEZ_IOS_TIME_SENSITIVE === '1' ? ['./plugins/withEventezTimeSensitive'] : []),
   ];
 
   return { ...config, ...expo };

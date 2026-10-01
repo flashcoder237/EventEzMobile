@@ -37,6 +37,7 @@
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon2.png",
+        "monochromeImage": "./assets/icons/monochrome-icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "net.overbrand.eventez",
@@ -48,7 +49,9 @@
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
         "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.READ_MEDIA_VIDEO"
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_CALENDAR",
+        "android.permission.WRITE_CALENDAR"
       ],
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -157,6 +160,10 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "locales": {
+      "fr": "./locales/ios/fr.json",
+      "en": "./locales/ios/en.json"
+    },
     "plugins": [
       "expo-secure-store",
       "expo-apple-authentication",
@@ -176,7 +183,11 @@
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#7c3aed"
+          "color": "#7c3aed",
+          "sounds": [
+            "./assets/sounds/notification/eventez_chime.wav",
+            "./assets/sounds/notification/eventez_sale.wav"
+          ]
         }
       ],
       "./plugins/withNetworkSecurity",
@@ -187,7 +198,22 @@
       "expo-audio",
       "expo-asset",
       "expo-sqlite",
-      "expo-localization",
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": ["fr", "en"],
+            "android": ["fr", "en"]
+          }
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Permet à EventEz d'ajouter vos événements à votre agenda.",
+          "remindersPermission": false
+        }
+      ],
       "@react-native-community/datetimepicker",
       "expo-font",
       [

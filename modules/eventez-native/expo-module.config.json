@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["EventezNativeModule"]
+  },
+  "android": {
+    "modules": ["net.overbrand.eventez.nativebridge.EventezNativeModule"]
+  }
+}

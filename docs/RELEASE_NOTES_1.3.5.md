@@ -686,12 +686,33 @@ Tests sur appareil (lot 4) — iOS ET Android :
 
 ---
 
+#### Round 3 — lot natif (branche `feat/r3-native`, fusionnée)
+
+Détail complet + checklist : `docs/NATIVE_LOT_R3.md`.
+
+- X1/X14 Live Activities (participant : portes → « en cours » ; organisateur :
+  compteur de check-ins), X3 widget « Prochain billet » iOS + Android,
+  X11 tuile Réglages rapides Android, X4 Siri « Montrer mon billet »,
+  X5 time-sensitive, X6 `expo-calendar` « Ajouter à mon agenda »
+  (**nouvelle dépendance native**), X8 langue dans les réglages système,
+  X9 icône monochrome Android 13, X12 partage d'un lien eventez.online,
+  X13 Handoff, G10 proximité (vocal à l'oreille), H3 canaux sonores
+  `eventez_moments` / `eventez_sales`, H6 Core Haptics, H7 sons UI (OFF par
+  défaut), H8 carillon de marque. X10 reporté (pas d'artwork).
+- ⚠️ **Swift jamais compilé** (pas de Mac) : tout le provisioning iOS est
+  gaté OFF par défaut (`EVENTEZ_IOS_EXTENSIONS`, `EVENTEZ_IOS_APP_INTENTS`,
+  `EVENTEZ_IOS_TIME_SENSITIVE`, cf. `eas.json.example`). À activer sur un
+  build `development` device avant toute prod.
+- Backend à brancher pour H3 : envoyer `channelId`/`sound` des nouveaux canaux.
+
+---
+
 ### Avant publication
 
 - [ ] Relire le texte store (FR/EN ci-dessus) et le texte promotionnel.
 - [ ] **Build store requis** (pas d'`expo-updates`, donc pas d'OTA) ; `app.json`
-      a changé (retour prédictif Android explicitement désactivé), aucune
-      dépendance native ajoutée.
+      a changé (retour prédictif Android explicitement désactivé) ; dépendance
+      native ajoutée : `expo-calendar` + modules locaux du lot natif.
       Numéro de build géré par EAS (`appVersionSource: remote` + `autoIncrement`).
 - [ ] **Backend déployé AVANT la sortie** (sinon les écrans du round 2 restent
       vides ou en erreur) : `migrate` (accounts 0030-0031, events 0058,

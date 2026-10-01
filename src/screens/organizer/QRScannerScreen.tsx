@@ -78,6 +78,7 @@ import {
 } from '../../constants/theme';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import TorchDoubleTap from '../../components/gestures/TorchDoubleTap';
+import { useOrganizerLiveActivity } from '../../lib/native/organizerActivity';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'QRScanner'>;
@@ -139,6 +140,9 @@ export default function QRScannerScreen() {
   const prevSuccessRef = useRef(0);
   const hundredTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [event, setEvent] = useState<Event | null>(null);
+  // X14 — Live Activity organisateur : compteur d'accueil sur l'écran
+  // verrouillé / la Dynamic Island, dès le premier scan réussi (iOS 16.2+).
+  useOrganizerLiveActivity(eventId, event, stats.success);
   const { play: playSound } = useSoundEffect();
   const { enqueue: enqueueOfflineScan, flush: flushQueue, pendingCount, isFlushing, isOnline, lastRejected, acknowledgeRejected } = useCheckinQueue();
   // Manifeste de check-in offline : validation LOCALE des billets ticket-level.

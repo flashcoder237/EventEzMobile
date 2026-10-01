@@ -45,6 +45,7 @@ import {
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
+import { useProximityMonitoring } from '../../hooks/useProximityMonitoring';
 import EventActionsSheet, { EventAction } from '../organizer/EventActionsSheet';
 import {
   MESSAGE_AVATAR_SIZE,
@@ -276,6 +277,8 @@ const VoiceAttachment = memo(function VoiceAttachment({
   textColor,
 }: VoiceAttachmentProps) {
   const { t } = useTranslation();
+  // G10 — pendant l'écoute, téléphone à l'oreille = écran éteint.
+  useProximityMonitoring(isPlaying);
   // Waveform stable : on génère les hauteurs une seule fois.
   // Si le backend fournit waveform_data (array de 0..1), on l'utilise.
   // Sinon on hash sur duration_seconds uniquement — c'est la seule propriété
