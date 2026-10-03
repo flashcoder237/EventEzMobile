@@ -11,9 +11,15 @@ export const DECELERATION = 0.998;
  * librement. `velocity` en px/s → déplacement en px.
  *   proj = y + v · d / (1 − d) / 1000
  */
-export function projectRelease(position: number, velocity: number, deceleration = DECELERATION): number {
+export function projectRelease(position: number, velocity: number, deceleration?: number): number {
   'worklet';
-  return position + (velocity * deceleration) / (1 - deceleration) / 1000;
+  // PAS de `deceleration = DECELERATION` en valeur par défaut : le plugin
+  // worklets ne capture pas les identifiants des paramètres par défaut, et sur
+  // le thread UI `DECELERATION` n'existe pas → « ReferenceError: Property
+  // 'DECELERATION' doesn't exist » → l'app se fermait au lâcher d'une feuille
+  // (sélecteur de langue et toutes les SpringSheet). Littéral = valeur ci-dessus.
+  const d = deceleration ?? 0.998;
+  return position + (velocity * d) / (1 - d) / 1000;
 }
 
 /**
