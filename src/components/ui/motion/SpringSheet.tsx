@@ -18,8 +18,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatListProps,
+  Keyboard,
   LayoutChangeEvent,
   Modal,
+  Platform,
   Pressable,
   ScrollViewProps,
   StyleProp,
@@ -41,6 +43,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector, GestureHandlerRootView, NativeGesture } from 'react-native-gesture-handler';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import { Curves, springConfig } from '../../../constants/motion';
@@ -103,7 +106,30 @@ export function SpringSheet({
   const { colors, isDark } = useTheme();
   const { height: winH } = useWindowDimensions();
   const reduced = useReducedMotion();
+  const insets = useSafeAreaInsets();
   const [mounted, setMounted] = useState(visible);
+
+  // Hauteur du clavier : la feuille est remontée au-dessus du clavier
+  // (KeyboardAvoidingView) mais gardait sa hauteur (souvent 88-90 % de
+  // l'écran) → elle débordait par le haut et l'en-tête + la recherche
+  // sortaient de l'écran. On la plafonne à l'espace restant.
+  const [keyboardH, setKeyboardH] = useState(0);
+  useEffect(() => {
+    if (!keyboardAware || !mounted) return;
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const s = Keyboard.addListener(showEvt, (e) => setKeyboardH(e.endCoordinates?.height ?? 0));
+    const h = Keyboard.addListener(hideEvt, () => setKeyboardH(0));
+    return () => {
+      s.remove();
+      h.remove();
+      setKeyboardH(0);
+    };
+  }, [keyboardAware, mounted]);
+  const baseMaxH = maxHeight ?? winH * 0.9;
+  const sheetMaxH = keyboardH > 0
+    ? Math.max(160, Math.min(baseMaxH, winH - keyboardH - insets.top - 12))
+    : baseMaxH;
 
   const sheetH = useSharedValue(0);
   const y = useSharedValue(winH);
@@ -270,8 +296,11 @@ export function SpringSheet({
         testID={testID}
         style={[
           styles.sheet,
-          { backgroundColor: backgroundColor ?? colors.card, maxHeight: maxHeight ?? winH * 0.9 },
+          { backgroundColor: backgroundColor ?? colors.card },
           style,
+          // APRÈS `style` : plafonne aussi une `height` fixe passée par l'appelant
+          // (ex. SearchableSelectModal = 88 % de l'écran) quand le clavier est ouvert.
+          { maxHeight: sheetMaxH },
           sheetStyle,
         ]}
       >

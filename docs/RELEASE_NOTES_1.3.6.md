@@ -50,6 +50,14 @@ What's new in this version:
 - RÈGLE : dans un worklet, jamais de constante de module en valeur par défaut
   de paramètre ; la lire dans le corps (ou un littéral).
 
+#### Feuilles + clavier (2026-10-04)
+- Toucher la recherche du sélecteur de langue : la feuille montait au-dessus
+  du clavier SANS rétrécir (hauteur fixe 88 %) → en-tête et champ de
+  recherche hors de l'écran. `SpringSheet` plafonne désormais sa hauteur à
+  l'espace libre au-dessus du clavier (`maxHeight` appliqué APRÈS le `style`
+  de l'appelant, donc aussi sur une `height` fixe). Vaut pour toutes les
+  feuilles avec champ (langue, pays, catégories…).
+
 #### Contenu repris de la 1.3.5
 - Round 3 (sens, posture, gestes, mots et rituels), lot natif (widgets, Live
   Activities — iOS désactivé par défaut), retours testeur A→G du 2026-10-03 :
@@ -66,7 +74,7 @@ What's new in this version:
       `RECEIPT_ISSUER_*`, `SITE_URL` HTTPS).
 - [ ] Web déployé (page `/embed/youtube.html` mise à jour).
 - [ ] Tests appareil prioritaires :
-  1. Choix de la langue : défiler vite, lâcher, tirer pour fermer → pas de fermeture de l'app. Idem feuilles catégories / filtres.
+  1. Choix de la langue : défiler vite, lâcher, tirer pour fermer → pas de fermeture de l'app. Toucher la recherche → en-tête + champ restent visibles au-dessus du clavier. Idem feuilles catégories / filtres.
   2. Accueil à froid sans actualiser.
   3. Appui sur des notifications (rappel, annulation, paiement) app fermée.
   4. Billets hors ligne : titre + date.
