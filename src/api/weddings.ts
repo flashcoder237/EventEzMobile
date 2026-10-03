@@ -11,6 +11,7 @@
 //   eventez://events/{slug}/gift-registry         → écran GiftRegistry
 
 import api from './instance';
+import { fetchUpload } from './config';
 
 export interface RSVPPayload {
   party_size?: number;
@@ -125,9 +126,9 @@ export const weddingOrganizerAPI = {
     form.append('dry_run', String(dryRun));
     // file : { uri, name, type } issu d'expo-document-picker.
     form.append('file', file as never);
-    return api.post('/invitations/import-csv/', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    // fetchUpload (fetch natif) et non axios : forcer 'multipart/form-data' prive
+    // la requête de son boundary et provoque un ERR_NETWORK en React Native.
+    return fetchUpload('POST', '/invitations/import-csv/', form);
   },
 
   // ── Cagnotte / liste de cadeaux ───────────────────────────────────────────

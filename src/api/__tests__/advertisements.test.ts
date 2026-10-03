@@ -1,7 +1,11 @@
 /**
  * Smoke tests pour advertisementsAPI — vérifie URL + verbe HTTP + body shape.
- * create/update peuvent recevoir FormData (multipart) — on vérifie que le
- * header Content-Type est positionné en conséquence.
+ *
+ * create/update acceptent FormData (multipart) OU un objet simple (JSON) :
+ *  - FormData  → fetchUpload (fetch natif). Axios sérialise mal le FormData
+ *    polyfillé de React Native, et un 'Content-Type: multipart/form-data'
+ *    forcé prive la requête de son boundary → ERR_NETWORK à la création.
+ *  - objet     → axios normal, sans header particulier.
  */
 
 jest.mock('../instance', () => {
@@ -9,12 +13,23 @@ jest.mock('../instance', () => {
   return createTestMock();
 });
 
+jest.mock('../config', () => ({
+  ...jest.requireActual('../config'),
+  fetchUpload: jest.fn(() => Promise.resolve({ data: {} })),
+}));
+
 import { advertisementsAPI } from '../social';
+import { fetchUpload } from '../config';
 import { getMockedApi, resetMockApi } from '../../__tests__/__helpers__/apiMock';
+
+const fetchUploadMock = fetchUpload as jest.Mock;
 
 describe('advertisementsAPI', () => {
   const api = getMockedApi();
-  beforeEach(() => resetMockApi());
+  beforeEach(() => {
+    resetMockApi();
+    fetchUploadMock.mockClear();
+  });
 
   it('getNearby() GETs /advertisements/nearby/ with params', async () => {
     await advertisementsAPI.getNearby({ country: 'CM', city: 'Douala' });
@@ -43,26 +58,33 @@ describe('advertisementsAPI', () => {
     expect(api.get).toHaveBeenCalledWith('/advertisements/aid/');
   });
 
-  it('create() POSTs /advertisements/ with multipart header for FormData', async () => {
+  it('create() routes FormData through fetchUpload (POST), never axios', async () => {
     const fd = new FormData();
     await advertisementsAPI.create(fd);
-    expect(api.post).toHaveBeenCalledWith('/advertisements/', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    expect(fetchUploadMock).toHaveBeenCalledWith('POST', '/advertisements/', fd);
+    // Garde-fou anti-régression : c'est le passage par axios qui causait ERR_NETWORK.
+    expect(api.post).not.toHaveBeenCalled();
   });
 
-  it('create() POSTs /advertisements/ without multipart header for plain object', async () => {
+  it('create() POSTs a plain object through axios, without multipart header', async () => {
     const data = { title: 'Ad' };
     await advertisementsAPI.create(data);
-    expect(api.post).toHaveBeenCalledWith('/advertisements/', data, { headers: undefined });
+    expect(api.post).toHaveBeenCalledWith('/advertisements/', data);
+    expect(fetchUploadMock).not.toHaveBeenCalled();
   });
 
-  it('update() PATCHs /advertisements/{id}/ with multipart header for FormData', async () => {
+  it('update() routes FormData through fetchUpload (PATCH), never axios', async () => {
     const fd = new FormData();
     await advertisementsAPI.update('aid', fd);
-    expect(api.patch).toHaveBeenCalledWith('/advertisements/aid/', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    expect(fetchUploadMock).toHaveBeenCalledWith('PATCH', '/advertisements/aid/', fd);
+    expect(api.patch).not.toHaveBeenCalled();
+  });
+
+  it('update() PATCHes a plain object through axios', async () => {
+    const data = { title: 'Ad' };
+    await advertisementsAPI.update('aid', data);
+    expect(api.patch).toHaveBeenCalledWith('/advertisements/aid/', data);
+    expect(fetchUploadMock).not.toHaveBeenCalled();
   });
 
   it('delete() DELETEs /advertisements/{id}/', async () => {

@@ -80,3 +80,22 @@ describe('app.config.js — opt-in iOS', () => {
     );
   });
 });
+
+describe('locales (X8) — chaînes iOS jamais écrites côté Android', () => {
+  // Régression build EAS Android : des clés NS*UsageDescription dans
+  // values-b+fr/strings.xml sans valeur par défaut → lintVitalRelease
+  // (ExtraTranslation) faisait échouer le build release.
+  const { getResolvedLocalesAsync } = require('@expo/config-plugins/build/utils/locales');
+  const path = require('path');
+  const appJson = require('../../app.json');
+  const root = path.join(__dirname, '..', '..');
+
+  it('Android ne reçoit aucune chaîne, iOS reçoit les textes d’usage', async () => {
+    const android = await getResolvedLocalesAsync(root, appJson.expo.locales, 'android');
+    const ios = await getResolvedLocalesAsync(root, appJson.expo.locales, 'ios');
+    for (const lang of Object.keys(appJson.expo.locales)) {
+      expect(android[lang]).toEqual({});
+      expect(ios[lang].NSCameraUsageDescription).toBeTruthy();
+    }
+  });
+});

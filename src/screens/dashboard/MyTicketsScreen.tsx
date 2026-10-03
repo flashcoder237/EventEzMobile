@@ -78,6 +78,7 @@ import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
 import CacheService from '../../services/CacheService';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import { isRegistrationUnsettled, isRegistrationPresentable } from '../../utils/paymentSettled';
+import { registrationEvent } from '../../lib/utils/registrationEvent';
 import { eventTint, tintFor } from '../../lib/utils/themeTint';
 import { getTicketPhase, SPOTLIGHT_PHASES, TicketPhase } from '../../lib/utils/ticketPhase';
 import TicketClockCard, { useMinuteNow } from '../../components/tickets/TicketClockCard';
@@ -571,21 +572,26 @@ export default function MyTicketsScreen() {
       .flatMap((r: any) =>
         r.tickets
           .filter((tk: any) => tk.qr_code)
-          .map((tk: any) => ({
+          .map((tk: any) => {
+            const ev = registrationEvent(r);
+            return {
             id: tk.id,
             registration: {
               id: r.id,
               reference_code: r.reference_code,
               event: {
-                id: r.event_details?.id || r.event,
-                title: r.event_details?.title || t('tickets.eventFallback'),
-                start_date: r.event_details?.start_date || '',
+                id: ev.id,
+                slug: ev.slug,
+                title: ev.title || t('tickets.eventFallback'),
+                start_date: ev.start_date || '',
+                end_date: ev.end_date,
               },
             },
             ticket_type_name: tk.ticket_type_name || tk.type_name,
             quantity: tk.quantity || 1,
             qr_code: tk.qr_code,
-          }))
+          };
+          })
       );
     if (ticketsToCache.length > 0) {
       cacheMultipleTickets(ticketsToCache).catch((e: any) => {

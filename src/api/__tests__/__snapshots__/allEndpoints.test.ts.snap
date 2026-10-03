@@ -1,0 +1,1411 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`module admin admin.auditAPI.getLog 1`] = `"GET /audit/logs/id1/ | erreur propage"`;
+
+exports[`module admin admin.auditAPI.getLogs 1`] = `"GET /audit/logs/ | erreur propage"`;
+
+exports[`module admin admin.auditAPI.getRecentLogs 1`] = `"GET /audit/logs/recent/ | erreur propage"`;
+
+exports[`module admin admin.auditAPI.getStatistics 1`] = `"GET /audit/logs/statistics/ | erreur propage"`;
+
+exports[`module admin admin.publicSettingsAPI.get 1`] = `"GET /public-settings/ | erreur propage"`;
+
+exports[`module admin admin.siteSettingsAPI.get 1`] = `"GET /site-settings/ | erreur propage"`;
+
+exports[`module admin admin.siteSettingsAPI.update 1`] = `"PATCH /site-settings/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.approveDividend 1`] = `"POST /admin/treasury/dividends/id1/approve/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.approveExpense 1`] = `"POST /admin/treasury/expenses/id1/approve/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.createDividend 1`] = `"POST /admin/treasury/dividends/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.createExpense 1`] = `"POST /admin/treasury/expenses/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.createShareholder 1`] = `"POST /admin/treasury/shareholders/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.createStaffMember 1`] = `"POST /admin/treasury/staff/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.createStaffPayment 1`] = `"POST /admin/treasury/staff-payments/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.deleteExpense 1`] = `"DELETE /admin/treasury/expenses/id1/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.deleteShareholder 1`] = `"DELETE /admin/treasury/shareholders/id1/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.deleteStaffMember 1`] = `"DELETE /admin/treasury/staff/id1/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.distributeDividend 1`] = `"POST /admin/treasury/dividends/id1/distribute/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.generatePayroll 1`] = `"POST /admin/treasury/staff-payments/generate/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.getDividend 1`] = `"GET /admin/treasury/dividends/id1/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.getDividends 1`] = `"GET /admin/treasury/dividends/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.getExpense 1`] = `"GET /admin/treasury/expenses/id1/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.getExpenses 1`] = `"GET /admin/treasury/expenses/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.getFinancialSummary 1`] = `"GET /admin/treasury/reports/summary/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.getMonthlyReport 1`] = `"GET /admin/treasury/reports/monthly/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.getOverview 1`] = `"GET /admin/treasury/overview/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.getProfitLoss 1`] = `"GET /admin/treasury/reports/profit-loss/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.getShareholder 1`] = `"GET /admin/treasury/shareholders/id1/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.getShareholders 1`] = `"GET /admin/treasury/shareholders/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.getStaffMember 1`] = `"GET /admin/treasury/staff/id1/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.getStaffMembers 1`] = `"GET /admin/treasury/staff/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.getStaffPayments 1`] = `"GET /admin/treasury/staff-payments/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.getTransaction 1`] = `"GET /admin/treasury/transactions/id1/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.getTransactions 1`] = `"GET /admin/treasury/transactions/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.getWallet 1`] = `"GET /admin/treasury/overview/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.previewDividend 1`] = `"POST /admin/treasury/dividends/preview/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.recomputeWallet 1`] = `"POST /admin/treasury/overview/recompute/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.rejectExpense 1`] = `"POST /admin/treasury/expenses/id1/reject/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.updateExpense 1`] = `"PATCH /admin/treasury/expenses/id1/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.updateShareholder 1`] = `"PATCH /admin/treasury/shareholders/id1/ | erreur propage"`;
+
+exports[`module admin admin.treasuryAPI.updateStaffMember 1`] = `"PATCH /admin/treasury/staff/id1/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.createDashboard 1`] = `"POST /analytics/dashboards/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.createReport 1`] = `"POST /analytics/reports/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.createWidget 1`] = `"POST /analytics/dashboard-widgets/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.deleteDashboard 1`] = `"DELETE /analytics/dashboards/id1/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.deleteReport 1`] = `"DELETE /analytics/reports/id1/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.deleteWidget 1`] = `"DELETE /analytics/dashboard-widgets/id1/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.generateReport 1`] = `"POST /analytics/reports/generate/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.getDashboard 1`] = `"GET /analytics/dashboards/id1/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.getDashboardSummary 1`] = `"GET /analytics/dashboard_summary/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.getDashboardWidgets 1`] = `"GET /analytics/dashboards/id1/widgets/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.getDashboards 1`] = `"GET /analytics/dashboards/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.getEventAnalytics 1`] = `"GET /analytics/events/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.getEventRegistrations 1`] = `"GET /analytics/event_registrations/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.getRegistrationAnalytics 1`] = `"GET /analytics/registrations/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.getReport 1`] = `"GET /analytics/reports/id1/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.getReports 1`] = `"GET /analytics/reports/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.getRevenueAnalytics 1`] = `"GET /analytics/revenue/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.getUserAnalytics 1`] = `"GET /analytics/users/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.getWidget 1`] = `"GET /analytics/dashboard-widgets/id1/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.getWidgets 1`] = `"GET /analytics/dashboard-widgets/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.predictAttendance 1`] = `"GET /analytics/predict_attendance/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.updateDashboard 1`] = `"PUT /analytics/dashboards/id1/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.updateReport 1`] = `"PUT /analytics/reports/id1/ | erreur propage"`;
+
+exports[`module analytics analytics.analyticsAPI.updateWidget 1`] = `"PUT /analytics/dashboard-widgets/id1/ | erreur propage"`;
+
+exports[`module announcements announcements.announcementsAPI.create 1`] = `"POST /admin/announcements/ | erreur propage"`;
+
+exports[`module announcements announcements.announcementsAPI.delete 1`] = `"DELETE /admin/announcements/id1/ | erreur propage"`;
+
+exports[`module announcements announcements.announcementsAPI.get 1`] = `"GET /admin/announcements/id1/ | erreur propage"`;
+
+exports[`module announcements announcements.announcementsAPI.getActive 1`] = `"GET /announcements/active/ | erreur propage"`;
+
+exports[`module announcements announcements.announcementsAPI.list 1`] = `"GET /admin/announcements/ | erreur propage"`;
+
+exports[`module announcements announcements.announcementsAPI.update 1`] = `"PATCH /admin/announcements/id1/ | erreur propage"`;
+
+exports[`module announcements announcements.clientReleaseAPI.get 1`] = `"GET /admin/client-release-requirement/ | erreur propage"`;
+
+exports[`module announcements announcements.clientReleaseAPI.update 1`] = `"PATCH /admin/client-release-requirement/ | erreur propage"`;
+
+exports[`module attendees attendees.attendeeFormsAPI.delegate 1`] = `"POST /attendees/id1/delegate/ | erreur propage"`;
+
+exports[`module attendees attendees.attendeeFormsAPI.getAttendees 1`] = `"GET /registrations/id1/attendees/ | erreur propage"`;
+
+exports[`module attendees attendees.attendeeFormsAPI.getByToken 1`] = `"GET /attendee-forms/public/id1/ | erreur propage"`;
+
+exports[`module attendees attendees.attendeeFormsAPI.patchAttendee 1`] = `"PATCH /attendees/id1/ | erreur propage"`;
+
+exports[`module attendees attendees.attendeeFormsAPI.patchByToken 1`] = `"PATCH /attendee-forms/public/id1/ | erreur propage"`;
+
+exports[`module auth auth.authAPI.appleSignIn 1`] = `"POST /social-auth/apple/ | erreur propage"`;
+
+exports[`module auth auth.authAPI.googleSignIn 1`] = `"POST /social-auth/google/ | erreur propage"`;
+
+exports[`module auth auth.authAPI.guestRegister 1`] = `"POST /auth/guest-register/ | erreur propage"`;
+
+exports[`module auth auth.authAPI.login 1`] = `"POST /token/ | erreur propage"`;
+
+exports[`module auth auth.authAPI.logout 1`] = `"POST /logout/ | erreur absorbe"`;
+
+exports[`module auth auth.authAPI.phoneSendAccountVerification 1`] = `"POST /auth/phone/send-account-verification/ | erreur propage"`;
+
+exports[`module auth auth.authAPI.phoneSendOTP 1`] = `"POST /auth/phone/send-otp/ | erreur propage"`;
+
+exports[`module auth auth.authAPI.phoneVerifyAccount 1`] = `"POST /auth/phone/verify-account/ | erreur propage"`;
+
+exports[`module auth auth.authAPI.phoneVerifyOTP 1`] = `"POST /auth/phone/verify/ | erreur propage"`;
+
+exports[`module auth auth.authAPI.refreshToken 1`] = `"POST /token/refresh/ | erreur propage"`;
+
+exports[`module auth auth.authAPI.register 1`] = `"POST /register/ | erreur propage"`;
+
+exports[`module auth auth.authAPI.registerOrganizer 1`] = `"POST /register/organizer/ | erreur propage"`;
+
+exports[`module auth auth.authAPI.requestPasswordReset 1`] = `"POST /password-reset/request/ | erreur propage"`;
+
+exports[`module auth auth.authAPI.resendVerificationEmail 1`] = `"POST /verify-email/resend/ | erreur propage"`;
+
+exports[`module auth auth.authAPI.resetPassword 1`] = `"POST /password-reset/confirm/ | erreur propage"`;
+
+exports[`module auth auth.authAPI.upgradeGuest 1`] = `"POST /auth/upgrade-guest/ | erreur propage"`;
+
+exports[`module auth auth.authAPI.validateResetToken 1`] = `"GET /password-reset/validate/id1/ | erreur propage"`;
+
+exports[`module auth auth.authAPI.verifyEmail 1`] = `"GET /verify-email/id1/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.becomeOrganizer 1`] = `"POST /users/become_organizer/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.blockUser 1`] = `"POST /users/id1/block/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.changePassword 1`] = `"POST /users/change_password/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.createUser 1`] = `"POST /users/create_user/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.deleteAccount 1`] = `"POST /users/me/delete_account/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.deleteUser 1`] = `"DELETE /users/id1/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.followUser 1`] = `"POST /users/id1/follow/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.getBadgeCounts 1`] = `"GET /users/me/badge-counts/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.getCurrentUser 1`] = `"GET /users/me/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.getFollowingUsers 1`] = `"GET /users/following_users/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.getMyFollowers 1`] = `"GET /users/my_followers/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.getOrganizers 1`] = `"GET /users/organizers/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.getPendingVerification 1`] = `"GET /users/pending_verification/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.getUser 1`] = `"GET /users/id1/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.getUserAnalytics 1`] = `"GET /users/analytics/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.getUserFollowersCount 1`] = `"GET /users/id1/followers_count/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.getUserSettings 1`] = `"GET /users/me/settings/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.getUsers 1`] = `"GET /users/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.isFollowingUser 1`] = `"GET /users/id1/is_following/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.listBlocked 1`] = `"GET /users/blocked/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.rejectProfile 1`] = `"POST /users/id1/reject_profile/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.setUserActive 1`] = `"POST /users/id1/set_active/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.unblockUser 1`] = `"POST /users/id1/unblock/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.unfollowUser 1`] = `"POST /users/id1/unfollow/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.updateCurrentUser 1`] = `"PATCH /users/me/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.updateLanguage 1`] = `"PATCH /users/me/language/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.updateNotificationSettings 1`] = `"PATCH /users/notification_settings/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.updateOrganizerProfile 1`] = `"PUT /users/update_organizer_profile/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.updateProfile 1`] = `"PUT /users/update_profile/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.updateProfileImage 1`] = `"PATCH /users/me/upload_profile_image/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.updateUser 1`] = `"PATCH /users/id1/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.updateUserFollowPreferences 1`] = `"PATCH /users/id1/update_follow_preferences/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.updateUserSettings 1`] = `"PUT /users/me/settings/ | erreur propage"`;
+
+exports[`module auth auth.usersAPI.verifyProfile 1`] = `"POST /users/id1/verify_profile/ | erreur propage"`;
+
+exports[`module auth auth.verificationAPI.approve 1`] = `"POST /verifications/id1/approve/ | erreur propage"`;
+
+exports[`module auth auth.verificationAPI.getMyRequest 1`] = `"GET /verifications/my_request/ | erreur propage"`;
+
+exports[`module auth auth.verificationAPI.getPending 1`] = `"GET /verifications/pending/ | erreur propage"`;
+
+exports[`module auth auth.verificationAPI.reject 1`] = `"POST /verifications/id1/reject/ | erreur propage"`;
+
+exports[`module auth auth.verificationAPI.submit 1`] = `"POST /verifications/submit/ | erreur propage"`;
+
+exports[`module boxOffice boxOffice.boxOfficeAPI.closeDrawer 1`] = `"POST /box-office/close-drawer/ | erreur propage"`;
+
+exports[`module boxOffice boxOffice.boxOfficeAPI.getDrawer 1`] = `"GET /box-office/drawer/ | erreur propage"`;
+
+exports[`module boxOffice boxOffice.boxOfficeAPI.openDrawer 1`] = `"POST /box-office/open-drawer/ | erreur propage"`;
+
+exports[`module boxOffice boxOffice.boxOfficeAPI.sell 1`] = `"POST /box-office/sell/ | erreur propage"`;
+
+exports[`module connections connections.connectionsAPI.bump 1`] = `"POST /connections/bump/ | erreur propage"`;
+
+exports[`module connections connections.connectionsAPI.bumpConfirm 1`] = `"POST /connections/bump/confirm/ | erreur propage"`;
+
+exports[`module connections connections.connectionsAPI.connect 1`] = `"POST /connections/connect/ | erreur propage"`;
+
+exports[`module connections connections.connectionsAPI.fromQr 1`] = `"POST /connections/from_qr/ | erreur propage"`;
+
+exports[`module connections connections.connectionsAPI.getMyQrToken 1`] = `"GET /connections/my_qr_token/ | erreur propage"`;
+
+exports[`module connections connections.connectionsAPI.list 1`] = `"GET /connections/ | erreur propage"`;
+
+exports[`module connections connections.connectionsAPI.remove 1`] = `"DELETE /connections/id1/ | erreur propage"`;
+
+exports[`module content content.cfpAPI.getAll 1`] = `"GET /call-for-papers/ | erreur propage"`;
+
+exports[`module content content.cfpAPI.getById 1`] = `"GET /call-for-papers/id1/ | erreur propage"`;
+
+exports[`module content content.cfpAPI.getMyProposals 1`] = `"GET /talk-proposals/my_proposals/ | erreur propage"`;
+
+exports[`module content content.cfpAPI.getProposal 1`] = `"GET /talk-proposals/id1/ | erreur propage"`;
+
+exports[`module content content.cfpAPI.submitProposal 1`] = `"POST /talk-proposals/ | erreur propage"`;
+
+exports[`module content content.liveAPI.createQuestion 1`] = `"POST /live-questions/ | erreur propage"`;
+
+exports[`module content content.liveAPI.getPollResults 1`] = `"GET /live-polls/id1/results/ | erreur propage"`;
+
+exports[`module content content.liveAPI.getPollsByEvent 1`] = `"GET /live-polls/by_event/ | erreur propage"`;
+
+exports[`module content content.liveAPI.getQuestionsByEvent 1`] = `"GET /live-questions/by_event/ | erreur propage"`;
+
+exports[`module content content.liveAPI.upvoteQuestion 1`] = `"POST /live-questions/id1/upvote/ | erreur propage"`;
+
+exports[`module content content.liveAPI.vote 1`] = `"POST /poll-votes/ | erreur propage"`;
+
+exports[`module content content.newslettersAPI.create 1`] = `"POST /newsletters/ | erreur propage"`;
+
+exports[`module content content.newslettersAPI.delete 1`] = `"DELETE /newsletters/id1/ | erreur propage"`;
+
+exports[`module content content.newslettersAPI.getAll 1`] = `"GET /newsletters/ | erreur propage"`;
+
+exports[`module content content.newslettersAPI.getById 1`] = `"GET /newsletters/id1/ | erreur propage"`;
+
+exports[`module content content.newslettersAPI.getSubscribers 1`] = `"GET /subscribers/ | erreur propage"`;
+
+exports[`module content content.newslettersAPI.schedule 1`] = `"POST /newsletters/id1/schedule/ | erreur propage"`;
+
+exports[`module content content.newslettersAPI.sendNow 1`] = `"POST /newsletters/id1/send_now/ | erreur propage"`;
+
+exports[`module content content.newslettersAPI.subscribe 1`] = `"POST /subscribers/subscribe/ | erreur propage"`;
+
+exports[`module content content.newslettersAPI.unsubscribe 1`] = `"POST /subscribers/unsubscribe/ | erreur propage"`;
+
+exports[`module content content.newslettersAPI.update 1`] = `"PATCH /newsletters/id1/ | erreur propage"`;
+
+exports[`module content content.recordingsAPI.getByEvent 1`] = `"GET /recordings/by_event/ | erreur propage"`;
+
+exports[`module content content.recordingsAPI.getById 1`] = `"GET /recordings/id1/ | erreur propage"`;
+
+exports[`module content content.recordingsAPI.incrementView 1`] = `"POST /recordings/id1/increment_view/ | erreur propage"`;
+
+exports[`module content content.sponsorsAPI.confirm 1`] = `"POST /event-sponsors/id1/confirm/ | erreur propage"`;
+
+exports[`module content content.sponsorsAPI.getByEvent 1`] = `"GET /event-sponsors/by-event/ | erreur propage"`;
+
+exports[`module content content.sponsorsAPI.getPackages 1`] = `"GET /sponsor-packages/ | erreur propage"`;
+
+exports[`module content content.sponsorsAPI.getSponsor 1`] = `"GET /event-sponsors/id1/ | erreur propage"`;
+
+exports[`module content content.sponsorsAPI.getSponsors 1`] = `"GET /event-sponsors/ | erreur propage"`;
+
+exports[`module content content.sponsorsAPI.trackClick 1`] = `"POST /event-sponsors/id1/track-click/ | erreur propage"`;
+
+exports[`module content content.virtualRoomsAPI.eventJoin 1`] = `"GET /virtual-rooms/event/id1/join/ | erreur propage"`;
+
+exports[`module content content.virtualRoomsAPI.eventPlanInfo 1`] = `"GET /virtual-rooms/event/id1/plan-info/ | erreur propage"`;
+
+exports[`module content content.virtualRoomsAPI.getByEvent 1`] = `"GET /virtual-rooms/by_event/ | erreur propage"`;
+
+exports[`module content content.virtualRoomsAPI.getById 1`] = `"GET /virtual-rooms/id1/ | erreur propage"`;
+
+exports[`module content content.virtualRoomsAPI.getParticipants 1`] = `"GET /virtual-rooms/id1/participants/ | erreur propage"`;
+
+exports[`module content content.virtualRoomsAPI.leave 1`] = `"POST /virtual-rooms/id1/leave/ | erreur propage"`;
+
+exports[`module content content.virtualRoomsAPI.liveStatus 1`] = `"GET /virtual-rooms/event/id1/live-status/ | erreur propage"`;
+
+exports[`module events events.categoriesAPI.createCategory 1`] = `"POST /categories/ | erreur propage"`;
+
+exports[`module events events.categoriesAPI.deleteCategory 1`] = `"DELETE /categories/id1/ | erreur propage"`;
+
+exports[`module events events.categoriesAPI.getCategories 1`] = `"GET /categories/ | erreur propage"`;
+
+exports[`module events events.categoriesAPI.getCategory 1`] = `"GET /categories/id1/ | erreur propage"`;
+
+exports[`module events events.categoriesAPI.getCategoryEvents 1`] = `"GET /categories/id1/events/ | erreur propage"`;
+
+exports[`module events events.categoriesAPI.toggleActive 1`] = `"POST /categories/id1/toggle_active/ | erreur propage"`;
+
+exports[`module events events.categoriesAPI.updateCategory 1`] = `"PUT /categories/id1/ | erreur propage"`;
+
+exports[`module events events.categoriesAPI.uploadDefaultEventImage 1`] = `"POST /categories/id1/upload_default_event_image/ | erreur propage"`;
+
+exports[`module events events.categoriesAPI.uploadImage 1`] = `"POST /categories/id1/upload_image/ | erreur propage"`;
+
+exports[`module events events.eventTemplatesAPI.getAll 1`] = `"GET /event-templates/ | erreur propage"`;
+
+exports[`module events events.eventTemplatesAPI.getById 1`] = `"GET /event-templates/id1/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.broadcastMessage 1`] = `"POST /events/id1/broadcast-message/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.cancelEvent 1`] = `"POST /events/id1/cancel/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.createEvent 1`] = `"POST /events/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.createFormField 1`] = `"POST /form-fields/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.createRecurrence 1`] = `"POST /events/id1/create_recurrence/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.deleteEvent 1`] = `"DELETE /events/id1/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.deleteFormField 1`] = `"DELETE /form-fields/id1/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.duplicateEvent 1`] = `"POST /events/id1/duplicate/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.exportIcal 1`] = `"GET /events/id1/export-ical/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.followEvent 1`] = `"POST /events/id1/follow/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getCities 1`] = `"GET /events/cities/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getCityPulse 1`] = `"GET /events/city-pulse/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getEvent 1`] = `"GET /events/id1/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getEventPulse 1`] = `"GET /events/id1/pulse/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getEventRecap 1`] = `"GET /events/id1/recap/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getEvents 1`] = `"GET /events/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getFeaturedEvents 1`] = `"GET /events/featured/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getFollowersCount 1`] = `"GET /events/id1/followers_count/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getFollowingEvents 1`] = `"GET /events/following/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getFormFields 1`] = `"GET /form-fields/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getGoogleCalendarLink 1`] = `"GET /events/id1/google-calendar-link/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getInstances 1`] = `"GET /events/id1/instances/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getInternalNotes 1`] = `"GET /events/id1/internal-notes/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getMapEvents 1`] = `"GET /events/map_events/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getMeSince 1`] = `"GET /me/since/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getModerationPendingCount 1`] = `"GET /events/moderation-pending-count/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getMyEvents 1`] = `"GET /events/my_events/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getNearbyEvents 1`] = `"GET /events/nearby/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getPendingValidation 1`] = `"GET /events/pending_validation/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.getSatelliteEvents 1`] = `"GET /events/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.hostApproveEvent 1`] = `"POST /events/id1/host-approve/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.hostRejectEvent 1`] = `"POST /events/id1/host-reject/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.isFollowing 1`] = `"GET /events/id1/is_following/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.patchEvent 1`] = `"PATCH /events/id1/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.publishEvent 1`] = `"POST /events/id1/publish/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.rejectEvent 1`] = `"POST /events/id1/reject_event/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.removeImages 1`] = `"POST /events/id1/remove_images/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.requestChanges 1`] = `"POST /events/id1/request-changes/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.requestFeature 1`] = `"POST /events/id1/request_feature/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.saveInternalNotes 1`] = `"POST /events/id1/internal-notes/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.searchEvents 1`] = `"GET /events/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.submitForValidation 1`] = `"POST /events/id1/submit_for_validation/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.unfollowEvent 1`] = `"POST /events/id1/unfollow/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.updateEvent 1`] = `"PUT /events/id1/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.updateFollowPreferences 1`] = `"PATCH /events/id1/update_follow_preferences/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.updateFormField 1`] = `"PUT /form-fields/id1/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.updateFormFields 1`] = `"POST /events/id1/update_form_fields/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.uploadImages 1`] = `"POST /events/id1/upload_images/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.validateEvent 1`] = `"POST /events/id1/validate_event/ | erreur propage"`;
+
+exports[`module events events.eventsAPI.verifyAccessCode 1`] = `"POST /events/id1/verify_access_code/ | erreur propage"`;
+
+exports[`module events events.tagsAPI.getTag 1`] = `"GET /tags/id1/ | erreur propage"`;
+
+exports[`module events events.tagsAPI.getTags 1`] = `"GET /tags/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.acceptApplication 1`] = `"POST /booth-applications/id1/accept/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.acceptSalesContract 1`] = `"POST /exhibitor-sales-contracts/id1/accept/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.createApplication 1`] = `"POST /booth-applications/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.createBooth 1`] = `"POST /booths/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.createCategory 1`] = `"POST /booth-categories/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.createExhibitor 1`] = `"POST /exhibitors/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.createSalesConfig 1`] = `"POST /exhibitor-sales-config/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.deleteBooth 1`] = `"DELETE /booths/id1/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.deleteCategory 1`] = `"DELETE /booth-categories/id1/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.eraseMyLead 1`] = `"POST /exhibitor-leads/erase-mine/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.getApplications 1`] = `"GET /booth-applications/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.getBadgeManifest 1`] = `"GET /booth-badges/checkin-manifest/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.getBookingPaymentOptions 1`] = `"GET /booth-bookings/id1/payment-options/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.getBooths 1`] = `"GET /booths/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.getCategories 1`] = `"GET /booth-categories/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.getExhibitors 1`] = `"GET /exhibitors/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.getLeadsAboutMe 1`] = `"GET /exhibitor-leads/about-me/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.getMyBookings 1`] = `"GET /booth-bookings/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.getMyLeads 1`] = `"GET /exhibitor-leads/mine/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.getPublicDirectory 1`] = `"GET /events/id1/exhibitor-directory/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.getSalesConfig 1`] = `"GET /exhibitor-sales-config/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.getSalesContracts 1`] = `"GET /exhibitor-sales-contracts/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.payBooking 1`] = `"POST /booth-bookings/id1/pay/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.qualifyLead 1`] = `"POST /exhibitor-leads/qualify/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.rejectApplication 1`] = `"POST /booth-applications/id1/reject/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.scanLead 1`] = `"POST /exhibitor-leads/scan/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.syncBadgeCheckins 1`] = `"POST /booth-badges/checkin-sync/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.updateBooth 1`] = `"PATCH /booths/id1/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.updateCategory 1`] = `"PATCH /booth-categories/id1/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.updateExhibitor 1`] = `"PATCH /exhibitors/id1/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.updateSalesConfig 1`] = `"PATCH /exhibitor-sales-config/id1/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.verifyAndCheckInBadge 1`] = `"POST /booth-badges/verify-check-in/ | erreur propage"`;
+
+exports[`module exhibitors exhibitors.exhibitorsAPI.waitlistApplication 1`] = `"POST /booth-applications/id1/waitlist/ | erreur propage"`;
+
+exports[`module feedback feedback.feedbacksAPI.createFeedback 1`] = `"POST /feedbacks/ | erreur propage"`;
+
+exports[`module feedback feedback.feedbacksAPI.deleteFeedback 1`] = `"DELETE /feedbacks/id1/ | erreur propage"`;
+
+exports[`module feedback feedback.feedbacksAPI.getEventFeedbacks 1`] = `"GET /feedbacks/ | erreur propage"`;
+
+exports[`module feedback feedback.feedbacksAPI.getFeedback 1`] = `"GET /feedbacks/id1/ | erreur propage"`;
+
+exports[`module feedback feedback.feedbacksAPI.getFeedbacks 1`] = `"GET /feedbacks/ | erreur propage"`;
+
+exports[`module feedback feedback.feedbacksAPI.getMyFeedback 1`] = `"GET /feedbacks/my_feedback/ | erreur propage"`;
+
+exports[`module feedback feedback.feedbacksAPI.updateFeedback 1`] = `"PUT /feedbacks/id1/ | erreur propage"`;
+
+exports[`module feedback feedback.flagsAPI.createFlag 1`] = `"POST /flags/ | erreur propage"`;
+
+exports[`module feedback feedback.flagsAPI.getFlag 1`] = `"GET /flags/id1/ | erreur propage"`;
+
+exports[`module feedback feedback.flagsAPI.getFlags 1`] = `"GET /flags/ | erreur propage"`;
+
+exports[`module feedback feedback.flagsAPI.getUnresolvedFlags 1`] = `"GET /flags/unresolved/ | erreur propage"`;
+
+exports[`module feedback feedback.flagsAPI.resolveFlag 1`] = `"POST /flags/id1/resolve/ | erreur propage"`;
+
+exports[`module feedback feedback.validationsAPI.createValidation 1`] = `"POST /validations/ | erreur propage"`;
+
+exports[`module feedback feedback.validationsAPI.getEventStats 1`] = `"GET /validations/event_stats/ | erreur propage"`;
+
+exports[`module feedback feedback.validationsAPI.getValidation 1`] = `"GET /validations/id1/ | erreur propage"`;
+
+exports[`module feedback feedback.validationsAPI.getValidations 1`] = `"GET /validations/ | erreur propage"`;
+
+exports[`module feedback feedback.validationsAPI.updateValidation 1`] = `"PUT /validations/id1/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.acceptMessageRequest 1`] = `"POST /conversations/id1/accept_request/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.addParticipant 1`] = `"POST /conversations/id1/add_participant/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.addReaction 1`] = `"POST /messages/id1/add_reaction/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.archiveConversation 1`] = `"POST /conversations/id1/archive/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.blockUser 1`] = `"POST /user-messaging-settings/block_user/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.bulkDeleteMessages 1`] = `"POST /messages/bulk_delete/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.createConversation 1`] = `"POST /conversations/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.declineMessageRequest 1`] = `"POST /conversations/id1/decline_request/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.deleteConversation 1`] = `"DELETE /conversations/id1/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.deleteMessage 1`] = `"DELETE /messages/id1/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.exportConversation 1`] = `"GET /conversations/id1/export/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.forwardMessage 1`] = `"POST /messages/forward_message/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.forwardMessages 1`] = `"POST /messages/forward/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.getBlockedUsers 1`] = `"GET /user-messaging-settings/blocked_list/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.getConversation 1`] = `"GET /conversations/id1/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.getConversationQuota 1`] = `"GET /conversations/id1/quota/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.getConversations 1`] = `"GET /conversations/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.getMessageRequests 1`] = `"GET /conversations/requests/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.getMessages 1`] = `"GET /messages/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.getMutedList 1`] = `"GET /conversations/id1/muted-list/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.getPresence 1`] = `"GET /conversations/presence/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.getUserMessagingSettings 1`] = `"GET /user-messaging-settings/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.leaveConversation 1`] = `"POST /conversations/id1/leave/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.markConversationAsRead 1`] = `"POST /conversations/id1/mark_as_read/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.markMessageAsRead 1`] = `"POST /messages/id1/mark_as_read/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.muteConversation 1`] = `"POST /user-messaging-settings/mute-conversation/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.muteParticipant 1`] = `"POST /conversations/id1/mute/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.removeParticipant 1`] = `"POST /conversations/id1/remove_participant/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.removeReaction 1`] = `"POST /messages/id1/remove_reaction/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.reportMessage 1`] = `"POST /message-reports/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.searchMessages 1`] = `"GET /messages/search/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.sendMessage 1`] = `"POST /messages/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.setPostingMode 1`] = `"PATCH /conversations/id1/posting-mode/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.starConversation 1`] = `"POST /conversations/id1/star/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.starMessage 1`] = `"POST /messages/id1/star/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.syncMessages 1`] = `"GET /messages/sync/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.unblockUser 1`] = `"POST /user-messaging-settings/unblock_user/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.unmuteConversation 1`] = `"POST /user-messaging-settings/unmute-conversation/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.unmuteParticipant 1`] = `"POST /conversations/id1/unmute/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.updateConversation 1`] = `"PATCH /conversations/id1/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.updateMessage 1`] = `"PATCH /messages/id1/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.updateUserMessagingSettings 1`] = `"PATCH /user-messaging-settings/id1/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.uploadAttachment 1`] = `"POST /messages/upload_attachment/ | erreur propage"`;
+
+exports[`module messages messages.messagesAPI.uploadVoiceMessage 1`] = `"POST /messages/upload_voice_message/ | erreur propage"`;
+
+exports[`module misc misc.aiAssistAPI.description 1`] = `"POST /ai-assist/description/ | erreur propage"`;
+
+exports[`module misc misc.aiAssistAPI.generate 1`] = `"POST /ai-assist/generate/ | erreur propage"`;
+
+exports[`module misc misc.aiAssistAPI.optimizeTitle 1`] = `"POST /ai-assist/optimize-title/ | erreur propage"`;
+
+exports[`module misc misc.aiAssistAPI.pricing 1`] = `"POST /ai-assist/pricing/ | erreur propage"`;
+
+exports[`module misc misc.aiAssistAPI.seo 1`] = `"POST /ai-assist/seo/ | erreur propage"`;
+
+exports[`module misc misc.aiAssistAPI.suggestCategory 1`] = `"POST /ai-assist/suggest-category/ | erreur propage"`;
+
+exports[`module misc misc.aiAssistAPI.usage 1`] = `"GET /ai-assist/usage/ | erreur propage"`;
+
+exports[`module misc misc.comparisonAPI.compare 1`] = `"GET /events/compare/ | erreur propage"`;
+
+exports[`module misc misc.currencyAPI.convert 1`] = `"GET /commissions/convert/ | erreur propage"`;
+
+exports[`module misc misc.eventTeamAPI.accept 1`] = `"POST /event-team/id1/accept/ | erreur propage"`;
+
+exports[`module misc misc.eventTeamAPI.decline 1`] = `"POST /event-team/id1/decline/ | erreur propage"`;
+
+exports[`module misc misc.eventTeamAPI.getMyTeamEvents 1`] = `"GET /event-team/my_events/ | erreur propage"`;
+
+exports[`module misc misc.eventTeamAPI.getRolesCatalog 1`] = `"GET /event-team/roles-catalog/ | erreur propage"`;
+
+exports[`module misc misc.eventTeamAPI.invite 1`] = `"POST /event-team/ | erreur propage"`;
+
+exports[`module misc misc.eventTeamAPI.list 1`] = `"GET /event-team/ | erreur propage"`;
+
+exports[`module misc misc.eventTeamAPI.lookupByToken 1`] = `"GET /event-team/invitation/id1/ | erreur propage"`;
+
+exports[`module misc misc.eventTeamAPI.resend 1`] = `"POST /event-team/id1/resend/ | erreur propage"`;
+
+exports[`module misc misc.eventTeamAPI.revoke 1`] = `"POST /event-team/id1/revoke/ | erreur propage"`;
+
+exports[`module misc misc.exportAPI.download 1`] = `"GET /registrations/export/ | erreur propage"`;
+
+exports[`module misc misc.floorPlansAPI.createArea 1`] = `"POST /floor-plan-areas/ | erreur propage"`;
+
+exports[`module misc misc.floorPlansAPI.deleteArea 1`] = `"DELETE /floor-plan-areas/id1/ | erreur propage"`;
+
+exports[`module misc misc.floorPlansAPI.getAreas 1`] = `"GET /floor-plan-areas/ | erreur propage"`;
+
+exports[`module misc misc.floorPlansAPI.getByEvent 1`] = `"GET /floor-plans/by_event/ | erreur propage"`;
+
+exports[`module misc misc.floorPlansAPI.getById 1`] = `"GET /floor-plans/id1/ | erreur propage"`;
+
+exports[`module misc misc.floorPlansAPI.updateArea 1`] = `"PATCH /floor-plan-areas/id1/ | erreur propage"`;
+
+exports[`module misc misc.languagesAPI.list 1`] = `"GET /languages/ | erreur propage"`;
+
+exports[`module misc misc.seatingAPI.cancelReservation 1`] = `"POST /seat-reservations/id1/cancel/ | erreur propage"`;
+
+exports[`module misc misc.seatingAPI.confirmReservation 1`] = `"POST /seat-reservations/id1/confirm/ | erreur propage"`;
+
+exports[`module misc misc.seatingAPI.createPlan 1`] = `"POST /seating-plans/ | erreur propage"`;
+
+exports[`module misc misc.seatingAPI.createReservation 1`] = `"POST /seat-reservations/ | erreur propage"`;
+
+exports[`module misc misc.seatingAPI.createZone 1`] = `"POST /seating-zones/ | erreur propage"`;
+
+exports[`module misc misc.seatingAPI.deletePlan 1`] = `"DELETE /seating-plans/id1/ | erreur propage"`;
+
+exports[`module misc misc.seatingAPI.deleteZone 1`] = `"DELETE /seating-zones/id1/ | erreur propage"`;
+
+exports[`module misc misc.seatingAPI.getAvailableSeats 1`] = `"GET /seating-plans/id1/available_seats/ | erreur propage"`;
+
+exports[`module misc misc.seatingAPI.getMyReservations 1`] = `"GET /seat-reservations/my_reservations/ | erreur propage"`;
+
+exports[`module misc misc.seatingAPI.getPlan 1`] = `"GET /seating-plans/id1/ | erreur propage"`;
+
+exports[`module misc misc.seatingAPI.getPlans 1`] = `"GET /seating-plans/ | erreur propage"`;
+
+exports[`module misc misc.seatingAPI.getZones 1`] = `"GET /seating-zones/ | erreur propage"`;
+
+exports[`module misc misc.seatingAPI.updatePlan 1`] = `"PATCH /seating-plans/id1/ | erreur propage"`;
+
+exports[`module misc misc.seatingAPI.updateZone 1`] = `"PATCH /seating-zones/id1/ | erreur propage"`;
+
+exports[`module misc misc.utmAPI.create 1`] = `"POST /utm/ | erreur propage"`;
+
+exports[`module misc misc.utmAPI.getAll 1`] = `"GET /utm/ | erreur propage"`;
+
+exports[`module misc misc.utmAPI.getStats 1`] = `"GET /utm/stats/ | erreur propage"`;
+
+exports[`module misc misc.venuesAPI.create 1`] = `"POST /venues/ | erreur propage"`;
+
+exports[`module misc misc.venuesAPI.getAll 1`] = `"GET /venues/ | erreur propage"`;
+
+exports[`module misc misc.venuesAPI.getById 1`] = `"GET /venues/id1/ | erreur propage"`;
+
+exports[`module misc misc.venuesAPI.getEvents 1`] = `"GET /venues/id1/events/ | erreur propage"`;
+
+exports[`module misc misc.venuesAPI.remove 1`] = `"DELETE /venues/id1/ | erreur propage"`;
+
+exports[`module misc misc.venuesAPI.update 1`] = `"PATCH /venues/id1/ | erreur propage"`;
+
+exports[`module misc misc.volunteersAPI.acceptApplication 1`] = `"POST /volunteer-applications/id1/accept/ | erreur propage"`;
+
+exports[`module misc misc.volunteersAPI.apply 1`] = `"POST /volunteer-applications/ | erreur propage"`;
+
+exports[`module misc misc.volunteersAPI.completeTask 1`] = `"POST /volunteer-tasks/id1/complete/ | erreur propage"`;
+
+exports[`module misc misc.volunteersAPI.createRole 1`] = `"POST /volunteer-roles/ | erreur propage"`;
+
+exports[`module misc misc.volunteersAPI.deleteRole 1`] = `"DELETE /volunteer-roles/id1/ | erreur propage"`;
+
+exports[`module misc misc.volunteersAPI.getMyApplications 1`] = `"GET /volunteer-applications/my_applications/ | erreur propage"`;
+
+exports[`module misc misc.volunteersAPI.getMyTasks 1`] = `"GET /volunteer-tasks/my_tasks/ | erreur propage"`;
+
+exports[`module misc misc.volunteersAPI.getReceivedApplications 1`] = `"GET /volunteer-applications/received/ | erreur propage"`;
+
+exports[`module misc misc.volunteersAPI.getRoles 1`] = `"GET /volunteer-roles/ | erreur propage"`;
+
+exports[`module misc misc.volunteersAPI.rejectApplication 1`] = `"POST /volunteer-applications/id1/reject/ | erreur propage"`;
+
+exports[`module misc misc.volunteersAPI.updateRole 1`] = `"PATCH /volunteer-roles/id1/ | erreur propage"`;
+
+exports[`module misc misc.volunteersAPI.withdrawApplication 1`] = `"POST /volunteer-applications/id1/withdraw/ | erreur propage"`;
+
+exports[`module misc misc.waitlistAPI.cancelWaitlist 1`] = `"POST /waitlist/id1/cancel/ | erreur propage"`;
+
+exports[`module misc misc.waitlistAPI.getMyWaitlist 1`] = `"GET /waitlist/my_waitlist/ | erreur propage"`;
+
+exports[`module misc misc.waitlistAPI.getStatistics 1`] = `"GET /waitlist/statistics/ | erreur propage"`;
+
+exports[`module misc misc.waitlistAPI.getWaitlist 1`] = `"GET /waitlist/ | erreur propage"`;
+
+exports[`module misc misc.waitlistAPI.getWaitlistEntry 1`] = `"GET /waitlist/id1/ | erreur propage"`;
+
+exports[`module misc misc.waitlistAPI.joinWaitlist 1`] = `"POST /waitlist/join/ | erreur propage"`;
+
+exports[`module misc misc.waitlistAPI.notifyBatch 1`] = `"POST /waitlist/notify_batch/ | erreur propage"`;
+
+exports[`module misc misc.waitlistAPI.notifyEntry 1`] = `"POST /waitlist/id1/notify/ | erreur propage"`;
+
+exports[`module misc misc.waitlistSettingsAPI.createWaitlistSetting 1`] = `"POST /waitlist-settings/ | erreur propage"`;
+
+exports[`module misc misc.waitlistSettingsAPI.deleteWaitlistSetting 1`] = `"DELETE /waitlist-settings/id1/ | erreur propage"`;
+
+exports[`module misc misc.waitlistSettingsAPI.getWaitlistSetting 1`] = `"GET /waitlist-settings/id1/ | erreur propage"`;
+
+exports[`module misc misc.waitlistSettingsAPI.getWaitlistSettings 1`] = `"GET /waitlist-settings/ | erreur propage"`;
+
+exports[`module misc misc.waitlistSettingsAPI.updateWaitlistSetting 1`] = `"PUT /waitlist-settings/id1/ | erreur propage"`;
+
+exports[`module misc misc.webhooksAPI.create 1`] = `"POST /webhooks/ | erreur propage"`;
+
+exports[`module misc misc.webhooksAPI.delete 1`] = `"DELETE /webhooks/id1/ | erreur propage"`;
+
+exports[`module misc misc.webhooksAPI.deliveries 1`] = `"GET /webhooks/id1/deliveries/ | erreur propage"`;
+
+exports[`module misc misc.webhooksAPI.getAll 1`] = `"GET /webhooks/ | erreur propage"`;
+
+exports[`module misc misc.webhooksAPI.getById 1`] = `"GET /webhooks/id1/ | erreur propage"`;
+
+exports[`module misc misc.webhooksAPI.retry 1`] = `"POST /webhook-deliveries/id1/retry/ | erreur propage"`;
+
+exports[`module misc misc.webhooksAPI.stats 1`] = `"GET /webhooks/stats/ | erreur propage"`;
+
+exports[`module misc misc.webhooksAPI.test 1`] = `"POST /webhooks/id1/test/ | erreur propage"`;
+
+exports[`module misc misc.webhooksAPI.toggleActive 1`] = `"POST /webhooks/id1/toggle_active/ | erreur propage"`;
+
+exports[`module misc misc.webhooksAPI.update 1`] = `"PATCH /webhooks/id1/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationTemplatesAPI.createTemplate 1`] = `"POST /notification-templates/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationTemplatesAPI.deleteTemplate 1`] = `"DELETE /notification-templates/id1/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationTemplatesAPI.getTemplate 1`] = `"GET /notification-templates/id1/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationTemplatesAPI.getTemplates 1`] = `"GET /notification-templates/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationTemplatesAPI.updateTemplate 1`] = `"PUT /notification-templates/id1/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationsAPI.cancelScheduledNotification 1`] = `"POST /notifications/id1/cancel_scheduled/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationsAPI.deleteMultiple 1`] = `"POST /notifications/delete_multiple/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationsAPI.deleteNotification 1`] = `"DELETE /notifications/id1/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationsAPI.getDevices 1`] = `"GET /notifications/devices/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationsAPI.getNotification 1`] = `"GET /notifications/id1/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationsAPI.getNotificationStatistics 1`] = `"GET /notifications/statistics/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationsAPI.getNotifications 1`] = `"GET /notifications/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationsAPI.getScheduledNotifications 1`] = `"GET /notifications/scheduled/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationsAPI.getSocialFeed 1`] = `"GET /notifications/social_feed/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationsAPI.markAllAsRead 1`] = `"POST /notifications/mark_all_as_read/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationsAPI.markAsRead 1`] = `"POST /notifications/id1/mark_as_read/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationsAPI.registerDevice 1`] = `"POST /notifications/register-device/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationsAPI.scheduleNotification 1`] = `"POST /notifications/schedule/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationsAPI.sendNotification 1`] = `"POST /notifications/send/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationsAPI.unregisterDevice 1`] = `"POST /notifications/unregister-device/ | erreur propage"`;
+
+exports[`module notifications notifications.notificationsAPI.updatePreferences 1`] = `"PATCH /notifications/preferences/ | erreur propage"`;
+
+exports[`module payments payments.commissionsAPI.calculate 1`] = `"POST /commissions/calculate/ | erreur propage"`;
+
+exports[`module payments payments.commissionsAPI.convert 1`] = `"GET /commissions/convert/ | erreur propage"`;
+
+exports[`module payments payments.commissionsAPI.getCommissions 1`] = `"GET /commissions/ | erreur propage"`;
+
+exports[`module payments payments.commissionsAPI.getConfig 1`] = `"GET /commissions/config/ | erreur propage"`;
+
+exports[`module payments payments.commissionsAPI.getStats 1`] = `"GET /commissions/stats/ | erreur propage"`;
+
+exports[`module payments payments.invoicesAPI.downloadPdf 1`] = `"GET /invoices/id1/download_pdf/ | erreur propage"`;
+
+exports[`module payments payments.invoicesAPI.getInvoice 1`] = `"GET /invoices/id1/ | erreur propage"`;
+
+exports[`module payments payments.invoicesAPI.getInvoices 1`] = `"GET /invoices/ | erreur propage"`;
+
+exports[`module payments payments.paymentsAPI.calculateUsageFees 1`] = `"POST /payments/id1/calculate_usage_fees/ | erreur propage"`;
+
+exports[`module payments payments.paymentsAPI.cancelPayment 1`] = `"POST /payments/id1/cancel_payment/ | erreur propage"`;
+
+exports[`module payments payments.paymentsAPI.cinetpayReturn 1`] = `"GET /payments/cinetpay/return/ | erreur propage"`;
+
+exports[`module payments payments.paymentsAPI.createPayment 1`] = `"POST /payments/ | erreur propage"`;
+
+exports[`module payments payments.paymentsAPI.getPayment 1`] = `"GET /payments/id1/ | erreur propage"`;
+
+exports[`module payments payments.paymentsAPI.getPaymentHistory 1`] = `"GET /payments/ | erreur propage"`;
+
+exports[`module payments payments.paymentsAPI.getPaymentMethods 1`] = `"GET /payments/methods/ | erreur propage"`;
+
+exports[`module payments payments.paymentsAPI.getPayments 1`] = `"GET /payments/ | erreur propage"`;
+
+exports[`module payments payments.paymentsAPI.initializePayment 1`] = `"POST /payments/id1/initialize_payment/ | erreur propage"`;
+
+exports[`module payments payments.paymentsAPI.initiate 1`] = `"POST /payments/initiate/ | erreur propage"`;
+
+exports[`module payments payments.paymentsAPI.processMobileMoney 1`] = `"POST /payments/id1/process_mobile_money/ | erreur propage"`;
+
+exports[`module payments payments.paymentsAPI.processMtnMoney 1`] = `"POST /payments/id1/process_mtn_money/ | erreur propage"`;
+
+exports[`module payments payments.paymentsAPI.processOrangeMoney 1`] = `"POST /payments/id1/process_orange_money/ | erreur propage"`;
+
+exports[`module payments payments.paymentsAPI.supportedCountries 1`] = `"GET /payments/supported-countries/ | erreur propage"`;
+
+exports[`module payments payments.paymentsAPI.ticketPriceCap 1`] = `"GET /payments/ticket-price-cap/ | erreur propage"`;
+
+exports[`module payments payments.paymentsAPI.updatePayment 1`] = `"PUT /payments/id1/ | erreur propage"`;
+
+exports[`module payments payments.paymentsAPI.verifyPayment 1`] = `"GET /payments/id1/verify_payment/ | erreur propage"`;
+
+exports[`module payments payments.payoutsAPI.cancelPayout 1`] = `"POST /payouts/id1/cancel/ | erreur propage"`;
+
+exports[`module payments payments.payoutsAPI.getAvailableMethods 1`] = `"GET /payouts/methods/ | erreur propage"`;
+
+exports[`module payments payments.payoutsAPI.getPayout 1`] = `"GET /payouts/id1/ | erreur propage"`;
+
+exports[`module payments payments.payoutsAPI.getPayouts 1`] = `"GET /payouts/ | erreur propage"`;
+
+exports[`module payments payments.payoutsAPI.instantPayout 1`] = `"POST /payouts/instant-payout/ | erreur propage"`;
+
+exports[`module payments payments.payoutsAPI.processPayout 1`] = `"POST /payouts/id1/process/ | erreur propage"`;
+
+exports[`module payments payments.payoutsAPI.requestPayout 1`] = `"POST /payouts/request_payout/ | erreur propage"`;
+
+exports[`module payments payments.refundsAPI.createRefund 1`] = `"POST /refunds/ | erreur propage"`;
+
+exports[`module payments payments.refundsAPI.getRefund 1`] = `"GET /refunds/id1/ | erreur propage"`;
+
+exports[`module payments payments.refundsAPI.getRefunds 1`] = `"GET /refunds/ | erreur propage"`;
+
+exports[`module payments payments.refundsAPI.processRefund 1`] = `"POST /refunds/id1/process_refund/ | erreur propage"`;
+
+exports[`module payments payments.subscriptionsAPI.cancel 1`] = `"POST /subscriptions/cancel/ | erreur propage"`;
+
+exports[`module payments payments.subscriptionsAPI.getCurrentPlan 1`] = `"GET /subscription-plans/current/ | erreur propage"`;
+
+exports[`module payments payments.subscriptionsAPI.getMySubscription 1`] = `"GET /subscriptions/my_subscription/ | erreur propage"`;
+
+exports[`module payments payments.subscriptionsAPI.getPlans 1`] = `"GET /subscription-plans/ | erreur propage"`;
+
+exports[`module payments payments.subscriptionsAPI.getPrices 1`] = `"GET /subscription-plans/prices/ | erreur propage"`;
+
+exports[`module payments payments.subscriptionsAPI.paymentHistory 1`] = `"GET /subscriptions/payment-history/ | erreur propage"`;
+
+exports[`module payments payments.subscriptionsAPI.processPayment 1`] = `"POST /subscriptions/process-payment/ | erreur propage"`;
+
+exports[`module payments payments.subscriptionsAPI.upgrade 1`] = `"POST /subscriptions/upgrade/ | erreur propage"`;
+
+exports[`module payments payments.subscriptionsAPI.verifyPayment 1`] = `"GET /subscriptions/verify-payment/id1/ | erreur propage"`;
+
+exports[`module payments payments.walletAPI.getMyWallet 1`] = `"GET /wallet/my_wallet/ | erreur propage"`;
+
+exports[`module payments payments.walletAPI.getPendingEarnings 1`] = `"GET /wallet/pending_earnings/ | erreur propage"`;
+
+exports[`module payments payments.walletAPI.getStats 1`] = `"GET /wallet/stats/ | erreur propage"`;
+
+exports[`module payments payments.walletAPI.getTransactions 1`] = `"GET /wallet/transactions/ | erreur propage"`;
+
+exports[`module payments payments.walletAPI.stripeOnboardingLink 1`] = `"POST /wallet/stripe-onboarding-link/ | erreur propage"`;
+
+exports[`module payments payments.walletAPI.updateBankDetails 1`] = `"PATCH /wallet/update_bank_details/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.addTickets 1`] = `"POST /registrations/id1/add_tickets/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.approveRegistration 1`] = `"POST /registrations/id1/approve/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.bulkApprove 1`] = `"POST /registrations/bulk_approve/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.bulkCheckIn 1`] = `"POST /registrations/bulk_check_in/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.bulkGenerateTickets 1`] = `"POST /registrations/bulk_generate_tickets/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.bulkReject 1`] = `"POST /registrations/bulk_reject/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.cancelRegistration 1`] = `"POST /registrations/id1/cancel/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.checkIn 1`] = `"POST /registrations/id1/check_in/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.createRegistration 1`] = `"POST /registrations/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.deleteRegistration 1`] = `"DELETE /registrations/id1/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.generateQrCodes 1`] = `"POST /registrations/id1/generate_qr_codes/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.getAccessibleSessions 1`] = `"GET /registrations/id1/accessible-sessions/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.getAttendanceProofs 1`] = `"GET /ticket-purchases/attendance-proofs/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.getByUser 1`] = `"GET /registrations/by_user/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.getCheckinManifest 1`] = `"GET /ticket-purchases/checkin-manifest/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.getEventDirectory 1`] = `"GET /registrations/event-directory/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.getLiveOps 1`] = `"GET /registrations/live-ops/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.getMyLiveRegistrations 1`] = `"GET /registrations/live/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.getMyRegistrations 1`] = `"GET /registrations/my_registrations/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.getPendingApproval 1`] = `"GET /registrations/pending_approval/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.getRegistration 1`] = `"GET /registrations/id1/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.getRegistrationStats 1`] = `"GET /registrations/stats/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.getRegistrations 1`] = `"GET /registrations/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.getYearInReview 1`] = `"GET /me/year-in-review/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.patchRegistration 1`] = `"PATCH /registrations/id1/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.rejectRegistration 1`] = `"POST /registrations/id1/reject/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.resendConfirmation 1`] = `"POST /registrations/id1/resend_confirmation/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.searchRegistrations 1`] = `"GET /registrations/search/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.sendEmail 1`] = `"POST /registrations/send_email/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.setAttendanceIntent 1`] = `"POST /registrations/id1/attendance-intent/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.setExhibitorScanOptIn 1`] = `"POST /registrations/id1/networking/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.setNetworkingOptIn 1`] = `"POST /registrations/id1/networking/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.syncCheckins 1`] = `"POST /ticket-purchases/checkin-sync/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.updateRegistration 1`] = `"PUT /registrations/id1/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.updateTickets 1`] = `"POST /registrations/id1/update_tickets/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.verifyAndCheckIn 1`] = `"POST /registrations/verify_and_check_in/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.verifyAndCheckInTicket 1`] = `"POST /registrations/verify_and_check_in_ticket/ | erreur propage"`;
+
+exports[`module registrations registrations.registrationsAPI.verifyTicket 1`] = `"POST /registrations/verify_ticket/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionRegistrationsAPI.createSessionRegistration 1`] = `"POST /session-registrations/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionRegistrationsAPI.deleteSessionRegistration 1`] = `"DELETE /session-registrations/id1/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionRegistrationsAPI.getSessionRegistration 1`] = `"GET /session-registrations/id1/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionRegistrationsAPI.getSessionRegistrations 1`] = `"GET /session-registrations/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionRegistrationsAPI.updateSessionRegistration 1`] = `"PUT /session-registrations/id1/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionResourcesAPI.createSessionResource 1`] = `"POST /session-resources/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionResourcesAPI.deleteSessionResource 1`] = `"DELETE /session-resources/id1/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionResourcesAPI.downloadResource 1`] = `"POST /session-resources/id1/download/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionResourcesAPI.getSessionResource 1`] = `"GET /session-resources/id1/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionResourcesAPI.getSessionResources 1`] = `"GET /session-resources/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionResourcesAPI.updateSessionResource 1`] = `"PUT /session-resources/id1/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionsAPI.addResource 1`] = `"POST /sessions/id1/add_resource/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionsAPI.createSession 1`] = `"POST /sessions/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionsAPI.deleteSession 1`] = `"DELETE /sessions/id1/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionsAPI.getAttendees 1`] = `"GET /sessions/id1/attendees/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionsAPI.getCalendar 1`] = `"GET /sessions/calendar/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionsAPI.getMySessions 1`] = `"GET /sessions/my_sessions/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionsAPI.getSession 1`] = `"GET /sessions/id1/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionsAPI.getSessions 1`] = `"GET /sessions/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionsAPI.getStatistics 1`] = `"GET /sessions/id1/statistics/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionsAPI.getWaitlistStatus 1`] = `"GET /sessions/id1/waitlist_status/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionsAPI.joinWaitlist 1`] = `"POST /sessions/id1/join_waitlist/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionsAPI.leaveWaitlist 1`] = `"POST /sessions/id1/leave_waitlist/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionsAPI.markAttended 1`] = `"POST /sessions/id1/mark_attended/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionsAPI.registerToSession 1`] = `"POST /sessions/id1/register/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionsAPI.scanAttendance 1`] = `"POST /sessions/id1/scan_attendance/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionsAPI.unregisterFromSession 1`] = `"POST /sessions/id1/unregister/ | erreur propage"`;
+
+exports[`module sessions sessions.sessionsAPI.updateSession 1`] = `"PUT /sessions/id1/ | erreur propage"`;
+
+exports[`module sessions sessions.speakersAPI.createSpeaker 1`] = `"POST /speakers/ | erreur propage"`;
+
+exports[`module sessions sessions.speakersAPI.deleteSpeaker 1`] = `"DELETE /speakers/id1/ | erreur propage"`;
+
+exports[`module sessions sessions.speakersAPI.getSpeaker 1`] = `"GET /speakers/id1/ | erreur propage"`;
+
+exports[`module sessions sessions.speakersAPI.getSpeakerSessions 1`] = `"GET /speakers/id1/sessions/ | erreur propage"`;
+
+exports[`module sessions sessions.speakersAPI.getSpeakers 1`] = `"GET /speakers/ | erreur propage"`;
+
+exports[`module sessions sessions.speakersAPI.patchSpeaker 1`] = `"PATCH /speakers/id1/ | erreur propage"`;
+
+exports[`module sessions sessions.speakersAPI.updateSpeaker 1`] = `"PUT /speakers/id1/ | erreur propage"`;
+
+exports[`module sessions sessions.speakersAPI.uploadPhoto 1`] = `"PATCH /speakers/id1/ | erreur propage"`;
+
+exports[`module sessions sessions.tracksAPI.createTrack 1`] = `"POST /tracks/ | erreur propage"`;
+
+exports[`module sessions sessions.tracksAPI.deleteTrack 1`] = `"DELETE /tracks/id1/ | erreur propage"`;
+
+exports[`module sessions sessions.tracksAPI.getTrack 1`] = `"GET /tracks/id1/ | erreur propage"`;
+
+exports[`module sessions sessions.tracksAPI.getTracks 1`] = `"GET /tracks/ | erreur propage"`;
+
+exports[`module sessions sessions.tracksAPI.updateTrack 1`] = `"PUT /tracks/id1/ | erreur propage"`;
+
+exports[`module social social.advertisementsAPI.create 1`] = `"POST /advertisements/ | erreur propage"`;
+
+exports[`module social social.advertisementsAPI.delete 1`] = `"DELETE /advertisements/id1/ | erreur propage"`;
+
+exports[`module social social.advertisementsAPI.get 1`] = `"GET /advertisements/id1/ | erreur propage"`;
+
+exports[`module social social.advertisementsAPI.getNearby 1`] = `"GET /advertisements/nearby/ | erreur propage"`;
+
+exports[`module social social.advertisementsAPI.list 1`] = `"GET /advertisements/ | erreur propage"`;
+
+exports[`module social social.advertisementsAPI.recordClick 1`] = `"POST /advertisements/id1/click/ | erreur propage"`;
+
+exports[`module social social.advertisementsAPI.recordView 1`] = `"POST /advertisements/id1/view/ | erreur propage"`;
+
+exports[`module social social.advertisementsAPI.update 1`] = `"PATCH /advertisements/id1/ | erreur propage"`;
+
+exports[`module social social.gamificationAPI.getBadges 1`] = `"GET /gamification/badges/ | erreur propage"`;
+
+exports[`module social social.gamificationAPI.getLeaderboard 1`] = `"GET /gamification/leaderboard/ | erreur propage"`;
+
+exports[`module social social.gamificationAPI.getMyBadges 1`] = `"GET /gamification/user-badges/my_badges/ | erreur propage"`;
+
+exports[`module social social.gamificationAPI.getMyRank 1`] = `"GET /gamification/leaderboard/my_rank/ | erreur propage"`;
+
+exports[`module social social.gamificationAPI.getPointsBalance 1`] = `"GET /gamification/points/balance/ | erreur propage"`;
+
+exports[`module social social.gamificationAPI.getPointsHistory 1`] = `"GET /gamification/points/ | erreur propage"`;
+
+exports[`module social social.gamificationAPI.getPointsSummary 1`] = `"GET /gamification/points/summary/ | erreur propage"`;
+
+exports[`module social social.invitationsAPI.accept 1`] = `"POST /invitations/id1/accept/ | erreur propage"`;
+
+exports[`module social social.invitationsAPI.bulkInvite 1`] = `"POST /invitations/ | erreur propage"`;
+
+exports[`module social social.invitationsAPI.cancel 1`] = `"DELETE /invitations/id1/ | erreur propage"`;
+
+exports[`module social social.invitationsAPI.create 1`] = `"POST /invitations/ | erreur propage"`;
+
+exports[`module social social.invitationsAPI.decline 1`] = `"POST /invitations/id1/decline/ | erreur propage"`;
+
+exports[`module social social.invitationsAPI.getAll 1`] = `"GET /invitations/ | erreur propage"`;
+
+exports[`module social social.invitationsAPI.getById 1`] = `"GET /invitations/id1/ | erreur propage"`;
+
+exports[`module social social.invitationsAPI.getMyInvitations 1`] = `"GET /invitations/my_invitations/ | erreur propage"`;
+
+exports[`module social social.invitationsAPI.remind 1`] = `"POST /invitations/id1/remind/ | erreur propage"`;
+
+exports[`module social social.invitationsAPI.remindPending 1`] = `"POST /invitations/remind-pending/ | erreur propage"`;
+
+exports[`module social social.invitationsAPI.respondByToken 1`] = `"GET+POST /invitations/by_token/ + /invitations/srv1/decline/ | erreur propage"`;
+
+exports[`module social social.recommendationsAPI.forgetPreferences 1`] = `"DELETE /recommendations/preferences/ | erreur propage"`;
+
+exports[`module social social.recommendationsAPI.getPreferences 1`] = `"GET /recommendations/preferences/ | erreur propage"`;
+
+exports[`module social social.recommendationsAPI.getRecommendations 1`] = `"GET /recommendations/ | erreur propage"`;
+
+exports[`module social social.recommendationsAPI.getSimilar 1`] = `"GET /recommendations/id1/similar/ | erreur propage"`;
+
+exports[`module social social.recommendationsAPI.recordInteraction 1`] = `"POST /recommendations/record_interaction/ | erreur propage"`;
+
+exports[`module social social.referralsAPI.createCode 1`] = `"POST /referrals/codes/ | erreur propage"`;
+
+exports[`module social social.referralsAPI.deleteCode 1`] = `"DELETE /referrals/codes/id1/ | erreur propage"`;
+
+exports[`module social social.referralsAPI.getCode 1`] = `"GET /referrals/codes/id1/ | erreur propage"`;
+
+exports[`module social social.referralsAPI.getCodes 1`] = `"GET /referrals/codes/ | erreur propage"`;
+
+exports[`module social social.referralsAPI.getStats 1`] = `"GET /referrals/codes/id1/stats/ | erreur propage"`;
+
+exports[`module social social.referralsAPI.trackClick 1`] = `"GET /referrals/track/ | erreur propage"`;
+
+exports[`module social social.referralsAPI.updateCode 1`] = `"PATCH /referrals/codes/id1/ | erreur propage"`;
+
+exports[`module social social.socialAPI.acceptConnection 1`] = `"POST /social/connections/id1/accept/ | erreur propage"`;
+
+exports[`module social social.socialAPI.cancelConnection 1`] = `"POST /social/connections/id1/cancel/ | erreur propage"`;
+
+exports[`module social social.socialAPI.declineConnection 1`] = `"POST /social/connections/id1/decline/ | erreur propage"`;
+
+exports[`module social social.socialAPI.getConnections 1`] = `"GET /social/connections/ | erreur propage"`;
+
+exports[`module social social.socialAPI.getEventAttendees 1`] = `"GET /social/connections/event_attendees/ | erreur propage"`;
+
+exports[`module social social.socialAPI.getEventFeed 1`] = `"GET /social/feed/event_feed/ | erreur propage"`;
+
+exports[`module social social.socialAPI.getFeed 1`] = `"GET /social/feed/ | erreur propage"`;
+
+exports[`module social social.socialAPI.getMyConnections 1`] = `"GET /social/connections/my_connections/ | erreur propage"`;
+
+exports[`module social social.socialAPI.getMyFeed 1`] = `"GET /social/feed/my_feed/ | erreur propage"`;
+
+exports[`module social social.socialAPI.sendConnectionRequest 1`] = `"POST /social/connections/ | erreur propage"`;
+
+exports[`module status status.statusAPI.addUpdate 1`] = `"POST /admin/incidents/id1/updates/ | erreur propage"`;
+
+exports[`module status status.statusAPI.create 1`] = `"POST /admin/incidents/ | erreur propage"`;
+
+exports[`module status status.statusAPI.delete 1`] = `"DELETE /admin/incidents/id1/ | erreur propage"`;
+
+exports[`module status status.statusAPI.getAdmin 1`] = `"GET /admin/incidents/id1/ | erreur propage"`;
+
+exports[`module status status.statusAPI.getHistory 1`] = `"GET /status/incidents/ | erreur propage"`;
+
+exports[`module status status.statusAPI.getIncident 1`] = `"GET /status/incidents/id1/ | erreur propage"`;
+
+exports[`module status status.statusAPI.getServices 1`] = `"GET /status/services/ | erreur propage"`;
+
+exports[`module status status.statusAPI.getSnapshot 1`] = `"GET /status/ | erreur propage"`;
+
+exports[`module status status.statusAPI.listAdmin 1`] = `"GET /admin/incidents/ | erreur propage"`;
+
+exports[`module status status.statusAPI.resolve 1`] = `"POST /admin/incidents/id1/resolve/ | erreur propage"`;
+
+exports[`module status status.statusAPI.update 1`] = `"PATCH /admin/incidents/id1/ | erreur propage"`;
+
+exports[`module tickets tickets.discountsAPI.createDiscount 1`] = `"POST /discounts/ | erreur propage"`;
+
+exports[`module tickets tickets.discountsAPI.deleteDiscount 1`] = `"DELETE /discounts/id1/ | erreur propage"`;
+
+exports[`module tickets tickets.discountsAPI.getDiscount 1`] = `"GET /discounts/id1/ | erreur propage"`;
+
+exports[`module tickets tickets.discountsAPI.getDiscounts 1`] = `"GET /discounts/ | erreur propage"`;
+
+exports[`module tickets tickets.discountsAPI.patchDiscount 1`] = `"PATCH /discounts/id1/ | erreur propage"`;
+
+exports[`module tickets tickets.discountsAPI.updateDiscount 1`] = `"PUT /discounts/id1/ | erreur propage"`;
+
+exports[`module tickets tickets.discountsAPI.validateDiscount 1`] = `"POST /discounts/validate_code/ | erreur propage"`;
+
+exports[`module tickets tickets.priceTiersAPI.create 1`] = `"POST /ticket-price-tiers/ | erreur propage"`;
+
+exports[`module tickets tickets.priceTiersAPI.list 1`] = `"GET /ticket-price-tiers/ | erreur propage"`;
+
+exports[`module tickets tickets.priceTiersAPI.remove 1`] = `"DELETE /ticket-price-tiers/id1/ | erreur propage"`;
+
+exports[`module tickets tickets.priceTiersAPI.update 1`] = `"PATCH /ticket-price-tiers/id1/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketPurchasesAPI.applePassUrl 1`] = `"BUILDER /ticket-purchases/id1/apple-pass/"`;
+
+exports[`module tickets tickets.ticketPurchasesAPI.checkIn 1`] = `"POST /ticket-purchases/id1/check_in/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketPurchasesAPI.createTicketPurchase 1`] = `"POST /ticket-purchases/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketPurchasesAPI.getGooglePassUrl 1`] = `"GET /ticket-purchases/id1/google-pass/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketPurchasesAPI.getMyPurchases 1`] = `"GET /ticket-purchases/my_purchases/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketPurchasesAPI.getMyTickets 1`] = `"GET /ticket-purchases/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketPurchasesAPI.getTicketPurchase 1`] = `"GET /ticket-purchases/id1/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketPurchasesAPI.getTicketPurchases 1`] = `"GET /ticket-purchases/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketPurchasesAPI.getWalletStatus 1`] = `"GET /ticket-purchases/wallet-status/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketPurchasesAPI.updateTicketPurchase 1`] = `"PUT /ticket-purchases/id1/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketTransfersAPI.acceptByToken 1`] = `"POST /ticket-transfers/accept_by_token/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketTransfersAPI.acceptTransfer 1`] = `"POST /ticket-transfers/id1/accept/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketTransfersAPI.cancelTransfer 1`] = `"POST /ticket-transfers/id1/cancel/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketTransfersAPI.createTransfer 1`] = `"POST /ticket-transfers/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketTransfersAPI.declineByToken 1`] = `"POST /ticket-transfers/decline_by_token/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketTransfersAPI.declineTransfer 1`] = `"POST /ticket-transfers/id1/decline/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketTransfersAPI.getByToken 1`] = `"GET /ticket-transfers/by_token/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketTransfersAPI.getPendingTransfers 1`] = `"GET /ticket-transfers/pending/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketTransfersAPI.getReceivedTransfers 1`] = `"GET /ticket-transfers/received/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketTransfersAPI.getSentTransfers 1`] = `"GET /ticket-transfers/sent/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketTransfersAPI.getTransfers 1`] = `"GET /ticket-transfers/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketTypesAPI.createTicketType 1`] = `"POST /ticket-types/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketTypesAPI.deleteTicketType 1`] = `"DELETE /ticket-types/id1/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketTypesAPI.getTicketType 1`] = `"GET /ticket-types/id1/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketTypesAPI.getTicketTypes 1`] = `"GET /ticket-types/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketTypesAPI.patchTicketType 1`] = `"PATCH /ticket-types/id1/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketTypesAPI.updateTicketType 1`] = `"PUT /ticket-types/id1/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketsAPI.applePassUrl 1`] = `"BUILDER /ticket-purchases/id1/apple-pass/"`;
+
+exports[`module tickets tickets.ticketsAPI.checkIn 1`] = `"POST /ticket-purchases/id1/check_in/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketsAPI.createTicketPurchase 1`] = `"POST /ticket-purchases/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketsAPI.getGooglePassUrl 1`] = `"GET /ticket-purchases/id1/google-pass/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketsAPI.getMyPurchases 1`] = `"GET /ticket-purchases/my_purchases/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketsAPI.getMyTickets 1`] = `"GET /ticket-purchases/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketsAPI.getTicketPurchase 1`] = `"GET /ticket-purchases/id1/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketsAPI.getTicketPurchases 1`] = `"GET /ticket-purchases/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketsAPI.getWalletStatus 1`] = `"GET /ticket-purchases/wallet-status/ | erreur propage"`;
+
+exports[`module tickets tickets.ticketsAPI.updateTicketPurchase 1`] = `"PUT /ticket-purchases/id1/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.assignGuest 1`] = `"POST /guest-tables/id1/assign/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.cancelInvitation 1`] = `"DELETE /invitations/id1/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.createItem 1`] = `"POST /gift-items/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.createRegistry 1`] = `"POST /gift-registries/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.createTable 1`] = `"POST /guest-tables/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.deleteItem 1`] = `"DELETE /gift-items/id1/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.deleteRegistry 1`] = `"DELETE /gift-registries/id1/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.deleteTable 1`] = `"DELETE /guest-tables/id1/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.getGuestList 1`] = `"GET /invitations/guest-list/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.getTables 1`] = `"GET /guest-tables/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.importGuestsCsv 1`] = `"POST /invitations/import-csv/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.remindOne 1`] = `"POST /invitations/id1/remind/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.remindPending 1`] = `"POST /invitations/remind-pending/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.setGuestRsvp 1`] = `"POST /invitations/id1/organizer-rsvp/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.unassignGuest 1`] = `"POST /guest-tables/unassign/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.updateItem 1`] = `"PATCH /gift-items/id1/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.updateRegistry 1`] = `"PATCH /gift-registries/id1/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingOrganizerAPI.updateTable 1`] = `"PATCH /guest-tables/id1/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingsAPI.contribute 1`] = `"POST /gift-registries/id1/contribute/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingsAPI.getContributions 1`] = `"GET /gift-registries/id1/contributions/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingsAPI.getRegistryByEvent 1`] = `"GET /gift-registries/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingsAPI.invitationByToken 1`] = `"GET /invitations/by_token/ | erreur propage"`;
+
+exports[`module weddings weddings.weddingsAPI.respondByToken 1`] = `"POST /invitations/respond-by-token/ | erreur propage"`;

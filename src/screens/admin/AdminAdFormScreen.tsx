@@ -34,6 +34,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -151,7 +152,22 @@ function AdminAdFormContent() {
         allowsEditing: true,
       });
       if (!result.canceled && result.assets?.[0]) {
-        setPickedImageUri(result.assets[0].uri);
+        // Redimensionne avant l'envoi : une photo plein capteur (5-12 Mo)
+        // dépassait la limite d'upload du serveur (413) ou le délai réseau —
+        // le tout remonté en « Erreur de connexion ». 1600 px suffisent
+        // largement pour une bannière de feed.
+        let uri = result.assets[0].uri;
+        try {
+          const compressed = await ImageManipulator.manipulateAsync(
+            uri,
+            [{ resize: { width: 1600 } }],
+            { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG },
+          );
+          uri = compressed.uri;
+        } catch {
+          // Repli : image d'origine (le serveur dira 413 si elle est trop lourde).
+        }
+        setPickedImageUri(uri);
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur picker image:', error);
@@ -178,10 +194,13 @@ function AdminAdFormContent() {
     });
     if (!okBio) return;
 
+    // Déclaré hors du try : le catch en a besoin pour choisir le bon registre
+    // d'erreur (un upload qui échoue ne se raconte pas comme un POST JSON).
+    const usesMultipart = !!pickedImageUri;
+
     setSubmitting(true);
     try {
       // Construire le payload — multipart si nouvelle image, JSON sinon.
-      const usesMultipart = !!pickedImageUri;
       let payload: FormData | Record<string, any>;
 
       const fields: Record<string, any> = {
@@ -228,8 +247,12 @@ function AdminAdFormContent() {
       if (__DEV__) console.error('Erreur submit:', error);
       // Modale sans erreurs inline → détailler les champs fautifs (« Image : … »)
       // sinon l'admin ne sait pas POURQUOI la création échoue.
+      // context 'upload' quand une image part : l'admin apprend que son fichier
+      // est intact sur le téléphone et qu'il peut réessayer, au lieu d'un
+      // « une erreur est survenue » qui laisse croire à une pub à moitié créée.
       const { message, fieldErrors } = getApiErrorMessage(error, t, {
         fallbackKey: 'admin.ads.form.submitError',
+        context: usesMultipart ? 'upload' : undefined,
       });
       const detail = formatFieldErrors(fieldErrors, t);
       showError(t('common.error'), detail || message);

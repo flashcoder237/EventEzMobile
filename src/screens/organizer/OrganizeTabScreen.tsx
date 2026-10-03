@@ -345,6 +345,13 @@ export default function OrganizeTabScreen() {
         onPress: () => navigation.navigate('AnalyticsDashboard'),
       });
     }
+    // « Organiser » remplace l'onglet Favoris : on garde un accès direct ici.
+    items.push({
+      key: 'favorites',
+      icon: 'heart-outline',
+      label: t('organize.favorites'),
+      onPress: () => navigation.navigate('SavedEvents'),
+    });
     return items;
   }, [isOrganizer, isStaff, navigation, t]);
 

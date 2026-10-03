@@ -70,74 +70,77 @@ export default function ReviewsTab({
     navigation.navigate('EventReviews', { eventId, eventTitle });
   };
 
+  // Formulaire d'avis rendu À L'EMPLACEMENT du bouton qui l'ouvre (sous les
+  // avis existants). Il était en tête de section : un tap en bas de page
+  // faisait apparaître le formulaire tout en haut, hors de vue (retour
+  // testeur 2026-10-03).
+  const reviewForm = (
+    <View style={[styles.reviewFormCard, { backgroundColor: colors.gray50, borderColor: colors.gray200 }]}>
+      <Text style={[styles.reviewFormTitle, { color: colors.gray900 }]}>{t('componentsEvents.reviewsFormTitle')}</Text>
+
+      {/* Rating Stars */}
+      <View style={styles.ratingInputRow}>
+        <Text style={[styles.ratingLabel, { color: colors.gray600 }]}>{t('componentsEvents.reviewsRatingLabel')}</Text>
+        <View style={styles.ratingStars}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <TouchableOpacity
+              key={star}
+              onPress={() => setReviewRating(star)}
+              style={styles.ratingStar}
+            >
+              <Ionicons
+                name={star <= reviewRating ? 'star' : 'star-outline'}
+                size={28}
+                color={star <= reviewRating ? '#FBBF24' : colors.gray300}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Comment Input */}
+      <TextInput
+        style={[styles.reviewInput, { backgroundColor: colors.card, borderColor: colors.gray200, color: colors.gray900 }]}
+        placeholder={t('componentsEvents.reviewsCommentPlaceholder')}
+        placeholderTextColor={colors.gray400}
+        multiline
+        numberOfLines={4}
+        value={reviewComment}
+        onChangeText={setReviewComment}
+        textAlignVertical="top"
+      />
+
+      {/* Actions */}
+      <View style={styles.reviewFormActions}>
+        <TouchableOpacity
+          style={styles.cancelReviewButton}
+          onPress={() => {
+            setShowReviewForm(false);
+            setReviewComment('');
+            setReviewRating(5);
+          }}
+        >
+          <Text style={[styles.cancelReviewText, { color: colors.gray500 }]}>{t('common.cancel')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.submitReviewButton}
+          onPress={onSubmitReview}
+          disabled={submittingReview}
+        >
+          {submittingReview ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <Text style={styles.submitReviewText}>{t('componentsEvents.reviewsSubmit')}</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.section}>
       <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('componentsEvents.reviewsEyebrow')}</Text>
       <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.reviewsSectionTitle')}</Text>
-
-      {/* Review Form */}
-      {showReviewForm && (
-        <View style={[styles.reviewFormCard, { backgroundColor: colors.gray50, borderColor: colors.gray200 }]}>
-          <Text style={[styles.reviewFormTitle, { color: colors.gray900 }]}>{t('componentsEvents.reviewsFormTitle')}</Text>
-
-          {/* Rating Stars */}
-          <View style={styles.ratingInputRow}>
-            <Text style={[styles.ratingLabel, { color: colors.gray600 }]}>{t('componentsEvents.reviewsRatingLabel')}</Text>
-            <View style={styles.ratingStars}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <TouchableOpacity
-                  key={star}
-                  onPress={() => setReviewRating(star)}
-                  style={styles.ratingStar}
-                >
-                  <Ionicons
-                    name={star <= reviewRating ? 'star' : 'star-outline'}
-                    size={28}
-                    color={star <= reviewRating ? '#FBBF24' : colors.gray300}
-                  />
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Comment Input */}
-          <TextInput
-            style={[styles.reviewInput, { backgroundColor: colors.card, borderColor: colors.gray200, color: colors.gray900 }]}
-            placeholder={t('componentsEvents.reviewsCommentPlaceholder')}
-            placeholderTextColor={colors.gray400}
-            multiline
-            numberOfLines={4}
-            value={reviewComment}
-            onChangeText={setReviewComment}
-            textAlignVertical="top"
-          />
-
-          {/* Actions */}
-          <View style={styles.reviewFormActions}>
-            <TouchableOpacity
-              style={styles.cancelReviewButton}
-              onPress={() => {
-                setShowReviewForm(false);
-                setReviewComment('');
-                setReviewRating(5);
-              }}
-            >
-              <Text style={[styles.cancelReviewText, { color: colors.gray500 }]}>{t('common.cancel')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.submitReviewButton}
-              onPress={onSubmitReview}
-              disabled={submittingReview}
-            >
-              {submittingReview ? (
-                <ActivityIndicator size="small" color={Colors.white} />
-              ) : (
-                <Text style={styles.submitReviewText}>{t('componentsEvents.reviewsSubmit')}</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
 
       {loadingFeedbacks ? (
         <View style={styles.emptyTab}>
@@ -211,7 +214,9 @@ export default function ReviewsTab({
             </TouchableOpacity>
           )}
 
-          {/* CTA "Laisser un avis" en BAS, apres les avis */}
+          {/* CTA "Laisser un avis" en BAS, apres les avis — le formulaire
+              prend SA place une fois ouvert. */}
+          {showReviewForm && reviewForm}
           {user && !showReviewForm && (
             <TouchableOpacity
               style={[styles.bottomReviewCta, { backgroundColor: colors.primaryBg }]}
@@ -239,7 +244,9 @@ export default function ReviewsTab({
             </TouchableOpacity>
           )}
         </View>
-      ) : null}
+      ) : (
+        reviewForm
+      )}
     </View>
   );
 }

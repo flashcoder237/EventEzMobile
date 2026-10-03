@@ -1480,7 +1480,18 @@
     "shareOrganizerA11y": "Share my organizer profile",
     "viewPublicProfileA11y": "View my public profile",
     "orgEventsCount_one": "{{count}} event",
-    "orgEventsCount_other": "{{count}} events"
+    "orgEventsCount_other": "{{count}} events",
+    "unfollowConfirmTitle": "Unfollow?",
+    "unfollowConfirmMessage": "You will no longer be notified about {{name}}'s upcoming events.",
+    "followedEventCount_one": "{{count}} event",
+    "followedEventCount_other": "{{count}} events",
+    "followingPill": "Following",
+    "followedCount_one": "{{formatted}} followed",
+    "followedCount_other": "{{formatted}} followed",
+    "followSearchEmptyTitle": "No results",
+    "followSearchEmptyText": "No followed organizer matches “{{query}}”.",
+    "followDiscoverCta": "Discover events",
+    "followSearchPlaceholder": "Search an organizer"
   },
   "editProfile": {
     "title": "Edit profile",
@@ -1723,7 +1734,9 @@
     "rowMotionGesturesSubtitle": "Shake, flip or hold out your phone for some actions. A button is always available too.",
     "notificationsEyebrowOngoing": "Notifications",
     "rowOngoingEvent": "Pinned ticket on event day",
-    "rowOngoingEventSubtitle": "A quiet notification, 3 h before and during the event, with your ticket and directions."
+    "rowOngoingEventSubtitle": "A quiet notification, 3 h before and during the event, with your ticket and directions.",
+    "rowNotificationSounds": "Notification sounds",
+    "rowNotificationSoundsSubtitle": "Pick the sound for each category (big moments, sales, messages…) in your phone settings"
   },
   "messages": {
     "title": "Messages",
@@ -2171,7 +2184,8 @@
       "notFound": "We couldn't find what you were looking for.",
       "conflict": "This action conflicts with the current state. Refresh and try again.",
       "tooManyRequests": "Too many attempts. Please wait a moment and try again.",
-      "server": "Our servers are having trouble right now. Please try again in a few minutes."
+      "server": "Our servers are having trouble right now. Please try again in a few minutes.",
+      "updating": "EventEz is updating. Please try again in a few seconds."
     },
     "codes": {
       "emailTaken": "This email is already linked to an account. Sign in or use another address.",
@@ -4530,7 +4544,9 @@
     "limitStock": "Only {{max}} ticket(s) of this type left.",
     "limitEventCapacity": "Only {{max}} place(s) left for this event.",
     "onlyNLeft_one": "Only one place left",
-    "onlyNLeft_other": "Only {{count}} places left"
+    "onlyNLeft_other": "Only {{count}} places left",
+    "ctaSuspended": "Purchases paused",
+    "suspendedByIncident": "Purchases are temporarily paused due to an incident. Follow updates on the Status page."
   },
   "registrationDetails": {
     "headerInscription": "My registration",
@@ -7757,6 +7773,7 @@
     "resizeBubble": "Resize"
   },
   "organize": {
+    "favorites": "My favorites",
     "eyebrow": "Organizer space",
     "title": "Organize",
     "liveNow": "Live now",

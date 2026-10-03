@@ -30,7 +30,10 @@ export interface FromQrError {
 
 export const connectionsAPI = {
   /** Liste mes connections (l'autre user dans chaque pair). */
-  list: () => api.get<{ results: Connection[]; count: number }>('/connections/'),
+  list: (params?: { page?: number; page_size?: number; search?: string }) =>
+    (params
+      ? api.get<{ results: Connection[]; count: number; next?: boolean }>('/connections/', { params })
+      : api.get<{ results: Connection[]; count: number }>('/connections/')),
 
   /** Retire une connection. `connectionId` = Connection.id (champ `id` retourne
    * par `list()`), pas l'user_id de l'autre. */

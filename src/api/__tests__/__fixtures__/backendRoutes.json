@@ -1,0 +1,10350 @@
+{
+ "generated_by": "EventEzBackend urlconf dump (regenerate: see README in this folder)",
+ "count": 1371,
+ "routes": [
+  {
+   "regex": "payments/initiate/",
+   "methods": [
+    "POST"
+   ],
+   "name": "payments-initiate"
+  },
+  {
+   "regex": "notifications/unsubscribe/(?:[^/]+)/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "email-unsubscribe"
+  },
+  {
+   "regex": "search/",
+   "methods": [
+    "GET"
+   ],
+   "name": "global-search"
+  },
+  {
+   "regex": "me/year\\-in\\-review/",
+   "methods": [
+    "GET"
+   ],
+   "name": "year-in-review"
+  },
+  {
+   "regex": "me/since/",
+   "methods": [
+    "GET"
+   ],
+   "name": "me-since"
+  },
+  {
+   "regex": "wallet/apple/v1/devices/(?:[^/]+)/registrations/(?:[^/]+)/(?:[^/]+)",
+   "methods": [
+    "*"
+   ],
+   "name": "wallet-apple-device-registration"
+  },
+  {
+   "regex": "wallet/apple/v1/devices/(?:[^/]+)/registrations/(?:[^/]+)",
+   "methods": [
+    "*"
+   ],
+   "name": "wallet-apple-device-serials"
+  },
+  {
+   "regex": "wallet/apple/v1/passes/(?:[^/]+)/(?:[^/]+)",
+   "methods": [
+    "*"
+   ],
+   "name": "wallet-apple-latest-pass"
+  },
+  {
+   "regex": "wallet/apple/v1/log",
+   "methods": [
+    "*"
+   ],
+   "name": "wallet-apple-log"
+  },
+  {
+   "regex": "users/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "user-list"
+  },
+  {
+   "regex": "users\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "user-list"
+  },
+  {
+   "regex": "users/analytics/",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-analytics"
+  },
+  {
+   "regex": "users/analytics\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-analytics"
+  },
+  {
+   "regex": "users/me/badge-counts/",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-badge-counts"
+  },
+  {
+   "regex": "users/me/badge-counts\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-badge-counts"
+  },
+  {
+   "regex": "users/become_organizer/",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-become-organizer"
+  },
+  {
+   "regex": "users/become_organizer\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-become-organizer"
+  },
+  {
+   "regex": "users/change_password/",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-change-password"
+  },
+  {
+   "regex": "users/change_password\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-change-password"
+  },
+  {
+   "regex": "users/create_user/",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-create-user"
+  },
+  {
+   "regex": "users/create_user\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-create-user"
+  },
+  {
+   "regex": "users/me/delete_account/",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-delete-account"
+  },
+  {
+   "regex": "users/me/delete_account\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-delete-account"
+  },
+  {
+   "regex": "users/export/",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-export"
+  },
+  {
+   "regex": "users/export\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-export"
+  },
+  {
+   "regex": "users/me/export/",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-export-my-data"
+  },
+  {
+   "regex": "users/me/export\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-export-my-data"
+  },
+  {
+   "regex": "users/following_users/",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-following-users"
+  },
+  {
+   "regex": "users/following_users\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-following-users"
+  },
+  {
+   "regex": "users/blocked/",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-list-blocked"
+  },
+  {
+   "regex": "users/blocked\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-list-blocked"
+  },
+  {
+   "regex": "users/me/",
+   "methods": [
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "user-me"
+  },
+  {
+   "regex": "users/me\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "user-me"
+  },
+  {
+   "regex": "users/my_followers/",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-my-followers"
+  },
+  {
+   "regex": "users/my_followers\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-my-followers"
+  },
+  {
+   "regex": "users/notification_settings/",
+   "methods": [
+    "PATCH"
+   ],
+   "name": "user-notification-settings"
+  },
+  {
+   "regex": "users/notification_settings\\.(?:[^/]+)/?",
+   "methods": [
+    "PATCH"
+   ],
+   "name": "user-notification-settings"
+  },
+  {
+   "regex": "users/organizers/",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-organizers"
+  },
+  {
+   "regex": "users/organizers\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-organizers"
+  },
+  {
+   "regex": "users/pending_verification/",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-pending-verification"
+  },
+  {
+   "regex": "users/pending_verification\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-pending-verification"
+  },
+  {
+   "regex": "users/me/language/",
+   "methods": [
+    "PATCH"
+   ],
+   "name": "user-update-language"
+  },
+  {
+   "regex": "users/me/language\\.(?:[^/]+)/?",
+   "methods": [
+    "PATCH"
+   ],
+   "name": "user-update-language"
+  },
+  {
+   "regex": "users/update_organizer_profile/",
+   "methods": [
+    "PATCH",
+    "PUT"
+   ],
+   "name": "user-update-organizer-profile"
+  },
+  {
+   "regex": "users/update_organizer_profile\\.(?:[^/]+)/?",
+   "methods": [
+    "PATCH",
+    "PUT"
+   ],
+   "name": "user-update-organizer-profile"
+  },
+  {
+   "regex": "users/update_profile/",
+   "methods": [
+    "PUT"
+   ],
+   "name": "user-update-profile"
+  },
+  {
+   "regex": "users/update_profile\\.(?:[^/]+)/?",
+   "methods": [
+    "PUT"
+   ],
+   "name": "user-update-profile"
+  },
+  {
+   "regex": "users/me/upload_profile_image/",
+   "methods": [
+    "PATCH"
+   ],
+   "name": "user-upload-profile-image"
+  },
+  {
+   "regex": "users/me/upload_profile_image\\.(?:[^/]+)/?",
+   "methods": [
+    "PATCH"
+   ],
+   "name": "user-upload-profile-image"
+  },
+  {
+   "regex": "users/me/settings/",
+   "methods": [
+    "GET",
+    "PUT"
+   ],
+   "name": "user-user-settings"
+  },
+  {
+   "regex": "users/me/settings\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "PUT"
+   ],
+   "name": "user-user-settings"
+  },
+  {
+   "regex": "users/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "user-detail"
+  },
+  {
+   "regex": "users/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "user-detail"
+  },
+  {
+   "regex": "users/(?:[^/]+)/block/",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-block-user"
+  },
+  {
+   "regex": "users/(?:[^/]+)/block\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-block-user"
+  },
+  {
+   "regex": "users/(?:[^/]+)/follow/",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-follow"
+  },
+  {
+   "regex": "users/(?:[^/]+)/follow\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-follow"
+  },
+  {
+   "regex": "users/(?:[^/]+)/followers_count/",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-followers-count"
+  },
+  {
+   "regex": "users/(?:[^/]+)/followers_count\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-followers-count"
+  },
+  {
+   "regex": "users/(?:[^/]+)/is_following/",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-is-following"
+  },
+  {
+   "regex": "users/(?:[^/]+)/is_following\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-is-following"
+  },
+  {
+   "regex": "users/(?:[^/]+)/reject_profile/",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-reject-profile"
+  },
+  {
+   "regex": "users/(?:[^/]+)/reject_profile\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-reject-profile"
+  },
+  {
+   "regex": "users/(?:[^/]+)/set_active/",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-set-active"
+  },
+  {
+   "regex": "users/(?:[^/]+)/set_active\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-set-active"
+  },
+  {
+   "regex": "users/(?:[^/]+)/unblock/",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-unblock-user"
+  },
+  {
+   "regex": "users/(?:[^/]+)/unblock\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-unblock-user"
+  },
+  {
+   "regex": "users/(?:[^/]+)/unfollow/",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-unfollow"
+  },
+  {
+   "regex": "users/(?:[^/]+)/unfollow\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-unfollow"
+  },
+  {
+   "regex": "users/(?:[^/]+)/update_follow_preferences/",
+   "methods": [
+    "PATCH"
+   ],
+   "name": "user-update-follow-preferences"
+  },
+  {
+   "regex": "users/(?:[^/]+)/update_follow_preferences\\.(?:[^/]+)/?",
+   "methods": [
+    "PATCH"
+   ],
+   "name": "user-update-follow-preferences"
+  },
+  {
+   "regex": "users/(?:[^/]+)/verify_profile/",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-verify-profile"
+  },
+  {
+   "regex": "users/(?:[^/]+)/verify_profile\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-verify-profile"
+  },
+  {
+   "regex": "verifications/my_request/",
+   "methods": [
+    "GET"
+   ],
+   "name": "verification-my-request"
+  },
+  {
+   "regex": "verifications/my_request\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "verification-my-request"
+  },
+  {
+   "regex": "verifications/pending/",
+   "methods": [
+    "GET"
+   ],
+   "name": "verification-pending"
+  },
+  {
+   "regex": "verifications/pending\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "verification-pending"
+  },
+  {
+   "regex": "verifications/submit/",
+   "methods": [
+    "POST"
+   ],
+   "name": "verification-submit"
+  },
+  {
+   "regex": "verifications/submit\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "verification-submit"
+  },
+  {
+   "regex": "verifications/(?:[^/]+)/approve/",
+   "methods": [
+    "POST"
+   ],
+   "name": "verification-approve"
+  },
+  {
+   "regex": "verifications/(?:[^/]+)/approve\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "verification-approve"
+  },
+  {
+   "regex": "verifications/(?:[^/]+)/reject/",
+   "methods": [
+    "POST"
+   ],
+   "name": "verification-reject"
+  },
+  {
+   "regex": "verifications/(?:[^/]+)/reject\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "verification-reject"
+  },
+  {
+   "regex": "events/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "event-list"
+  },
+  {
+   "regex": "events\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "event-list"
+  },
+  {
+   "regex": "events/cities/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-cities"
+  },
+  {
+   "regex": "events/cities\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-cities"
+  },
+  {
+   "regex": "events/cities/autocomplete/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-cities-autocomplete"
+  },
+  {
+   "regex": "events/cities/autocomplete\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-cities-autocomplete"
+  },
+  {
+   "regex": "events/city-pulse/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-city-pulse"
+  },
+  {
+   "regex": "events/city-pulse\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-city-pulse"
+  },
+  {
+   "regex": "events/compare/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-compare"
+  },
+  {
+   "regex": "events/compare\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-compare"
+  },
+  {
+   "regex": "events/export/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-export"
+  },
+  {
+   "regex": "events/export\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-export"
+  },
+  {
+   "regex": "events/featured/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-featured"
+  },
+  {
+   "regex": "events/featured\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-featured"
+  },
+  {
+   "regex": "events/following/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-following"
+  },
+  {
+   "regex": "events/following\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-following"
+  },
+  {
+   "regex": "events/map_events/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-map-events"
+  },
+  {
+   "regex": "events/map_events\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-map-events"
+  },
+  {
+   "regex": "events/moderation-pending-count/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-moderation-pending-count"
+  },
+  {
+   "regex": "events/moderation-pending-count\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-moderation-pending-count"
+  },
+  {
+   "regex": "events/my_events/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-my-events"
+  },
+  {
+   "regex": "events/my_events\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-my-events"
+  },
+  {
+   "regex": "events/nearby/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-nearby"
+  },
+  {
+   "regex": "events/nearby\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-nearby"
+  },
+  {
+   "regex": "events/pending_validation/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-pending-validation"
+  },
+  {
+   "regex": "events/pending_validation\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-pending-validation"
+  },
+  {
+   "regex": "events/validate/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-validate"
+  },
+  {
+   "regex": "events/validate\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-validate"
+  },
+  {
+   "regex": "events/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "event-detail"
+  },
+  {
+   "regex": "events/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "event-detail"
+  },
+  {
+   "regex": "events/(?:[^/]+)/broadcast-message/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-broadcast-message"
+  },
+  {
+   "regex": "events/(?:[^/]+)/broadcast-message\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-broadcast-message"
+  },
+  {
+   "regex": "events/(?:[^/]+)/cancel/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-cancel"
+  },
+  {
+   "regex": "events/(?:[^/]+)/cancel\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-cancel"
+  },
+  {
+   "regex": "events/(?:[^/]+)/create_recurrence/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-create-recurrence"
+  },
+  {
+   "regex": "events/(?:[^/]+)/create_recurrence\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-create-recurrence"
+  },
+  {
+   "regex": "events/(?:[^/]+)/duplicate/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-duplicate"
+  },
+  {
+   "regex": "events/(?:[^/]+)/duplicate\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-duplicate"
+  },
+  {
+   "regex": "events/(?:[^/]+)/export-ical/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-export-ical"
+  },
+  {
+   "regex": "events/(?:[^/]+)/export-ical\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-export-ical"
+  },
+  {
+   "regex": "events/(?:[^/]+)/follow/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-follow"
+  },
+  {
+   "regex": "events/(?:[^/]+)/follow\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-follow"
+  },
+  {
+   "regex": "events/(?:[^/]+)/followers_count/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-followers-count"
+  },
+  {
+   "regex": "events/(?:[^/]+)/followers_count\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-followers-count"
+  },
+  {
+   "regex": "events/(?:[^/]+)/google-calendar-link/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-google-calendar-link"
+  },
+  {
+   "regex": "events/(?:[^/]+)/google-calendar-link\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-google-calendar-link"
+  },
+  {
+   "regex": "events/(?:[^/]+)/group-chat/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "event-group-chat"
+  },
+  {
+   "regex": "events/(?:[^/]+)/group-chat\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "event-group-chat"
+  },
+  {
+   "regex": "events/(?:[^/]+)/host-approve/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-host-approve"
+  },
+  {
+   "regex": "events/(?:[^/]+)/host-approve\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-host-approve"
+  },
+  {
+   "regex": "events/(?:[^/]+)/host-reject/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-host-reject"
+  },
+  {
+   "regex": "events/(?:[^/]+)/host-reject\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-host-reject"
+  },
+  {
+   "regex": "events/(?:[^/]+)/instances/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-instances"
+  },
+  {
+   "regex": "events/(?:[^/]+)/instances\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-instances"
+  },
+  {
+   "regex": "events/(?:[^/]+)/internal-notes/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "event-internal-notes"
+  },
+  {
+   "regex": "events/(?:[^/]+)/internal-notes\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "event-internal-notes"
+  },
+  {
+   "regex": "events/(?:[^/]+)/is_following/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-is-following"
+  },
+  {
+   "regex": "events/(?:[^/]+)/is_following\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-is-following"
+  },
+  {
+   "regex": "events/(?:[^/]+)/publish/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-publish"
+  },
+  {
+   "regex": "events/(?:[^/]+)/publish\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-publish"
+  },
+  {
+   "regex": "events/(?:[^/]+)/pulse/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-pulse"
+  },
+  {
+   "regex": "events/(?:[^/]+)/pulse\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-pulse"
+  },
+  {
+   "regex": "events/(?:[^/]+)/recap/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-recap"
+  },
+  {
+   "regex": "events/(?:[^/]+)/recap\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-recap"
+  },
+  {
+   "regex": "events/(?:[^/]+)/reject_event/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-reject-event"
+  },
+  {
+   "regex": "events/(?:[^/]+)/reject_event\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-reject-event"
+  },
+  {
+   "regex": "events/(?:[^/]+)/remove_images/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-remove-images"
+  },
+  {
+   "regex": "events/(?:[^/]+)/remove_images\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-remove-images"
+  },
+  {
+   "regex": "events/(?:[^/]+)/request-changes/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-request-changes"
+  },
+  {
+   "regex": "events/(?:[^/]+)/request-changes\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-request-changes"
+  },
+  {
+   "regex": "events/(?:[^/]+)/request_feature/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-request-feature"
+  },
+  {
+   "regex": "events/(?:[^/]+)/request_feature\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-request-feature"
+  },
+  {
+   "regex": "events/(?:[^/]+)/submit_for_validation/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-submit-for-validation"
+  },
+  {
+   "regex": "events/(?:[^/]+)/submit_for_validation\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-submit-for-validation"
+  },
+  {
+   "regex": "events/(?:[^/]+)/unfollow/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-unfollow"
+  },
+  {
+   "regex": "events/(?:[^/]+)/unfollow\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-unfollow"
+  },
+  {
+   "regex": "events/(?:[^/]+)/update_follow_preferences/",
+   "methods": [
+    "PATCH"
+   ],
+   "name": "event-update-follow-preferences"
+  },
+  {
+   "regex": "events/(?:[^/]+)/update_follow_preferences\\.(?:[^/]+)/?",
+   "methods": [
+    "PATCH"
+   ],
+   "name": "event-update-follow-preferences"
+  },
+  {
+   "regex": "events/(?:[^/]+)/update_form_fields/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-update-form-fields"
+  },
+  {
+   "regex": "events/(?:[^/]+)/update_form_fields\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-update-form-fields"
+  },
+  {
+   "regex": "events/(?:[^/]+)/upload_images/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-upload-images"
+  },
+  {
+   "regex": "events/(?:[^/]+)/upload_images\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-upload-images"
+  },
+  {
+   "regex": "events/(?:[^/]+)/validate_event/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-validate-event"
+  },
+  {
+   "regex": "events/(?:[^/]+)/validate_event\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-validate-event"
+  },
+  {
+   "regex": "events/(?:[^/]+)/verify_access_code/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-verify-access-code"
+  },
+  {
+   "regex": "events/(?:[^/]+)/verify_access_code\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-verify-access-code"
+  },
+  {
+   "regex": "categories/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "eventcategory-list"
+  },
+  {
+   "regex": "categories\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "eventcategory-list"
+  },
+  {
+   "regex": "categories/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "eventcategory-detail"
+  },
+  {
+   "regex": "categories/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "eventcategory-detail"
+  },
+  {
+   "regex": "categories/(?:[^/]+)/events/",
+   "methods": [
+    "GET"
+   ],
+   "name": "eventcategory-events"
+  },
+  {
+   "regex": "categories/(?:[^/]+)/events\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "eventcategory-events"
+  },
+  {
+   "regex": "categories/(?:[^/]+)/toggle_active/",
+   "methods": [
+    "POST"
+   ],
+   "name": "eventcategory-toggle-active"
+  },
+  {
+   "regex": "categories/(?:[^/]+)/toggle_active\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "eventcategory-toggle-active"
+  },
+  {
+   "regex": "categories/(?:[^/]+)/upload_default_event_image/",
+   "methods": [
+    "POST"
+   ],
+   "name": "eventcategory-upload-default-event-image"
+  },
+  {
+   "regex": "categories/(?:[^/]+)/upload_default_event_image\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "eventcategory-upload-default-event-image"
+  },
+  {
+   "regex": "categories/(?:[^/]+)/upload_image/",
+   "methods": [
+    "POST"
+   ],
+   "name": "eventcategory-upload-image"
+  },
+  {
+   "regex": "categories/(?:[^/]+)/upload_image\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "eventcategory-upload-image"
+  },
+  {
+   "regex": "tags/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "eventtag-list"
+  },
+  {
+   "regex": "tags\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "eventtag-list"
+  },
+  {
+   "regex": "tags/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "eventtag-detail"
+  },
+  {
+   "regex": "tags/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "eventtag-detail"
+  },
+  {
+   "regex": "form-fields/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "customformfield-list"
+  },
+  {
+   "regex": "form-fields\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "customformfield-list"
+  },
+  {
+   "regex": "form-fields/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "customformfield-detail"
+  },
+  {
+   "regex": "form-fields/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "customformfield-detail"
+  },
+  {
+   "regex": "ai-assist/autocomplete/",
+   "methods": [
+    "POST"
+   ],
+   "name": "ai-assist-autocomplete"
+  },
+  {
+   "regex": "ai-assist/autocomplete\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "ai-assist-autocomplete"
+  },
+  {
+   "regex": "ai-assist/description/",
+   "methods": [
+    "POST"
+   ],
+   "name": "ai-assist-description"
+  },
+  {
+   "regex": "ai-assist/description\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "ai-assist-description"
+  },
+  {
+   "regex": "ai-assist/generate/",
+   "methods": [
+    "POST"
+   ],
+   "name": "ai-assist-generate"
+  },
+  {
+   "regex": "ai-assist/generate\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "ai-assist-generate"
+  },
+  {
+   "regex": "ai-assist/optimize-title/",
+   "methods": [
+    "POST"
+   ],
+   "name": "ai-assist-optimize-title-action"
+  },
+  {
+   "regex": "ai-assist/optimize-title\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "ai-assist-optimize-title-action"
+  },
+  {
+   "regex": "ai-assist/pricing/",
+   "methods": [
+    "POST"
+   ],
+   "name": "ai-assist-pricing"
+  },
+  {
+   "regex": "ai-assist/pricing\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "ai-assist-pricing"
+  },
+  {
+   "regex": "ai-assist/seo/",
+   "methods": [
+    "POST"
+   ],
+   "name": "ai-assist-seo"
+  },
+  {
+   "regex": "ai-assist/seo\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "ai-assist-seo"
+  },
+  {
+   "regex": "ai-assist/suggest-category/",
+   "methods": [
+    "POST"
+   ],
+   "name": "ai-assist-suggest-category"
+  },
+  {
+   "regex": "ai-assist/suggest-category\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "ai-assist-suggest-category"
+  },
+  {
+   "regex": "ai-assist/usage/",
+   "methods": [
+    "GET"
+   ],
+   "name": "ai-assist-usage"
+  },
+  {
+   "regex": "ai-assist/usage\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "ai-assist-usage"
+  },
+  {
+   "regex": "event-templates/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "event-template-list"
+  },
+  {
+   "regex": "event-templates\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "event-template-list"
+  },
+  {
+   "regex": "event-templates/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "event-template-detail"
+  },
+  {
+   "regex": "event-templates/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "event-template-detail"
+  },
+  {
+   "regex": "call-for-papers/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "call-for-papers-list"
+  },
+  {
+   "regex": "call-for-papers\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "call-for-papers-list"
+  },
+  {
+   "regex": "call-for-papers/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "call-for-papers-detail"
+  },
+  {
+   "regex": "call-for-papers/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "call-for-papers-detail"
+  },
+  {
+   "regex": "call-for-papers/(?:[^/]+)/toggle_open/",
+   "methods": [
+    "POST"
+   ],
+   "name": "call-for-papers-toggle-open"
+  },
+  {
+   "regex": "call-for-papers/(?:[^/]+)/toggle_open\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "call-for-papers-toggle-open"
+  },
+  {
+   "regex": "talk-proposals/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "talk-proposal-list"
+  },
+  {
+   "regex": "talk-proposals\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "talk-proposal-list"
+  },
+  {
+   "regex": "talk-proposals/by_cfp/",
+   "methods": [
+    "GET"
+   ],
+   "name": "talk-proposal-by-cfp"
+  },
+  {
+   "regex": "talk-proposals/by_cfp\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "talk-proposal-by-cfp"
+  },
+  {
+   "regex": "talk-proposals/my_proposals/",
+   "methods": [
+    "GET"
+   ],
+   "name": "talk-proposal-my-proposals"
+  },
+  {
+   "regex": "talk-proposals/my_proposals\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "talk-proposal-my-proposals"
+  },
+  {
+   "regex": "talk-proposals/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "talk-proposal-detail"
+  },
+  {
+   "regex": "talk-proposals/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "talk-proposal-detail"
+  },
+  {
+   "regex": "talk-proposals/(?:[^/]+)/accept/",
+   "methods": [
+    "POST"
+   ],
+   "name": "talk-proposal-accept"
+  },
+  {
+   "regex": "talk-proposals/(?:[^/]+)/accept\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "talk-proposal-accept"
+  },
+  {
+   "regex": "talk-proposals/(?:[^/]+)/reject/",
+   "methods": [
+    "POST"
+   ],
+   "name": "talk-proposal-reject"
+  },
+  {
+   "regex": "talk-proposals/(?:[^/]+)/reject\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "talk-proposal-reject"
+  },
+  {
+   "regex": "talk-proposals/(?:[^/]+)/submit/",
+   "methods": [
+    "POST"
+   ],
+   "name": "talk-proposal-submit"
+  },
+  {
+   "regex": "talk-proposals/(?:[^/]+)/submit\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "talk-proposal-submit"
+  },
+  {
+   "regex": "tracks/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "track-list"
+  },
+  {
+   "regex": "tracks\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "track-list"
+  },
+  {
+   "regex": "tracks/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "track-detail"
+  },
+  {
+   "regex": "tracks/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "track-detail"
+  },
+  {
+   "regex": "speakers/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "speaker-list"
+  },
+  {
+   "regex": "speakers\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "speaker-list"
+  },
+  {
+   "regex": "speakers/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "speaker-detail"
+  },
+  {
+   "regex": "speakers/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "speaker-detail"
+  },
+  {
+   "regex": "speakers/(?:[^/]+)/sessions/",
+   "methods": [
+    "GET"
+   ],
+   "name": "speaker-sessions"
+  },
+  {
+   "regex": "speakers/(?:[^/]+)/sessions\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "speaker-sessions"
+  },
+  {
+   "regex": "sessions/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "session-list"
+  },
+  {
+   "regex": "sessions\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "session-list"
+  },
+  {
+   "regex": "sessions/calendar/",
+   "methods": [
+    "GET"
+   ],
+   "name": "session-calendar"
+  },
+  {
+   "regex": "sessions/calendar\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "session-calendar"
+  },
+  {
+   "regex": "sessions/my_sessions/",
+   "methods": [
+    "GET"
+   ],
+   "name": "session-my-sessions"
+  },
+  {
+   "regex": "sessions/my_sessions\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "session-my-sessions"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "session-detail"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "session-detail"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/add_resource/",
+   "methods": [
+    "POST"
+   ],
+   "name": "session-add-resource"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/add_resource\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "session-add-resource"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/attendees/",
+   "methods": [
+    "GET"
+   ],
+   "name": "session-attendees"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/attendees\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "session-attendees"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/join_waitlist/",
+   "methods": [
+    "POST"
+   ],
+   "name": "session-join-waitlist"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/join_waitlist\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "session-join-waitlist"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/leave_waitlist/",
+   "methods": [
+    "POST"
+   ],
+   "name": "session-leave-waitlist"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/leave_waitlist\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "session-leave-waitlist"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/mark_attended/",
+   "methods": [
+    "POST"
+   ],
+   "name": "session-mark-attended"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/mark_attended\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "session-mark-attended"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/register/",
+   "methods": [
+    "POST"
+   ],
+   "name": "session-register"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/register\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "session-register"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/scan_attendance/",
+   "methods": [
+    "POST"
+   ],
+   "name": "session-scan-attendance"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/scan_attendance\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "session-scan-attendance"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/statistics/",
+   "methods": [
+    "GET"
+   ],
+   "name": "session-statistics"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/statistics\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "session-statistics"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/unregister/",
+   "methods": [
+    "POST"
+   ],
+   "name": "session-unregister"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/unregister\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "session-unregister"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/waitlist_status/",
+   "methods": [
+    "GET"
+   ],
+   "name": "session-waitlist-status"
+  },
+  {
+   "regex": "sessions/(?:[^/]+)/waitlist_status\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "session-waitlist-status"
+  },
+  {
+   "regex": "session-registrations/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "sessionregistration-list"
+  },
+  {
+   "regex": "session-registrations\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "sessionregistration-list"
+  },
+  {
+   "regex": "session-registrations/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "sessionregistration-detail"
+  },
+  {
+   "regex": "session-registrations/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "sessionregistration-detail"
+  },
+  {
+   "regex": "session-resources/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "sessionresource-list"
+  },
+  {
+   "regex": "session-resources\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "sessionresource-list"
+  },
+  {
+   "regex": "session-resources/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "sessionresource-detail"
+  },
+  {
+   "regex": "session-resources/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "sessionresource-detail"
+  },
+  {
+   "regex": "session-resources/(?:[^/]+)/download/",
+   "methods": [
+    "POST"
+   ],
+   "name": "sessionresource-download"
+  },
+  {
+   "regex": "session-resources/(?:[^/]+)/download\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "sessionresource-download"
+  },
+  {
+   "regex": "registrations/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "registration-list"
+  },
+  {
+   "regex": "registrations\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "registration-list"
+  },
+  {
+   "regex": "registrations/attendance-sheet/",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-attendance-sheet"
+  },
+  {
+   "regex": "registrations/attendance-sheet\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-attendance-sheet"
+  },
+  {
+   "regex": "registrations/badges/",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-badges"
+  },
+  {
+   "regex": "registrations/badges\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-badges"
+  },
+  {
+   "regex": "registrations/bulk_approve/",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-bulk-approve"
+  },
+  {
+   "regex": "registrations/bulk_approve\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-bulk-approve"
+  },
+  {
+   "regex": "registrations/bulk_check_in/",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-bulk-check-in"
+  },
+  {
+   "regex": "registrations/bulk_check_in\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-bulk-check-in"
+  },
+  {
+   "regex": "registrations/bulk_generate_tickets/",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-bulk-generate-tickets"
+  },
+  {
+   "regex": "registrations/bulk_generate_tickets\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-bulk-generate-tickets"
+  },
+  {
+   "regex": "registrations/bulk_reject/",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-bulk-reject"
+  },
+  {
+   "regex": "registrations/bulk_reject\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-bulk-reject"
+  },
+  {
+   "regex": "registrations/by_user/",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-by-user"
+  },
+  {
+   "regex": "registrations/by_user\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-by-user"
+  },
+  {
+   "regex": "registrations/certificates/",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-certificates"
+  },
+  {
+   "regex": "registrations/certificates\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-certificates"
+  },
+  {
+   "regex": "registrations/event-directory/",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-event-directory"
+  },
+  {
+   "regex": "registrations/event-directory\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-event-directory"
+  },
+  {
+   "regex": "registrations/export/",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-export"
+  },
+  {
+   "regex": "registrations/export\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-export"
+  },
+  {
+   "regex": "registrations/live/",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-live"
+  },
+  {
+   "regex": "registrations/live\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-live"
+  },
+  {
+   "regex": "registrations/live-ops/",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-live-ops"
+  },
+  {
+   "regex": "registrations/live-ops\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-live-ops"
+  },
+  {
+   "regex": "registrations/my_registrations/",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-my-registrations"
+  },
+  {
+   "regex": "registrations/my_registrations\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-my-registrations"
+  },
+  {
+   "regex": "registrations/pending_approval/",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-pending-approval"
+  },
+  {
+   "regex": "registrations/pending_approval\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-pending-approval"
+  },
+  {
+   "regex": "registrations/search/",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-search"
+  },
+  {
+   "regex": "registrations/search\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-search"
+  },
+  {
+   "regex": "registrations/send_email/",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-send-email"
+  },
+  {
+   "regex": "registrations/send_email\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-send-email"
+  },
+  {
+   "regex": "registrations/stats/",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-stats"
+  },
+  {
+   "regex": "registrations/stats\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-stats"
+  },
+  {
+   "regex": "registrations/verify_and_check_in/",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-verify-and-check-in"
+  },
+  {
+   "regex": "registrations/verify_and_check_in\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-verify-and-check-in"
+  },
+  {
+   "regex": "registrations/verify_and_check_in_ticket/",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-verify-and-check-in-ticket"
+  },
+  {
+   "regex": "registrations/verify_and_check_in_ticket\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-verify-and-check-in-ticket"
+  },
+  {
+   "regex": "registrations/verify_ticket/",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-verify-ticket"
+  },
+  {
+   "regex": "registrations/verify_ticket\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-verify-ticket"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "registration-detail"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "registration-detail"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/accessible-sessions/",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-accessible-sessions"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/accessible-sessions\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-accessible-sessions"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/add_tickets/",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-add-tickets"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/add_tickets\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-add-tickets"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/approve/",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-approve"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/approve\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-approve"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/attendance-intent/",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-attendance-intent"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/attendance-intent\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-attendance-intent"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/cancel/",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-cancel"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/cancel\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-cancel"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/check_in/",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-check-in"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/check_in\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-check-in"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/generate_qr_codes/",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-generate-qr-codes"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/generate_qr_codes\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-generate-qr-codes"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/networking/",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-networking"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/networking\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-networking"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/reject/",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-reject"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/reject\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-reject"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/resend_confirmation/",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-resend-confirmation"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/resend_confirmation\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "registration-resend-confirmation"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/update_tickets/",
+   "methods": [
+    "POST",
+    "PUT"
+   ],
+   "name": "registration-update-tickets"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/update_tickets\\.(?:[^/]+)/?",
+   "methods": [
+    "POST",
+    "PUT"
+   ],
+   "name": "registration-update-tickets"
+  },
+  {
+   "regex": "box-office/close-drawer/",
+   "methods": [
+    "POST"
+   ],
+   "name": "box-office-close-drawer"
+  },
+  {
+   "regex": "box-office/close-drawer\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "box-office-close-drawer"
+  },
+  {
+   "regex": "box-office/drawer/",
+   "methods": [
+    "GET"
+   ],
+   "name": "box-office-drawer-state"
+  },
+  {
+   "regex": "box-office/drawer\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "box-office-drawer-state"
+  },
+  {
+   "regex": "box-office/open-drawer/",
+   "methods": [
+    "POST"
+   ],
+   "name": "box-office-open-drawer"
+  },
+  {
+   "regex": "box-office/open-drawer\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "box-office-open-drawer"
+  },
+  {
+   "regex": "box-office/reconciliation/",
+   "methods": [
+    "GET"
+   ],
+   "name": "box-office-reconciliation"
+  },
+  {
+   "regex": "box-office/reconciliation\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "box-office-reconciliation"
+  },
+  {
+   "regex": "box-office/sell/",
+   "methods": [
+    "POST"
+   ],
+   "name": "box-office-sell"
+  },
+  {
+   "regex": "box-office/sell\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "box-office-sell"
+  },
+  {
+   "regex": "ticket-types/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "tickettype-list"
+  },
+  {
+   "regex": "ticket-types\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "tickettype-list"
+  },
+  {
+   "regex": "ticket-types/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "tickettype-detail"
+  },
+  {
+   "regex": "ticket-types/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "tickettype-detail"
+  },
+  {
+   "regex": "ticket-price-tiers/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "ticket-price-tier-list"
+  },
+  {
+   "regex": "ticket-price-tiers\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "ticket-price-tier-list"
+  },
+  {
+   "regex": "ticket-price-tiers/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "ticket-price-tier-detail"
+  },
+  {
+   "regex": "ticket-price-tiers/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "ticket-price-tier-detail"
+  },
+  {
+   "regex": "group-price-tiers/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "group-price-tier-list"
+  },
+  {
+   "regex": "group-price-tiers\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "group-price-tier-list"
+  },
+  {
+   "regex": "group-price-tiers/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "group-price-tier-detail"
+  },
+  {
+   "regex": "group-price-tiers/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "group-price-tier-detail"
+  },
+  {
+   "regex": "ticket-purchases/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "ticketpurchase-list"
+  },
+  {
+   "regex": "ticket-purchases\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "ticketpurchase-list"
+  },
+  {
+   "regex": "ticket-purchases/attendance-proofs/",
+   "methods": [
+    "GET"
+   ],
+   "name": "ticketpurchase-attendance-proofs"
+  },
+  {
+   "regex": "ticket-purchases/attendance-proofs\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "ticketpurchase-attendance-proofs"
+  },
+  {
+   "regex": "ticket-purchases/checkin-manifest/",
+   "methods": [
+    "GET"
+   ],
+   "name": "ticketpurchase-checkin-manifest"
+  },
+  {
+   "regex": "ticket-purchases/checkin-manifest\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "ticketpurchase-checkin-manifest"
+  },
+  {
+   "regex": "ticket-purchases/checkin-sync/",
+   "methods": [
+    "POST"
+   ],
+   "name": "ticketpurchase-checkin-sync"
+  },
+  {
+   "regex": "ticket-purchases/checkin-sync\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "ticketpurchase-checkin-sync"
+  },
+  {
+   "regex": "ticket-purchases/export/",
+   "methods": [
+    "GET"
+   ],
+   "name": "ticketpurchase-export"
+  },
+  {
+   "regex": "ticket-purchases/export\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "ticketpurchase-export"
+  },
+  {
+   "regex": "ticket-purchases/my_purchases/",
+   "methods": [
+    "GET"
+   ],
+   "name": "ticketpurchase-my-purchases"
+  },
+  {
+   "regex": "ticket-purchases/my_purchases\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "ticketpurchase-my-purchases"
+  },
+  {
+   "regex": "ticket-purchases/wallet-status/",
+   "methods": [
+    "GET"
+   ],
+   "name": "ticketpurchase-wallet-status"
+  },
+  {
+   "regex": "ticket-purchases/wallet-status\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "ticketpurchase-wallet-status"
+  },
+  {
+   "regex": "ticket-purchases/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "ticketpurchase-detail"
+  },
+  {
+   "regex": "ticket-purchases/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "ticketpurchase-detail"
+  },
+  {
+   "regex": "ticket-purchases/(?:[^/]+)/apple-pass/",
+   "methods": [
+    "GET"
+   ],
+   "name": "ticketpurchase-apple-pass"
+  },
+  {
+   "regex": "ticket-purchases/(?:[^/]+)/apple-pass\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "ticketpurchase-apple-pass"
+  },
+  {
+   "regex": "ticket-purchases/(?:[^/]+)/check_in/",
+   "methods": [
+    "POST"
+   ],
+   "name": "ticketpurchase-check-in"
+  },
+  {
+   "regex": "ticket-purchases/(?:[^/]+)/check_in\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "ticketpurchase-check-in"
+  },
+  {
+   "regex": "ticket-purchases/(?:[^/]+)/google-pass/",
+   "methods": [
+    "GET"
+   ],
+   "name": "ticketpurchase-google-pass"
+  },
+  {
+   "regex": "ticket-purchases/(?:[^/]+)/google-pass\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "ticketpurchase-google-pass"
+  },
+  {
+   "regex": "discounts/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "discount-list"
+  },
+  {
+   "regex": "discounts\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "discount-list"
+  },
+  {
+   "regex": "discounts/validate/",
+   "methods": [
+    "POST"
+   ],
+   "name": "discount-validate"
+  },
+  {
+   "regex": "discounts/validate\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "discount-validate"
+  },
+  {
+   "regex": "discounts/validate_code/",
+   "methods": [
+    "POST"
+   ],
+   "name": "discount-validate-code"
+  },
+  {
+   "regex": "discounts/validate_code\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "discount-validate-code"
+  },
+  {
+   "regex": "discounts/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "discount-detail"
+  },
+  {
+   "regex": "discounts/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "discount-detail"
+  },
+  {
+   "regex": "ticket-transfers/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "tickettransfer-list"
+  },
+  {
+   "regex": "ticket-transfers\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "tickettransfer-list"
+  },
+  {
+   "regex": "ticket-transfers/accept_by_token/",
+   "methods": [
+    "POST"
+   ],
+   "name": "tickettransfer-accept-by-token"
+  },
+  {
+   "regex": "ticket-transfers/accept_by_token\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "tickettransfer-accept-by-token"
+  },
+  {
+   "regex": "ticket-transfers/by_token/",
+   "methods": [
+    "GET"
+   ],
+   "name": "tickettransfer-by-token"
+  },
+  {
+   "regex": "ticket-transfers/by_token\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "tickettransfer-by-token"
+  },
+  {
+   "regex": "ticket-transfers/decline_by_token/",
+   "methods": [
+    "POST"
+   ],
+   "name": "tickettransfer-decline-by-token"
+  },
+  {
+   "regex": "ticket-transfers/decline_by_token\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "tickettransfer-decline-by-token"
+  },
+  {
+   "regex": "ticket-transfers/pending/",
+   "methods": [
+    "GET"
+   ],
+   "name": "tickettransfer-pending"
+  },
+  {
+   "regex": "ticket-transfers/pending\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "tickettransfer-pending"
+  },
+  {
+   "regex": "ticket-transfers/received/",
+   "methods": [
+    "GET"
+   ],
+   "name": "tickettransfer-received"
+  },
+  {
+   "regex": "ticket-transfers/received\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "tickettransfer-received"
+  },
+  {
+   "regex": "ticket-transfers/sent/",
+   "methods": [
+    "GET"
+   ],
+   "name": "tickettransfer-sent"
+  },
+  {
+   "regex": "ticket-transfers/sent\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "tickettransfer-sent"
+  },
+  {
+   "regex": "ticket-transfers/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "tickettransfer-detail"
+  },
+  {
+   "regex": "ticket-transfers/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "tickettransfer-detail"
+  },
+  {
+   "regex": "ticket-transfers/(?:[^/]+)/accept/",
+   "methods": [
+    "POST"
+   ],
+   "name": "tickettransfer-accept"
+  },
+  {
+   "regex": "ticket-transfers/(?:[^/]+)/accept\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "tickettransfer-accept"
+  },
+  {
+   "regex": "ticket-transfers/(?:[^/]+)/cancel/",
+   "methods": [
+    "POST"
+   ],
+   "name": "tickettransfer-cancel"
+  },
+  {
+   "regex": "ticket-transfers/(?:[^/]+)/cancel\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "tickettransfer-cancel"
+  },
+  {
+   "regex": "ticket-transfers/(?:[^/]+)/decline/",
+   "methods": [
+    "POST"
+   ],
+   "name": "tickettransfer-decline"
+  },
+  {
+   "regex": "ticket-transfers/(?:[^/]+)/decline\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "tickettransfer-decline"
+  },
+  {
+   "regex": "waitlist/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "waitlist-list"
+  },
+  {
+   "regex": "waitlist\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "waitlist-list"
+  },
+  {
+   "regex": "waitlist/join/",
+   "methods": [
+    "POST"
+   ],
+   "name": "waitlist-join"
+  },
+  {
+   "regex": "waitlist/join\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "waitlist-join"
+  },
+  {
+   "regex": "waitlist/my_waitlist/",
+   "methods": [
+    "GET"
+   ],
+   "name": "waitlist-my-waitlist"
+  },
+  {
+   "regex": "waitlist/my_waitlist\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "waitlist-my-waitlist"
+  },
+  {
+   "regex": "waitlist/notify_batch/",
+   "methods": [
+    "POST"
+   ],
+   "name": "waitlist-notify-batch"
+  },
+  {
+   "regex": "waitlist/notify_batch\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "waitlist-notify-batch"
+  },
+  {
+   "regex": "waitlist/statistics/",
+   "methods": [
+    "GET"
+   ],
+   "name": "waitlist-statistics"
+  },
+  {
+   "regex": "waitlist/statistics\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "waitlist-statistics"
+  },
+  {
+   "regex": "waitlist/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "waitlist-detail"
+  },
+  {
+   "regex": "waitlist/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "waitlist-detail"
+  },
+  {
+   "regex": "waitlist/(?:[^/]+)/cancel/",
+   "methods": [
+    "POST"
+   ],
+   "name": "waitlist-cancel"
+  },
+  {
+   "regex": "waitlist/(?:[^/]+)/cancel\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "waitlist-cancel"
+  },
+  {
+   "regex": "waitlist/(?:[^/]+)/notify/",
+   "methods": [
+    "POST"
+   ],
+   "name": "waitlist-notify"
+  },
+  {
+   "regex": "waitlist/(?:[^/]+)/notify\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "waitlist-notify"
+  },
+  {
+   "regex": "waitlist-settings/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "waitlistsettings-list"
+  },
+  {
+   "regex": "waitlist-settings\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "waitlistsettings-list"
+  },
+  {
+   "regex": "waitlist-settings/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "waitlistsettings-detail"
+  },
+  {
+   "regex": "waitlist-settings/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "waitlistsettings-detail"
+  },
+  {
+   "regex": "payments/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "payment-list"
+  },
+  {
+   "regex": "payments\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "payment-list"
+  },
+  {
+   "regex": "payments/export/",
+   "methods": [
+    "GET"
+   ],
+   "name": "payment-export"
+  },
+  {
+   "regex": "payments/export\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "payment-export"
+  },
+  {
+   "regex": "payments/methods/",
+   "methods": [
+    "GET"
+   ],
+   "name": "payment-methods"
+  },
+  {
+   "regex": "payments/methods\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "payment-methods"
+  },
+  {
+   "regex": "payments/supported-countries/",
+   "methods": [
+    "GET"
+   ],
+   "name": "payment-supported-countries"
+  },
+  {
+   "regex": "payments/supported-countries\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "payment-supported-countries"
+  },
+  {
+   "regex": "payments/ticket-price-cap/",
+   "methods": [
+    "GET"
+   ],
+   "name": "payment-ticket-price-cap"
+  },
+  {
+   "regex": "payments/ticket-price-cap\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "payment-ticket-price-cap"
+  },
+  {
+   "regex": "payments/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "payment-detail"
+  },
+  {
+   "regex": "payments/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "payment-detail"
+  },
+  {
+   "regex": "payments/(?:[^/]+)/calculate_usage_fees/",
+   "methods": [
+    "POST"
+   ],
+   "name": "payment-calculate-usage-fees"
+  },
+  {
+   "regex": "payments/(?:[^/]+)/calculate_usage_fees\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "payment-calculate-usage-fees"
+  },
+  {
+   "regex": "payments/(?:[^/]+)/cancel_payment/",
+   "methods": [
+    "POST"
+   ],
+   "name": "payment-cancel-payment"
+  },
+  {
+   "regex": "payments/(?:[^/]+)/cancel_payment\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "payment-cancel-payment"
+  },
+  {
+   "regex": "payments/(?:[^/]+)/initialize_payment/",
+   "methods": [
+    "POST"
+   ],
+   "name": "payment-initialize-payment"
+  },
+  {
+   "regex": "payments/(?:[^/]+)/initialize_payment\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "payment-initialize-payment"
+  },
+  {
+   "regex": "payments/(?:[^/]+)/process_mobile_money/",
+   "methods": [
+    "POST"
+   ],
+   "name": "payment-process-mobile-money"
+  },
+  {
+   "regex": "payments/(?:[^/]+)/process_mobile_money\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "payment-process-mobile-money"
+  },
+  {
+   "regex": "payments/(?:[^/]+)/process_mtn_money/",
+   "methods": [
+    "POST"
+   ],
+   "name": "payment-process-mtn-money"
+  },
+  {
+   "regex": "payments/(?:[^/]+)/process_mtn_money\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "payment-process-mtn-money"
+  },
+  {
+   "regex": "payments/(?:[^/]+)/process_orange_money/",
+   "methods": [
+    "POST"
+   ],
+   "name": "payment-process-orange-money"
+  },
+  {
+   "regex": "payments/(?:[^/]+)/process_orange_money\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "payment-process-orange-money"
+  },
+  {
+   "regex": "payments/(?:[^/]+)/verify_payment/",
+   "methods": [
+    "GET"
+   ],
+   "name": "payment-verify-payment"
+  },
+  {
+   "regex": "payments/(?:[^/]+)/verify_payment\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "payment-verify-payment"
+  },
+  {
+   "regex": "refunds/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "refund-list"
+  },
+  {
+   "regex": "refunds\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "refund-list"
+  },
+  {
+   "regex": "refunds/process-batch/",
+   "methods": [
+    "POST"
+   ],
+   "name": "refund-process-batch"
+  },
+  {
+   "regex": "refunds/process-batch\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "refund-process-batch"
+  },
+  {
+   "regex": "refunds/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "refund-detail"
+  },
+  {
+   "regex": "refunds/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "refund-detail"
+  },
+  {
+   "regex": "refunds/(?:[^/]+)/mark_manual_complete/",
+   "methods": [
+    "POST"
+   ],
+   "name": "refund-mark-manual-complete"
+  },
+  {
+   "regex": "refunds/(?:[^/]+)/mark_manual_complete\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "refund-mark-manual-complete"
+  },
+  {
+   "regex": "refunds/(?:[^/]+)/process_refund/",
+   "methods": [
+    "POST"
+   ],
+   "name": "refund-process-refund"
+  },
+  {
+   "regex": "refunds/(?:[^/]+)/process_refund\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "refund-process-refund"
+  },
+  {
+   "regex": "invoices/",
+   "methods": [
+    "GET"
+   ],
+   "name": "invoice-list"
+  },
+  {
+   "regex": "invoices\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "invoice-list"
+  },
+  {
+   "regex": "invoices/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "invoice-detail"
+  },
+  {
+   "regex": "invoices/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "invoice-detail"
+  },
+  {
+   "regex": "invoices/(?:[^/]+)/download_pdf/",
+   "methods": [
+    "GET"
+   ],
+   "name": "invoice-download-pdf"
+  },
+  {
+   "regex": "invoices/(?:[^/]+)/download_pdf\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "invoice-download-pdf"
+  },
+  {
+   "regex": "subscription-plans/",
+   "methods": [
+    "GET"
+   ],
+   "name": "subscriptionplan-list"
+  },
+  {
+   "regex": "subscription-plans\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "subscriptionplan-list"
+  },
+  {
+   "regex": "subscription-plans/current/",
+   "methods": [
+    "GET"
+   ],
+   "name": "subscriptionplan-current"
+  },
+  {
+   "regex": "subscription-plans/current\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "subscriptionplan-current"
+  },
+  {
+   "regex": "subscription-plans/prices/",
+   "methods": [
+    "GET"
+   ],
+   "name": "subscriptionplan-prices"
+  },
+  {
+   "regex": "subscription-plans/prices\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "subscriptionplan-prices"
+  },
+  {
+   "regex": "subscription-plans/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "subscriptionplan-detail"
+  },
+  {
+   "regex": "subscription-plans/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "subscriptionplan-detail"
+  },
+  {
+   "regex": "subscriptions/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "subscription-list"
+  },
+  {
+   "regex": "subscriptions\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "subscription-list"
+  },
+  {
+   "regex": "subscriptions/cancel/",
+   "methods": [
+    "POST"
+   ],
+   "name": "subscription-cancel"
+  },
+  {
+   "regex": "subscriptions/cancel\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "subscription-cancel"
+  },
+  {
+   "regex": "subscriptions/my_subscription/",
+   "methods": [
+    "GET"
+   ],
+   "name": "subscription-my-subscription"
+  },
+  {
+   "regex": "subscriptions/my_subscription\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "subscription-my-subscription"
+  },
+  {
+   "regex": "subscriptions/payment-history/",
+   "methods": [
+    "GET"
+   ],
+   "name": "subscription-payment-history"
+  },
+  {
+   "regex": "subscriptions/payment-history\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "subscription-payment-history"
+  },
+  {
+   "regex": "subscriptions/process-payment/",
+   "methods": [
+    "POST"
+   ],
+   "name": "subscription-process-payment"
+  },
+  {
+   "regex": "subscriptions/process-payment\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "subscription-process-payment"
+  },
+  {
+   "regex": "subscriptions/upgrade/",
+   "methods": [
+    "POST"
+   ],
+   "name": "subscription-upgrade"
+  },
+  {
+   "regex": "subscriptions/upgrade\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "subscription-upgrade"
+  },
+  {
+   "regex": "subscriptions/verify-payment/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "subscription-verify-payment"
+  },
+  {
+   "regex": "subscriptions/verify-payment/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "subscription-verify-payment"
+  },
+  {
+   "regex": "subscriptions/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "subscription-detail"
+  },
+  {
+   "regex": "subscriptions/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "subscription-detail"
+  },
+  {
+   "regex": "wallet/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "wallet-list"
+  },
+  {
+   "regex": "wallet\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "wallet-list"
+  },
+  {
+   "regex": "wallet/transactions/export/",
+   "methods": [
+    "GET"
+   ],
+   "name": "wallet-export-transactions"
+  },
+  {
+   "regex": "wallet/transactions/export\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "wallet-export-transactions"
+  },
+  {
+   "regex": "wallet/my_wallet/",
+   "methods": [
+    "GET"
+   ],
+   "name": "wallet-my-wallet"
+  },
+  {
+   "regex": "wallet/my_wallet\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "wallet-my-wallet"
+  },
+  {
+   "regex": "wallet/pending_earnings/",
+   "methods": [
+    "GET"
+   ],
+   "name": "wallet-pending-earnings"
+  },
+  {
+   "regex": "wallet/pending_earnings\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "wallet-pending-earnings"
+  },
+  {
+   "regex": "wallet/stats/",
+   "methods": [
+    "GET"
+   ],
+   "name": "wallet-stats"
+  },
+  {
+   "regex": "wallet/stats\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "wallet-stats"
+  },
+  {
+   "regex": "wallet/stripe-onboarding-link/",
+   "methods": [
+    "POST"
+   ],
+   "name": "wallet-stripe-onboarding-link"
+  },
+  {
+   "regex": "wallet/stripe-onboarding-link\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "wallet-stripe-onboarding-link"
+  },
+  {
+   "regex": "wallet/transactions/",
+   "methods": [
+    "GET"
+   ],
+   "name": "wallet-transactions"
+  },
+  {
+   "regex": "wallet/transactions\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "wallet-transactions"
+  },
+  {
+   "regex": "wallet/update_bank_details/",
+   "methods": [
+    "PATCH",
+    "PUT"
+   ],
+   "name": "wallet-update-bank-details"
+  },
+  {
+   "regex": "wallet/update_bank_details\\.(?:[^/]+)/?",
+   "methods": [
+    "PATCH",
+    "PUT"
+   ],
+   "name": "wallet-update-bank-details"
+  },
+  {
+   "regex": "wallet/vat-settings/",
+   "methods": [
+    "GET",
+    "PATCH"
+   ],
+   "name": "wallet-vat-settings"
+  },
+  {
+   "regex": "wallet/vat-settings\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "PATCH"
+   ],
+   "name": "wallet-vat-settings"
+  },
+  {
+   "regex": "wallet/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "wallet-detail"
+  },
+  {
+   "regex": "wallet/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "wallet-detail"
+  },
+  {
+   "regex": "payouts/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "payout-list"
+  },
+  {
+   "regex": "payouts\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "payout-list"
+  },
+  {
+   "regex": "payouts/instant-payout/",
+   "methods": [
+    "POST"
+   ],
+   "name": "payout-instant-payout"
+  },
+  {
+   "regex": "payouts/instant-payout\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "payout-instant-payout"
+  },
+  {
+   "regex": "payouts/methods/",
+   "methods": [
+    "GET"
+   ],
+   "name": "payout-methods"
+  },
+  {
+   "regex": "payouts/methods\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "payout-methods"
+  },
+  {
+   "regex": "payouts/request_payout/",
+   "methods": [
+    "POST"
+   ],
+   "name": "payout-request-payout"
+  },
+  {
+   "regex": "payouts/request_payout\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "payout-request-payout"
+  },
+  {
+   "regex": "payouts/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "payout-detail"
+  },
+  {
+   "regex": "payouts/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "payout-detail"
+  },
+  {
+   "regex": "payouts/(?:[^/]+)/cancel/",
+   "methods": [
+    "POST"
+   ],
+   "name": "payout-cancel"
+  },
+  {
+   "regex": "payouts/(?:[^/]+)/cancel\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "payout-cancel"
+  },
+  {
+   "regex": "payouts/(?:[^/]+)/process/",
+   "methods": [
+    "POST"
+   ],
+   "name": "payout-process"
+  },
+  {
+   "regex": "payouts/(?:[^/]+)/process\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "payout-process"
+  },
+  {
+   "regex": "payouts/(?:[^/]+)/review/",
+   "methods": [
+    "GET"
+   ],
+   "name": "payout-review"
+  },
+  {
+   "regex": "payouts/(?:[^/]+)/review\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "payout-review"
+  },
+  {
+   "regex": "commissions/",
+   "methods": [
+    "GET"
+   ],
+   "name": "commission-list"
+  },
+  {
+   "regex": "commissions\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "commission-list"
+  },
+  {
+   "regex": "commissions/calculate/",
+   "methods": [
+    "POST"
+   ],
+   "name": "commission-calculate"
+  },
+  {
+   "regex": "commissions/calculate\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "commission-calculate"
+  },
+  {
+   "regex": "commissions/config/",
+   "methods": [
+    "GET"
+   ],
+   "name": "commission-config"
+  },
+  {
+   "regex": "commissions/config\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "commission-config"
+  },
+  {
+   "regex": "commissions/convert/",
+   "methods": [
+    "GET"
+   ],
+   "name": "commission-convert"
+  },
+  {
+   "regex": "commissions/convert\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "commission-convert"
+  },
+  {
+   "regex": "commissions/grid/",
+   "methods": [
+    "GET"
+   ],
+   "name": "commission-grid"
+  },
+  {
+   "regex": "commissions/grid\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "commission-grid"
+  },
+  {
+   "regex": "commissions/statement/",
+   "methods": [
+    "GET"
+   ],
+   "name": "commission-statement"
+  },
+  {
+   "regex": "commissions/statement\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "commission-statement"
+  },
+  {
+   "regex": "commissions/statement/pdf/",
+   "methods": [
+    "GET"
+   ],
+   "name": "commission-statement-pdf"
+  },
+  {
+   "regex": "commissions/statement/pdf\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "commission-statement-pdf"
+  },
+  {
+   "regex": "commissions/stats/",
+   "methods": [
+    "GET"
+   ],
+   "name": "commission-stats"
+  },
+  {
+   "regex": "commissions/stats\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "commission-stats"
+  },
+  {
+   "regex": "commissions/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "commission-detail"
+  },
+  {
+   "regex": "commissions/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "commission-detail"
+  },
+  {
+   "regex": "admin/commission-configs/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-commission-config-list"
+  },
+  {
+   "regex": "admin/commission-configs\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-commission-config-list"
+  },
+  {
+   "regex": "admin/commission-configs/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-commission-config-detail"
+  },
+  {
+   "regex": "admin/commission-configs/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-commission-config-detail"
+  },
+  {
+   "regex": "admin/vat-rates/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-vat-rate-list"
+  },
+  {
+   "regex": "admin/vat-rates\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-vat-rate-list"
+  },
+  {
+   "regex": "admin/vat-rates/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-vat-rate-detail"
+  },
+  {
+   "regex": "admin/vat-rates/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-vat-rate-detail"
+  },
+  {
+   "regex": "admin/fee-overrides/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-fee-override-list"
+  },
+  {
+   "regex": "admin/fee-overrides\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-fee-override-list"
+  },
+  {
+   "regex": "admin/fee-overrides/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-fee-override-detail"
+  },
+  {
+   "regex": "admin/fee-overrides/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-fee-override-detail"
+  },
+  {
+   "regex": "admin/subscription-plans/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-subscription-plan-list"
+  },
+  {
+   "regex": "admin/subscription-plans\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-subscription-plan-list"
+  },
+  {
+   "regex": "admin/subscription-plans/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-subscription-plan-detail"
+  },
+  {
+   "regex": "admin/subscription-plans/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-subscription-plan-detail"
+  },
+  {
+   "regex": "admin/country-prices/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-country-price-list"
+  },
+  {
+   "regex": "admin/country-prices\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-country-price-list"
+  },
+  {
+   "regex": "admin/country-prices/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-country-price-detail"
+  },
+  {
+   "regex": "admin/country-prices/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-country-price-detail"
+  },
+  {
+   "regex": "admin/platform-limits/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-platform-limit-list"
+  },
+  {
+   "regex": "admin/platform-limits\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-platform-limit-list"
+  },
+  {
+   "regex": "admin/platform-limits/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-platform-limit-detail"
+  },
+  {
+   "regex": "admin/platform-limits/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-platform-limit-detail"
+  },
+  {
+   "regex": "admin/routing-rules/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-routing-rule-list"
+  },
+  {
+   "regex": "admin/routing-rules\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-routing-rule-list"
+  },
+  {
+   "regex": "admin/routing-rules/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-routing-rule-detail"
+  },
+  {
+   "regex": "admin/routing-rules/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-routing-rule-detail"
+  },
+  {
+   "regex": "admin/moderation-cases/",
+   "methods": [
+    "GET"
+   ],
+   "name": "moderation-case-list"
+  },
+  {
+   "regex": "admin/moderation-cases\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "moderation-case-list"
+  },
+  {
+   "regex": "admin/moderation-cases/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "moderation-case-detail"
+  },
+  {
+   "regex": "admin/moderation-cases/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "moderation-case-detail"
+  },
+  {
+   "regex": "admin/moderation-cases/(?:[^/]+)/assign/",
+   "methods": [
+    "POST"
+   ],
+   "name": "moderation-case-assign"
+  },
+  {
+   "regex": "admin/moderation-cases/(?:[^/]+)/assign\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "moderation-case-assign"
+  },
+  {
+   "regex": "admin/moderation-cases/(?:[^/]+)/lift/",
+   "methods": [
+    "POST"
+   ],
+   "name": "moderation-case-lift"
+  },
+  {
+   "regex": "admin/moderation-cases/(?:[^/]+)/lift\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "moderation-case-lift"
+  },
+  {
+   "regex": "admin/moderation-cases/(?:[^/]+)/resolve/",
+   "methods": [
+    "POST"
+   ],
+   "name": "moderation-case-resolve"
+  },
+  {
+   "regex": "admin/moderation-cases/(?:[^/]+)/resolve\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "moderation-case-resolve"
+  },
+  {
+   "regex": "admin/moderation-cases/(?:[^/]+)/restrict/",
+   "methods": [
+    "POST"
+   ],
+   "name": "moderation-case-restrict"
+  },
+  {
+   "regex": "admin/moderation-cases/(?:[^/]+)/restrict\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "moderation-case-restrict"
+  },
+  {
+   "regex": "feedbacks/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "eventfeedback-list"
+  },
+  {
+   "regex": "feedbacks\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "eventfeedback-list"
+  },
+  {
+   "regex": "feedbacks/my_feedback/",
+   "methods": [
+    "GET"
+   ],
+   "name": "eventfeedback-my-feedback"
+  },
+  {
+   "regex": "feedbacks/my_feedback\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "eventfeedback-my-feedback"
+  },
+  {
+   "regex": "feedbacks/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "eventfeedback-detail"
+  },
+  {
+   "regex": "feedbacks/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "eventfeedback-detail"
+  },
+  {
+   "regex": "flags/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "eventflag-list"
+  },
+  {
+   "regex": "flags\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "eventflag-list"
+  },
+  {
+   "regex": "flags/unresolved/",
+   "methods": [
+    "GET"
+   ],
+   "name": "eventflag-unresolved"
+  },
+  {
+   "regex": "flags/unresolved\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "eventflag-unresolved"
+  },
+  {
+   "regex": "flags/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "eventflag-detail"
+  },
+  {
+   "regex": "flags/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "eventflag-detail"
+  },
+  {
+   "regex": "flags/(?:[^/]+)/resolve/",
+   "methods": [
+    "POST"
+   ],
+   "name": "eventflag-resolve"
+  },
+  {
+   "regex": "flags/(?:[^/]+)/resolve\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "eventflag-resolve"
+  },
+  {
+   "regex": "validations/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "eventvalidation-list"
+  },
+  {
+   "regex": "validations\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "eventvalidation-list"
+  },
+  {
+   "regex": "validations/event_stats/",
+   "methods": [
+    "GET"
+   ],
+   "name": "eventvalidation-event-stats"
+  },
+  {
+   "regex": "validations/event_stats\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "eventvalidation-event-stats"
+  },
+  {
+   "regex": "validations/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "eventvalidation-detail"
+  },
+  {
+   "regex": "validations/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "eventvalidation-detail"
+  },
+  {
+   "regex": "notifications/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "notification-list"
+  },
+  {
+   "regex": "notifications\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "notification-list"
+  },
+  {
+   "regex": "notifications/delete_multiple/",
+   "methods": [
+    "POST"
+   ],
+   "name": "notification-delete-multiple"
+  },
+  {
+   "regex": "notifications/delete_multiple\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "notification-delete-multiple"
+  },
+  {
+   "regex": "notifications/device/",
+   "methods": [
+    "DELETE"
+   ],
+   "name": "notification-device"
+  },
+  {
+   "regex": "notifications/device\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE"
+   ],
+   "name": "notification-device"
+  },
+  {
+   "regex": "notifications/devices/",
+   "methods": [
+    "GET"
+   ],
+   "name": "notification-list-devices"
+  },
+  {
+   "regex": "notifications/devices\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "notification-list-devices"
+  },
+  {
+   "regex": "notifications/mark_all_as_read/",
+   "methods": [
+    "POST"
+   ],
+   "name": "notification-mark-all-as-read"
+  },
+  {
+   "regex": "notifications/mark_all_as_read\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "notification-mark-all-as-read"
+  },
+  {
+   "regex": "notifications/preferences/",
+   "methods": [
+    "GET",
+    "PATCH"
+   ],
+   "name": "notification-preferences"
+  },
+  {
+   "regex": "notifications/preferences\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "PATCH"
+   ],
+   "name": "notification-preferences"
+  },
+  {
+   "regex": "notifications/register-device/",
+   "methods": [
+    "POST"
+   ],
+   "name": "notification-register-device"
+  },
+  {
+   "regex": "notifications/register-device\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "notification-register-device"
+  },
+  {
+   "regex": "notifications/schedule/",
+   "methods": [
+    "POST"
+   ],
+   "name": "notification-schedule"
+  },
+  {
+   "regex": "notifications/schedule\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "notification-schedule"
+  },
+  {
+   "regex": "notifications/scheduled/",
+   "methods": [
+    "GET"
+   ],
+   "name": "notification-scheduled"
+  },
+  {
+   "regex": "notifications/scheduled\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "notification-scheduled"
+  },
+  {
+   "regex": "notifications/send/",
+   "methods": [
+    "POST"
+   ],
+   "name": "notification-send"
+  },
+  {
+   "regex": "notifications/send\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "notification-send"
+  },
+  {
+   "regex": "notifications/social_feed/",
+   "methods": [
+    "GET"
+   ],
+   "name": "notification-social-feed"
+  },
+  {
+   "regex": "notifications/social_feed\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "notification-social-feed"
+  },
+  {
+   "regex": "notifications/statistics/",
+   "methods": [
+    "GET"
+   ],
+   "name": "notification-statistics"
+  },
+  {
+   "regex": "notifications/statistics\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "notification-statistics"
+  },
+  {
+   "regex": "notifications/unregister-device/",
+   "methods": [
+    "POST"
+   ],
+   "name": "notification-unregister-device"
+  },
+  {
+   "regex": "notifications/unregister-device\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "notification-unregister-device"
+  },
+  {
+   "regex": "notifications/vapid-public-key/",
+   "methods": [
+    "GET"
+   ],
+   "name": "notification-vapid-public-key"
+  },
+  {
+   "regex": "notifications/vapid-public-key\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "notification-vapid-public-key"
+  },
+  {
+   "regex": "notifications/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "notification-detail"
+  },
+  {
+   "regex": "notifications/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "notification-detail"
+  },
+  {
+   "regex": "notifications/(?:[^/]+)/cancel_scheduled/",
+   "methods": [
+    "POST"
+   ],
+   "name": "notification-cancel-scheduled"
+  },
+  {
+   "regex": "notifications/(?:[^/]+)/cancel_scheduled\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "notification-cancel-scheduled"
+  },
+  {
+   "regex": "notifications/(?:[^/]+)/mark_as_read/",
+   "methods": [
+    "POST"
+   ],
+   "name": "notification-mark-as-read"
+  },
+  {
+   "regex": "notifications/(?:[^/]+)/mark_as_read\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "notification-mark-as-read"
+  },
+  {
+   "regex": "notification-templates/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "notificationtemplate-list"
+  },
+  {
+   "regex": "notification-templates\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "notificationtemplate-list"
+  },
+  {
+   "regex": "notification-templates/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "notificationtemplate-detail"
+  },
+  {
+   "regex": "notification-templates/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "notificationtemplate-detail"
+  },
+  {
+   "regex": "conversations/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "conversation-list"
+  },
+  {
+   "regex": "conversations\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "conversation-list"
+  },
+  {
+   "regex": "conversations/presence/",
+   "methods": [
+    "GET"
+   ],
+   "name": "conversation-presence"
+  },
+  {
+   "regex": "conversations/presence\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "conversation-presence"
+  },
+  {
+   "regex": "conversations/requests/",
+   "methods": [
+    "GET"
+   ],
+   "name": "conversation-requests"
+  },
+  {
+   "regex": "conversations/requests\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "conversation-requests"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "conversation-detail"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "conversation-detail"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/accept_request/",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-accept-request"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/accept_request\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-accept-request"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/add_participant/",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-add-participant"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/add_participant\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-add-participant"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/archive/",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-archive"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/archive\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-archive"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/decline_request/",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-decline-request"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/decline_request\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-decline-request"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/export/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "conversation-export"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/export\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "conversation-export"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/leave/",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-leave"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/leave\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-leave"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/mark_as_read/",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-mark-as-read"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/mark_as_read\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-mark-as-read"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/mute/",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-mute"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/mute\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-mute"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/muted-list/",
+   "methods": [
+    "GET"
+   ],
+   "name": "conversation-muted-list"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/muted-list\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "conversation-muted-list"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/quota/",
+   "methods": [
+    "GET"
+   ],
+   "name": "conversation-quota"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/quota\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "conversation-quota"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/remove_participant/",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-remove-participant"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/remove_participant\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-remove-participant"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/posting-mode/",
+   "methods": [
+    "PATCH"
+   ],
+   "name": "conversation-set-posting-mode"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/posting-mode\\.(?:[^/]+)/?",
+   "methods": [
+    "PATCH"
+   ],
+   "name": "conversation-set-posting-mode"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/star/",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-star"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/star\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-star"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/unmute/",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-unmute"
+  },
+  {
+   "regex": "conversations/(?:[^/]+)/unmute\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "conversation-unmute"
+  },
+  {
+   "regex": "messages/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "message-list"
+  },
+  {
+   "regex": "messages\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "message-list"
+  },
+  {
+   "regex": "messages/bulk_delete/",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-bulk-delete"
+  },
+  {
+   "regex": "messages/bulk_delete\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-bulk-delete"
+  },
+  {
+   "regex": "messages/forward/",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-forward"
+  },
+  {
+   "regex": "messages/forward\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-forward"
+  },
+  {
+   "regex": "messages/forward_message/",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-forward-message"
+  },
+  {
+   "regex": "messages/forward_message\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-forward-message"
+  },
+  {
+   "regex": "messages/search/",
+   "methods": [
+    "GET"
+   ],
+   "name": "message-search"
+  },
+  {
+   "regex": "messages/search\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "message-search"
+  },
+  {
+   "regex": "messages/sync/",
+   "methods": [
+    "GET"
+   ],
+   "name": "message-sync"
+  },
+  {
+   "regex": "messages/sync\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "message-sync"
+  },
+  {
+   "regex": "messages/upload_attachment/",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-upload-attachment"
+  },
+  {
+   "regex": "messages/upload_attachment\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-upload-attachment"
+  },
+  {
+   "regex": "messages/upload_voice_message/",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-upload-voice-message"
+  },
+  {
+   "regex": "messages/upload_voice_message\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-upload-voice-message"
+  },
+  {
+   "regex": "messages/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "message-detail"
+  },
+  {
+   "regex": "messages/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "message-detail"
+  },
+  {
+   "regex": "messages/(?:[^/]+)/add_reaction/",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-add-reaction"
+  },
+  {
+   "regex": "messages/(?:[^/]+)/add_reaction\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-add-reaction"
+  },
+  {
+   "regex": "messages/(?:[^/]+)/mark_as_read/",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-mark-as-read"
+  },
+  {
+   "regex": "messages/(?:[^/]+)/mark_as_read\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-mark-as-read"
+  },
+  {
+   "regex": "messages/(?:[^/]+)/remove_reaction/",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-remove-reaction"
+  },
+  {
+   "regex": "messages/(?:[^/]+)/remove_reaction\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-remove-reaction"
+  },
+  {
+   "regex": "messages/(?:[^/]+)/star/",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-star"
+  },
+  {
+   "regex": "messages/(?:[^/]+)/star\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "message-star"
+  },
+  {
+   "regex": "user-messaging-settings/",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-messaging-settings-list"
+  },
+  {
+   "regex": "user-messaging-settings\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-messaging-settings-list"
+  },
+  {
+   "regex": "user-messaging-settings/block_user/",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-messaging-settings-block-user"
+  },
+  {
+   "regex": "user-messaging-settings/block_user\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-messaging-settings-block-user"
+  },
+  {
+   "regex": "user-messaging-settings/blocked_list/",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-messaging-settings-blocked-list"
+  },
+  {
+   "regex": "user-messaging-settings/blocked_list\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-messaging-settings-blocked-list"
+  },
+  {
+   "regex": "user-messaging-settings/mute-conversation/",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-messaging-settings-mute-conversation"
+  },
+  {
+   "regex": "user-messaging-settings/mute-conversation\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-messaging-settings-mute-conversation"
+  },
+  {
+   "regex": "user-messaging-settings/unblock_user/",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-messaging-settings-unblock-user"
+  },
+  {
+   "regex": "user-messaging-settings/unblock_user\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-messaging-settings-unblock-user"
+  },
+  {
+   "regex": "user-messaging-settings/unmute-conversation/",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-messaging-settings-unmute-conversation"
+  },
+  {
+   "regex": "user-messaging-settings/unmute-conversation\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-messaging-settings-unmute-conversation"
+  },
+  {
+   "regex": "user-messaging-settings/(?:[^/]+)/",
+   "methods": [
+    "PATCH"
+   ],
+   "name": "user-messaging-settings-detail"
+  },
+  {
+   "regex": "user-messaging-settings/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "PATCH"
+   ],
+   "name": "user-messaging-settings-detail"
+  },
+  {
+   "regex": "connections/",
+   "methods": [
+    "GET"
+   ],
+   "name": "connections-list"
+  },
+  {
+   "regex": "connections\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "connections-list"
+  },
+  {
+   "regex": "connections/bump/",
+   "methods": [
+    "POST"
+   ],
+   "name": "connections-bump"
+  },
+  {
+   "regex": "connections/bump\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "connections-bump"
+  },
+  {
+   "regex": "connections/bump/confirm/",
+   "methods": [
+    "POST"
+   ],
+   "name": "connections-bump-confirm"
+  },
+  {
+   "regex": "connections/bump/confirm\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "connections-bump-confirm"
+  },
+  {
+   "regex": "connections/connect/",
+   "methods": [
+    "POST"
+   ],
+   "name": "connections-connect"
+  },
+  {
+   "regex": "connections/connect\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "connections-connect"
+  },
+  {
+   "regex": "connections/from_qr/",
+   "methods": [
+    "POST"
+   ],
+   "name": "connections-from-qr"
+  },
+  {
+   "regex": "connections/from_qr\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "connections-from-qr"
+  },
+  {
+   "regex": "connections/my_qr_token/",
+   "methods": [
+    "GET"
+   ],
+   "name": "connections-my-qr-token"
+  },
+  {
+   "regex": "connections/my_qr_token\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "connections-my-qr-token"
+  },
+  {
+   "regex": "connections/(?:[^/]+)/",
+   "methods": [
+    "DELETE"
+   ],
+   "name": "connections-detail"
+  },
+  {
+   "regex": "connections/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE"
+   ],
+   "name": "connections-detail"
+  },
+  {
+   "regex": "message-reports/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "message-report-list"
+  },
+  {
+   "regex": "message-reports\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "message-report-list"
+  },
+  {
+   "regex": "message-reports/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "message-report-detail"
+  },
+  {
+   "regex": "message-reports/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "message-report-detail"
+  },
+  {
+   "regex": "venues/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "venue-list"
+  },
+  {
+   "regex": "venues\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "venue-list"
+  },
+  {
+   "regex": "venues/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "venue-detail"
+  },
+  {
+   "regex": "venues/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "venue-detail"
+  },
+  {
+   "regex": "venues/(?:[^/]+)/events/",
+   "methods": [
+    "GET"
+   ],
+   "name": "venue-events"
+  },
+  {
+   "regex": "venues/(?:[^/]+)/events\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "venue-events"
+  },
+  {
+   "regex": "seating-plans/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "seatingplan-list"
+  },
+  {
+   "regex": "seating-plans\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "seatingplan-list"
+  },
+  {
+   "regex": "seating-plans/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "seatingplan-detail"
+  },
+  {
+   "regex": "seating-plans/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "seatingplan-detail"
+  },
+  {
+   "regex": "seating-plans/(?:[^/]+)/available_seats/",
+   "methods": [
+    "GET"
+   ],
+   "name": "seatingplan-available-seats"
+  },
+  {
+   "regex": "seating-plans/(?:[^/]+)/available_seats\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "seatingplan-available-seats"
+  },
+  {
+   "regex": "seating-zones/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "seatingzone-list"
+  },
+  {
+   "regex": "seating-zones\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "seatingzone-list"
+  },
+  {
+   "regex": "seating-zones/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "seatingzone-detail"
+  },
+  {
+   "regex": "seating-zones/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "seatingzone-detail"
+  },
+  {
+   "regex": "seating-zones/(?:[^/]+)/seats/",
+   "methods": [
+    "GET"
+   ],
+   "name": "seatingzone-seats"
+  },
+  {
+   "regex": "seating-zones/(?:[^/]+)/seats\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "seatingzone-seats"
+  },
+  {
+   "regex": "seat-reservations/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "seatreservation-list"
+  },
+  {
+   "regex": "seat-reservations\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "seatreservation-list"
+  },
+  {
+   "regex": "seat-reservations/my_reservations/",
+   "methods": [
+    "GET"
+   ],
+   "name": "seatreservation-my-reservations"
+  },
+  {
+   "regex": "seat-reservations/my_reservations\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "seatreservation-my-reservations"
+  },
+  {
+   "regex": "seat-reservations/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "seatreservation-detail"
+  },
+  {
+   "regex": "seat-reservations/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "seatreservation-detail"
+  },
+  {
+   "regex": "seat-reservations/(?:[^/]+)/cancel/",
+   "methods": [
+    "POST"
+   ],
+   "name": "seatreservation-cancel"
+  },
+  {
+   "regex": "seat-reservations/(?:[^/]+)/cancel\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "seatreservation-cancel"
+  },
+  {
+   "regex": "seat-reservations/(?:[^/]+)/confirm/",
+   "methods": [
+    "POST"
+   ],
+   "name": "seatreservation-confirm"
+  },
+  {
+   "regex": "seat-reservations/(?:[^/]+)/confirm\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "seatreservation-confirm"
+  },
+  {
+   "regex": "floor-plans/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "floorplan-list"
+  },
+  {
+   "regex": "floor-plans\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "floorplan-list"
+  },
+  {
+   "regex": "floor-plans/by_event/",
+   "methods": [
+    "GET"
+   ],
+   "name": "floorplan-by-event"
+  },
+  {
+   "regex": "floor-plans/by_event\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "floorplan-by-event"
+  },
+  {
+   "regex": "floor-plans/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "floorplan-detail"
+  },
+  {
+   "regex": "floor-plans/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "floorplan-detail"
+  },
+  {
+   "regex": "floor-plans/(?:[^/]+)/publish/",
+   "methods": [
+    "POST"
+   ],
+   "name": "floorplan-publish"
+  },
+  {
+   "regex": "floor-plans/(?:[^/]+)/publish\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "floorplan-publish"
+  },
+  {
+   "regex": "floor-plan-areas/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "floorplanarea-list"
+  },
+  {
+   "regex": "floor-plan-areas\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "floorplanarea-list"
+  },
+  {
+   "regex": "floor-plan-areas/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "floorplanarea-detail"
+  },
+  {
+   "regex": "floor-plan-areas/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "floorplanarea-detail"
+  },
+  {
+   "regex": "",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "(?:[^/]+)",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "auth/login/",
+   "methods": [
+    "GET",
+    "POST",
+    "PUT"
+   ],
+   "name": "login"
+  },
+  {
+   "regex": "auth/logout/",
+   "methods": [
+    "POST"
+   ],
+   "name": "logout"
+  },
+  {
+   "regex": "token/",
+   "methods": [
+    "POST"
+   ],
+   "name": "token_obtain_pair"
+  },
+  {
+   "regex": "login\\-check/",
+   "methods": [
+    "POST"
+   ],
+   "name": "login-check"
+  },
+  {
+   "regex": "register/",
+   "methods": [
+    "POST"
+   ],
+   "name": "user-register"
+  },
+  {
+   "regex": "register/organizer/",
+   "methods": [
+    "POST"
+   ],
+   "name": "organizer-register"
+  },
+  {
+   "regex": "auth/guest\\-register/",
+   "methods": [
+    "POST"
+   ],
+   "name": "guest-register"
+  },
+  {
+   "regex": "auth/upgrade\\-guest/",
+   "methods": [
+    "POST"
+   ],
+   "name": "upgrade-guest"
+  },
+  {
+   "regex": "token/refresh/",
+   "methods": [
+    "POST"
+   ],
+   "name": "token_refresh"
+  },
+  {
+   "regex": "logout/",
+   "methods": [
+    "POST"
+   ],
+   "name": "logout"
+  },
+  {
+   "regex": "health",
+   "methods": [
+    "GET"
+   ],
+   "name": "health-check-no-slash"
+  },
+  {
+   "regex": "health/",
+   "methods": [
+    "GET"
+   ],
+   "name": "health-check"
+  },
+  {
+   "regex": "registrations/(?:[^/]+)/attendees/",
+   "methods": [
+    "GET"
+   ],
+   "name": "registration-attendees"
+  },
+  {
+   "regex": "attendees/(?:[^/]+)/",
+   "methods": [
+    "PATCH"
+   ],
+   "name": "attendee-detail"
+  },
+  {
+   "regex": "attendees/(?:[^/]+)/delegate/",
+   "methods": [
+    "POST"
+   ],
+   "name": "attendee-delegate"
+  },
+  {
+   "regex": "attendee\\-forms/public/(?:[^/]+)/",
+   "methods": [
+    "GET",
+    "PATCH"
+   ],
+   "name": "attendee-public-completion"
+  },
+  {
+   "regex": "site\\-settings/",
+   "methods": [
+    "GET",
+    "PATCH"
+   ],
+   "name": "site-settings"
+  },
+  {
+   "regex": "public\\-settings/",
+   "methods": [
+    "GET"
+   ],
+   "name": "public-settings"
+  },
+  {
+   "regex": "languages/",
+   "methods": [
+    "GET"
+   ],
+   "name": "languages"
+  },
+  {
+   "regex": "contact/",
+   "methods": [
+    "POST"
+   ],
+   "name": "contact"
+  },
+  {
+   "regex": "legal\\-documents/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "legal-document-public"
+  },
+  {
+   "regex": "admin/legal\\-documents/",
+   "methods": [
+    "GET",
+    "POST",
+    "PUT"
+   ],
+   "name": "legal-documents-admin-list"
+  },
+  {
+   "regex": "admin/legal\\-documents/(?:[^/]+)/(?:[^/]+)/",
+   "methods": [
+    "GET",
+    "POST",
+    "PUT"
+   ],
+   "name": "legal-document-admin"
+  },
+  {
+   "regex": "admin/legal\\-documents/(?:[^/]+)/(?:[^/]+)/publish/",
+   "methods": [
+    "GET",
+    "POST",
+    "PUT"
+   ],
+   "name": "legal-document-publish"
+  },
+  {
+   "regex": "analytics/dashboard-widgets/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "dashboardwidget-list"
+  },
+  {
+   "regex": "analytics/dashboard-widgets\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "dashboardwidget-list"
+  },
+  {
+   "regex": "analytics/dashboard-widgets/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "dashboardwidget-detail"
+  },
+  {
+   "regex": "analytics/dashboard-widgets/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "dashboardwidget-detail"
+  },
+  {
+   "regex": "analytics/dashboards/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "dashboard-list"
+  },
+  {
+   "regex": "analytics/dashboards\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "dashboard-list"
+  },
+  {
+   "regex": "analytics/dashboards/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "dashboard-detail"
+  },
+  {
+   "regex": "analytics/dashboards/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "dashboard-detail"
+  },
+  {
+   "regex": "analytics/dashboards/(?:[^/]+)/widgets/",
+   "methods": [
+    "GET"
+   ],
+   "name": "dashboard-widgets"
+  },
+  {
+   "regex": "analytics/dashboards/(?:[^/]+)/widgets\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "dashboard-widgets"
+  },
+  {
+   "regex": "analytics/reports/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "analyticsreport-list"
+  },
+  {
+   "regex": "analytics/reports\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "analyticsreport-list"
+  },
+  {
+   "regex": "analytics/reports/generate/",
+   "methods": [
+    "POST"
+   ],
+   "name": "analyticsreport-generate"
+  },
+  {
+   "regex": "analytics/reports/generate\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "analyticsreport-generate"
+  },
+  {
+   "regex": "analytics/reports/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "analyticsreport-detail"
+  },
+  {
+   "regex": "analytics/reports/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "analyticsreport-detail"
+  },
+  {
+   "regex": "analytics/reports/(?:[^/]+)/export/",
+   "methods": [
+    "GET"
+   ],
+   "name": "analyticsreport-export"
+  },
+  {
+   "regex": "analytics/reports/(?:[^/]+)/export\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "analyticsreport-export"
+  },
+  {
+   "regex": "analytics/dashboard_summary/",
+   "methods": [
+    "GET"
+   ],
+   "name": "analytics-dashboard-summary"
+  },
+  {
+   "regex": "analytics/dashboard_summary\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "analytics-dashboard-summary"
+  },
+  {
+   "regex": "analytics/event_registrations/",
+   "methods": [
+    "GET"
+   ],
+   "name": "analytics-event-registrations"
+  },
+  {
+   "regex": "analytics/event_registrations\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "analytics-event-registrations"
+  },
+  {
+   "regex": "analytics/events/",
+   "methods": [
+    "GET"
+   ],
+   "name": "analytics-events"
+  },
+  {
+   "regex": "analytics/events\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "analytics-events"
+  },
+  {
+   "regex": "analytics/export/",
+   "methods": [
+    "GET"
+   ],
+   "name": "analytics-export"
+  },
+  {
+   "regex": "analytics/export\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "analytics-export"
+  },
+  {
+   "regex": "analytics/predict_attendance/",
+   "methods": [
+    "GET"
+   ],
+   "name": "analytics-predict-attendance"
+  },
+  {
+   "regex": "analytics/predict_attendance\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "analytics-predict-attendance"
+  },
+  {
+   "regex": "analytics/registrations/",
+   "methods": [
+    "GET"
+   ],
+   "name": "analytics-registrations"
+  },
+  {
+   "regex": "analytics/registrations\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "analytics-registrations"
+  },
+  {
+   "regex": "analytics/revenue/",
+   "methods": [
+    "GET"
+   ],
+   "name": "analytics-revenue"
+  },
+  {
+   "regex": "analytics/revenue\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "analytics-revenue"
+  },
+  {
+   "regex": "analytics/users/",
+   "methods": [
+    "GET"
+   ],
+   "name": "analytics-users"
+  },
+  {
+   "regex": "analytics/users\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "analytics-users"
+  },
+  {
+   "regex": "analytics/",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "analytics/(?:[^/]+)",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "audit/logs/",
+   "methods": [
+    "GET"
+   ],
+   "name": "auditlog-list"
+  },
+  {
+   "regex": "audit/logs\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "auditlog-list"
+  },
+  {
+   "regex": "audit/logs/export/",
+   "methods": [
+    "GET"
+   ],
+   "name": "auditlog-export"
+  },
+  {
+   "regex": "audit/logs/export\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "auditlog-export"
+  },
+  {
+   "regex": "audit/logs/recent/",
+   "methods": [
+    "GET"
+   ],
+   "name": "auditlog-recent"
+  },
+  {
+   "regex": "audit/logs/recent\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "auditlog-recent"
+  },
+  {
+   "regex": "audit/logs/statistics/",
+   "methods": [
+    "GET"
+   ],
+   "name": "auditlog-statistics"
+  },
+  {
+   "regex": "audit/logs/statistics\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "auditlog-statistics"
+  },
+  {
+   "regex": "audit/logs/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "auditlog-detail"
+  },
+  {
+   "regex": "audit/logs/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "auditlog-detail"
+  },
+  {
+   "regex": "audit/",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "audit/(?:[^/]+)",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "newsletters/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "newsletter-list"
+  },
+  {
+   "regex": "newsletters\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "newsletter-list"
+  },
+  {
+   "regex": "newsletters/global_stats/",
+   "methods": [
+    "GET"
+   ],
+   "name": "newsletter-global-stats"
+  },
+  {
+   "regex": "newsletters/global_stats\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "newsletter-global-stats"
+  },
+  {
+   "regex": "newsletters/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "newsletter-detail"
+  },
+  {
+   "regex": "newsletters/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "newsletter-detail"
+  },
+  {
+   "regex": "newsletters/(?:[^/]+)/schedule/",
+   "methods": [
+    "POST"
+   ],
+   "name": "newsletter-schedule"
+  },
+  {
+   "regex": "newsletters/(?:[^/]+)/schedule\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "newsletter-schedule"
+  },
+  {
+   "regex": "newsletters/(?:[^/]+)/send_now/",
+   "methods": [
+    "POST"
+   ],
+   "name": "newsletter-send-now"
+  },
+  {
+   "regex": "newsletters/(?:[^/]+)/send_now\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "newsletter-send-now"
+  },
+  {
+   "regex": "newsletters/(?:[^/]+)/stats/",
+   "methods": [
+    "GET"
+   ],
+   "name": "newsletter-stats"
+  },
+  {
+   "regex": "newsletters/(?:[^/]+)/stats\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "newsletter-stats"
+  },
+  {
+   "regex": "subscribers/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "subscriber-list"
+  },
+  {
+   "regex": "subscribers\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "subscriber-list"
+  },
+  {
+   "regex": "subscribers/confirm/",
+   "methods": [
+    "POST"
+   ],
+   "name": "subscriber-confirm"
+  },
+  {
+   "regex": "subscribers/confirm\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "subscriber-confirm"
+  },
+  {
+   "regex": "subscribers/subscribe/",
+   "methods": [
+    "POST"
+   ],
+   "name": "subscriber-subscribe"
+  },
+  {
+   "regex": "subscribers/subscribe\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "subscriber-subscribe"
+  },
+  {
+   "regex": "subscribers/unsubscribe/",
+   "methods": [
+    "POST"
+   ],
+   "name": "subscriber-unsubscribe"
+  },
+  {
+   "regex": "subscribers/unsubscribe\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "subscriber-unsubscribe"
+  },
+  {
+   "regex": "subscribers/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "subscriber-detail"
+  },
+  {
+   "regex": "subscribers/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "subscriber-detail"
+  },
+  {
+   "regex": "tracking/",
+   "methods": [
+    "GET"
+   ],
+   "name": "tracking-list"
+  },
+  {
+   "regex": "tracking\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "tracking-list"
+  },
+  {
+   "regex": "tracking/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "tracking-detail"
+  },
+  {
+   "regex": "tracking/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "tracking-detail"
+  },
+  {
+   "regex": "tracking/(?:[^/]+)/track_click/",
+   "methods": [
+    "POST"
+   ],
+   "name": "tracking-track-click"
+  },
+  {
+   "regex": "tracking/(?:[^/]+)/track_click\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "tracking-track-click"
+  },
+  {
+   "regex": "tracking/(?:[^/]+)/track_open/",
+   "methods": [
+    "POST"
+   ],
+   "name": "tracking-track-open"
+  },
+  {
+   "regex": "tracking/(?:[^/]+)/track_open\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "tracking-track-open"
+  },
+  {
+   "regex": "recommendations/",
+   "methods": [
+    "GET"
+   ],
+   "name": "recommendation-list"
+  },
+  {
+   "regex": "recommendations\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "recommendation-list"
+  },
+  {
+   "regex": "recommendations/preferences/",
+   "methods": [
+    "DELETE",
+    "GET"
+   ],
+   "name": "recommendation-preferences"
+  },
+  {
+   "regex": "recommendations/preferences\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET"
+   ],
+   "name": "recommendation-preferences"
+  },
+  {
+   "regex": "recommendations/record_interaction/",
+   "methods": [
+    "POST"
+   ],
+   "name": "recommendation-record-interaction"
+  },
+  {
+   "regex": "recommendations/record_interaction\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "recommendation-record-interaction"
+  },
+  {
+   "regex": "recommendations/record_view/",
+   "methods": [
+    "POST"
+   ],
+   "name": "recommendation-record-view"
+  },
+  {
+   "regex": "recommendations/record_view\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "recommendation-record-view"
+  },
+  {
+   "regex": "recommendations/(?:[^/]+)/similar/",
+   "methods": [
+    "GET"
+   ],
+   "name": "recommendation-similar"
+  },
+  {
+   "regex": "recommendations/(?:[^/]+)/similar\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "recommendation-similar"
+  },
+  {
+   "regex": "invitations/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "invitation-list"
+  },
+  {
+   "regex": "invitations\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "invitation-list"
+  },
+  {
+   "regex": "invitations/by_token/",
+   "methods": [
+    "GET"
+   ],
+   "name": "invitation-by-token"
+  },
+  {
+   "regex": "invitations/by_token\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "invitation-by-token"
+  },
+  {
+   "regex": "invitations/guest-list/",
+   "methods": [
+    "GET"
+   ],
+   "name": "invitation-guest-list"
+  },
+  {
+   "regex": "invitations/guest-list\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "invitation-guest-list"
+  },
+  {
+   "regex": "invitations/import-csv/",
+   "methods": [
+    "POST"
+   ],
+   "name": "invitation-import-csv"
+  },
+  {
+   "regex": "invitations/import-csv\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "invitation-import-csv"
+  },
+  {
+   "regex": "invitations/my_invitations/",
+   "methods": [
+    "GET"
+   ],
+   "name": "invitation-my-invitations"
+  },
+  {
+   "regex": "invitations/my_invitations\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "invitation-my-invitations"
+  },
+  {
+   "regex": "invitations/received/",
+   "methods": [
+    "GET"
+   ],
+   "name": "invitation-received"
+  },
+  {
+   "regex": "invitations/received\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "invitation-received"
+  },
+  {
+   "regex": "invitations/remind-pending/",
+   "methods": [
+    "POST"
+   ],
+   "name": "invitation-remind-pending"
+  },
+  {
+   "regex": "invitations/remind-pending\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "invitation-remind-pending"
+  },
+  {
+   "regex": "invitations/respond-by-token/",
+   "methods": [
+    "POST"
+   ],
+   "name": "invitation-respond-by-token"
+  },
+  {
+   "regex": "invitations/respond-by-token\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "invitation-respond-by-token"
+  },
+  {
+   "regex": "invitations/sent/",
+   "methods": [
+    "GET"
+   ],
+   "name": "invitation-sent"
+  },
+  {
+   "regex": "invitations/sent\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "invitation-sent"
+  },
+  {
+   "regex": "invitations/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "invitation-detail"
+  },
+  {
+   "regex": "invitations/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "invitation-detail"
+  },
+  {
+   "regex": "invitations/(?:[^/]+)/accept/",
+   "methods": [
+    "POST"
+   ],
+   "name": "invitation-accept"
+  },
+  {
+   "regex": "invitations/(?:[^/]+)/accept\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "invitation-accept"
+  },
+  {
+   "regex": "invitations/(?:[^/]+)/decline/",
+   "methods": [
+    "POST"
+   ],
+   "name": "invitation-decline"
+  },
+  {
+   "regex": "invitations/(?:[^/]+)/decline\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "invitation-decline"
+  },
+  {
+   "regex": "invitations/(?:[^/]+)/organizer-rsvp/",
+   "methods": [
+    "POST"
+   ],
+   "name": "invitation-organizer-rsvp"
+  },
+  {
+   "regex": "invitations/(?:[^/]+)/organizer-rsvp\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "invitation-organizer-rsvp"
+  },
+  {
+   "regex": "invitations/(?:[^/]+)/remind/",
+   "methods": [
+    "POST"
+   ],
+   "name": "invitation-remind"
+  },
+  {
+   "regex": "invitations/(?:[^/]+)/remind\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "invitation-remind"
+  },
+  {
+   "regex": "guest-tables/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "guest-table-list"
+  },
+  {
+   "regex": "guest-tables\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "guest-table-list"
+  },
+  {
+   "regex": "guest-tables/unassign/",
+   "methods": [
+    "POST"
+   ],
+   "name": "guest-table-unassign"
+  },
+  {
+   "regex": "guest-tables/unassign\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "guest-table-unassign"
+  },
+  {
+   "regex": "guest-tables/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "guest-table-detail"
+  },
+  {
+   "regex": "guest-tables/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "guest-table-detail"
+  },
+  {
+   "regex": "guest-tables/(?:[^/]+)/assign/",
+   "methods": [
+    "POST"
+   ],
+   "name": "guest-table-assign"
+  },
+  {
+   "regex": "guest-tables/(?:[^/]+)/assign\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "guest-table-assign"
+  },
+  {
+   "regex": "gift-registries/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "gift-registry-list"
+  },
+  {
+   "regex": "gift-registries\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "gift-registry-list"
+  },
+  {
+   "regex": "gift-registries/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "gift-registry-detail"
+  },
+  {
+   "regex": "gift-registries/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "gift-registry-detail"
+  },
+  {
+   "regex": "gift-registries/(?:[^/]+)/contribute/",
+   "methods": [
+    "POST"
+   ],
+   "name": "gift-registry-contribute"
+  },
+  {
+   "regex": "gift-registries/(?:[^/]+)/contribute\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "gift-registry-contribute"
+  },
+  {
+   "regex": "gift-registries/(?:[^/]+)/contributions/",
+   "methods": [
+    "GET"
+   ],
+   "name": "gift-registry-contributions"
+  },
+  {
+   "regex": "gift-registries/(?:[^/]+)/contributions\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "gift-registry-contributions"
+  },
+  {
+   "regex": "gift-items/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "gift-item-list"
+  },
+  {
+   "regex": "gift-items\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "gift-item-list"
+  },
+  {
+   "regex": "gift-items/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "gift-item-detail"
+  },
+  {
+   "regex": "gift-items/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "gift-item-detail"
+  },
+  {
+   "regex": "referrals/track/",
+   "methods": [
+    "GET"
+   ],
+   "name": "track-referral-click"
+  },
+  {
+   "regex": "referrals/codes/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "referral-code-list"
+  },
+  {
+   "regex": "referrals/codes\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "referral-code-list"
+  },
+  {
+   "regex": "referrals/codes/generate/",
+   "methods": [
+    "POST"
+   ],
+   "name": "referral-code-generate"
+  },
+  {
+   "regex": "referrals/codes/generate\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "referral-code-generate"
+  },
+  {
+   "regex": "referrals/codes/my-earnings/",
+   "methods": [
+    "GET"
+   ],
+   "name": "referral-code-my-earnings"
+  },
+  {
+   "regex": "referrals/codes/my-earnings\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "referral-code-my-earnings"
+  },
+  {
+   "regex": "referrals/codes/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "referral-code-detail"
+  },
+  {
+   "regex": "referrals/codes/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "referral-code-detail"
+  },
+  {
+   "regex": "referrals/codes/(?:[^/]+)/stats/",
+   "methods": [
+    "GET"
+   ],
+   "name": "referral-code-stats"
+  },
+  {
+   "regex": "referrals/codes/(?:[^/]+)/stats\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "referral-code-stats"
+  },
+  {
+   "regex": "referrals/",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "referrals/(?:[^/]+)",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "social/feed/",
+   "methods": [
+    "GET"
+   ],
+   "name": "feed-list"
+  },
+  {
+   "regex": "social/feed\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "feed-list"
+  },
+  {
+   "regex": "social/feed/event_feed/",
+   "methods": [
+    "GET"
+   ],
+   "name": "feed-event-feed"
+  },
+  {
+   "regex": "social/feed/event_feed\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "feed-event-feed"
+  },
+  {
+   "regex": "social/feed/my_feed/",
+   "methods": [
+    "GET"
+   ],
+   "name": "feed-my-feed"
+  },
+  {
+   "regex": "social/feed/my_feed\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "feed-my-feed"
+  },
+  {
+   "regex": "social/feed/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "feed-detail"
+  },
+  {
+   "regex": "social/feed/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "feed-detail"
+  },
+  {
+   "regex": "social/connections/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "connections-list"
+  },
+  {
+   "regex": "social/connections\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "connections-list"
+  },
+  {
+   "regex": "social/connections/event_attendees/",
+   "methods": [
+    "GET"
+   ],
+   "name": "connections-event-attendees"
+  },
+  {
+   "regex": "social/connections/event_attendees\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "connections-event-attendees"
+  },
+  {
+   "regex": "social/connections/my_connections/",
+   "methods": [
+    "GET"
+   ],
+   "name": "connections-my-connections"
+  },
+  {
+   "regex": "social/connections/my_connections\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "connections-my-connections"
+  },
+  {
+   "regex": "social/connections/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "connections-detail"
+  },
+  {
+   "regex": "social/connections/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "connections-detail"
+  },
+  {
+   "regex": "social/connections/(?:[^/]+)/accept/",
+   "methods": [
+    "POST"
+   ],
+   "name": "connections-accept"
+  },
+  {
+   "regex": "social/connections/(?:[^/]+)/accept\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "connections-accept"
+  },
+  {
+   "regex": "social/connections/(?:[^/]+)/cancel/",
+   "methods": [
+    "POST"
+   ],
+   "name": "connections-cancel"
+  },
+  {
+   "regex": "social/connections/(?:[^/]+)/cancel\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "connections-cancel"
+  },
+  {
+   "regex": "social/connections/(?:[^/]+)/decline/",
+   "methods": [
+    "POST"
+   ],
+   "name": "connections-decline"
+  },
+  {
+   "regex": "social/connections/(?:[^/]+)/decline\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "connections-decline"
+  },
+  {
+   "regex": "social/",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "social/(?:[^/]+)",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "sponsor-packages/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "sponsor-package-list"
+  },
+  {
+   "regex": "sponsor-packages\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "sponsor-package-list"
+  },
+  {
+   "regex": "sponsor-packages/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "sponsor-package-detail"
+  },
+  {
+   "regex": "sponsor-packages/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "sponsor-package-detail"
+  },
+  {
+   "regex": "event-sponsors/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "event-sponsor-list"
+  },
+  {
+   "regex": "event-sponsors\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "event-sponsor-list"
+  },
+  {
+   "regex": "event-sponsors/by-event/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-sponsor-by-event"
+  },
+  {
+   "regex": "event-sponsors/by-event\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-sponsor-by-event"
+  },
+  {
+   "regex": "event-sponsors/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "event-sponsor-detail"
+  },
+  {
+   "regex": "event-sponsors/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "event-sponsor-detail"
+  },
+  {
+   "regex": "event-sponsors/(?:[^/]+)/confirm/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-sponsor-confirm"
+  },
+  {
+   "regex": "event-sponsors/(?:[^/]+)/confirm\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-sponsor-confirm"
+  },
+  {
+   "regex": "event-sponsors/(?:[^/]+)/track-click/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-sponsor-track-click"
+  },
+  {
+   "regex": "event-sponsors/(?:[^/]+)/track-click\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-sponsor-track-click"
+  },
+  {
+   "regex": "advertisements/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "advertisement-list"
+  },
+  {
+   "regex": "advertisements/\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "advertisement-list"
+  },
+  {
+   "regex": "advertisements/nearby/",
+   "methods": [
+    "GET"
+   ],
+   "name": "advertisement-nearby"
+  },
+  {
+   "regex": "advertisements/nearby\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "advertisement-nearby"
+  },
+  {
+   "regex": "advertisements/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "advertisement-detail"
+  },
+  {
+   "regex": "advertisements/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "advertisement-detail"
+  },
+  {
+   "regex": "advertisements/(?:[^/]+)/click/",
+   "methods": [
+    "POST"
+   ],
+   "name": "advertisement-click"
+  },
+  {
+   "regex": "advertisements/(?:[^/]+)/click\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "advertisement-click"
+  },
+  {
+   "regex": "advertisements/(?:[^/]+)/view/",
+   "methods": [
+    "POST"
+   ],
+   "name": "advertisement-view"
+  },
+  {
+   "regex": "advertisements/(?:[^/]+)/view\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "advertisement-view"
+  },
+  {
+   "regex": "advertisements/",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "advertisements/(?:[^/]+)",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "live-questions/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "live-question-list"
+  },
+  {
+   "regex": "live-questions\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "live-question-list"
+  },
+  {
+   "regex": "live-questions/by_event/",
+   "methods": [
+    "GET"
+   ],
+   "name": "live-question-by-event"
+  },
+  {
+   "regex": "live-questions/by_event\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "live-question-by-event"
+  },
+  {
+   "regex": "live-questions/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "live-question-detail"
+  },
+  {
+   "regex": "live-questions/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "live-question-detail"
+  },
+  {
+   "regex": "live-questions/(?:[^/]+)/answer/",
+   "methods": [
+    "POST"
+   ],
+   "name": "live-question-answer"
+  },
+  {
+   "regex": "live-questions/(?:[^/]+)/answer\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "live-question-answer"
+  },
+  {
+   "regex": "live-questions/(?:[^/]+)/pin/",
+   "methods": [
+    "POST"
+   ],
+   "name": "live-question-pin"
+  },
+  {
+   "regex": "live-questions/(?:[^/]+)/pin\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "live-question-pin"
+  },
+  {
+   "regex": "live-questions/(?:[^/]+)/upvote/",
+   "methods": [
+    "POST"
+   ],
+   "name": "live-question-upvote"
+  },
+  {
+   "regex": "live-questions/(?:[^/]+)/upvote\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "live-question-upvote"
+  },
+  {
+   "regex": "live-polls/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "live-poll-list"
+  },
+  {
+   "regex": "live-polls\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "live-poll-list"
+  },
+  {
+   "regex": "live-polls/by_event/",
+   "methods": [
+    "GET"
+   ],
+   "name": "live-poll-by-event"
+  },
+  {
+   "regex": "live-polls/by_event\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "live-poll-by-event"
+  },
+  {
+   "regex": "live-polls/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "live-poll-detail"
+  },
+  {
+   "regex": "live-polls/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "live-poll-detail"
+  },
+  {
+   "regex": "live-polls/(?:[^/]+)/activate/",
+   "methods": [
+    "POST"
+   ],
+   "name": "live-poll-activate"
+  },
+  {
+   "regex": "live-polls/(?:[^/]+)/activate\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "live-poll-activate"
+  },
+  {
+   "regex": "live-polls/(?:[^/]+)/close/",
+   "methods": [
+    "POST"
+   ],
+   "name": "live-poll-close"
+  },
+  {
+   "regex": "live-polls/(?:[^/]+)/close\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "live-poll-close"
+  },
+  {
+   "regex": "live-polls/(?:[^/]+)/results/",
+   "methods": [
+    "GET"
+   ],
+   "name": "live-poll-results"
+  },
+  {
+   "regex": "live-polls/(?:[^/]+)/results\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "live-poll-results"
+  },
+  {
+   "regex": "poll-votes/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "poll-vote-list"
+  },
+  {
+   "regex": "poll-votes\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "poll-vote-list"
+  },
+  {
+   "regex": "volunteer-roles/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "volunteer-role-list"
+  },
+  {
+   "regex": "volunteer-roles\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "volunteer-role-list"
+  },
+  {
+   "regex": "volunteer-roles/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "volunteer-role-detail"
+  },
+  {
+   "regex": "volunteer-roles/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "volunteer-role-detail"
+  },
+  {
+   "regex": "volunteer-applications/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "volunteer-application-list"
+  },
+  {
+   "regex": "volunteer-applications\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "volunteer-application-list"
+  },
+  {
+   "regex": "volunteer-applications/my_applications/",
+   "methods": [
+    "GET"
+   ],
+   "name": "volunteer-application-my-applications"
+  },
+  {
+   "regex": "volunteer-applications/my_applications\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "volunteer-application-my-applications"
+  },
+  {
+   "regex": "volunteer-applications/received/",
+   "methods": [
+    "GET"
+   ],
+   "name": "volunteer-application-received"
+  },
+  {
+   "regex": "volunteer-applications/received\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "volunteer-application-received"
+  },
+  {
+   "regex": "volunteer-applications/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "volunteer-application-detail"
+  },
+  {
+   "regex": "volunteer-applications/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "volunteer-application-detail"
+  },
+  {
+   "regex": "volunteer-applications/(?:[^/]+)/accept/",
+   "methods": [
+    "POST"
+   ],
+   "name": "volunteer-application-accept"
+  },
+  {
+   "regex": "volunteer-applications/(?:[^/]+)/accept\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "volunteer-application-accept"
+  },
+  {
+   "regex": "volunteer-applications/(?:[^/]+)/reject/",
+   "methods": [
+    "POST"
+   ],
+   "name": "volunteer-application-reject"
+  },
+  {
+   "regex": "volunteer-applications/(?:[^/]+)/reject\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "volunteer-application-reject"
+  },
+  {
+   "regex": "volunteer-applications/(?:[^/]+)/withdraw/",
+   "methods": [
+    "POST"
+   ],
+   "name": "volunteer-application-withdraw"
+  },
+  {
+   "regex": "volunteer-applications/(?:[^/]+)/withdraw\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "volunteer-application-withdraw"
+  },
+  {
+   "regex": "volunteer-tasks/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "volunteer-task-list"
+  },
+  {
+   "regex": "volunteer-tasks\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "volunteer-task-list"
+  },
+  {
+   "regex": "volunteer-tasks/my_tasks/",
+   "methods": [
+    "GET"
+   ],
+   "name": "volunteer-task-my-tasks"
+  },
+  {
+   "regex": "volunteer-tasks/my_tasks\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "volunteer-task-my-tasks"
+  },
+  {
+   "regex": "volunteer-tasks/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "volunteer-task-detail"
+  },
+  {
+   "regex": "volunteer-tasks/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "volunteer-task-detail"
+  },
+  {
+   "regex": "volunteer-tasks/(?:[^/]+)/assign/",
+   "methods": [
+    "POST"
+   ],
+   "name": "volunteer-task-assign"
+  },
+  {
+   "regex": "volunteer-tasks/(?:[^/]+)/assign\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "volunteer-task-assign"
+  },
+  {
+   "regex": "volunteer-tasks/(?:[^/]+)/complete/",
+   "methods": [
+    "POST"
+   ],
+   "name": "volunteer-task-complete"
+  },
+  {
+   "regex": "volunteer-tasks/(?:[^/]+)/complete\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "volunteer-task-complete"
+  },
+  {
+   "regex": "event-team/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "event-team-list"
+  },
+  {
+   "regex": "event-team\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "event-team-list"
+  },
+  {
+   "regex": "event-team/my_events/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-team-my-events"
+  },
+  {
+   "regex": "event-team/my_events\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-team-my-events"
+  },
+  {
+   "regex": "event-team/roles-catalog/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-team-roles-catalog"
+  },
+  {
+   "regex": "event-team/roles-catalog\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-team-roles-catalog"
+  },
+  {
+   "regex": "event-team/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "event-team-detail"
+  },
+  {
+   "regex": "event-team/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "event-team-detail"
+  },
+  {
+   "regex": "event-team/(?:[^/]+)/accept/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-team-accept"
+  },
+  {
+   "regex": "event-team/(?:[^/]+)/accept\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-team-accept"
+  },
+  {
+   "regex": "event-team/(?:[^/]+)/decline/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-team-decline"
+  },
+  {
+   "regex": "event-team/(?:[^/]+)/decline\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-team-decline"
+  },
+  {
+   "regex": "event-team/(?:[^/]+)/resend/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-team-resend"
+  },
+  {
+   "regex": "event-team/(?:[^/]+)/resend\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-team-resend"
+  },
+  {
+   "regex": "event-team/(?:[^/]+)/revoke/",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-team-revoke"
+  },
+  {
+   "regex": "event-team/(?:[^/]+)/revoke\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "event-team-revoke"
+  },
+  {
+   "regex": "event\\-team/invitation/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "event-team-invitation-lookup"
+  },
+  {
+   "regex": "exhibitors/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "exhibitor-list"
+  },
+  {
+   "regex": "exhibitors\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "exhibitor-list"
+  },
+  {
+   "regex": "exhibitors/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "exhibitor-detail"
+  },
+  {
+   "regex": "exhibitors/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "exhibitor-detail"
+  },
+  {
+   "regex": "booth-categories/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "booth-category-list"
+  },
+  {
+   "regex": "booth-categories\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "booth-category-list"
+  },
+  {
+   "regex": "booth-categories/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "booth-category-detail"
+  },
+  {
+   "regex": "booth-categories/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "booth-category-detail"
+  },
+  {
+   "regex": "booths/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "booth-list"
+  },
+  {
+   "regex": "booths\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "booth-list"
+  },
+  {
+   "regex": "booths/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "booth-detail"
+  },
+  {
+   "regex": "booths/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "booth-detail"
+  },
+  {
+   "regex": "booth-applications/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "booth-application-list"
+  },
+  {
+   "regex": "booth-applications\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "booth-application-list"
+  },
+  {
+   "regex": "booth-applications/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "booth-application-detail"
+  },
+  {
+   "regex": "booth-applications/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "booth-application-detail"
+  },
+  {
+   "regex": "booth-applications/(?:[^/]+)/accept/",
+   "methods": [
+    "POST"
+   ],
+   "name": "booth-application-accept"
+  },
+  {
+   "regex": "booth-applications/(?:[^/]+)/accept\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "booth-application-accept"
+  },
+  {
+   "regex": "booth-applications/(?:[^/]+)/reject/",
+   "methods": [
+    "POST"
+   ],
+   "name": "booth-application-reject"
+  },
+  {
+   "regex": "booth-applications/(?:[^/]+)/reject\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "booth-application-reject"
+  },
+  {
+   "regex": "booth-applications/(?:[^/]+)/waitlist/",
+   "methods": [
+    "POST"
+   ],
+   "name": "booth-application-waitlist"
+  },
+  {
+   "regex": "booth-applications/(?:[^/]+)/waitlist\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "booth-application-waitlist"
+  },
+  {
+   "regex": "booth-bookings/",
+   "methods": [
+    "GET"
+   ],
+   "name": "booth-booking-list"
+  },
+  {
+   "regex": "booth-bookings\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "booth-booking-list"
+  },
+  {
+   "regex": "booth-bookings/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "booth-booking-detail"
+  },
+  {
+   "regex": "booth-bookings/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "booth-booking-detail"
+  },
+  {
+   "regex": "booth-bookings/(?:[^/]+)/cancel/",
+   "methods": [
+    "POST"
+   ],
+   "name": "booth-booking-cancel"
+  },
+  {
+   "regex": "booth-bookings/(?:[^/]+)/cancel\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "booth-booking-cancel"
+  },
+  {
+   "regex": "booth-bookings/(?:[^/]+)/invoice/",
+   "methods": [
+    "GET"
+   ],
+   "name": "booth-booking-invoice"
+  },
+  {
+   "regex": "booth-bookings/(?:[^/]+)/invoice\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "booth-booking-invoice"
+  },
+  {
+   "regex": "booth-bookings/(?:[^/]+)/pay/",
+   "methods": [
+    "POST"
+   ],
+   "name": "booth-booking-pay"
+  },
+  {
+   "regex": "booth-bookings/(?:[^/]+)/pay\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "booth-booking-pay"
+  },
+  {
+   "regex": "booth-bookings/(?:[^/]+)/payment-options/",
+   "methods": [
+    "GET"
+   ],
+   "name": "booth-booking-payment-options"
+  },
+  {
+   "regex": "booth-bookings/(?:[^/]+)/payment-options\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "booth-booking-payment-options"
+  },
+  {
+   "regex": "booth-badges/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "booth-badge-list"
+  },
+  {
+   "regex": "booth-badges\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "booth-badge-list"
+  },
+  {
+   "regex": "booth-badges/checkin-manifest/",
+   "methods": [
+    "GET"
+   ],
+   "name": "booth-badge-checkin-manifest"
+  },
+  {
+   "regex": "booth-badges/checkin-manifest\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "booth-badge-checkin-manifest"
+  },
+  {
+   "regex": "booth-badges/checkin-sync/",
+   "methods": [
+    "POST"
+   ],
+   "name": "booth-badge-checkin-sync"
+  },
+  {
+   "regex": "booth-badges/checkin-sync\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "booth-badge-checkin-sync"
+  },
+  {
+   "regex": "booth-badges/verify-check-in/",
+   "methods": [
+    "POST"
+   ],
+   "name": "booth-badge-verify-check-in"
+  },
+  {
+   "regex": "booth-badges/verify-check-in\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "booth-badge-verify-check-in"
+  },
+  {
+   "regex": "booth-badges/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "booth-badge-detail"
+  },
+  {
+   "regex": "booth-badges/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "booth-badge-detail"
+  },
+  {
+   "regex": "exhibitor-sales-config/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "exhibitor-sales-config-list"
+  },
+  {
+   "regex": "exhibitor-sales-config\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "exhibitor-sales-config-list"
+  },
+  {
+   "regex": "exhibitor-sales-config/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "exhibitor-sales-config-detail"
+  },
+  {
+   "regex": "exhibitor-sales-config/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "exhibitor-sales-config-detail"
+  },
+  {
+   "regex": "exhibitor-sales-contracts/",
+   "methods": [
+    "GET"
+   ],
+   "name": "exhibitor-sales-contract-list"
+  },
+  {
+   "regex": "exhibitor-sales-contracts\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "exhibitor-sales-contract-list"
+  },
+  {
+   "regex": "exhibitor-sales-contracts/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "exhibitor-sales-contract-detail"
+  },
+  {
+   "regex": "exhibitor-sales-contracts/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "exhibitor-sales-contract-detail"
+  },
+  {
+   "regex": "exhibitor-sales-contracts/(?:[^/]+)/accept/",
+   "methods": [
+    "POST"
+   ],
+   "name": "exhibitor-sales-contract-accept"
+  },
+  {
+   "regex": "exhibitor-sales-contracts/(?:[^/]+)/accept\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "exhibitor-sales-contract-accept"
+  },
+  {
+   "regex": "exhibitor-leads/about-me/",
+   "methods": [
+    "GET"
+   ],
+   "name": "exhibitor-lead-about-me"
+  },
+  {
+   "regex": "exhibitor-leads/about-me\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "exhibitor-lead-about-me"
+  },
+  {
+   "regex": "exhibitor-leads/erase-mine/",
+   "methods": [
+    "POST"
+   ],
+   "name": "exhibitor-lead-erase-mine"
+  },
+  {
+   "regex": "exhibitor-leads/erase-mine\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "exhibitor-lead-erase-mine"
+  },
+  {
+   "regex": "exhibitor-leads/export/",
+   "methods": [
+    "GET"
+   ],
+   "name": "exhibitor-lead-export"
+  },
+  {
+   "regex": "exhibitor-leads/export\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "exhibitor-lead-export"
+  },
+  {
+   "regex": "exhibitor-leads/mine/",
+   "methods": [
+    "GET"
+   ],
+   "name": "exhibitor-lead-mine"
+  },
+  {
+   "regex": "exhibitor-leads/mine\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "exhibitor-lead-mine"
+  },
+  {
+   "regex": "exhibitor-leads/qualify/",
+   "methods": [
+    "POST"
+   ],
+   "name": "exhibitor-lead-qualify"
+  },
+  {
+   "regex": "exhibitor-leads/qualify\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "exhibitor-lead-qualify"
+  },
+  {
+   "regex": "exhibitor-leads/scan/",
+   "methods": [
+    "POST"
+   ],
+   "name": "exhibitor-lead-scan"
+  },
+  {
+   "regex": "exhibitor-leads/scan\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "exhibitor-lead-scan"
+  },
+  {
+   "regex": "events/(?:[^/]+)/exhibitor\\-directory/",
+   "methods": [
+    "GET"
+   ],
+   "name": "exhibitor-directory"
+  },
+  {
+   "regex": "virtual\\-admin/provider\\-config/",
+   "methods": [
+    "GET",
+    "PATCH"
+   ],
+   "name": "virtual-provider-config"
+  },
+  {
+   "regex": "virtual-rooms/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "virtual-room-list"
+  },
+  {
+   "regex": "virtual-rooms\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "virtual-room-list"
+  },
+  {
+   "regex": "virtual-rooms/by_event/",
+   "methods": [
+    "GET"
+   ],
+   "name": "virtual-room-by-event"
+  },
+  {
+   "regex": "virtual-rooms/by_event\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "virtual-room-by-event"
+  },
+  {
+   "regex": "virtual-rooms/event/(?:[^/]+)/join/",
+   "methods": [
+    "GET"
+   ],
+   "name": "virtual-room-event-join"
+  },
+  {
+   "regex": "virtual-rooms/event/(?:[^/]+)/join\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "virtual-room-event-join"
+  },
+  {
+   "regex": "virtual-rooms/event/(?:[^/]+)/live-status/",
+   "methods": [
+    "GET"
+   ],
+   "name": "virtual-room-event-live-status"
+  },
+  {
+   "regex": "virtual-rooms/event/(?:[^/]+)/live-status\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "virtual-room-event-live-status"
+  },
+  {
+   "regex": "virtual-rooms/event/(?:[^/]+)/plan-info/",
+   "methods": [
+    "GET"
+   ],
+   "name": "virtual-room-event-plan-info"
+  },
+  {
+   "regex": "virtual-rooms/event/(?:[^/]+)/plan-info\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "virtual-room-event-plan-info"
+  },
+  {
+   "regex": "virtual-rooms/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "virtual-room-detail"
+  },
+  {
+   "regex": "virtual-rooms/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "virtual-room-detail"
+  },
+  {
+   "regex": "virtual-rooms/(?:[^/]+)/leave/",
+   "methods": [
+    "POST"
+   ],
+   "name": "virtual-room-leave"
+  },
+  {
+   "regex": "virtual-rooms/(?:[^/]+)/leave\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "virtual-room-leave"
+  },
+  {
+   "regex": "virtual-rooms/(?:[^/]+)/participants/",
+   "methods": [
+    "GET"
+   ],
+   "name": "virtual-room-participants"
+  },
+  {
+   "regex": "virtual-rooms/(?:[^/]+)/participants\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "virtual-room-participants"
+  },
+  {
+   "regex": "room-participants/",
+   "methods": [
+    "GET"
+   ],
+   "name": "room-participant-list"
+  },
+  {
+   "regex": "room-participants\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "room-participant-list"
+  },
+  {
+   "regex": "room-participants/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "room-participant-detail"
+  },
+  {
+   "regex": "room-participants/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "room-participant-detail"
+  },
+  {
+   "regex": "recordings/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "recording-list"
+  },
+  {
+   "regex": "recordings\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "recording-list"
+  },
+  {
+   "regex": "recordings/by_event/",
+   "methods": [
+    "GET"
+   ],
+   "name": "recording-by-event"
+  },
+  {
+   "regex": "recordings/by_event\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "recording-by-event"
+  },
+  {
+   "regex": "recordings/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "recording-detail"
+  },
+  {
+   "regex": "recordings/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "recording-detail"
+  },
+  {
+   "regex": "recordings/(?:[^/]+)/increment_view/",
+   "methods": [
+    "POST"
+   ],
+   "name": "recording-increment-view"
+  },
+  {
+   "regex": "recordings/(?:[^/]+)/increment_view\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "recording-increment-view"
+  },
+  {
+   "regex": "recordings/(?:[^/]+)/publish/",
+   "methods": [
+    "POST"
+   ],
+   "name": "recording-publish"
+  },
+  {
+   "regex": "recordings/(?:[^/]+)/publish\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "recording-publish"
+  },
+  {
+   "regex": "recordings/(?:[^/]+)/request-deletion/",
+   "methods": [
+    "POST"
+   ],
+   "name": "recording-request-deletion"
+  },
+  {
+   "regex": "recordings/(?:[^/]+)/request-deletion\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "recording-request-deletion"
+  },
+  {
+   "regex": "virtual-admin/plan-configs/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "virtual-plan-config-list"
+  },
+  {
+   "regex": "virtual-admin/plan-configs\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "virtual-plan-config-list"
+  },
+  {
+   "regex": "virtual-admin/plan-configs/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "virtual-plan-config-detail"
+  },
+  {
+   "regex": "virtual-admin/plan-configs/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "virtual-plan-config-detail"
+  },
+  {
+   "regex": "webhooks/notchpay/",
+   "methods": [
+    "POST"
+   ],
+   "name": "notchpay-webhook"
+  },
+  {
+   "regex": "webhooks/notchpay",
+   "methods": [
+    "POST"
+   ],
+   "name": "notchpay-webhook-no-slash"
+  },
+  {
+   "regex": "webhooks/cinetpay/",
+   "methods": [
+    "POST"
+   ],
+   "name": "cinetpay-webhook"
+  },
+  {
+   "regex": "webhooks/cinetpay",
+   "methods": [
+    "POST"
+   ],
+   "name": "cinetpay-webhook-no-slash"
+  },
+  {
+   "regex": "webhooks/flutterwave/",
+   "methods": [
+    "POST"
+   ],
+   "name": "flutterwave-webhook"
+  },
+  {
+   "regex": "webhooks/flutterwave",
+   "methods": [
+    "POST"
+   ],
+   "name": "flutterwave-webhook-no-slash"
+  },
+  {
+   "regex": "webhooks/pawapay/",
+   "methods": [
+    "POST"
+   ],
+   "name": "pawapay-webhook"
+  },
+  {
+   "regex": "webhooks/pawapay",
+   "methods": [
+    "POST"
+   ],
+   "name": "pawapay-webhook-no-slash"
+  },
+  {
+   "regex": "webhooks/campay/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "campay-webhook"
+  },
+  {
+   "regex": "webhooks/campay",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "campay-webhook-no-slash"
+  },
+  {
+   "regex": "payments/cinetpay/return/",
+   "methods": [
+    "GET"
+   ],
+   "name": "cinetpay-return"
+  },
+  {
+   "regex": "webhooks/stripe/",
+   "methods": [
+    "POST"
+   ],
+   "name": "stripe-webhook"
+  },
+  {
+   "regex": "webhooks/stripe",
+   "methods": [
+    "POST"
+   ],
+   "name": "stripe-webhook-no-slash"
+  },
+  {
+   "regex": "admin/payment\\-gateway\\-config/",
+   "methods": [
+    "GET",
+    "PATCH"
+   ],
+   "name": "admin-payment-gateway-config"
+  },
+  {
+   "regex": "admin/gateway\\-health/",
+   "methods": [
+    "GET"
+   ],
+   "name": "admin-gateway-health"
+  },
+  {
+   "regex": "admin/collect\\-health/",
+   "methods": [
+    "GET"
+   ],
+   "name": "admin-collect-health"
+  },
+  {
+   "regex": "admin/routing\\-simulate/",
+   "methods": [
+    "POST"
+   ],
+   "name": "admin-routing-simulate"
+  },
+  {
+   "regex": "admin/country\\-coverage/",
+   "methods": [
+    "POST"
+   ],
+   "name": "admin-country-coverage"
+  },
+  {
+   "regex": "webhooks/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "webhook-list"
+  },
+  {
+   "regex": "webhooks\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "webhook-list"
+  },
+  {
+   "regex": "webhooks/stats/",
+   "methods": [
+    "GET"
+   ],
+   "name": "webhook-stats"
+  },
+  {
+   "regex": "webhooks/stats\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "webhook-stats"
+  },
+  {
+   "regex": "webhooks/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "webhook-detail"
+  },
+  {
+   "regex": "webhooks/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "webhook-detail"
+  },
+  {
+   "regex": "webhooks/(?:[^/]+)/deliveries/",
+   "methods": [
+    "GET"
+   ],
+   "name": "webhook-deliveries"
+  },
+  {
+   "regex": "webhooks/(?:[^/]+)/deliveries\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "webhook-deliveries"
+  },
+  {
+   "regex": "webhooks/(?:[^/]+)/test/",
+   "methods": [
+    "POST"
+   ],
+   "name": "webhook-test"
+  },
+  {
+   "regex": "webhooks/(?:[^/]+)/test\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "webhook-test"
+  },
+  {
+   "regex": "webhooks/(?:[^/]+)/toggle_active/",
+   "methods": [
+    "POST"
+   ],
+   "name": "webhook-toggle-active"
+  },
+  {
+   "regex": "webhooks/(?:[^/]+)/toggle_active\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "webhook-toggle-active"
+  },
+  {
+   "regex": "webhook-deliveries/",
+   "methods": [
+    "GET"
+   ],
+   "name": "webhook-delivery-list"
+  },
+  {
+   "regex": "webhook-deliveries\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "webhook-delivery-list"
+  },
+  {
+   "regex": "webhook-deliveries/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "webhook-delivery-detail"
+  },
+  {
+   "regex": "webhook-deliveries/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "webhook-delivery-detail"
+  },
+  {
+   "regex": "webhook-deliveries/(?:[^/]+)/retry/",
+   "methods": [
+    "POST"
+   ],
+   "name": "webhook-delivery-retry"
+  },
+  {
+   "regex": "webhook-deliveries/(?:[^/]+)/retry\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "webhook-delivery-retry"
+  },
+  {
+   "regex": "utm/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "utm-list"
+  },
+  {
+   "regex": "utm\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "utm-list"
+  },
+  {
+   "regex": "utm/stats/",
+   "methods": [
+    "GET"
+   ],
+   "name": "utm-stats"
+  },
+  {
+   "regex": "utm/stats\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "utm-stats"
+  },
+  {
+   "regex": "utm/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "utm-detail"
+  },
+  {
+   "regex": "utm/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "utm-detail"
+  },
+  {
+   "regex": "gamification/badges/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "badge-list"
+  },
+  {
+   "regex": "gamification/badges\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "badge-list"
+  },
+  {
+   "regex": "gamification/badges/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "badge-detail"
+  },
+  {
+   "regex": "gamification/badges/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "badge-detail"
+  },
+  {
+   "regex": "gamification/badges/(?:[^/]+)/award/",
+   "methods": [
+    "POST"
+   ],
+   "name": "badge-award"
+  },
+  {
+   "regex": "gamification/badges/(?:[^/]+)/award\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "badge-award"
+  },
+  {
+   "regex": "gamification/user-badges/",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-badge-list"
+  },
+  {
+   "regex": "gamification/user-badges\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-badge-list"
+  },
+  {
+   "regex": "gamification/user-badges/my_badges/",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-badge-my-badges"
+  },
+  {
+   "regex": "gamification/user-badges/my_badges\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-badge-my-badges"
+  },
+  {
+   "regex": "gamification/user-badges/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-badge-detail"
+  },
+  {
+   "regex": "gamification/user-badges/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "user-badge-detail"
+  },
+  {
+   "regex": "gamification/points/",
+   "methods": [
+    "GET"
+   ],
+   "name": "points-list"
+  },
+  {
+   "regex": "gamification/points\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "points-list"
+  },
+  {
+   "regex": "gamification/points/balance/",
+   "methods": [
+    "GET"
+   ],
+   "name": "points-balance"
+  },
+  {
+   "regex": "gamification/points/balance\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "points-balance"
+  },
+  {
+   "regex": "gamification/points/summary/",
+   "methods": [
+    "GET"
+   ],
+   "name": "points-summary"
+  },
+  {
+   "regex": "gamification/points/summary\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "points-summary"
+  },
+  {
+   "regex": "gamification/points/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "points-detail"
+  },
+  {
+   "regex": "gamification/points/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "points-detail"
+  },
+  {
+   "regex": "gamification/leaderboard/",
+   "methods": [
+    "GET"
+   ],
+   "name": "leaderboard-list"
+  },
+  {
+   "regex": "gamification/leaderboard\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "leaderboard-list"
+  },
+  {
+   "regex": "gamification/leaderboard/my_rank/",
+   "methods": [
+    "GET"
+   ],
+   "name": "leaderboard-my-rank"
+  },
+  {
+   "regex": "gamification/leaderboard/my_rank\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "leaderboard-my-rank"
+  },
+  {
+   "regex": "gamification/leaderboard/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "leaderboard-detail"
+  },
+  {
+   "regex": "gamification/leaderboard/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "leaderboard-detail"
+  },
+  {
+   "regex": "gamification/",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "gamification/(?:[^/]+)",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "admin/treasury/overview/",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-overview-list"
+  },
+  {
+   "regex": "admin/treasury/overview\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-overview-list"
+  },
+  {
+   "regex": "admin/treasury/overview/monthly_summary/",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-overview-monthly-summary"
+  },
+  {
+   "regex": "admin/treasury/overview/monthly_summary\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-overview-monthly-summary"
+  },
+  {
+   "regex": "admin/treasury/overview/recompute/",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-overview-recompute"
+  },
+  {
+   "regex": "admin/treasury/overview/recompute\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-overview-recompute"
+  },
+  {
+   "regex": "admin/treasury/transactions/",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-transaction-list"
+  },
+  {
+   "regex": "admin/treasury/transactions\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-transaction-list"
+  },
+  {
+   "regex": "admin/treasury/transactions/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-transaction-detail"
+  },
+  {
+   "regex": "admin/treasury/transactions/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-transaction-detail"
+  },
+  {
+   "regex": "admin/treasury/staff/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "treasury-staff-list"
+  },
+  {
+   "regex": "admin/treasury/staff\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "treasury-staff-list"
+  },
+  {
+   "regex": "admin/treasury/staff/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "treasury-staff-detail"
+  },
+  {
+   "regex": "admin/treasury/staff/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "treasury-staff-detail"
+  },
+  {
+   "regex": "admin/treasury/staff/(?:[^/]+)/actions/",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-staff-actions"
+  },
+  {
+   "regex": "admin/treasury/staff/(?:[^/]+)/actions\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-staff-actions"
+  },
+  {
+   "regex": "admin/treasury/staff/(?:[^/]+)/payments/",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-staff-payments"
+  },
+  {
+   "regex": "admin/treasury/staff/(?:[^/]+)/payments\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-staff-payments"
+  },
+  {
+   "regex": "admin/treasury/moderator-actions/",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-moderator-action-list"
+  },
+  {
+   "regex": "admin/treasury/moderator-actions\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-moderator-action-list"
+  },
+  {
+   "regex": "admin/treasury/moderator-actions/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-moderator-action-detail"
+  },
+  {
+   "regex": "admin/treasury/moderator-actions/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-moderator-action-detail"
+  },
+  {
+   "regex": "admin/treasury/staff-payments/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "treasury-staff-payment-list"
+  },
+  {
+   "regex": "admin/treasury/staff-payments\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "treasury-staff-payment-list"
+  },
+  {
+   "regex": "admin/treasury/staff-payments/bulk_approve/",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-staff-payment-bulk-approve"
+  },
+  {
+   "regex": "admin/treasury/staff-payments/bulk_approve\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-staff-payment-bulk-approve"
+  },
+  {
+   "regex": "admin/treasury/staff-payments/generate/",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-staff-payment-generate"
+  },
+  {
+   "regex": "admin/treasury/staff-payments/generate\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-staff-payment-generate"
+  },
+  {
+   "regex": "admin/treasury/staff-payments/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "treasury-staff-payment-detail"
+  },
+  {
+   "regex": "admin/treasury/staff-payments/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "treasury-staff-payment-detail"
+  },
+  {
+   "regex": "admin/treasury/staff-payments/(?:[^/]+)/approve/",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-staff-payment-approve"
+  },
+  {
+   "regex": "admin/treasury/staff-payments/(?:[^/]+)/approve\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-staff-payment-approve"
+  },
+  {
+   "regex": "admin/treasury/staff-payments/(?:[^/]+)/mark_paid/",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-staff-payment-mark-paid"
+  },
+  {
+   "regex": "admin/treasury/staff-payments/(?:[^/]+)/mark_paid\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-staff-payment-mark-paid"
+  },
+  {
+   "regex": "admin/treasury/expenses/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "treasury-expense-list"
+  },
+  {
+   "regex": "admin/treasury/expenses\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "treasury-expense-list"
+  },
+  {
+   "regex": "admin/treasury/expenses/bulk_approve/",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-expense-bulk-approve"
+  },
+  {
+   "regex": "admin/treasury/expenses/bulk_approve\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-expense-bulk-approve"
+  },
+  {
+   "regex": "admin/treasury/expenses/summary/",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-expense-summary"
+  },
+  {
+   "regex": "admin/treasury/expenses/summary\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-expense-summary"
+  },
+  {
+   "regex": "admin/treasury/expenses/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "treasury-expense-detail"
+  },
+  {
+   "regex": "admin/treasury/expenses/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "treasury-expense-detail"
+  },
+  {
+   "regex": "admin/treasury/expenses/(?:[^/]+)/approve/",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-expense-approve"
+  },
+  {
+   "regex": "admin/treasury/expenses/(?:[^/]+)/approve\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-expense-approve"
+  },
+  {
+   "regex": "admin/treasury/expenses/(?:[^/]+)/reject/",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-expense-reject"
+  },
+  {
+   "regex": "admin/treasury/expenses/(?:[^/]+)/reject\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-expense-reject"
+  },
+  {
+   "regex": "admin/treasury/shareholders/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "treasury-shareholder-list"
+  },
+  {
+   "regex": "admin/treasury/shareholders\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "treasury-shareholder-list"
+  },
+  {
+   "regex": "admin/treasury/shareholders/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "treasury-shareholder-detail"
+  },
+  {
+   "regex": "admin/treasury/shareholders/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "treasury-shareholder-detail"
+  },
+  {
+   "regex": "admin/treasury/shareholders/(?:[^/]+)/dividend_history/",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-shareholder-dividend-history"
+  },
+  {
+   "regex": "admin/treasury/shareholders/(?:[^/]+)/dividend_history\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-shareholder-dividend-history"
+  },
+  {
+   "regex": "admin/treasury/dividends/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "treasury-dividend-list"
+  },
+  {
+   "regex": "admin/treasury/dividends\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "treasury-dividend-list"
+  },
+  {
+   "regex": "admin/treasury/dividends/preview/",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-dividend-preview"
+  },
+  {
+   "regex": "admin/treasury/dividends/preview\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-dividend-preview"
+  },
+  {
+   "regex": "admin/treasury/dividends/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "treasury-dividend-detail"
+  },
+  {
+   "regex": "admin/treasury/dividends/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "treasury-dividend-detail"
+  },
+  {
+   "regex": "admin/treasury/dividends/(?:[^/]+)/approve/",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-dividend-approve"
+  },
+  {
+   "regex": "admin/treasury/dividends/(?:[^/]+)/approve\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-dividend-approve"
+  },
+  {
+   "regex": "admin/treasury/dividends/(?:[^/]+)/distribute/",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-dividend-distribute"
+  },
+  {
+   "regex": "admin/treasury/dividends/(?:[^/]+)/distribute\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "treasury-dividend-distribute"
+  },
+  {
+   "regex": "admin/treasury/dividend-payments/",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-dividend-payment-list"
+  },
+  {
+   "regex": "admin/treasury/dividend-payments\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-dividend-payment-list"
+  },
+  {
+   "regex": "admin/treasury/dividend-payments/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-dividend-payment-detail"
+  },
+  {
+   "regex": "admin/treasury/dividend-payments/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-dividend-payment-detail"
+  },
+  {
+   "regex": "admin/treasury/reports/monthly/",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-reports-monthly"
+  },
+  {
+   "regex": "admin/treasury/reports/monthly\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-reports-monthly"
+  },
+  {
+   "regex": "admin/treasury/reports/profit-loss/",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-reports-profit-loss"
+  },
+  {
+   "regex": "admin/treasury/reports/profit-loss\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-reports-profit-loss"
+  },
+  {
+   "regex": "admin/treasury/reports/summary/",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-reports-summary"
+  },
+  {
+   "regex": "admin/treasury/reports/summary\\.(?:[^/]+)/?",
+   "methods": [
+    "GET"
+   ],
+   "name": "treasury-reports-summary"
+  },
+  {
+   "regex": "admin/treasury/",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "admin/treasury/(?:[^/]+)",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "status/",
+   "methods": [
+    "GET"
+   ],
+   "name": "status-snapshot"
+  },
+  {
+   "regex": "status/services/",
+   "methods": [
+    "GET"
+   ],
+   "name": "status-services"
+  },
+  {
+   "regex": "status/incidents/",
+   "methods": [
+    "GET"
+   ],
+   "name": "status-incidents"
+  },
+  {
+   "regex": "status/incidents/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "status-incident-detail"
+  },
+  {
+   "regex": "announcements/active/",
+   "methods": [
+    "GET"
+   ],
+   "name": "announcements-active"
+  },
+  {
+   "regex": "admin/incidents/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-incident-list"
+  },
+  {
+   "regex": "admin/incidents\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-incident-list"
+  },
+  {
+   "regex": "admin/incidents/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-incident-detail"
+  },
+  {
+   "regex": "admin/incidents/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-incident-detail"
+  },
+  {
+   "regex": "admin/incidents/(?:[^/]+)/updates/",
+   "methods": [
+    "POST"
+   ],
+   "name": "admin-incident-add-update"
+  },
+  {
+   "regex": "admin/incidents/(?:[^/]+)/updates\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "admin-incident-add-update"
+  },
+  {
+   "regex": "admin/incidents/(?:[^/]+)/resolve/",
+   "methods": [
+    "POST"
+   ],
+   "name": "admin-incident-resolve"
+  },
+  {
+   "regex": "admin/incidents/(?:[^/]+)/resolve\\.(?:[^/]+)/?",
+   "methods": [
+    "POST"
+   ],
+   "name": "admin-incident-resolve"
+  },
+  {
+   "regex": "admin/incident-updates/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-incident-update-list"
+  },
+  {
+   "regex": "admin/incident-updates\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-incident-update-list"
+  },
+  {
+   "regex": "admin/incident-updates/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-incident-update-detail"
+  },
+  {
+   "regex": "admin/incident-updates/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-incident-update-detail"
+  },
+  {
+   "regex": "admin/announcements/",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-announcement-list"
+  },
+  {
+   "regex": "admin/announcements\\.(?:[^/]+)/?",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "name": "admin-announcement-list"
+  },
+  {
+   "regex": "admin/announcements/(?:[^/]+)/",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-announcement-detail"
+  },
+  {
+   "regex": "admin/announcements/(?:[^/]+)\\.(?:[^/]+)/?",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-announcement-detail"
+  },
+  {
+   "regex": "admin/",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "admin/(?:[^/]+)",
+   "methods": [
+    "GET"
+   ],
+   "name": "api-root"
+  },
+  {
+   "regex": "admin/client\\-release\\-requirement/",
+   "methods": [
+    "GET",
+    "PATCH",
+    "PUT"
+   ],
+   "name": "admin-client-release-requirement"
+  },
+  {
+   "regex": "schema/",
+   "methods": [
+    "GET"
+   ],
+   "name": "schema"
+  },
+  {
+   "regex": "docs/",
+   "methods": [
+    "GET"
+   ],
+   "name": "swagger-ui"
+  },
+  {
+   "regex": "password\\-reset/request/",
+   "methods": [
+    "POST"
+   ],
+   "name": "password-reset-request"
+  },
+  {
+   "regex": "password\\-reset/confirm/",
+   "methods": [
+    "POST"
+   ],
+   "name": "password-reset-confirm"
+  },
+  {
+   "regex": "password\\-reset/validate/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "password-reset-validate"
+  },
+  {
+   "regex": "verify\\-email/resend/",
+   "methods": [
+    "POST"
+   ],
+   "name": "verify-email-resend"
+  },
+  {
+   "regex": "verify\\-email/(?:[^/]+)/",
+   "methods": [
+    "GET"
+   ],
+   "name": "verify-email"
+  },
+  {
+   "regex": "social\\-auth/google/",
+   "methods": [
+    "POST"
+   ],
+   "name": "google-auth"
+  },
+  {
+   "regex": "social\\-auth/apple/",
+   "methods": [
+    "POST"
+   ],
+   "name": "apple-auth"
+  },
+  {
+   "regex": "auth/phone/send\\-otp/",
+   "methods": [
+    "POST"
+   ],
+   "name": "phone-send-otp"
+  },
+  {
+   "regex": "auth/phone/verify/",
+   "methods": [
+    "POST"
+   ],
+   "name": "phone-verify-otp"
+  },
+  {
+   "regex": "auth/phone/send\\-account\\-verification/",
+   "methods": [
+    "POST"
+   ],
+   "name": "phone-send-account-verification"
+  },
+  {
+   "regex": "auth/phone/verify\\-account/",
+   "methods": [
+    "POST"
+   ],
+   "name": "phone-verify-account"
+  },
+  {
+   "regex": "geocode/search/",
+   "methods": [
+    "GET"
+   ],
+   "name": "geocode-search"
+  }
+ ]
+}

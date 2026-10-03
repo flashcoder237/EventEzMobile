@@ -17,9 +17,15 @@ export function resolveNotificationTarget(n: Notification): NotificationTarget {
   const meta: Record<string, any> = (n as any).payload || n.extra_data || n.data || {};
   const objId = n.related_object_id;
   const eventObj = n.event && typeof n.event === 'object' ? n.event : null;
-  const eventId = eventObj?.id || objId || meta.event_id || meta.event_slug;
-  const eventNav = eventObj?.slug || eventObj?.id || objId || meta.event_slug || meta.event_id;
-  const regId = meta.registration_id;
+  // `related_object_id` n'est un id d'ÉVÉNEMENT que si l'objet lié EST un
+  // événement. Avant, un rappel/une annulation rattaché(e) à une INSCRIPTION
+  // (ou à un paiement, une conversation…) ouvrait la fiche avec cet id →
+  // 404 « événement introuvable » au tap de la notification.
+  const relType = n.related_object_type || '';
+  const objEventId = !relType || relType === 'event' ? objId : null;
+  const eventId = eventObj?.id || meta.event_id || objEventId || meta.event_slug;
+  const eventNav = eventObj?.slug || eventObj?.id || meta.event_slug || meta.event_id || objEventId;
+  const regId = meta.registration_id || (relType === 'registration' ? objId : null);
   // session_id : soit dans extra_data, soit related_object_type='session'.
   const sessionId = meta.session_id || (n.related_object_type === 'session' ? objId : null);
 

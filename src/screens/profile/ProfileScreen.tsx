@@ -48,6 +48,7 @@ import {
 import { centeredContent } from '../../constants/layout';
 import { getOrganizerUrl } from '../../constants/urls';
 import CacheService from '../../services/CacheService';
+import { useGoToSaved } from '../../hooks/useGoToSaved';
 
 // Compteurs du profil : servis depuis le cache (affichage instantané, pas de
 // retour à 0 au focus), rafraîchis au plus une fois par minute ou au
@@ -76,6 +77,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const goToSaved = useGoToSaved();
   const { user, logout, isLoading: authLoading } = useAuth();
   const tour = useTour();
   const { showAlert, showConfirm } = useAlert();
@@ -309,11 +311,16 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.avatarSquareWrap}>
+              {/* Liseré PERMANENT aux couleurs du profil (retour testeur
+                  2026-10-03) : dégradé de marque fixe — aucune animation au
+                  repos ; le balayage de première visite reste un éclat. Pas
+                  de teinte propre à l'utilisateur côté API : dégradé par défaut. */}
               <GradientBorder
                 mode="idle"
                 trigger={avatarRing || undefined}
-                radius={50}
-                width={2}
+                restOpacity={0.9}
+                radius={51}
+                width={3}
                 backgroundColor={colors.background}
                 baseBorderColor="transparent"
                 style={styles.avatarRing}
@@ -663,7 +670,7 @@ export default function ProfileScreen() {
             <MenuItem
               icon="heart-outline"
               title={t('profile.favoritesMenu')}
-              onPress={() => navigation.navigate('Main', { screen: 'Saved' } as any)}
+              onPress={goToSaved}
             />
             <MenuItem
               icon="people-outline"
@@ -892,8 +899,8 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
   },
   avatarRing: {
-    // L'anneau (2 px) + 2 px d'air débordent du carré de 92 sans le décaler.
-    margin: -4,
+    // L'anneau (3 px) + 2 px d'air débordent du carré de 92 sans le décaler.
+    margin: -5,
   },
   avatarRingInner: {
     padding: 2,

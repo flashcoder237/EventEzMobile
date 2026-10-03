@@ -171,6 +171,32 @@ describe('AdminAdFormScreen — creation', () => {
     expect(mockToastSuccess).toHaveBeenCalledWith('Publicité créée');
     expect(mockGoBack).toHaveBeenCalled();
   });
+
+  it('shows the upload-specific message when the network drops mid-upload', async () => {
+    // Panne réseau pendant l'envoi de l'image : l'admin doit apprendre que son
+    // fichier est intact et qu'il peut réessayer — pas un « erreur est survenue »
+    // qui laisse croire à une pub à moitié créée.
+    mockAdCreate.mockRejectedValueOnce(
+      Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' })
+    );
+
+    const { getByText, getByPlaceholderText } = render(<AdminAdFormScreen />);
+
+    fireEvent.press(getByText('Touchez pour choisir (16:9 conseillé)'));
+    await waitFor(() => expect(mockLaunchLib).toHaveBeenCalled());
+
+    fireEvent.changeText(
+      getByPlaceholderText('Ex : Festival de jazz à Yaoundé'),
+      'Festival Cool'
+    );
+
+    fireEvent.press(getByText('Créer la pub'));
+
+    await waitFor(() => expect(mockShowError).toHaveBeenCalled());
+    const [, body] = mockShowError.mock.calls[mockShowError.mock.calls.length - 1];
+    expect(body).toMatch(/toujours sur votre téléphone/i);
+    expect(mockGoBack).not.toHaveBeenCalled();
+  });
 });
 
 describe('AdminAdFormScreen — edition', () => {

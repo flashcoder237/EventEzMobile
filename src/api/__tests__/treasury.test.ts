@@ -42,11 +42,7 @@ describe('treasuryAPI', () => {
       expect(api.get).toHaveBeenCalledWith('/admin/treasury/transactions/tid/');
     });
 
-    it('createTransaction() POSTs /admin/treasury/transactions/', async () => {
-      const data = { amount: 100 };
-      await treasuryAPI.createTransaction(data);
-      expect(api.post).toHaveBeenCalledWith('/admin/treasury/transactions/', data);
-    });
+    // Pas de createTransaction : la route backend est en lecture seule (405).
   });
 
   describe('Staff', () => {

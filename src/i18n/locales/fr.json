@@ -1480,7 +1480,18 @@
     "shareOrganizerA11y": "Partager mon profil organisateur",
     "viewPublicProfileA11y": "Voir mon profil public",
     "orgEventsCount_one": "{{count}} événement",
-    "orgEventsCount_other": "{{count}} événements"
+    "orgEventsCount_other": "{{count}} événements",
+    "unfollowConfirmTitle": "Ne plus suivre ?",
+    "unfollowConfirmMessage": "Vous ne serez plus prévenu des prochains événements de {{name}}.",
+    "followedEventCount_one": "{{count}} événement",
+    "followedEventCount_other": "{{count}} événements",
+    "followingPill": "Suivi",
+    "followedCount_one": "{{formatted}} suivi",
+    "followedCount_other": "{{formatted}} suivis",
+    "followSearchEmptyTitle": "Aucun résultat",
+    "followSearchEmptyText": "Aucun organisateur suivi ne correspond à « {{query}} ».",
+    "followDiscoverCta": "Découvrir des événements",
+    "followSearchPlaceholder": "Rechercher un organisateur"
   },
   "editProfile": {
     "title": "Modifier mon profil",
@@ -1723,7 +1734,9 @@
     "rowMotionGesturesSubtitle": "Secouer, retourner ou tendre le téléphone pour certaines actions. Un bouton reste toujours disponible.",
     "notificationsEyebrowOngoing": "Notifications",
     "rowOngoingEvent": "Billet épinglé le jour J",
-    "rowOngoingEventSubtitle": "Une notification discrète, 3 h avant et pendant l’événement, avec votre billet et l’itinéraire."
+    "rowOngoingEventSubtitle": "Une notification discrète, 3 h avant et pendant l’événement, avec votre billet et l’itinéraire.",
+    "rowNotificationSounds": "Sons des notifications",
+    "rowNotificationSoundsSubtitle": "Choisissez le son de chaque catégorie (moments forts, ventes, messages…) dans les réglages du téléphone"
   },
   "messages": {
     "title": "Messages",
@@ -2171,7 +2184,8 @@
       "notFound": "Nous n'avons pas trouvé ce que vous cherchiez.",
       "conflict": "Cette action entre en conflit avec l'état actuel. Actualisez et réessayez.",
       "tooManyRequests": "Trop de tentatives. Patientez un instant et réessayez.",
-      "server": "Nos serveurs rencontrent un problème pour le moment. Réessayez dans quelques minutes."
+      "server": "Nos serveurs rencontrent un problème pour le moment. Réessayez dans quelques minutes.",
+      "updating": "EventEz est en cours de mise à jour. Réessayez dans quelques secondes."
     },
     "codes": {
       "emailTaken": "Cette adresse email est déjà associée à un compte. Connectez-vous ou utilisez une autre adresse.",
@@ -4530,7 +4544,9 @@
     "limitStock": "Il ne reste que {{max}} billet(s) de ce type.",
     "limitEventCapacity": "Il ne reste que {{max}} place(s) pour cet événement.",
     "onlyNLeft_one": "Plus qu'une place",
-    "onlyNLeft_other": "Plus que {{count}} places"
+    "onlyNLeft_other": "Plus que {{count}} places",
+    "ctaSuspended": "Achats suspendus",
+    "suspendedByIncident": "Les achats sont momentanément suspendus suite à un incident. Suivez son évolution sur la page Statut."
   },
   "registrationDetails": {
     "headerInscription": "Mon inscription",
@@ -4935,7 +4951,7 @@
     "monthNov": "NOV",
     "monthDec": "DÉC",
     "priceFree": "Gratuit",
-    "priceFromShort": "Des {{price}} {{currency}}",
+    "priceFromShort": "Dès {{price}} {{currency}}",
     "priceVariable": "Prix variable",
     "registeredCount": "{{count}} inscrit",
     "registeredCount_other": "{{count}} inscrits",
@@ -7757,6 +7773,7 @@
     "resizeBubble": "Redimensionner"
   },
   "organize": {
+    "favorites": "Mes favoris",
     "eyebrow": "Espace organisateur",
     "title": "Organiser",
     "liveNow": "En cours",

@@ -168,12 +168,30 @@ export function setHeroHidden(token: string, hidden: boolean): void {
   if (slot) slot.hidden.value = hidden ? 1 : 0;
 }
 
+/** Délai max d'une mesure : sur Android (Fabric), `measureInWindow` d'une
+ *  vue pas encore attachée peut ne JAMAIS rappeler. */
+const MEASURE_TIMEOUT_MS = 400;
+
 function measure(node: View | null | undefined): Promise<HeroRect | null> {
   return new Promise((resolve) => {
     if (!node || typeof node.measureInWindow !== 'function') return resolve(null);
-    node.measureInWindow((x, y, width, height) => resolve(width && height ? { x, y, width, height } : null));
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resolve(null);
+    }, MEASURE_TIMEOUT_MS);
+    node.measureInWindow((x, y, width, height) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(width && height ? { x, y, width, height } : null);
+    });
   });
 }
+
+/** Au-delà, l'écran d'arrivée se dévoile même si le vol n'a pas pu démarrer. */
+const REVEAL_FAILSAFE_MS = 900;
 
 /** Re-mesure l'origine si la carte est encore montée (retour). */
 export function measureHeroToken(token: string): Promise<HeroRect | null> {
@@ -234,6 +252,24 @@ export function useHeroFlight(hero: HeroParam | null | undefined, options: HeroF
   // Filet de sécurité : quelle que soit la sortie (retour système, geste,
   // navigation interrompue en plein vol, mesure tardive), la carte d'origine
   // ne doit jamais rester masquée une fois cet écran démonté.
+  // Filet anti-« écran figé » : en vol, TOUT le contenu de l'écran d'arrivée
+  // part à opacité 0 et n'apparaît qu'une fois la destination mesurée. Si la
+  // bannière n'est jamais posée (données en erreur, rendu conditionnel) ou si
+  // la mesure ne rappelle jamais, l'écran restait vide et semblait bloqué.
+  React.useEffect(() => {
+    if (!flying) return;
+    const timer = setTimeout(() => {
+      if (unmounted.current || ready.value === 1) return;
+      started.current = true;
+      ready.value = 1;
+      p.value = 1;
+      content.value = 1;
+      if (hero) setHeroHidden(hero.token, false);
+    }, REVEAL_FAILSAFE_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   React.useEffect(() => {
     unmounted.current = false;
     return () => {

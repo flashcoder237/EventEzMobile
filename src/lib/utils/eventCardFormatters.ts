@@ -128,3 +128,26 @@ export function formatDateShort(date: string, locale: string = 'fr-FR'): string 
     return 'Date TBA';
   }
 }
+
+// ---------- Carte compacte (événements similaires) ----------
+
+/**
+ * Prix « à partir de » d'une carte compacte, à partir de `ticket_price_range`
+ * renvoyé par la liste (« 100.00 XAF » ou « 100.00 - 250.00 XAF »).
+ * Retourne null si l'info n'est pas dans le payload (on n'invente rien).
+ */
+export function compactPriceLabel(
+  event: { ticket_price_range?: string | null; event_type?: string; is_free?: boolean; currency?: string },
+  t?: (key: string, options?: any) => string,
+): string | null {
+  if (event.is_free) return formatCardPrice({ isFree: true, currency: event.currency || 'XAF', t });
+  const raw = (event.ticket_price_range || '').trim();
+  if (!raw) return null;
+  const nums = (raw.match(/\d+(?:[.,]\d+)?/g) || []).map((n) => parseFloat(n.replace(',', '.')));
+  if (!nums.length || nums.some((n) => !Number.isFinite(n))) return null;
+  const currency = (raw.match(/[A-Za-z]{3}\s*$/)?.[0] || event.currency || 'XAF').trim();
+  const max = Math.max(...nums);
+  if (max === 0) return formatCardPrice({ isFree: true, currency, t });
+  const positive = nums.filter((n) => n > 0);
+  return formatCardPrice({ isFree: false, price: Math.min(...positive), currency, t });
+}

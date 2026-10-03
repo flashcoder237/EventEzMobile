@@ -96,8 +96,17 @@ export default function AddToWalletButton({ ticketId }: Props) {
       } else {
         throw new Error('no save_url');
       }
-    } catch {
-      showError('Wallet', "Impossible d'enregistrer dans Google Wallet pour le moment.");
+    } catch (err: any) {
+      // 503 serveur = Google a refusé le pass (ou service coupé) : on montre le
+      // message du serveur et on n'ouvre JAMAIS l'écran Google (qui n'afficherait
+      // qu'un « Une erreur s'est produite » muet).
+      const detail = err?.response?.data?.detail;
+      showError(
+        'Wallet',
+        typeof detail === 'string' && detail
+          ? detail
+          : "Impossible d'enregistrer dans Google Wallet pour le moment.",
+      );
     } finally {
       setLoading(false);
     }

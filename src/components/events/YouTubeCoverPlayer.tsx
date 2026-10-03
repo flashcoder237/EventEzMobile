@@ -23,6 +23,13 @@ import { WEB_BASE_URL } from '../../constants/urls';
 /** Extraits de l'aperçu : positions (fraction de la durée) et longueur. */
 const PREVIEW_POINTS = [0.15, 0.42, 0.68];
 const PREVIEW_CLIP_SECONDS = 4;
+/**
+ * Lecture effective exigée avant de retirer le poster : YouTube affiche titre,
+ * chaîne, « Plus de vidéos » au début de chaque lecture (même avec
+ * controls=0). Le poster les masque. Même valeur dans la page hébergée
+ * `eventez-frontend/public/embed/youtube.html`.
+ */
+export const REVEAL_SECONDS = 2.5;
 
 export function getYouTubeId(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -47,15 +54,19 @@ function buildPlayerHtml(videoId: string, origin: string, preview: boolean): str
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <style>html,body{margin:0;height:100%;background:#000;overflow:hidden}
 #wrap{position:absolute;inset:0;overflow:hidden}
-#p{position:absolute;top:50%;left:50%;width:177.78vh;height:100vh;min-width:100vw;min-height:56.25vw;transform:translate(-50%,-50%);pointer-events:none}</style>
-</head><body><div id="wrap"><div id="p"></div></div>
+#p{position:absolute;top:50%;left:50%;width:177.78vh;height:100vh;min-width:100vw;min-height:56.25vw;transform:translate(-50%,-50%) scale(1.18);pointer-events:none}
+#veil{position:absolute;inset:0}</style>
+</head><body><div id="wrap"><div id="p"></div><div id="veil"></div></div>
 <script>
 var post=function(m){try{window.ReactNativeWebView.postMessage(JSON.stringify(m))}catch(e){}};
 var player=null,ready=false,preview=${preview ? 'true' : 'false'},want=false,seg=0,segEnd=0,timer=null;
+var REVEAL_S=${REVEAL_SECONDS},revealed=false,playStart=-1;
 var POINTS=${JSON.stringify(PREVIEW_POINTS)},CLIP=${PREVIEW_CLIP_SECONDS};
 function startSeg(){var d=player.getDuration()||0;if(d<CLIP*3){player.seekTo(0,true);segEnd=d||1e9;return}
 var t=Math.max(0,Math.min(d-CLIP-1,POINTS[seg%POINTS.length]*d));player.seekTo(t,true);segEnd=t+CLIP}
-function tick(){if(!ready||!preview||!want)return;var c=player.getCurrentTime();if(c>=segEnd){seg++;startSeg()}}
+function tick(){if(!ready||!want)return;var c=player.getCurrentTime();
+if(!revealed&&playStart>=0&&player.getPlayerState()===1){if(c<playStart)playStart=c;if(c-playStart>=REVEAL_S){revealed=true;post({type:'playing'})}}
+if(preview&&c>=segEnd){seg++;startSeg()}}
 window.__ez={
  play:function(){want=true;if(!ready)return;if(preview&&segEnd===0)startSeg();player.playVideo()},
  pause:function(){want=false;if(ready)player.pauseVideo()},
@@ -65,7 +76,7 @@ window.__ez={
 function onYouTubeIframeAPIReady(){player=new YT.Player('p',{host:'https://www.youtube-nocookie.com',videoId:${id},
  playerVars:{autoplay:0,mute:1,controls:0,disablekb:1,fs:0,iv_load_policy:3,modestbranding:1,playsinline:1,rel:0,origin:${org}},
  events:{onReady:function(){ready=true;player.mute();post({type:'ready'});if(want)window.__ez.play();timer=setInterval(tick,250)},
-  onStateChange:function(e){if(e.data===1)post({type:'playing'});else if(e.data===2)post({type:'paused'});
+  onStateChange:function(e){if(e.data===1){if(!revealed&&playStart<0)playStart=player.getCurrentTime()}else if(e.data===2){revealed=false;playStart=-1;post({type:'paused'})}
    else if(e.data===0){if(preview){seg++;startSeg();player.playVideo()}else{player.seekTo(0,true);player.playVideo()}}},
   onError:function(e){post({type:'error',code:e.data})}}})}
 </script><script src="https://www.youtube.com/iframe_api"></script></body></html>`;
@@ -136,6 +147,9 @@ export default function YouTubeCoverPlayer({ videoId, playing, muted, preview = 
     }
     if (msg.type === 'ready') setReady(true);
     else if (msg.type === 'playing' && playing) posterOpacity.value = withTiming(0, { duration: 260 });
+    // Pause côté lecteur (ex. interruption) : YouTube réaffiche son interface
+    // (pause, titre, « Plus de vidéos ») → on remet le poster.
+    else if (msg.type === 'paused') posterOpacity.value = withTiming(1, { duration: 160 });
     else if (msg.type === 'error') {
       if (__DEV__) console.log(`[YouTube] erreur lecteur ${(msg as any).code} (${useInline ? 'page locale' : 'page hébergée'})`);
       posterOpacity.value = 1;

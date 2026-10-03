@@ -14,7 +14,8 @@
  * note de version. Tant que le backend ne les utilise pas, ces canaux sont
  * créés mais inactifs : aucun effet de bord.
  */
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
+import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import i18n from '../../i18n';
 
@@ -50,4 +51,30 @@ export async function ensureSoundChannels(): Promise<void> {
   } catch {
     done = false;
   }
+}
+
+/**
+ * Ouvre les réglages SYSTÈME des notifications d'EventEz, là où l'utilisateur
+ * choisit le son de chaque catégorie.
+ *
+ * - Android : liste des canaux de l'app (Moments forts, Ventes, Messages,
+ *   Rappels…) → pour chacun : son, vibration, silence. C'est la seule façon
+ *   fiable : le son d'un canal est figé par le système après sa création.
+ * - iOS : réglages de l'app (Notifications > Sons). iOS ne permet pas à une
+ *   app de proposer un choix de son par catégorie.
+ */
+export async function openNotificationSoundSettings(): Promise<void> {
+  if (Platform.OS === 'android') {
+    try {
+      const IntentLauncher = require('expo-intent-launcher');
+      const pkg = Constants.expoConfig?.android?.package || 'net.overbrand.eventez';
+      await IntentLauncher.startActivityAsync('android.settings.APP_NOTIFICATION_SETTINGS', {
+        extra: { 'android.provider.extra.APP_PACKAGE': pkg },
+      });
+      return;
+    } catch {
+      // Constructeur exotique : on retombe sur la fiche de l'app.
+    }
+  }
+  await Linking.openSettings().catch(() => {});
 }

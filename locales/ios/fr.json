@@ -1,12 +1,14 @@
 {
-  "CFBundleDisplayName": "EventEz",
-  "NSPhotoLibraryUsageDescription": "Permet à EventEz d'ajouter vos photos à vos messages et à vos événements.",
-  "NSPhotoLibraryAddUsageDescription": "Permet à EventEz d'enregistrer vos billets et les images reçues dans votre galerie.",
-  "NSCameraUsageDescription": "Permet à EventEz d'activer votre caméra pour les événements en visioconférence et pour scanner les QR codes de vos billets.",
-  "NSMicrophoneUsageDescription": "Permet à EventEz d'enregistrer des messages vocaux et de vous faire participer aux événements en visioconférence.",
-  "NSFaceIDUsageDescription": "Permet à EventEz de déverrouiller l'application et de confirmer vos actions sensibles avec Face ID.",
-  "NSLocationWhenInUseUsageDescription": "Permet à EventEz d'accéder à votre position pour trouver des événements à proximité.",
-  "NSLocationAlwaysAndWhenInUseUsageDescription": "Permet à EventEz d'accéder à votre position pour trouver des événements à proximité.",
-  "NSCalendarsUsageDescription": "Permet à EventEz d'ajouter vos événements à votre agenda.",
-  "NSCalendarsFullAccessUsageDescription": "Permet à EventEz d'ajouter vos événements à votre agenda."
+  "ios": {
+    "CFBundleDisplayName": "EventEz",
+    "NSPhotoLibraryUsageDescription": "Permet à EventEz d'ajouter vos photos à vos messages et à vos événements.",
+    "NSPhotoLibraryAddUsageDescription": "Permet à EventEz d'enregistrer vos billets et les images reçues dans votre galerie.",
+    "NSCameraUsageDescription": "Permet à EventEz d'activer votre caméra pour les événements en visioconférence et pour scanner les QR codes de vos billets.",
+    "NSMicrophoneUsageDescription": "Permet à EventEz d'enregistrer des messages vocaux et de vous faire participer aux événements en visioconférence.",
+    "NSFaceIDUsageDescription": "Permet à EventEz de déverrouiller l'application et de confirmer vos actions sensibles avec Face ID.",
+    "NSLocationWhenInUseUsageDescription": "Permet à EventEz d'accéder à votre position pour trouver des événements à proximité.",
+    "NSLocationAlwaysAndWhenInUseUsageDescription": "Permet à EventEz d'accéder à votre position pour trouver des événements à proximité.",
+    "NSCalendarsUsageDescription": "Permet à EventEz d'ajouter vos événements à votre agenda.",
+    "NSCalendarsFullAccessUsageDescription": "Permet à EventEz d'ajouter vos événements à votre agenda."
+  }
 }

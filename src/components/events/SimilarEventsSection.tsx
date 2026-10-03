@@ -26,6 +26,7 @@ import {
 } from '../../constants/theme';
 import EventImage from './EventImage';
 import { toEventPreview } from '../../lib/utils/eventNavPreview';
+import { compactPriceLabel, formatDateAccent } from '../../lib/utils/eventCardFormatters';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -47,7 +48,12 @@ const SimilarEventCard = memo(function SimilarEventCard({
   onPress: () => void;
 }) {
   const { colors } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLabel = event.start_date
+    ? formatDateAccent(event.start_date, i18n.language?.startsWith('en') ? 'en-GB' : 'fr-FR')
+    : null;
+  const priceLabel = compactPriceLabel(event as any, t);
+  const meta = [dateLabel, event.location_city].filter(Boolean).join(' · ');
   // Vignette WebP 400px si générée, sinon l'originale.
   const banner = getEventImageUrl(event, 'thumb');
 
@@ -69,11 +75,14 @@ const SimilarEventCard = memo(function SimilarEventCard({
         <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
           {event.title}
         </Text>
-        {event.location_city && (
-          <Text style={[styles.cardCity, { color: colors.gray500 }]} numberOfLines={1}>
-            {event.location_city}
-          </Text>
-        )}
+        {/* Date · ville, puis prix : deux lignes TOUJOURS réservées pour que
+            toutes les cartes du carrousel gardent la même hauteur. */}
+        <Text style={[styles.cardMeta, { color: colors.gray500 }]} numberOfLines={1}>
+          {meta || ' '}
+        </Text>
+        <Text style={[styles.cardPrice, { color: colors.primary }]} numberOfLines={1}>
+          {priceLabel || ' '}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -174,10 +183,17 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     letterSpacing: -0.2,
     lineHeight: 18,
+    // 2 lignes réservées : hauteur identique quel que soit le titre.
+    minHeight: 36,
   },
-  cardCity: {
+  cardMeta: {
     fontFamily: FontFamily.medium,
     fontSize: FontSizes.xs,
-    marginTop: 4,
+    marginTop: 6,
+  },
+  cardPrice: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.xs,
+    marginTop: 2,
   },
 });

@@ -6,7 +6,7 @@
  *  - render initial avec eventId + user organizer (bouton + visible)
  *  - open du modal create role
  *  - validation : titre requis, capacité ≥ 1
- *  - submit OK → volunteersAPI.createRole avec event + title + quantity_needed
+ *  - submit OK → volunteersAPI.createRole avec event + title + max_volunteers (noms du modèle backend)
  *  - submit fail → showError avec le detail backend
  */
 import React from 'react';
@@ -192,8 +192,8 @@ describe('VolunteerScreen — create role (organizer)', () => {
         event: 'event-42',
         title: 'Accueil',
         description: 'Préparation salle',
-        requirements: 'Majeur',
-        quantity_needed: 8,
+        responsibilities: ['Majeur'],
+        max_volunteers: 8,
       });
     });
   });

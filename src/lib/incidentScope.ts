@@ -18,6 +18,19 @@
  * services (ex. l'achat de billet utilise `registrations` ET `payments.notchpay`).
  */
 
+// Toutes les clés « encaissement » : un incident sur l'une d'elles concerne
+// les écrans d'achat (le backend retire la passerelle du routage, mais le
+// payeur doit savoir pourquoi son moyen habituel est indisponible).
+const PAYMENT_COLLECT = [
+  'payments.collect',
+  'payments.notchpay',
+  'payments.cinetpay',
+  'payments.campay',
+  'payments.pawapay',
+  'payments.stripe',
+  'payments.flutterwave',
+];
+
 const ROUTE_TO_SERVICES: Record<string, string[]> = {
   // === Messagerie ===
   Messages: ['messaging'],
@@ -28,13 +41,13 @@ const ROUTE_TO_SERVICES: Record<string, string[]> = {
   GroupMembers: ['messaging'],
 
   // === Paiement & billets ===
-  Payment: ['payments.notchpay', 'registrations'],
-  PaymentSuccess: ['payments.notchpay'],
-  PaymentFailed: ['payments.notchpay'],
-  MyPayments: ['payments.notchpay'],
-  RefundRequest: ['payments.notchpay'],
-  RefundsList: ['payments.notchpay'],
-  TicketPurchase: ['payments.notchpay', 'registrations'],
+  Payment: [...PAYMENT_COLLECT, 'registrations'],
+  PaymentSuccess: PAYMENT_COLLECT,
+  PaymentFailed: PAYMENT_COLLECT,
+  MyPayments: PAYMENT_COLLECT,
+  RefundRequest: PAYMENT_COLLECT,
+  RefundsList: PAYMENT_COLLECT,
+  TicketPurchase: [...PAYMENT_COLLECT, 'registrations'],
   MyTickets: ['registrations'],
   TicketDetails: ['registrations'],
   TicketTransfer: ['registrations'],
@@ -42,7 +55,7 @@ const ROUTE_TO_SERVICES: Record<string, string[]> = {
   // === Événements (consultation + création) ===
   Discover: ['core.events'],
   Home: ['core.events'],
-  EventDetails: ['core.events', 'registrations'],
+  EventDetails: ['core.events', 'registrations', 'payments.collect'],
   EventCreate: ['core.events', 'ai.assist'],
   EventEdit: ['core.events'],
   MyEvents: ['core.events'],

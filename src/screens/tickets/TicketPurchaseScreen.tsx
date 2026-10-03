@@ -52,6 +52,7 @@ import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { haptics } from '../../utils/haptics';
+import { useServiceBlock } from '../../contexts/StatusContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TicketPurchaseRouteProp = RouteProp<RootStackParamList, 'TicketPurchase'>;
@@ -111,6 +112,10 @@ function autoPrefillFormData(fields: FormField[], user: any): Record<string, any
 
 export default function TicketPurchaseScreen() {
   const { t } = useTranslation();
+  // Incident déclaré qui suspend les inscriptions (ou les encaissements) :
+  // on désactive l'action avec un message plutôt que de laisser échouer.
+  const registrationsBlock = useServiceBlock(['registrations']);
+  const collectBlock = useServiceBlock(['payments.collect']);
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<TicketPurchaseRouteProp>();
   const { eventId, ticketTypeId, registrationId, additionalTickets } = route.params;
@@ -575,6 +580,13 @@ export default function TicketPurchaseScreen() {
     });
     return total;
   };
+
+  const purchaseSuspended = !!registrationsBlock || (!event?.is_free && !!collectBlock);
+  const purchaseDisabled =
+    purchaseSuspended
+    || (event?.event_type === 'billetterie' && getTotalQuantity() === 0)
+    || submitting
+    || (!isEditMode && !isAdditionalMode && !!existingRegistration);
 
   const handleProceed = async () => {
     // Protection contre double soumission
@@ -1439,10 +1451,11 @@ export default function TicketPurchaseScreen() {
         </View>
         <TouchableOpacity
           onPress={handleProceed}
-          disabled={(event?.event_type === 'billetterie' && getTotalQuantity() === 0) || submitting || (!isEditMode && !isAdditionalMode && !!existingRegistration)}
+          disabled={purchaseDisabled}
+          accessibilityHint={purchaseSuspended ? t('ticketPurchase.suspendedByIncident') : undefined}
           style={[
             styles.bottomCtaPill,
-            ((event?.event_type === 'billetterie' && getTotalQuantity() === 0) || submitting || (!isEditMode && !isAdditionalMode && !!existingRegistration)) && { opacity: 0.5 },
+            (purchaseDisabled) && { opacity: 0.5 },
             Shadows.buttonPrimary,
           ]}
           activeOpacity={0.9}
@@ -1455,7 +1468,9 @@ export default function TicketPurchaseScreen() {
             style={StyleSheet.absoluteFill}
           />
           <Text style={styles.bottomCtaText}>
-            {submitting
+            {purchaseSuspended
+              ? t('ticketPurchase.ctaSuspended')
+              : submitting
               ? t('ticketPurchase.ctaProcessing')
               : isEditMode
               ? t('ticketPurchase.ctaUpdate')

@@ -270,7 +270,7 @@ exports[`EventCard snapshots renders compact variant 1`] = `
             ]
           }
         >
-          Des 5 000 FCFA
+          Dès 5 000 FCFA
         </Text>
       </View>
     </View>
@@ -705,7 +705,7 @@ exports[`EventCard snapshots renders default variant 1`] = `
             }
           }
         >
-          Des 5 000 FCFA
+          Dès 5 000 FCFA
         </Text>
       </View>
     </View>
@@ -1624,7 +1624,7 @@ exports[`EventCard snapshots renders default variant with isFeatured + isLiked 1
             }
           }
         >
-          Des 5 000 FCFA
+          Dès 5 000 FCFA
         </Text>
       </View>
     </View>
@@ -2287,7 +2287,7 @@ exports[`EventCard snapshots renders featured variant 1`] = `
             ]
           }
         >
-          Des 5 000 FCFA
+          Dès 5 000 FCFA
         </Text>
       </View>
     </View>
@@ -2683,7 +2683,7 @@ exports[`EventCard snapshots renders grid variant with online location 1`] = `
             ]
           }
         >
-          Des 5 000 FCFA
+          Dès 5 000 FCFA
         </Text>
       </View>
     </View>
@@ -3049,7 +3049,7 @@ exports[`EventCard snapshots renders horizontal variant 1`] = `
             ]
           }
         >
-          Des 5 000 FCFA
+          Dès 5 000 FCFA
         </Text>
       </View>
     </View>

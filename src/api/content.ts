@@ -125,9 +125,6 @@ export const virtualRoomsAPI = {
   getById: (id: string) =>
     api.get(`/virtual-rooms/${id}/`),
 
-  join: (id: string) =>
-    api.post(`/virtual-rooms/${id}/join/`),
-
   leave: (id: string) =>
     api.post(`/virtual-rooms/${id}/leave/`),
 

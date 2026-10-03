@@ -246,8 +246,12 @@ export const usersAPI = {
   updateUserFollowPreferences: (id: number, preferences: any) =>
     api.patch(`/users/${id}/update_follow_preferences/`, preferences),
 
-  getFollowingUsers: () =>
-    api.get('/users/following_users/'),
+  // Paginé dès qu'on passe `page` (sinon tableau complet, contrat historique).
+  getFollowingUsers: (params?: { page?: number; page_size?: number; search?: string }) =>
+    (params ? api.get('/users/following_users/', { params }) : api.get('/users/following_users/')),
+
+  getMyFollowers: (params?: { page?: number; page_size?: number; search?: string }) =>
+    (params ? api.get('/users/my_followers/', { params }) : api.get('/users/my_followers/')),
 
   // Export — admin only — use `useExport()` hook instead.
   // Endpoint kept for reference: GET /users/export/?role=&export_format=csv|xlsx|pdf

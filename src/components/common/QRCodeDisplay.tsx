@@ -161,14 +161,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
+    alignSelf: 'stretch',
+    // Laisse la place au bouton fermer (36 px) pour un titre long.
+    paddingHorizontal: 40,
     fontSize: FontSizes.xl,
     fontFamily: FontFamily.displayBold,
     letterSpacing: -0.3,
     textAlign: 'center',
     marginTop: Spacing.sm,
   },
+  // alignSelf 'stretch' + police explicite : dans une feuille `alignItems:
+  // 'center'`, Android mesurait la largeur du texte avec la police par défaut
+  // puis le dessinait avec la nôtre (plus large) → dernier mot coupé, sans
+  // ellipse (« … pour partager votre » au lieu de « … votre profil »).
   subtitle: {
+    alignSelf: 'stretch',
+    fontFamily: FontFamily.regular,
     fontSize: FontSizes.sm,
+    lineHeight: 20,
     textAlign: 'center',
     marginTop: Spacing.xs,
   },
@@ -183,7 +193,10 @@ const styles = StyleSheet.create({
     ...Shadows.md,
   },
   hint: {
+    alignSelf: 'stretch',
+    fontFamily: FontFamily.regular,
     fontSize: FontSizes.sm,
+    lineHeight: 20,
     textAlign: 'center',
     marginBottom: Spacing.md,
   },

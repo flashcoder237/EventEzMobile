@@ -47,7 +47,10 @@ export default function IncidentBanner() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
-  const { lastServiceIncident, blockingIncident, clearServiceIncident } = useStatus();
+  const {
+    lastServiceIncident, blockingIncident, clearServiceIncident,
+    visibleIncidents, dismissIncident,
+  } = useStatus();
 
   // Si MaintenanceGate prend le dessus (incident bloquant global), on
   // n'affiche pas le banner — la full screen le couvre déjà.
@@ -56,9 +59,25 @@ export default function IncidentBanner() {
   // paiement n'a pas à voir un incident messagerie.
   const currentRoute = useCurrentRoute();
   const rawIncident = !blockingIncident ? lastServiceIncident : null;
-  const incident = shouldShowIncidentForRoute(rawIncident as any, currentRoute)
+  const fromError = shouldShowIncidentForRoute(rawIncident as any, currentRoute)
     ? rawIncident
     : null;
+  // Annonce PROACTIVE : un incident actif pertinent pour l'écran courant est
+  // signalé dès que le statut est connu (polling 60 s + retour au premier
+  // plan), sans attendre qu'une requête échoue. Les incidents bloquants
+  // globaux restent l'affaire de MaintenanceGate ; l'écran Statut n'a pas
+  // besoin du bandeau.
+  const onStatusScreen = currentRoute === 'SystemStatus'
+    || currentRoute === 'IncidentDetails' || currentRoute === 'Maintenance';
+  const proactive = !fromError && !blockingIncident && !onStatusScreen
+    ? visibleIncidents.find(
+        (i) => !(i.is_blocking && i.scope === 'global')
+          && shouldShowIncidentForRoute(i, currentRoute),
+      ) ?? null
+    : null;
+  const incident: (typeof fromError & { affected_services_labels?: { key: string; label: string }[]; updated_at?: string }) | null =
+    (fromError as any) ?? (proactive as any);
+  const isProactive = !fromError && !!proactive;
 
   const translateY = useSharedValue(-200);
   const opacity = useSharedValue(0);
@@ -74,7 +93,8 @@ export default function IncidentBanner() {
       // Auto-dismiss
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
       dismissTimerRef.current = setTimeout(() => {
-        clearServiceIncident();
+        if (isProactive && proactive) dismissIncident(proactive, false);
+        else clearServiceIncident();
       }, AUTO_DISMISS_MS);
     } else {
       // Slide out
@@ -116,13 +136,16 @@ export default function IncidentBanner() {
 
   const handleDismiss = () => {
     haptics.selection();
-    clearServiceIncident();
+    if (isProactive && proactive) dismissIncident(proactive, true);
+    else clearServiceIncident();
   };
 
   // Service touché (ex. "messaging", "payments") — affiché si scope=service
+  // Libellés lisibles (« Paiements CinetPay »), jamais les clés techniques
+  // (« payments.cinetpay ») — le 503 n'en fournit pas : pas de pastille alors.
   const affectedLabel =
-    incident.scope === 'service' && incident.affected_services?.length
-      ? incident.affected_services.join(', ')
+    incident.scope === 'service' && incident.affected_services_labels?.length
+      ? incident.affected_services_labels.map((l) => l.label).join(', ')
       : null;
 
   return (

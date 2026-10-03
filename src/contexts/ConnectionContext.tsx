@@ -51,8 +51,12 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
     try {
-      await fetch(`${API_BASE_URL}/categories/`, {
-        method: 'HEAD',
+      // Sonde légère dédiée (SELECT 1 + ping Redis), en GET : l'ancien
+      // HEAD /categories/ sérialisait toute la liste pour rien et faisait
+      // logguer Gunicorn (« body bytes on a no-body response ») à chaque
+      // retour au premier plan (ex. après le sélecteur de photos).
+      await fetch(`${API_BASE_URL}/health/`, {
+        method: 'GET',
         signal: controller.signal,
       });
       // Server responded — mark as reachable, reset fail counter

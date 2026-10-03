@@ -140,6 +140,9 @@ const processQueue = (error: any, token: string | null = null) => {
 // l'utilisateur qui fixe un écran de chargement).
 const MAX_TIMEOUT_RETRIES = 2;
 const RETRY_BACKOFF_MS = [500, 1500] as const;
+// Redémarrage d'un conteneur pendant un déploiement : ~10-40 s. Trois
+// tentatives espacées couvrent l'essentiel sans figer l'écran trop longtemps.
+const UPDATING_RETRY_DELAYS_MS = [2000, 5000, 10000] as const;
 
 /**
  * True si l'appareil est CONNU hors-ligne (NetInfo). Réessayer une requête
@@ -310,6 +313,24 @@ api.interceptors.response.use(
       } else {
         if (__DEV__) console.error(`[API] File upload failed for ${originalRequest.url} (no retry for FormData)`);
         eventBus.emit('api-server-error');
+      }
+    }
+
+    // Serveur en cours de mise à jour (déploiement) : nginx répond 502/504 —
+    // ou 503 `updating` via sa page de maintenance — pendant les quelques
+    // secondes où un conteneur redémarre. Pour une LECTURE (GET/HEAD), on
+    // retente en silence : la coupure est courte. Jamais pour une écriture
+    // (paiement, inscription…) : la rejouer pourrait la doubler.
+    const method = (originalRequest?.method || 'get').toLowerCase();
+    const isUpdating =
+      status === 502 || status === 504
+      || (status === 503 && (error.response?.data as any)?.code === 'updating');
+    if (isUpdating && originalRequest && (method === 'get' || method === 'head')) {
+      const n = (originalRequest as any)._updatingRetryCount || 0;
+      if (n < UPDATING_RETRY_DELAYS_MS.length) {
+        (originalRequest as any)._updatingRetryCount = n + 1;
+        await new Promise((resolve) => setTimeout(resolve, UPDATING_RETRY_DELAYS_MS[n]));
+        return api(originalRequest);
       }
     }
 

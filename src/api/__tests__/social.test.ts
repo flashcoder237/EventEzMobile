@@ -13,6 +13,11 @@ jest.mock('../instance', () => {
   return createTestMock();
 });
 
+jest.mock('../config', () => ({
+  ...jest.requireActual('../config'),
+  fetchUpload: jest.fn(() => Promise.resolve({ data: {} })),
+}));
+
 import {
   socialAPI,
   invitationsAPI,
@@ -21,7 +26,10 @@ import {
   recommendationsAPI,
   advertisementsAPI,
 } from '../social';
+import { fetchUpload } from '../config';
 import { getMockedApi, resetMockApi } from '../../__tests__/__helpers__/apiMock';
+
+const fetchUploadMock = fetchUpload as jest.Mock;
 
 const expectOnly = (
   api: ReturnType<typeof getMockedApi>,
@@ -257,11 +265,11 @@ describe('referralsAPI', () => {
     expectOnly(api, 'get');
   });
 
-  it('trackClick() POSTs /referrals/track/ with code', async () => {
+  it('trackClick() GETs /referrals/track/?code= (backend @api_view GET)', async () => {
     await referralsAPI.trackClick('ABC123');
-    expect(api.post).toHaveBeenCalledWith('/referrals/track/', { code: 'ABC123' });
-    expect(api.post).toHaveBeenCalledTimes(1);
-    expectOnly(api, 'post');
+    expect(api.get).toHaveBeenCalledWith('/referrals/track/', { params: { code: 'ABC123' } });
+    expect(api.get).toHaveBeenCalledTimes(1);
+    expectOnly(api, 'get');
   });
 });
 
@@ -356,7 +364,10 @@ describe('recommendationsAPI', () => {
 
 describe('advertisementsAPI', () => {
   const api = getMockedApi();
-  beforeEach(() => resetMockApi());
+  beforeEach(() => {
+    resetMockApi();
+    fetchUploadMock.mockClear();
+  });
 
   it('getNearby() GETs /advertisements/nearby/ with params', async () => {
     await advertisementsAPI.getNearby({ country: 'CM', city: 'Douala' });
@@ -395,41 +406,38 @@ describe('advertisementsAPI', () => {
     expectOnly(api, 'get');
   });
 
-  it('create() POSTs /advertisements/ with multipart header for FormData', async () => {
+  // Les uploads multipart passent par fetchUpload (fetch natif), jamais par axios :
+  // le FormData polyfillé de React Native est mal sérialisé par axios, et un
+  // Content-Type forcé prive la requête de son boundary → ERR_NETWORK.
+  it('create() routes FormData through fetchUpload, never axios', async () => {
     const fd = new FormData();
     await advertisementsAPI.create(fd);
-    expect(api.post).toHaveBeenCalledWith('/advertisements/', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    expect(api.post).toHaveBeenCalledTimes(1);
-    expectOnly(api, 'post');
+    expect(fetchUploadMock).toHaveBeenCalledWith('POST', '/advertisements/', fd);
+    expect(api.post).not.toHaveBeenCalled();
   });
 
-  it('create() POSTs /advertisements/ without multipart header for plain object', async () => {
+  it('create() POSTs a plain object through axios, without multipart header', async () => {
     const data = { title: 'Ad' };
     await advertisementsAPI.create(data);
-    expect(api.post).toHaveBeenCalledWith('/advertisements/', data, { headers: undefined });
+    expect(api.post).toHaveBeenCalledWith('/advertisements/', data);
     expect(api.post).toHaveBeenCalledTimes(1);
+    expect(fetchUploadMock).not.toHaveBeenCalled();
     expectOnly(api, 'post');
   });
 
-  it('update() PATCHes /advertisements/{id}/ with multipart header for FormData', async () => {
+  it('update() routes FormData through fetchUpload, never axios', async () => {
     const fd = new FormData();
     await advertisementsAPI.update('aid', fd);
-    expect(api.patch).toHaveBeenCalledWith('/advertisements/aid/', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    expect(api.patch).toHaveBeenCalledTimes(1);
-    expectOnly(api, 'patch');
+    expect(fetchUploadMock).toHaveBeenCalledWith('PATCH', '/advertisements/aid/', fd);
+    expect(api.patch).not.toHaveBeenCalled();
   });
 
-  it('update() PATCHes /advertisements/{id}/ without multipart header for plain object', async () => {
+  it('update() PATCHes a plain object through axios', async () => {
     const data = { title: 'Ad' };
     await advertisementsAPI.update('aid', data);
-    expect(api.patch).toHaveBeenCalledWith('/advertisements/aid/', data, {
-      headers: undefined,
-    });
+    expect(api.patch).toHaveBeenCalledWith('/advertisements/aid/', data);
     expect(api.patch).toHaveBeenCalledTimes(1);
+    expect(fetchUploadMock).not.toHaveBeenCalled();
     expectOnly(api, 'patch');
   });
 

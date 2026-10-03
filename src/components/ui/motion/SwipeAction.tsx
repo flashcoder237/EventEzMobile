@@ -28,9 +28,17 @@ import ReanimatedSwipeable, {
 } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { haptics } from '../../../utils/haptics';
 import { FontFamily } from '../../../constants/theme';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 /** Seuil du balayage complet, en fraction de la largeur de la ligne. */
-export const FULL_SWIPE_RATIO = 0.6;
+export const FULL_SWIPE_RATIO = 0.7;
+
+/**
+ * Distance horizontale (px) avant que le balayage ne prenne la main. 10 par
+ * défaut dans gesture-handler : un défilement vertical un peu en biais
+ * ouvrait la ligne (« trop sensible », retour testeur 2026-10-03).
+ */
+export const SWIPE_ACTIVATION_PX = 24;
 
 export interface SwipeActionItem {
   key: string;
@@ -51,6 +59,12 @@ export interface SwipeActionProps {
   fullSwipe?: boolean;
   actionWidth?: number;
   enabled?: boolean;
+  /**
+   * Fond OPAQUE de la ligne. Indispensable : les actions sont peintes SOUS la
+   * ligne ; une ligne transparente laissait le titre, la date et le badge
+   * s'afficher par-dessus le rouge/orange. Défaut : fond de l'écran.
+   */
+  rowBackground?: string;
 }
 
 type Side = 'left' | 'right';
@@ -64,7 +78,9 @@ export function SwipeAction({
   fullSwipe = true,
   actionWidth = 80,
   enabled = true,
+  rowBackground,
 }: SwipeActionProps) {
+  const { colors } = useTheme();
   const ref = useRef<SwipeableMethods>(null);
   const [rowW, setRowW] = useState(0);
   const armed = useRef<Side | null>(null);
@@ -127,9 +143,13 @@ export function SwipeAction({
       <ReanimatedSwipeable
         ref={ref}
         enabled={enabled}
-        friction={1.5}
-        leftThreshold={actionWidth * 0.5}
-        rightThreshold={actionWidth * 0.5}
+        friction={2}
+        leftThreshold={actionWidth * 0.6}
+        rightThreshold={actionWidth * 0.6}
+        dragOffsetFromLeftEdge={SWIPE_ACTIVATION_PX}
+        dragOffsetFromRightEdge={SWIPE_ACTIVATION_PX}
+        containerStyle={styles.clip}
+        childrenContainerStyle={{ backgroundColor: rowBackground ?? colors.background }}
         overshootLeft={fullSwipe && !!leftActions?.length}
         overshootRight={fullSwipe && !!rightActions?.length}
         renderLeftActions={renderPanel('left', leftActions)}
@@ -241,6 +261,7 @@ function ActionButton({
 }
 
 const styles = StyleSheet.create({
+  clip: { overflow: 'hidden' },
   panel: { flexDirection: 'row', alignItems: 'stretch' },
   panelLeft: { justifyContent: 'flex-start' },
   panelRight: { justifyContent: 'flex-end' },

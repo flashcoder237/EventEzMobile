@@ -172,8 +172,8 @@ export const volunteersAPI = {
     event: string;
     title: string;
     description?: string;
-    requirements?: string;
-    quantity_needed?: number;
+    responsibilities?: string[];
+    max_volunteers?: number;
   }) => api.post('/volunteer-roles/', data),
 
   updateRole: (id: string, data: any) =>

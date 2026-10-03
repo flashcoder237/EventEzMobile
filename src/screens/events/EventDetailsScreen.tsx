@@ -52,6 +52,7 @@ import BlurHeader from '../../components/ui/BlurHeader';
 import FollowEventButton from '../../components/events/FollowEventButton';
 import DoubleTapSaveLayer from '../../components/gestures/DoubleTapSaveLayer';
 import EventCoverMedia from '../../components/events/EventCoverMedia';
+import { resolveCoverEmbed } from '../../lib/utils/videoUrl';
 import EventCoverVideoModal from '../../components/events/EventCoverVideoModal';
 import FollowUserButton from '../../components/common/FollowUserButton';
 import AddToCalendarButton from '../../components/events/AddToCalendarButton';
@@ -380,7 +381,7 @@ export default function EventDetailsScreen() {
   // Cover video présente (upload OU embed) → on propose un vrai lecteur plein
   // écran (avec son) plutôt que d'ouvrir la galerie photo au tap sur la bannière.
   const coverVideoUri = event?.cover_video ? getMediaUrl(event.cover_video) : null;
-  const coverVideoEmbed = event?.cover_video_embed || null;
+  const coverVideoEmbed = resolveCoverEmbed(event) || null;
   // Si la vidéo a planté, on la traite comme absente : image + tap galerie réactivé.
   const hasCoverVideo = (!!coverVideoUri || !!coverVideoEmbed) && !videoUnavailable;
 
@@ -804,6 +805,10 @@ export default function EventDetailsScreen() {
         bounces={true}
         onScroll={onScroll}
         scrollEventThrottle={16}
+        // Formulaire d'avis (bas de page) : iOS décale le contenu au-dessus du
+        // clavier ; un tap hors champ (étoiles, Publier) n'est pas avalé.
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
       >
         {/* Banner Image with parallax — structure en couches :
             1. Image (fond, plein cadre 360px)
@@ -822,7 +827,7 @@ export default function EventDetailsScreen() {
           {/* Contre-échelle : l'image n'est jamais déformée pendant le vol. */}
           <Animated.View style={[StyleSheet.absoluteFill, heroFlight.innerStyle]}>
           {/* 1. Image OU video */}
-          {(event?.cover_video || event?.cover_video_embed) ? (
+          {event && (event.cover_video || coverVideoEmbed) ? (
             <Animated.View style={[styles.bannerImage, bannerAnimatedStyle]}>
               <EventCoverMedia
                 event={event}
@@ -1413,9 +1418,10 @@ export default function EventDetailsScreen() {
             onFollowChange={handleFollowChange}
             onNavigateVolunteers={() => navigation.navigate('Volunteers', {
               eventId: event.slug || event.id,
-              // Vue gestion seulement si l'utilisateur possède réellement cet
-              // event (ou est admin) ; sinon vue bénévole (postuler).
-              manage: (!!user && String(event.organizer?.id) === String(user.id)) || user?.role === 'admin',
+              // Vue gestion (« + » créer un rôle) réservée à l'ORGANISATEUR de
+              // l'event — plus aux admins plateforme (retour testeur 2026-10-03).
+              // L'équipe gère depuis Mes événements (manage: true).
+              manage: !!user && String(event.organizer?.id) === String(user.id),
             })}
           />
 

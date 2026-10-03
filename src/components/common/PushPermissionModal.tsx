@@ -146,7 +146,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 6,
   },
+  // alignSelf 'stretch' : même piège que QRCodeDisplay (feuille centrée →
+  // largeur mesurée trop juste sur Android, dernier mot coupé).
   title: {
+    alignSelf: 'stretch',
     fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.xl,
     letterSpacing: -0.3,
@@ -154,6 +157,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   description: {
+    alignSelf: 'stretch',
     fontFamily: FontFamily.regular,
     fontSize: FontSizes.sm,
     textAlign: 'center',

@@ -9,6 +9,7 @@ import React, {
   ReactNode,
 } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { statusAPI } from '../api';
 import { eventBus } from '../lib/eventBus';
@@ -27,7 +28,23 @@ interface StatusContextValue {
   lastServiceIncident: ServiceUnavailablePayload | null;
   refresh: () => Promise<void>;
   clearServiceIncident: () => void;
+  /**
+   * Incidents ACTIFS non fermés par l'utilisateur, à annoncer PROACTIVEMENT
+   * (sans attendre qu'une requête tombe en 503). Avant, un incident non
+   * bloquant (« paiements dégradés ») n'était visible que sur la page Statut.
+   */
+  visibleIncidents: Incident[];
+  /** Ferme le bandeau d'un incident. `persist` = ne plus le montrer tant
+   *  qu'il n'a pas de nouvelle mise à jour (sinon : pour cette session). */
+  dismissIncident: (incident: Pick<Incident, 'id' | 'updated_at'>, persist?: boolean) => void;
 }
+
+// Clé « vu » = id + date de dernière mise à jour : une nouvelle mise à jour
+// de l'incident le ré-affiche, ce qui est le comportement attendu.
+const DISMISSED_KEY = '@eventez_dismissed_incidents';
+const DISMISSED_CAP = 50;
+export const incidentSeenKey = (i: Pick<Incident, 'id' | 'updated_at'>) =>
+  `${i.id}:${i.updated_at || ''}`;
 
 const StatusContext = createContext<StatusContextValue | undefined>(undefined);
 
@@ -40,6 +57,42 @@ export function StatusProvider({ children }: { children: ReactNode }) {
   const [lastServiceIncident, setLastServiceIncident] =
     useState<ServiceUnavailablePayload | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
+  const persistedRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(DISMISSED_KEY);
+        const list: string[] = raw ? JSON.parse(raw) : [];
+        if (!alive || !Array.isArray(list)) return;
+        persistedRef.current = list;
+        setDismissed((prev) => new Set([...list, ...prev]));
+      } catch {
+        // Stockage indisponible : on ré-affichera simplement le bandeau.
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  const dismissIncident = useCallback(
+    (incident: Pick<Incident, 'id' | 'updated_at'>, persist = true) => {
+      const key = incidentSeenKey(incident);
+      setDismissed((prev) => {
+        if (prev.has(key)) return prev;
+        const next = new Set(prev);
+        next.add(key);
+        return next;
+      });
+      if (persist) {
+        const list = [key, ...persistedRef.current.filter((k) => k !== key)].slice(0, DISMISSED_CAP);
+        persistedRef.current = list;
+        AsyncStorage.setItem(DISMISSED_KEY, JSON.stringify(list)).catch(() => {});
+      }
+    },
+    [],
+  );
 
   const refresh = useCallback(async () => {
     try {
@@ -116,6 +169,13 @@ export function StatusProvider({ children }: { children: ReactNode }) {
     setLastServiceIncident(null);
   }, []);
 
+  const visibleIncidents = useMemo<Incident[]>(() => {
+    if (!snapshot?.active_incidents) return [];
+    return snapshot.active_incidents.filter(
+      (i) => i.status !== 'resolved' && !dismissed.has(incidentSeenKey(i)),
+    );
+  }, [snapshot, dismissed]);
+
   const value = useMemo<StatusContextValue>(
     () => ({
       snapshot,
@@ -125,8 +185,12 @@ export function StatusProvider({ children }: { children: ReactNode }) {
       lastServiceIncident,
       refresh,
       clearServiceIncident,
+      visibleIncidents,
+      dismissIncident,
     }),
     [
+      visibleIncidents,
+      dismissIncident,
       snapshot,
       isLoading,
       lastFetchedAt,
@@ -140,6 +204,26 @@ export function StatusProvider({ children }: { children: ReactNode }) {
   return (
     <StatusContext.Provider value={value}>{children}</StatusContext.Provider>
   );
+}
+
+/**
+ * Incident BLOQUANT actif sur l'un des services donnés (scope service), ou
+ * null. Sert à désactiver une action AVANT que l'utilisateur ne la tente
+ * (ex. bouton d'achat quand les inscriptions sont suspendues). Le backend
+ * reste juge (503) : ceci n'est qu'un confort d'affichage.
+ */
+export function useServiceBlock(serviceKeys: string[]): Incident | null {
+  const ctx = useContext(StatusContext);
+  const keys = serviceKeys.join('|');
+  return useMemo(() => {
+    const incidents = ctx?.snapshot?.active_incidents;
+    if (!incidents) return null;
+    const wanted = keys.split('|').filter(Boolean);
+    return incidents.find(
+      (i) => i.is_blocking && i.status !== 'resolved' && i.scope === 'service'
+        && i.affected_services?.some((s) => wanted.includes(s)),
+    ) ?? null;
+  }, [ctx?.snapshot, keys]);
 }
 
 export function useStatus() {

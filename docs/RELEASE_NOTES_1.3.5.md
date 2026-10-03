@@ -704,6 +704,221 @@ Détail complet + checklist : `docs/NATIVE_LOT_R3.md`.
   `EVENTEZ_IOS_TIME_SENSITIVE`, cf. `eas.json.example`). À activer sur un
   build `development` device avant toute prod.
 - Backend à brancher pour H3 : envoyer `channelId`/`sound` des nouveaux canaux.
+- Fix build Android release : `locales/ios/{fr,en}.json` sont maintenant sous
+  une clé `ios` — sinon Expo écrivait les `NS*UsageDescription` dans
+  `values-b+fr|en/strings.xml` sans valeur par défaut → `lintVitalRelease`
+  échouait (20 × ExtraTranslation). Test de régression dans
+  `plugins/__tests__/nativePlugins.test.js`.
+
+---
+
+#### Retours testeur 2026-10-03 — A (stabilité)
+
+- **Accueil « Pour vous » vide jusqu'au pull-to-refresh** — 3 causes cumulées
+  dans `DiscoverScreen` : (1) `removeClippedSubviews` sur Android laissait
+  découpées les cellules ajoutées sous le gros en-tête après le 1er rendu →
+  désactivé ; (2) le 1er lot partait via `runAfterInteractions`, qu'une
+  interaction continue repoussait indéfiniment → délai max 1,5 s
+  (`lib/utils/afterInteractions.ts`, aussi utilisé par Dashboard et le
+  préchargement du RootNavigator) ; (3) un échec de la page 1 fermait le flux
+  (`hasMore=false`, et `onEndReached` ignoré tant que la liste est vide) →
+  page 1 retentée, demande de page 1 pendant un chargement rejouée, rechargement
+  quand la session arrive après le montage.
+- **Tap sur une notification → « introuvable »** — `resolveTarget.ts` prenait
+  `related_object_id` pour un id d'ÉVÉNEMENT même quand l'objet lié est une
+  inscription/un paiement (rappels, annulations…) → fiche 404. L'id n'est
+  utilisé comme événement que si `related_object_type` vaut `event` ; un lien
+  `registration` sert d'id d'inscription (billet, reprise de paiement).
+  Tous les écrans ciblés existent bien dans le RootNavigator (vérifié).
+  Tests ajoutés (+6).
+- **« L'app se fige »** — causes corrigées : (1) vol carte → fiche
+  (`HeroFlight`) : tout le contenu de la fiche part à opacité 0 jusqu'à la
+  mesure de la bannière ; `measureInWindow` sans rappel (Android/Fabric) ou
+  bannière jamais posée = écran vide figé → mesure plafonnée à 400 ms + filet
+  qui dévoile l'écran à 900 ms ; (2) squelettes éternels (Dashboard, accueil)
+  via `runAfterInteractions` → délai max.
+- **Modale de langue qui ferme l'app au défilement** (toutes les feuilles
+  `SpringSheet`) — le geste Pan était RECRÉÉ à chaque rendu du parent
+  (`onClose` inline en dépendance) y compris pendant un défilement ; RNGH
+  Android peut planter quand on remplace un handler actif. Geste désormais
+  stable (ref), et l'enregistrement de la liste ne fait plus d'écriture de
+  shared value pendant le rendu. ⚠️ Cause la plus probable sans journal natif :
+  À VALIDER SUR APPAREIL (pas de Sentry DSN en prod → aucun crash remonté).
+- **Billets hors ligne sans titre ni date** — `MyTicketsScreen` lisait
+  `event_details` (forme des SUIVIS) au lieu de `event_detail` (forme des
+  INSCRIPTIONS) → titre de repli + date vide, et cette mauvaise entrée
+  écrasait/bloquait la bonne (cache dédoublonné par billet). Lecture unifiée
+  via `lib/utils/registrationEvent.ts` (MyTickets, OfflineTickets,
+  RegistrationDetails) ; les entrées déjà cachées sont RÉPARÉES au prochain
+  passage en ligne sans retélécharger le QR (jamais dégradées par une source
+  moins complète).
+
+Checklist appareil (A) :
+1. [ ] Démarrage à froid sur l'accueil : « Pour vous » apparaît sans pull.
+2. [ ] Paramètres > Préférences > Langue : défiler vite, tirer pour fermer,
+       relancer — aucune fermeture d'app. Idem catégorie (création event).
+3. [ ] Taper un rappel d'événement / une annulation / une confirmation de
+       paiement depuis la barre système (app tuée et en arrière-plan).
+4. [ ] Hors ligne : chaque billet affiche titre + date (ouvrir une fois Mes
+       billets en ligne pour réparer les anciens).
+5. [ ] Ouvrir 10 fiches d'affilée depuis l'accueil : jamais d'écran vide.
+
+---
+
+#### Retours testeur 2026-10-03 — B (interface)
+
+- **Swipe des conversations** (`SwipeAction`) : la ligne était transparente,
+  donc titre/date/badge s'affichaient PAR-DESSUS les actions rouge/orange.
+  Fond opaque (`childrenContainerStyle`) + clipping ; activation à 24 px
+  (au lieu de 10) pour que le défilement vertical gagne, friction 2, seuils
+  0,6 × action, balayage complet à 70 % (au lieu de 60 %). Snap sans rebond.
+- **Vidéo absente sur la fiche** : `EventDetailSerializer` (backend)
+  n'exposait PAS `cover_video_embed` (seule la liste le faisait) → la fiche
+  ne voyait aucune vidéo. Champ ajouté + test ; côté mobile, repli
+  `resolveCoverEmbed()` (déduit de `cover_video_url`) pour les serveurs pas
+  encore déployés.
+- **Habillage YouTube visible sur la carte vedette** (titre, chaîne, « Plus
+  de vidéos », pause) : le poster ne s'efface qu'après 2,5 s de lecture
+  effective et revient à chaque pause ; léger zoom (×1,18) + voile anti-touche.
+  Page hébergée `eventez-frontend/public/embed/youtube.html` ET page locale
+  de secours → **déployer le web** pour la page hébergée.
+- **Événements similaires** : date · ville + prix « Dès … » / « Gratuit »
+  (depuis `ticket_price_range`, rien inventé si absent), hauteur identique
+  pour toutes les cartes. « Des » → « Dès » (accent manquant, snapshot MAJ).
+- **« Laisser un avis »** : le formulaire s'ouvrait en tête de section (au-dessus
+  des avis) ; il s'ouvre maintenant à la place du bouton. ScrollView de la
+  fiche : `automaticallyAdjustKeyboardInsets` + `keyboardShouldPersistTaps`.
+- **Textes coupés** (feuille « Mon QR Code », « … partager votre » sans
+  « profil ») : texte centré mesuré trop étroit sur Android → `alignSelf:
+  'stretch'` + police explicite (aussi sur `PushPermissionModal`).
+- **Profil** : liseré permanent en dégradé de marque autour de l'avatar
+  (3 px, aucune animation au repos ; l'éclat de première visite reste).
+  Pas de teinte utilisateur côté API → dégradé par défaut.
+
+Tests sur appareil :
+1. [ ] Messages : balayer lentement → actions nettes, aucun texte par-dessus ;
+       défiler la liste en biais → la ligne ne s'ouvre pas.
+2. [ ] Fiche « Nuit du Makossa » : la vidéo YouTube joue (muette) ; son,
+       pause, agrandir OK.
+3. [ ] Accueil, carte vedette YouTube : ni titre, ni « Plus de vidéos », ni
+       logo pendant les extraits.
+4. [ ] Fiche → bas → « Laisser un avis » : formulaire à l'endroit du bouton,
+       clavier ne le masque pas.
+5. [ ] Profil → QR : sous-titre et indice complets.
+
+#### Retours testeur 2026-10-03 — C (bénévoles, listes longues, pub)
+
+- **Bénévoles — « Postuler » renvoyait toujours « Certaines informations sont
+  invalides ».** `VolunteerApplicationSerializer` exigeait `applicant` dans le
+  payload, alors que la vue le pose (`request.user`) et que le mobile n'envoie
+  que `{role}` : HTTP 400 sur chaque candidature. Corrections backend :
+  - `applicant` passe en lecture seule (usurpation impossible) ;
+  - nouvelles validations propres : rôle inactif, rôle complet, organisateur
+    qui postule à son propre rôle, doublon ;
+  - une candidature retirée puis renouvelée est réactivée (avant :
+    IntegrityError 500).
+  
+  Tests : `apps/volunteers/test_apply_contract.py`.
+- **Bénévoles — « Places 0/0 ».** Le mobile lisait `capacity`/`filled_count`,
+  que l'API ne renvoie pas (elle renvoie `max_volunteers`/`accepted_count`/
+  `is_full`). Pire, la création envoyait `quantity_needed`/`requirements`,
+  ignorés en silence : chaque rôle était créé avec 1 place. Le contrat est
+  aligné et le statut `accepted` est reconnu.
+- **Bénévoles — bouton « + » :** réservé à l'organisateur de l'événement (plus
+  aux admins depuis la fiche) ; l'équipe gère depuis « Mes événements ».
+  L'organisateur ne voit plus « Postuler » sur ses propres rôles. Le backend
+  refusait déjà la création aux autres (403, `test_permissions.py`).
+- **Organisateurs suivis :** écran refait pour 2 000 abonnements :
+  - pagination serveur par 30 et recherche serveur ;
+  - lignes denses, compteur, pastille « Suivi » + confirmation ;
+  - état vide qui renvoie vers Découvrir.
+  
+  Backend : `following_users`/`my_followers` paginés en opt-in
+  (`?page=`), `?search=`, compteurs annotés (fin du N+1).
+- **Listes longues :** Connexions et « Qui est là » sont paginées
+  (`usePaginatedList`) ; l'annuaire ne fait plus 1 requête par participant.
+  Inventaire complet et reste à faire : `docs/LONG_LISTS_AUDIT.md`.
+- **« Créer une pub » → « Erreur de connexion ».**
+  - Cause : l'upload multipart passait par axios avec
+    `Content-Type: multipart/form-data` forcé, donc sans boundary, et la requête
+    échouait en ERR_NETWORK.
+  - Correction : passage par `fetchUpload` (fetch natif, comme
+    événements, sessions et messages), et image redimensionnée à 1 600 px
+    (JPEG 0,75) avant l'envoi. Un 413 éventuel affiche le message « trop
+    lourd ».
+
+Checklist appareil (C) :
+1. [ ] Participant → fiche → Bénévoles : pas de « + » ; « Postuler » →
+       « Candidature envoyée » ; le rôle affiche « Places 0/N » réel.
+2. [ ] Organisateur → Mes événements → Bénévoles : « + » visible, rôle créé
+       avec la capacité saisie, pas de bouton « Postuler ».
+3. [ ] Profil → Organisateurs suivis : recherche, défilement infini (compte
+       avec plus de 30 suivis), « Suivi » → confirmation → retrait.
+4. [ ] Messages → Connexions et Événement → Qui est là : défilement infini.
+5. [ ] Admin → Créer une pub avec une photo de l'appareil photo : création OK.
+
+#### Retours testeur 2026-10-03 — E (incidents, déploiement, sons)
+
+- **Incidents annoncés proactivement** : `StatusContext.visibleIncidents` +
+  `IncidentBanner` affichent un incident actif pertinent pour l'écran dès que
+  le statut est connu (polling 60 s / retour au premier plan), au lieu
+  d'attendre un 503. Fermeture mémorisée par incident + date de mise à jour
+  (une nouvelle mise à jour le ré-affiche). Pastille = libellés lisibles, plus
+  les clés techniques.
+- **Achat désactivé pendant un incident bloquant** (`registrations` ou
+  `payments.collect`) : bouton « Achats suspendus » sur `TicketPurchaseScreen`
+  (`useServiceBlock`). Le backend reste juge (503 + incident).
+- **Backend** : nouveaux services `payments.collect` + une clé par passerelle ;
+  un incident bloquant sur une passerelle la retire du routage (comme un
+  circuit ouvert), sur `payments.collect` coupe l'encaissement ;
+  `/payments/initiate/`, création d'inscription et d'achat de billets → 503 +
+  incident. Staff jamais bloqué. Tests `apps/system_status/test_incident_enforcement.py`.
+- **Déploiement** : l'app retente en silence les LECTURES sur 502/504/503
+  `updating` (2 s, 5 s, 10 s), jamais les écritures ; message
+  `errors.http.updating`. Runbook : `EventEz/docs/ZERO_DOWNTIME_DEPLOY.md`.
+- **Sons** : le backend envoie `eventez_moments` + `eventez_chime.wav` (jour J,
+  direct, check-in) et `eventez_sales` + `eventez_sale.wav` (paliers de ventes)
+  aux apps ≥ 1.3.5 ; le token push est ré-enregistré à chaque mise à jour pour
+  que le backend connaisse la version. Réglages > « Sons des notifications »
+  ouvre les réglages système (son par canal sur Android). Brief sound design :
+  `docs/NOTIFICATION_SOUNDS.md`.
+- Connexion : sonde de santé `GET /api/health/` (au lieu de `HEAD /categories/`).
+
+**Checklist appareil (E)**
+1. [ ] Créer un incident NON bloquant `payments.cinetpay` (admin web) → bandeau
+       sur l'écran d'achat et le paiement, pas sur Messages ; fermer → ne revient
+       pas ; publier une mise à jour de l'incident → revient.
+2. [ ] Incident BLOQUANT `registrations` → bouton « Achats suspendus » ; résoudre
+       → bouton rétabli en ≤ 60 s.
+3. [ ] Push `event_live` sur un Android 1.3.5 → carillon EventEz ; Réglages >
+       Sons des notifications → liste des canaux de l'app.
+4. [ ] Pendant un `deploy.sh update` : l'app ne montre pas d'erreur sur les
+       écrans de lecture ; le web affiche « EventEz se met à jour ».
+
+---
+
+#### Retours testeur 2026-10-03 — D (remboursement, Wallet, PDF, reçu)
+
+- **Remboursement « pas rattaché à votre compte »** : « Mes paiements » appelait
+  `/payments/` qui, pour un staff/organisateur, renvoie les paiements de TOUTE la
+  plateforme / de ses acheteurs → on tapait le paiement d'un autre. Fix :
+  `MyPaymentsScreen` (et web `PaymentsList`) passe `?mine=1` ; règle backend
+  unique `Payment.is_owned_by` (payeur OU titulaire de l'inscription) pour la
+  liste, `can_refund` et la création du Refund (pas de passe-droit staff).
+- **Google Wallet « Une erreur s'est produite »** : backend crée classe (une PAR
+  événement) + objet via l'API REST avant d'émettre un JWT « maigre » ; couleur
+  `#RRGGBB` et image hero HTTPS validées ; refus Google → 503 + message, plus
+  jamais d'ouverture de l'écran Google en erreur. `AddToWalletButton` affiche le
+  message serveur.
+- **PDF** : billet (QR, hors ligne) et récapitulatif d'inscription portent le
+  logotype EventEz (`src/lib/pdf/brandPdf.ts`, data URI) + pied de page.
+
+À tester sur appareil :
+1. [ ] Compte admin → Mes paiements : seulement ses propres paiements ;
+       remboursement possible sur un paiement complété.
+2. [ ] Billet → Enregistrer dans Google Wallet : pass ajouté, ou message clair
+       (jamais l'écran d'erreur Google).
+3. [ ] Télécharger billet / billet hors ligne / récapitulatif : logo net en tête.
 
 ---
 

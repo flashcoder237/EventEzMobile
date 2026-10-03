@@ -46,6 +46,7 @@ import { useTranslation } from 'react-i18next';
 import EventCoverMedia from '../../components/events/EventCoverMedia';
 import ForYouEventCard from '../../components/events/ForYouEventCard';
 import { SwipeToSave } from '../../components/ui/motion/SwipeToSave';
+import { runAfterInteractionsOrTimeout } from '../../lib/utils/afterInteractions';
 import { useSavedEvents } from '../../hooks/useSavedEvents';
 import { getEventImageUrl, prefetchEventHero, prefetchImageUrls } from '../../utils/imageUtils';
 import type { EventImageSize } from '../../utils/imageUtils';
@@ -735,10 +736,20 @@ export default function DiscoverScreen() {
   // Pour les guests : fallback `eventsAPI.getEvents` ordonné par date pour
   // qu'ils aient quand même du contenu à scroller (nudge inscription au tap).
   const PAGE_SIZE = 8;
+  // Une demande de page 1 arrivée pendant un chargement n'est plus perdue :
+  // elle est rejouée à la fin (ex. connexion restaurée pendant le 1er fetch).
+  const forYouPendingResetRef = React.useRef(false);
+  // Échec de la page 1 : la liste reste vide ET `onEndReached` ne se
+  // déclenchait plus (garde « count === 0 ») → plus rien jusqu'au pull.
+  const forYouFirstPageFailedRef = React.useRef(false);
   const loadMoreForYou = useCallback(
     async (reset: boolean = false) => {
-      if (forYouLoadingRef.current) return;
+      if (forYouLoadingRef.current) {
+        if (reset) forYouPendingResetRef.current = true;
+        return;
+      }
       if (!reset && !forYouHasMoreRef.current) return;
+      forYouLoadingRef.current = true;
 
       const nextPage = reset ? 1 : forYouPageRef.current + 1;
       const offset = (nextPage - 1) * PAGE_SIZE;
@@ -798,15 +809,30 @@ export default function DiscoverScreen() {
           ? hasMoreFlag
           : data.length === PAGE_SIZE;
         setForYouHasMore(hasNext);
+        forYouHasMoreRef.current = hasNext;
+        if (nextPage === 1) forYouFirstPageFailedRef.current = false;
       } catch (error) {
         if (__DEV__) console.error('Erreur loadmore for-you:', error);
-        setForYouHasMore(false);
+        if (nextPage === 1) {
+          // Page 1 : on garde la porte ouverte (nouvel essai au défilement
+          // ou au retour sur l'accueil) au lieu de fermer le flux.
+          forYouFirstPageFailedRef.current = true;
+        } else {
+          setForYouHasMore(false);
+        }
       } finally {
+        forYouLoadingRef.current = false;
         setForYouLoading(false);
+        if (forYouPendingResetRef.current) {
+          forYouPendingResetRef.current = false;
+          loadMoreForYouRef.current?.(true);
+        }
       }
     },
     [user, location],
   );
+  const loadMoreForYouRef = React.useRef<typeof loadMoreForYou | null>(null);
+  loadMoreForYouRef.current = loadMoreForYou;
 
   // Infinite scroll : onEndReached de la FlatList (seuil ≈ 600px avant le bas).
   // Tant que la page 1 n'est pas arrivée (chargée après les interactions),
@@ -814,7 +840,11 @@ export default function DiscoverScreen() {
   const forYouCountRef = React.useRef(0);
   forYouCountRef.current = forYouEvents.length;
   const handleEndReached = useCallback(() => {
-    if (forYouCountRef.current === 0) return;
+    if (forYouCountRef.current === 0) {
+      // Page 1 en échec : on la retente plutôt que de rester vide.
+      if (forYouFirstPageFailedRef.current) loadMoreForYou(true);
+      return;
+    }
     loadMoreForYou();
   }, [loadMoreForYou]);
   const forYouKeyExtractor = useCallback((ev: Event) => String(ev.id), []);
@@ -925,7 +955,11 @@ export default function DiscoverScreen() {
   // === Effects ===
   useEffect(() => {
     fetchDiscoveryData();
-    const task = InteractionManager.runAfterInteractions(() => {
+    // `runAfterInteractions` attend qu'AUCUNE interaction ne soit en cours ;
+    // une animation qui en ouvre en continu le repoussait indéfiniment et le
+    // flux « Pour vous » (+ recos, pubs) ne se chargeait qu'au pull-to-refresh.
+    // Filet : on lance au plus tard après 1,5 s, une seule fois.
+    const runDeferred = () => {
       fetchRecommendations();
       // Section secondaire : chargée après les interactions pour ne pas
       // retarder le premier rendu de l'accueil.
@@ -936,10 +970,22 @@ export default function DiscoverScreen() {
       // location arrive plus tard, l'effect dédié `[location]` re-fetchera.
       fetchAds();
       loadMoreForYou(true);
-    });
+    };
+    const task = runAfterInteractionsOrTimeout(runDeferred, 1500);
     return () => task.cancel();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Session restaurée / connexion APRÈS le montage : le 1er lot « Pour vous »
+  // avait été demandé en invité (ou avait échoué en 401) — on recharge la
+  // page 1 avec les recommandations du compte.
+  const forYouUserRef = React.useRef(user?.id);
+  useEffect(() => {
+    if (forYouUserRef.current === user?.id) return;
+    forYouUserRef.current = user?.id;
+    loadMoreForYou(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   useEffect(() => {
     if (route.params?.category) {
@@ -2301,7 +2347,12 @@ export default function DiscoverScreen() {
               initialNumToRender={3}
               maxToRenderPerBatch={6}
               windowSize={7}
-              removeClippedSubviews={Platform.OS === 'android'}
+              // PAS de removeClippedSubviews : sur Android (Fabric), les
+              // cellules ajoutées sous un gros ListHeaderComponent après le
+              // premier rendu restaient découpées (invisibles) jusqu'au
+              // pull-to-refresh. La virtualisation (windowSize) borne déjà
+              // la mémoire.
+              removeClippedSubviews={false}
               viewabilityConfig={forYouViewabilityConfig}
               onViewableItemsChanged={onForYouViewableItemsChanged}
               refreshControl={

@@ -24,6 +24,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { formatEventDateRange } from '../../lib/utils/dateFormatters';
 import * as Print from 'expo-print';
+import { getBrandLogoDataUri } from '../../lib/pdf/brandPdf';
 import { useSaveOrShareSheet } from '../../hooks/useSaveOrShareSheet';
 import QRCode from 'react-native-qrcode-svg';
 import Animated, {
@@ -299,7 +300,7 @@ export default function QRCodeScreen() {
     }
   };
 
-  const generateTicketHTML = (qrImageUrl: string): string => {
+  const generateTicketHTML = (qrImageUrl: string, logo: string | null = null): string => {
     const eventTitle = event?.title || (ticket as any)?.event_title || t('qrCode.eventFallback');
     // Organisateur : `organizer` est un OBJET cote detail event.
     // `organizer_name` n'existe que dans le serializer de LISTE — le lire
@@ -328,9 +329,10 @@ export default function QRCodeScreen() {
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #f5f5f5; padding: 20px; }
           .ticket { background: white; max-width: 500px; margin: 0 auto; border-radius: 16px; overflow: hidden; border: 1px solid #e5e7eb; }
-          .header { background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 24px; text-align: center; color: white; }
-          .header h1 { font-size: 22px; margin-bottom: 4px; }
-          .header p { font-size: 13px; opacity: 0.9; }
+          .header { background: #ffffff; padding: 20px 24px; text-align: center; border-bottom: 3px solid #4F46E5; }
+          .header img { height: 30px; width: auto; display: block; margin: 0 auto 6px; }
+          .header h1 { font-size: 22px; margin-bottom: 4px; color: #4F46E5; }
+          .header p { font-size: 12px; color: #6b7280; letter-spacing: 2px; text-transform: uppercase; font-weight: 700; }
           .event-section { padding: 20px 24px; border-bottom: 1px dashed #e5e7eb; }
           .event-title { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 12px; }
           .meta-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: #6b7280; font-size: 14px; }
@@ -354,7 +356,7 @@ export default function QRCodeScreen() {
       <body>
         <div class="ticket">
           <div class="header">
-            <h1>EventEz</h1>
+            ${logo ? `<img src="${logo}" alt="EventEz" />` : '<h1>EventEz</h1>'}
             <p>${t('qrCode.pdfElectronicTicket')}</p>
           </div>
           <div class="event-section">
@@ -428,7 +430,7 @@ export default function QRCodeScreen() {
     if (!ticket) return;
     try {
       const qrDataUrl = await getQrDataUrl();
-      const html = generateTicketHTML(qrDataUrl || '');
+      const html = generateTicketHTML(qrDataUrl || '', await getBrandLogoDataUri());
       const { uri } = await Print.printToFileAsync({ html });
       openSaveOrShare({
         uri,
@@ -447,7 +449,7 @@ export default function QRCodeScreen() {
     if (!ticket) return;
     try {
       const qrDataUrl = await getQrDataUrl();
-      const html = generateTicketHTML(qrDataUrl || '');
+      const html = generateTicketHTML(qrDataUrl || '', await getBrandLogoDataUri());
       await Print.printAsync({ html });
     } catch (error) {
       if (__DEV__) console.error('Error printing:', error);

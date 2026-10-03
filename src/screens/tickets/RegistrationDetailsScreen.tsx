@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { registrationEvent } from '../../lib/utils/registrationEvent';
 import {
   View,
   Text,
@@ -18,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import QRCode from 'react-native-qrcode-svg';
 import * as Print from 'expo-print';
+import { BRAND_PDF_CSS, brandFooterHtml, brandHeaderHtml, getBrandLogoDataUri } from '../../lib/pdf/brandPdf';
 import { useSaveOrShareSheet } from '../../hooks/useSaveOrShareSheet';
 
 import { registrationsAPI, ticketTransfersAPI, paymentsAPI, virtualRoomsAPI } from '../../api';
@@ -192,7 +194,7 @@ export default function RegistrationDetailsScreen() {
 
       // Cache tickets for offline access
       if (reg.tickets && reg.tickets.length > 0) {
-        const event = reg.event_detail || (typeof reg.event === 'object' ? reg.event : null);
+        const event = registrationEvent(reg);
         for (const ticket of reg.tickets) {
           if (ticket.qr_code && ticket.is_paid) {
             const ticketType = typeof ticket.ticket_type === 'object' ? ticket.ticket_type : null;
@@ -202,9 +204,11 @@ export default function RegistrationDetailsScreen() {
                 id: reg.id,
                 reference_code: reg.reference_code,
                 event: {
-                  id: event?.id || reg.event_id || '',
-                  title: event?.title || t('registrationDetails.eventFallback'),
-                  start_date: event?.start_date || '',
+                  id: event.id,
+                  slug: event.slug,
+                  title: event.title || t('registrationDetails.eventFallback'),
+                  start_date: event.start_date || '',
+                  end_date: event.end_date,
                 },
               },
               ticket_type_name: ticketType?.name || ticket.ticket_type_name || t('registrationDetails.ticketFallback'),
@@ -344,7 +348,7 @@ export default function RegistrationDetailsScreen() {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
 
-  const buildRecapHTML = (qrDataUrl: string): string => {
+  const buildRecapHTML = (qrDataUrl: string, logo: string | null = null): string => {
     const event = registration?.event_detail || (typeof registration?.event === 'object' ? registration?.event : null);
     const rows: Array<[string, string]> = [];
     if (event?.start_date) {
@@ -367,6 +371,7 @@ export default function RegistrationDetailsScreen() {
       <style>
         * { box-sizing: border-box; }
         body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: #111827; padding: 40px; }
+        ${BRAND_PDF_CSS}
         .eyebrow { color: #FF6B6B; letter-spacing: 3px; font-size: 11px; font-weight: 700; }
         h1 { font-size: 28px; margin: 6px 0 24px; letter-spacing: -0.5px; }
         .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #E5E7EB; }
@@ -378,11 +383,12 @@ export default function RegistrationDetailsScreen() {
         .footer { margin-top: 32px; color: #9CA3AF; font-size: 10px; text-align: center; }
       </style></head>
       <body>
+        ${brandHeaderHtml(logo)}
         <div class="eyebrow">${escapeHtml(t('registrationDetails.pdfEyebrow'))}</div>
         <h1>${escapeHtml(event?.title || t('registrationDetails.eventFallback'))}</h1>
         ${rowsHtml}
         ${qrDataUrl ? `<div class="qr"><img src="${qrDataUrl}" /><div class="hint">${escapeHtml(t('registrationDetails.pdfQrHint'))}</div></div>` : ''}
-        <div class="footer">EventEz</div>
+        ${brandFooterHtml(escapeHtml(t('registrationDetails.pdfFooter', { defaultValue: 'Récapitulatif personnel — présentez votre QR code à l’entrée.' })))}
       </body></html>
     `;
   };
@@ -392,7 +398,7 @@ export default function RegistrationDetailsScreen() {
     setExportingPdf(true);
     try {
       const qrDataUrl = await getQrDataUrl();
-      const html = buildRecapHTML(qrDataUrl || '');
+      const html = buildRecapHTML(qrDataUrl || '', await getBrandLogoDataUri());
       const { uri } = await Print.printToFileAsync({ html });
       openSaveOrShare({
         uri,

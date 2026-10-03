@@ -130,6 +130,18 @@ export function SpringSheet({
     startFraction.value = fractions[startIndex] ?? 1;
   }, [fractions, startIndex, fractionsSV, startFraction]);
 
+  // `onClose` est presque toujours une flèche inline du parent : nouvelle
+  // identité à CHAQUE rendu. L'avoir en dépendance du geste recréait le Pan à
+  // chaque rendu du parent, y compris PENDANT un défilement — sur Android
+  // (RNGH 2.28 / Fabric), remplacer un handler actif peut faire planter l'app
+  // (« Already prepared or hasn't been reset »). Le geste ne dépend plus que
+  // d'une référence stable.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const requestClose = useCallback(() => {
+    onCloseRef.current?.();
+  }, []);
+
   const finishClose = useCallback(() => {
     setMounted(false);
     onClosed?.();
@@ -226,7 +238,7 @@ export function SpringSheet({
           const proj = projectRelease(y.value, e.velocityY);
           const target = nearestPoint(proj, points);
           if (target === H) {
-            runOnJS(onClose)();
+            runOnJS(requestClose)();
             return;
           }
           y.value = reducedSV.value
@@ -234,7 +246,7 @@ export function SpringSheet({
             : withSpring(target, { ...springConfig('sheet'), velocity: e.velocityY });
         }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [nativeGesture, onClose],
+    [nativeGesture, requestClose],
   );
 
   const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
@@ -301,11 +313,11 @@ export function SpringSheet({
 /** Branche une liste interne sur la feuille (relais de geste + position). */
 function useSheetScroll() {
   const ctx = useContext(SheetScrollContext);
-  const registered = useRef(false);
-  if (ctx && !registered.current) {
-    registered.current = true;
-    ctx.register();
-  }
+  // Enregistrement après le rendu : écrire une shared value PENDANT le rendu
+  // est interdit par Reanimated 4.
+  useEffect(() => {
+    ctx?.register();
+  }, [ctx]);
   const localY = useSharedValue(0);
   const target = ctx?.scrollY ?? localY;
   const onScroll = useAnimatedScrollHandler({

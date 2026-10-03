@@ -37,7 +37,14 @@ interface VolunteerRole {
   description?: string;
   event_name?: string;
   event_title?: string;
-  capacity: number;
+  // Contrat backend : max_volunteers / accepted_count / is_full /
+  // responsibilities. capacity / filled_count / requirements = anciens noms
+  // jamais renvoyés par l'API (d'où « Places 0/0 »), gardés en repli.
+  max_volunteers?: number;
+  accepted_count?: number;
+  is_full?: boolean;
+  responsibilities?: string[];
+  capacity?: number;
   filled_count?: number;
   applications_count?: number;
   requirements?: string;
@@ -135,8 +142,13 @@ export default function VolunteerScreen() {
         event: eventUuid,
         title,
         description: createDescription.trim() || undefined,
-        requirements: createRequirements.trim() || undefined,
-        quantity_needed: cap,
+        // Noms du modèle backend : `quantity_needed`/`requirements` étaient
+        // ignorés en silence → chaque rôle était créé avec 1 place.
+        responsibilities: createRequirements
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean),
+        max_volunteers: cap,
       });
       const created = res.data;
       // Insertion optimistic en tête de liste pour feedback immédiat.
@@ -351,14 +363,17 @@ export default function VolunteerScreen() {
   };
 
   const renderRoleCard = ({ item }: { item: VolunteerRole }) => {
-    const filled = item.filled_count || 0;
-    const capacity = item.capacity || 0;
+    const filled = item.accepted_count ?? item.filled_count ?? 0;
+    const capacity = item.max_volunteers ?? item.capacity ?? 0;
     const fillPercentage = capacity > 0 ? Math.min((filled / capacity) * 100, 100) : 0;
-    const isFull = filled >= capacity && capacity > 0;
+    const isFull = item.is_full ?? (filled >= capacity && capacity > 0);
     const isProcessing = actionLoading === item.id;
     const hasApplied = applications.some(
-      (a) => a.role === item.id && (a.status === 'pending' || a.status === 'approved')
+      (a) => a.role === item.id && (a.status === 'pending' || a.status === 'approved' || a.status === 'accepted')
     );
+    const requirementsText = Array.isArray(item.responsibilities) && item.responsibilities.length
+      ? item.responsibilities.filter(Boolean).join(' · ')
+      : item.requirements;
 
     return (
       <View style={[styles.roleCard, { backgroundColor: colors.card }]}>
@@ -382,11 +397,11 @@ export default function VolunteerScreen() {
           </Text>
         ) : null}
 
-        {item.requirements ? (
+        {requirementsText ? (
           <View style={[styles.requirementsRow, { backgroundColor: colors.gray50 }]}>
             <Ionicons name="document-text-outline" size={14} color={colors.textSecondary} />
             <Text style={[styles.requirementsText, { color: colors.textSecondary }]} numberOfLines={2}>
-              {item.requirements}
+              {requirementsText}
             </Text>
           </View>
         ) : null}
@@ -410,8 +425,8 @@ export default function VolunteerScreen() {
           </View>
         </View>
 
-        {/* Action */}
-        {hasApplied ? (
+        {/* Action — l'organisateur ne postule pas à ses propres rôles. */}
+        {isOrganizerView ? null : hasApplied ? (
           <View style={[styles.appliedBadge, { backgroundColor: colors.successLight }]}>
             <Ionicons name="checkmark-circle" size={16} color={colors.success} />
             <Text style={[styles.appliedText, { color: colors.success }]}>{t('organizer.volunteer.applied')}</Text>
@@ -522,6 +537,7 @@ export default function VolunteerScreen() {
     const statusColors: Record<string, { label: string; color: string; bg: string }> = {
       pending: { label: t('organizer.volunteer.statusPending'), color: colors.warning, bg: colors.warningLight },
       approved: { label: t('organizer.volunteer.statusApproved'), color: colors.success, bg: colors.successLight },
+      accepted: { label: t('organizer.volunteer.statusApproved'), color: colors.success, bg: colors.successLight },
       rejected: { label: t('organizer.volunteer.statusRejected'), color: colors.error, bg: colors.errorLight },
       withdrawn: { label: t('organizer.volunteer.statusWithdrawn'), color: colors.textLight, bg: colors.gray100 },
     };

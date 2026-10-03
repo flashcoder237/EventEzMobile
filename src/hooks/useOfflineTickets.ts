@@ -128,6 +128,46 @@ export function useOfflineTickets() {
     }
   };
 
+  // Met à jour titre / date / fin d'un billet déjà en cache quand la source
+  // fraîche est plus complète (jamais l'inverse : une donnée de repli ne
+  // remplace pas une vraie).
+  const repairCachedMeta = async (
+    ticket: { id: string; registration: { event: { id: string; slug?: string; title: string; start_date: string; end_date?: string } } },
+    freshIndex: CachedTicketIndex,
+  ) => {
+    const ev = ticket.registration.event;
+    if (!ev?.start_date) return;
+    const key = `${keyPrefix()}${ticket.id}`;
+    const json = await AsyncStorage.getItem(key);
+    if (!json) return;
+    const cached: CachedTicket = JSON.parse(json);
+    const needsRepair =
+      !cached.eventDate ||
+      cached.eventDate !== ev.start_date ||
+      (!!ev.title && cached.eventTitle !== ev.title) ||
+      (!!ev.end_date && cached.eventEndDate !== ev.end_date);
+    if (!needsRepair) return;
+    const repaired: CachedTicket = {
+      ...cached,
+      eventId: ev.slug || ev.id || cached.eventId,
+      eventTitle: ev.title || cached.eventTitle,
+      eventDate: ev.start_date,
+      eventEndDate: ev.end_date || cached.eventEndDate,
+    };
+    await AsyncStorage.setItem(key, JSON.stringify(repaired));
+    const nextIndex: CachedTicketIndex = {
+      ...freshIndex,
+      [ticket.id]: {
+        ...freshIndex[ticket.id],
+        eventTitle: repaired.eventTitle,
+        eventDate: repaired.eventDate,
+        eventEndDate: repaired.eventEndDate,
+      },
+    };
+    await AsyncStorage.setItem(indexKey(), JSON.stringify(nextIndex));
+    setCachedTickets(nextIndex);
+  };
+
   // Mettre en cache un ticket avec son QR code
   const cacheTicket = useCallback(async (ticket: {
     id: string;
@@ -139,6 +179,7 @@ export function useOfflineTickets() {
         slug?: string;
         title: string;
         start_date: string;
+        end_date?: string;
       };
     };
     ticket_type_name?: string;
@@ -162,6 +203,12 @@ export function useOfflineTickets() {
         const indexJson = await AsyncStorage.getItem(indexKey());
         const freshIndex: CachedTicketIndex = indexJson ? JSON.parse(indexJson) : {};
         if (ticket.id in freshIndex) {
+          // Déjà caché : on ne retélécharge pas le QR, mais on RÉPARE les
+          // métadonnées. Des versions précédentes lisaient `event_details`
+          // (inexistant sur une inscription) et mettaient en cache le titre
+          // de repli + une date vide ; sans cette réparation, l'entrée
+          // restait sans titre ni date pour toujours.
+          await repairCachedMeta(ticket, freshIndex);
           if (__DEV__) console.log(`[OfflineTickets] ${ticket.id} déjà caché — skip download`);
           return true;
         }

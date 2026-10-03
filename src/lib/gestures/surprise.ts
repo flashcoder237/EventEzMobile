@@ -18,7 +18,7 @@ export function registeredEventKeys(registrations: unknown[]): Set<string> {
   for (const r of registrations || []) {
     const reg = r as any;
     if (!reg || reg.status === 'cancelled' || reg.status === 'refunded') continue;
-    const ev = reg.event_details || reg.event;
+    const ev = reg.event_detail || reg.event_details || reg.event;
     if (ev && typeof ev === 'object') {
       if (ev.id != null) keys.add(String(ev.id));
       if (ev.slug) keys.add(String(ev.slug));

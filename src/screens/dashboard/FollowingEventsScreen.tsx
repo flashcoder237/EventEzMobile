@@ -22,7 +22,7 @@ import Animated, {
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -612,6 +612,8 @@ const ArchivedCard = memo(
 // ============================================================
 export default function FollowingEventsScreen() {
   const navigation = useNavigation<NavigationProp>();
+  // Ouvert en écran empilé (organisateurs : pas d'onglet Favoris) → bouton retour.
+  const isStacked = useRoute().name === 'SavedEvents';
   const { user } = useAuth();
   const { showError, showConfirm } = useAlert();
   const { toastError } = useFeedback();
@@ -1184,6 +1186,17 @@ export default function FollowingEventsScreen() {
           ]}
         >
           <View style={styles.headerTopRow}>
+            {isStacked && (
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={[styles.headerBtn, styles.headerBackBtn, { backgroundColor: colors.gray100 }]}
+                accessibilityRole="button"
+                accessibilityLabel={t('common.back')}
+                hitSlop={8}
+              >
+                <Ionicons name="chevron-back" size={20} color={colors.gray600} />
+              </TouchableOpacity>
+            )}
             <View style={{ flex: 1 }}>
               <Text style={[styles.headerEyebrow, { color: colors.gray400 }]}>{t('followingEvents.eyebrow')}</Text>
               <Text style={[styles.headerTitle, { color: colors.text }]}>{t('followingEvents.title')}</Text>
@@ -1526,6 +1539,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
     paddingBottom: 4,
+  },
+  headerBackBtn: {
+    marginRight: Spacing.sm,
+    marginBottom: 4,
   },
   headerBtn: {
     width: 36,

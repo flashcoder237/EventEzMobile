@@ -46,8 +46,8 @@ describe('referralsAPI', () => {
     expect(api.get).toHaveBeenCalledWith('/referrals/codes/cid/stats/');
   });
 
-  it('trackClick() POSTs /referrals/track/ with code', async () => {
+  it('trackClick() GETs /referrals/track/?code= (backend @api_view GET)', async () => {
     await referralsAPI.trackClick('ABC123');
-    expect(api.post).toHaveBeenCalledWith('/referrals/track/', { code: 'ABC123' });
+    expect(api.get).toHaveBeenCalledWith('/referrals/track/', { params: { code: 'ABC123' } });
   });
 });

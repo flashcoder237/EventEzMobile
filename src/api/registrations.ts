@@ -127,8 +127,9 @@ export const registrationsAPI = {
 
   // Networking « qui est là » : annuaire des participants opt-in d'un event
   // (réservé aux participants confirmés). + toggle de sa propre visibilité.
-  getEventDirectory: (eventId: string) =>
-    api.get('/registrations/event-directory/', { params: { event_id: eventId } }),
+  // `page`/`page_size` → réponse paginée (`has_more`) ; sans, liste complète.
+  getEventDirectory: (eventId: string, params?: { page?: number; page_size?: number; search?: string }) =>
+    api.get('/registrations/event-directory/', { params: { event_id: eventId, ...(params || {}) } }),
 
   setNetworkingOptIn: (registrationId: string, optIn: boolean) =>
     api.post(`/registrations/${registrationId}/networking/`, { opt_in: optIn }),

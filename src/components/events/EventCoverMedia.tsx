@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { Event } from '../../types';
 import { getMediaUrl } from '../../api/config';
 import EventImage from './EventImage';
-import { buildEmbedSource } from '../../lib/utils/videoUrl';
+import { buildEmbedSource, resolveCoverEmbed } from '../../lib/utils/videoUrl';
 import { WEB_BASE_URL } from '../../constants/urls';
 import YouTubeCoverPlayer, { getYouTubeId } from './YouTubeCoverPlayer';
 
@@ -71,7 +71,7 @@ function EventCoverMediaImpl({
   const audioFocusHeldRef = useRef(false);
 
   const coverVideoUri = event.cover_video ? getMediaUrl(event.cover_video) : null;
-  const coverVideoEmbed = event.cover_video_embed || '';
+  const coverVideoEmbed = resolveCoverEmbed(event);
   // Mémorisé : un nouvel objet `source` à chaque rendu rechargerait le lecteur.
   const embedSource = useMemo(
     () => (coverVideoEmbed ? buildEmbedSource(coverVideoEmbed, WEB_BASE_URL) : null),
@@ -489,6 +489,7 @@ export const EventCoverMedia = memo(EventCoverMediaImpl, (prev, next) => {
     prev.event.id === next.event.id &&
     prev.event.cover_video === next.event.cover_video &&
     prev.event.cover_video_embed === next.event.cover_video_embed &&
+    prev.event.cover_video_url === next.event.cover_video_url &&
     prev.event.banner_image === next.event.banner_image &&
     prev.mode === next.mode &&
     prev.shouldPlay === next.shouldPlay &&

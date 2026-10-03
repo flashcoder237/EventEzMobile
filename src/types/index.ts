@@ -1866,6 +1866,7 @@ export type RootStackParamList = {
   BecomeOrganizer: undefined;
   Verification: undefined;
   FollowingUsers: undefined;
+  SavedEvents: undefined;
   Invitations: undefined;
   Referrals: undefined;
   Gamification: undefined;

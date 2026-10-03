@@ -1,9 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
@@ -23,6 +23,7 @@ import { centeredContent } from '../../constants/layout';
 import { registrationsAPI, messagesAPI } from '../../api';
 import { findExistingDirectConversation, getDisplayName } from '../../lib/utils/messagingHelpers';
 import { RootStackParamList, User } from '../../types';
+import { usePaginatedList } from '../../hooks/usePaginatedList';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'EventAttendees'>;
@@ -39,34 +40,40 @@ export default function EventAttendeesScreen() {
   const { user } = useAuth();
   const { t } = useTranslation();
 
-  const [attendees, setAttendees] = useState<Attendee[]>([]);
   const [youVisible, setYouVisible] = useState(false);
   const [allowScan, setAllowScan] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [toggling, setToggling] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const res = await registrationsAPI.getEventDirectory(eventId);
+  // Annuaire PAGINÉ côté serveur (30 / page, FlatList) : un salon peut
+  // compter des milliers de participants visibles — avant, ScrollView + map
+  // de toute la liste d'un coup.
+  const {
+    items: attendees,
+    total,
+    loading,
+    refreshing,
+    loadingMore,
+    refresh: onRefresh,
+    loadMore,
+  } = usePaginatedList<Attendee>({
+    fetchPage: async (page) => {
+      const res = await registrationsAPI.getEventDirectory(eventId, { page, page_size: 30 });
       const data: any = res.data || {};
-      setAttendees((data.attendees ?? []) as Attendee[]);
-      setYouVisible(!!data.you_are_visible);
-      setAllowScan(!!data.you_allow_exhibitor_scan);
-    } catch {
-      setAttendees([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [eventId]);
+      if (page === 1) {
+        setYouVisible(!!data.you_are_visible);
+        setAllowScan(!!data.you_allow_exhibitor_scan);
+      }
+      return { results: data.attendees ?? [], count: data.count ?? null, next: !!data.has_more };
+    },
+    deps: [eventId],
+  });
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await load();
-    setRefreshing(false);
-  }, [load]);
+  // Rafraîchit au retour sur l'écran (pas au premier focus : déjà chargé).
+  const focusedOnceRef = useRef(false);
+  useFocusEffect(useCallback(() => {
+    if (focusedOnceRef.current) onRefresh();
+    focusedOnceRef.current = true;
+  }, [onRefresh]));
 
   const toggleVisibility = useCallback(async (next: boolean) => {
     setToggling(true);
@@ -128,86 +135,98 @@ export default function EventAttendeesScreen() {
       {loading ? (
         <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View>
       ) : (
-        <ScrollView
+        <FlatList
+          data={attendees}
+          keyExtractor={(a) => String(a.id)}
           contentContainerStyle={styles.content}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
           showsVerticalScrollIndicator={false}
-        >
-          {/* Carte opt-in */}
-          <View style={[styles.optInCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.optInRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.optInTitle, { color: colors.text }]}>{t('attendees.optInTitle')}</Text>
-                <Text style={[styles.optInSubtitle, { color: colors.gray500 }]}>{t('attendees.optInSubtitle')}</Text>
-              </View>
-              <Switch
-                value={youVisible}
-                onValueChange={toggleVisibility}
-                disabled={toggling}
-                trackColor={{ false: colors.gray300, true: colors.primary }}
-                thumbColor="#FFFFFF"
-              />
-            </View>
-            {!youVisible && (
-              <View style={[styles.invisibleBanner, { backgroundColor: `${colors.warning}14` }]}>
-                <Ionicons name="eye-off-outline" size={14} color={colors.warning} />
-                <Text style={[styles.invisibleText, { color: colors.warning }]}>{t('attendees.invisibleHint')}</Text>
-              </View>
-            )}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          initialNumToRender={12}
+          windowSize={11}
+          ListHeaderComponent={
+            <View style={{ gap: Spacing.md }}>
+              {/* Carte opt-in */}
+              <View style={[styles.optInCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={styles.optInRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.optInTitle, { color: colors.text }]}>{t('attendees.optInTitle')}</Text>
+                    <Text style={[styles.optInSubtitle, { color: colors.gray500 }]}>{t('attendees.optInSubtitle')}</Text>
+                  </View>
+                  <Switch
+                    value={youVisible}
+                    onValueChange={toggleVisibility}
+                    disabled={toggling}
+                    trackColor={{ false: colors.gray300, true: colors.primary }}
+                    thumbColor="#FFFFFF"
+                  />
+                </View>
+                {!youVisible && (
+                  <View style={[styles.invisibleBanner, { backgroundColor: `${colors.warning}14` }]}>
+                    <Ionicons name="eye-off-outline" size={14} color={colors.warning} />
+                    <Text style={[styles.invisibleText, { color: colors.warning }]}>{t('attendees.invisibleHint')}</Text>
+                  </View>
+                )}
 
-            {/* Consentement DISTINCT : autoriser des entreprises exposantes à
-                enregistrer ses coordonnées n'est pas la même chose qu'être
-                visible dans l'annuaire. Deux finalités, deux accords. */}
-            <View style={[styles.scanConsentRow, { borderTopColor: colors.border }]}>
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[styles.optInTitle, { color: colors.text }]}
-                  allowFontScaling
-                  maxFontSizeMultiplier={1.6}
-                >
-                  {t('attendees.scanOptInTitle')}
-                </Text>
-                <Text
-                  style={[styles.optInSubtitle, { color: colors.gray500 }]}
-                  allowFontScaling
-                  maxFontSizeMultiplier={1.6}
-                >
-                  {t('attendees.scanOptInSubtitle')}
-                </Text>
+                {/* Consentement DISTINCT : autoriser des entreprises exposantes à
+                    enregistrer ses coordonnées n'est pas la même chose qu'être
+                    visible dans l'annuaire. Deux finalités, deux accords. */}
+                <View style={[styles.scanConsentRow, { borderTopColor: colors.border }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[styles.optInTitle, { color: colors.text }]}
+                      allowFontScaling
+                      maxFontSizeMultiplier={1.6}
+                    >
+                      {t('attendees.scanOptInTitle')}
+                    </Text>
+                    <Text
+                      style={[styles.optInSubtitle, { color: colors.gray500 }]}
+                      allowFontScaling
+                      maxFontSizeMultiplier={1.6}
+                    >
+                      {t('attendees.scanOptInSubtitle')}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={allowScan}
+                    onValueChange={toggleScanConsent}
+                    disabled={toggling}
+                    trackColor={{ false: colors.gray300, true: colors.primary }}
+                    thumbColor="#FFFFFF"
+                    accessibilityLabel={t('attendees.scanOptInTitle')}
+                  />
+                </View>
+                {allowScan && (
+                  <Text
+                    style={[styles.scanConsentNote, { color: colors.gray500 }]}
+                    allowFontScaling
+                    maxFontSizeMultiplier={1.6}
+                  >
+                    {t('attendees.scanOptInWithdrawNote')}
+                  </Text>
+                )}
               </View>
-              <Switch
-                value={allowScan}
-                onValueChange={toggleScanConsent}
-                disabled={toggling}
-                trackColor={{ false: colors.gray300, true: colors.primary }}
-                thumbColor="#FFFFFF"
-                accessibilityLabel={t('attendees.scanOptInTitle')}
-              />
-            </View>
-            {allowScan && (
-              <Text
-                style={[styles.scanConsentNote, { color: colors.gray500 }]}
-                allowFontScaling
-                maxFontSizeMultiplier={1.6}
-              >
-                {t('attendees.scanOptInWithdrawNote')}
+
+              <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('attendees.eyebrow')}</Text>
+              <Text style={[styles.subtitle, { color: colors.gray500 }]}>
+                {t('attendees.count', { count: total ?? attendees.length })}
               </Text>
-            )}
-          </View>
 
-          <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('attendees.eyebrow')}</Text>
-          <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-            {t('attendees.count', { count: attendees.length })}
-          </Text>
-
-          {attendees.length === 0 ? (
+            </View>
+          }
+          ListEmptyComponent={
             <View style={styles.emptyBox}>
               <Ionicons name="people-outline" size={44} color={colors.gray400} />
               <Text style={[styles.emptyText, { color: colors.gray500 }]}>{t('attendees.empty')}</Text>
             </View>
-          ) : (
-            attendees.map((a) => (
-              <View key={String(a.id)} style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          }
+          ListFooterComponent={loadingMore ? (
+            <ActivityIndicator style={{ paddingVertical: Spacing.lg }} size="small" color={colors.primary} />
+          ) : null}
+          renderItem={({ item: a }) => (
+              <View style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 {a.profile_picture ? (
                   <ExpoImage source={{ uri: a.profile_picture }} style={styles.avatar} contentFit="cover" transition={200} />
                 ) : (
@@ -243,9 +262,8 @@ export default function EventAttendeesScreen() {
                   <Text style={styles.msgBtnText}>{t('attendees.message')}</Text>
                 </TouchableOpacity>
               </View>
-            ))
           )}
-        </ScrollView>
+        />
       )}
     </View>
   );

@@ -31,6 +31,8 @@ export const ERROR_CODE_MAP: Record<string, string> = {
   payout_already_processing: 'errors.codes.payoutLocked',
   plan_limit_reached: 'errors.codes.planLimitReached',
   country_not_supported: 'errors.codes.countryNotSupported',
+  // Page de maintenance nginx pendant un déploiement (503 `updating`).
+  updating: 'errors.http.updating',
 };
 
 function httpKey(status: number | undefined): string {

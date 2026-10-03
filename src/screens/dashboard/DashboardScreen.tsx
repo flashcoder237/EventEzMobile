@@ -37,6 +37,8 @@ import {
 import { centeredContent } from '../../constants/layout';
 import { dayLightFor } from '../../components/ui/editorial/editorialTokens';
 import ContextGreeting from '../../components/dashboard/ContextGreeting';
+import { useGoToSaved } from '../../hooks/useGoToSaved';
+import { runAfterInteractionsOrTimeout } from '../../lib/utils/afterInteractions';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -99,7 +101,7 @@ export default function DashboardScreen() {
 
   // Callbacks de navigation stables — préservent la mémoïsation de QuickAction.
   const goToMyTickets = useCallback(() => navigation.navigate('Main', { screen: 'MyTickets' } as any), [navigation]);
-  const goToSaved = useCallback(() => navigation.navigate('Main', { screen: 'Saved' } as any), [navigation]);
+  const goToSaved = useGoToSaved();
   const goToDiscover = useCallback(() => navigation.navigate('Main', { screen: 'Discover' } as any), [navigation]);
   const goToNotifications = useCallback(() => navigation.navigate('Notifications'), [navigation]);
   const goToMessages = useCallback(() => navigation.navigate('Messages'), [navigation]);
@@ -109,9 +111,10 @@ export default function DashboardScreen() {
   const goToAnalytics = useCallback(() => navigation.navigate('AnalyticsDashboard'), [navigation]);
 
   useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => {
+    // Délai max : un squelette éternel = « app figée » (cf. afterInteractions).
+    const task = runAfterInteractionsOrTimeout(() => {
       fetchStats();
-    });
+    }, 1200);
     return () => task.cancel();
   }, []);
 

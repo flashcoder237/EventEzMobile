@@ -3,6 +3,7 @@
 // ============================================
 
 import api from './instance';
+import { fetchUpload } from './config';
 
 // ============================================
 // SOCIAL / ACTIVITY FEED API
@@ -130,7 +131,7 @@ export const referralsAPI = {
     api.get(`/referrals/codes/${id}/stats/`),
 
   trackClick: (code: string) =>
-    api.post('/referrals/track/', { code }),
+    api.get('/referrals/track/', { params: { code } }),
 };
 
 // ============================================
@@ -249,13 +250,17 @@ export const advertisementsAPI = {
   // === Admin CRUD ===
   list: (params?: any) => api.get('/advertisements/', { params }),
   get: (id: string) => api.get(`/advertisements/${id}/`),
+  // Les uploads multipart passent par fetchUpload (fetch natif) et NON par axios :
+  // en React Native, le FormData est un polyfill qu'axios sérialise mal, et forcer
+  // 'Content-Type: multipart/form-data' empêche XHR d'ajouter le boundary — d'où
+  // un ERR_NETWORK à la création. Même convention que events/sessions/messages.
   create: (data: FormData | Record<string, any>) =>
-    api.post('/advertisements/', data, {
-      headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
-    }),
+    data instanceof FormData
+      ? fetchUpload('POST', '/advertisements/', data)
+      : api.post('/advertisements/', data),
   update: (id: string, data: FormData | Record<string, any>) =>
-    api.patch(`/advertisements/${id}/`, data, {
-      headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
-    }),
+    data instanceof FormData
+      ? fetchUpload('PATCH', `/advertisements/${id}/`, data)
+      : api.patch(`/advertisements/${id}/`, data),
   delete: (id: string) => api.delete(`/advertisements/${id}/`),
 };

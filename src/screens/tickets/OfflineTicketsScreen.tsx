@@ -28,6 +28,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { formatTimeAgo } from '../../lib/utils/dateFormatters';
 import { registrationsAPI } from '../../api';
 import * as Print from 'expo-print';
+import { BRAND_PDF_CSS, brandFooterHtml, brandHeaderHtml, getBrandLogoDataUri } from '../../lib/pdf/brandPdf';
 import { useSaveOrShareSheet } from '../../hooks/useSaveOrShareSheet';
 import {
   FontSizes,
@@ -38,6 +39,7 @@ import {
 import { centeredContent, CARD_MAX } from '../../constants/layout';
 import { RootStackParamList } from '../../types';
 import { isRegistrationPresentable } from '../../utils/paymentSettled';
+import { registrationEvent } from '../../lib/utils/registrationEvent';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -105,11 +107,16 @@ export default function OfflineTicketsScreen() {
               registration: {
                 id: r.id,
                 reference_code: r.reference_code,
-                event: {
-                  id: r.event_detail?.id || r.event?.id || r.event_id || r.event,
-                  title: r.event_detail?.title || r.event?.title || t('tickets.eventFallback'),
-                  start_date: r.event_detail?.start_date || r.event?.start_date || '',
-                },
+                event: (() => {
+                  const ev = registrationEvent(r);
+                  return {
+                    id: ev.id,
+                    slug: ev.slug,
+                    title: ev.title || t('tickets.eventFallback'),
+                    start_date: ev.start_date || '',
+                    end_date: ev.end_date,
+                  };
+                })(),
               },
               ticket_type_name:
                 tk.ticket_type_name || tk.type_name || (typeof tk.ticket_type === 'object' ? tk.ticket_type?.name : undefined),
@@ -232,9 +239,11 @@ export default function OfflineTicketsScreen() {
         .filter(([, v]) => !!v)
         .map(([k, v]) => `<div class="row"><span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(v)}</span></div>`)
         .join('');
+      const logo = await getBrandLogoDataUri();
       const html = `
         <html><head><meta charset="utf-8" /><style>
           body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color:#111827; padding:40px; }
+          ${BRAND_PDF_CSS}
           .eyebrow { color:#FF6B6B; letter-spacing:3px; font-size:11px; font-weight:700; }
           h1 { font-size:26px; margin:6px 0 24px; letter-spacing:-0.5px; }
           .row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #E5E7EB; }
@@ -242,13 +251,13 @@ export default function OfflineTicketsScreen() {
           .v { font-weight:600; font-size:13px; text-align:right; }
           .qr { text-align:center; margin-top:28px; }
           .qr img { width:200px; height:200px; }
-          .footer { margin-top:32px; color:#9CA3AF; font-size:10px; text-align:center; }
         </style></head><body>
+          ${brandHeaderHtml(logo)}
           <div class="eyebrow">${escapeHtml(t('offlineTickets.pdfEyebrow', { defaultValue: 'BILLET' }))}</div>
           <h1>${escapeHtml(ticket.eventTitle)}</h1>
           ${rowsHtml}
           ${ticket.qrCodeBase64 ? `<div class="qr"><img src="${ticket.qrCodeBase64}" /></div>` : ''}
-          <div class="footer">EventEz</div>
+          ${brandFooterHtml(escapeHtml(t('offlineTickets.pdfFooter', { defaultValue: 'Présentez ce QR code à l’entrée. Billet personnel, ne le partagez pas.' })))}
         </body></html>`;
       const { uri } = await Print.printToFileAsync({ html });
       // Propose « Enregistrer / Partager » via le sheet (la share sheet native

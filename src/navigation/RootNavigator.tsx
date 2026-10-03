@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, Suspense, lazy, ComponentType } from 'react';
+import { runAfterInteractionsOrTimeout } from '../lib/utils/afterInteractions';
 import { createNativeStackNavigator, NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
@@ -126,6 +127,8 @@ const VerificationScreen = withSuspense(lazy(() => import('../screens/profile/Ve
 const BlockedUsersScreen = withSuspense(lazy(() => import('../screens/profile/BlockedUsersScreen')));
 const EditProfileScreen = withSuspense(lazy(() => import('../screens/profile/EditProfileScreen')));
 const FollowingUsersScreen = withSuspense(lazy(() => import('../screens/profile/FollowingUsersScreen')));
+// Favoris en écran empilé : pour les organisateurs, l'onglet Favoris est remplacé par Organiser.
+const SavedEventsScreen = withSuspense(lazy(() => import('../screens/dashboard/FollowingEventsScreen')));
 const MemoriesScreen = withSuspense(lazy(() => import('../screens/profile/MemoriesScreen')));
 const YearInReviewScreen = withSuspense(lazy(() => import('../screens/profile/YearInReviewScreen')));
 const TermsScreen = withSuspense(lazy(() => import('../screens/profile/TermsScreen')));
@@ -328,7 +331,7 @@ export default function RootNavigator() {
   // le spinner Suspense (cf. lazyScreen).
   useEffect(() => {
     if (!bootResolved) return;
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = runAfterInteractionsOrTimeout(() => {
       [ConversationScreen, NotificationsScreen, DashboardScreen, SettingsScreen].forEach((screen) => {
         screen.preload().catch(() => { /* retenté à la navigation */ });
       });
@@ -529,6 +532,7 @@ export default function RootNavigator() {
         component={VerificationScreen}
       />
       <Stack.Screen name="FollowingUsers" component={FollowingUsersScreen} />
+      <Stack.Screen name="SavedEvents" component={SavedEventsScreen} />
 
       {/* Messages Screens */}
       <Stack.Screen name="Messages" component={MessagesScreen} />

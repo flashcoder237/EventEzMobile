@@ -79,6 +79,19 @@ export function getEmbedUrl(url: string): string {
   return '';
 }
 
+/**
+ * URL embed de la vidéo de couverture d'un événement. Le serveur la fournit
+ * (`cover_video_embed`), mais l'endpoint DÉTAIL l'a longtemps omise : on la
+ * déduit alors de `cover_video_url` (sinon la fiche n'affichait aucune vidéo
+ * alors que la carte de l'accueil la jouait).
+ */
+export function resolveCoverEmbed(
+  event: { cover_video_embed?: string | null; cover_video_url?: string | null } | null | undefined,
+): string {
+  if (!event) return '';
+  return event.cover_video_embed || getEmbedUrl(event.cover_video_url || '');
+}
+
 export function isExternalVideoUrl(url: string): boolean {
   return Boolean(getEmbedUrl(url));
 }

@@ -52,9 +52,6 @@ export const treasuryAPI = {
   getTransaction: (id: string) =>
     api.get(`/admin/treasury/transactions/${id}/`),
 
-  createTransaction: (data: any) =>
-    api.post('/admin/treasury/transactions/', data),
-
   // Staff
   getStaffMembers: (params?: any) =>
     api.get('/admin/treasury/staff/', { params }),

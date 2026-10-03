@@ -33,6 +33,7 @@ import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { useSensoryPref } from '../../hooks/useSensoryPrefs';
 import { forgetTastePreferences } from '../../lib/recommendations';
 import { ongoingEvent, isOngoingEnabled } from '../../services/ongoingEventNotification';
+import { openNotificationSoundSettings } from '../../lib/native/notificationChannels';
 import { haptics } from '../../utils/haptics';
 import { useAppLock } from '../../hooks/useAppLock';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
@@ -1284,6 +1285,16 @@ export default function SettingsScreen() {
                 }}
               />
             }
+          />
+          )}
+          {matchesQuery(searchQuery, [t('settings.preferencesSectionEyebrow'), t('settings.rowNotificationSounds'), t('settings.rowNotificationSoundsSubtitle')]) && (
+          <OptionCard
+            icon="notifications-outline"
+            eyebrow={t('eyebrow.soundEffects')}
+            title={t('settings.rowNotificationSounds')}
+            subtitle={t('settings.rowNotificationSoundsSubtitle')}
+            onPress={() => { openNotificationSoundSettings(); }}
+            right={<Ionicons name="open-outline" size={18} color={colors.gray400} />}
           />
           )}
           {matchesQuery(searchQuery, [t('settings.preferencesSectionEyebrow'), t('settings.rowUiSounds'), t('settings.rowUiSoundsSubtitle')]) && (

@@ -239,3 +239,37 @@ describe('clearAllOfflineTickets (sécurité logout)', () => {
     expect(await AsyncStorage.getItem('autre_cle')).toBe('garde-moi');
   });
 });
+
+describe('réparation des métadonnées (retour testeur 2026-10-03)', () => {
+  it('un billet caché sans titre ni date est réparé au prochain passage en ligne, sans retélécharger le QR', async () => {
+    mockDownloadAsync.mockResolvedValue({ status: 200, uri: 'file:///cache/qr.png' });
+    mockReadAsStringAsync.mockResolvedValue('QQ');
+    const { result } = await mountReady();
+    // Ancienne écriture fautive : titre de repli + date vide.
+    const broken = makeTicket('r1', { qr_code: 'https://cdn/qr.png' });
+    broken.registration.event = { id: 'evt-r1', title: 'Événement', start_date: '' } as any;
+    await act(async () => { await result.current.cacheTicket(broken); });
+
+    const good = makeTicket('r1', { qr_code: 'https://cdn/qr.png' });
+    good.registration.event = { id: 'evt-r1', slug: 'nuit', title: 'Nuit du Makossa', start_date: '2026-12-17T10:02:00Z' } as any;
+    await act(async () => { await result.current.cacheTicket(good); });
+
+    expect(mockDownloadAsync).toHaveBeenCalledTimes(1);
+    const stored = JSON.parse((await AsyncStorage.getItem(`${PREFIX}r1`))!);
+    expect(stored.eventTitle).toBe('Nuit du Makossa');
+    expect(stored.eventDate).toBe('2026-12-17T10:02:00Z');
+    expect(stored.eventId).toBe('nuit');
+    expect(stored.qrCodeBase64).toBe('data:image/png;base64,QQ');
+  });
+
+  it('une source sans date ne dégrade jamais une entrée complète', async () => {
+    const { result } = await mountReady();
+    await act(async () => { await result.current.cacheTicket(makeTicket('r2')); });
+    const worse = makeTicket('r2');
+    worse.registration.event = { id: 'evt-r2', title: 'Événement', start_date: '' } as any;
+    await act(async () => { await result.current.cacheTicket(worse); });
+    const stored = JSON.parse((await AsyncStorage.getItem(`${PREFIX}r2`))!);
+    expect(stored.eventTitle).toBe('Event r2');
+    expect(stored.eventDate).toBe('2026-08-01T10:00:00Z');
+  });
+});

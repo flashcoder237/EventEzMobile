@@ -145,11 +145,19 @@ describe('resolveNotificationTarget — par notification_type', () => {
       extra_data: { registration_id: 'reg-123', event_id: 'evt-1' },
     }))).toEqual({ screen: 'Payment', params: { registrationId: 'reg-123' } });
   });
-  it('abandoned_registration SANS registration_id → MyTickets (jamais organisateur)', () => {
+  it('abandoned_registration SANS registration_id mais liée à l’inscription → Payment (jamais organisateur)', () => {
+    // Le backend pose related_object_type='registration' + l'id de l'inscription.
     expect(resolveNotificationTarget(notif({
       notification_type: 'abandoned_registration',
-      related_object_id: 'evt-1',
+      related_object_id: 'reg-1',
       related_object_type: 'registration',
+      extra_data: {},
+    }))).toEqual({ screen: 'Payment', params: { registrationId: 'reg-1' } });
+  });
+
+  it('abandoned_registration sans aucune inscription connue → MyTickets', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'abandoned_registration',
       extra_data: {},
     }))).toEqual({ tab: 'MyTickets' });
   });
@@ -461,5 +469,51 @@ describe('resolveNotificationTarget — moments signatures (round 2)', () => {
     expect(resolveNotificationTarget(notif({
       notification_type: 'waitlist_available', extra_data: { event_slug: 'jazz' },
     }))).toEqual({ screen: 'EventDetails', params: { eventId: 'jazz' } });
+  });
+});
+
+describe('resolveNotificationTarget — related_object_id qui n’est PAS un événement', () => {
+  // Retour testeur 2026-10-03 : « je clique sur une notification, ça me
+  // renvoie avec erreur ». L'id d'une inscription/d'un paiement était pris
+  // pour un id d'événement → fiche introuvable.
+  it.each(['event_reminder', 'event_cancelled', 'event_update', 'event_today'])(
+    '%s lié à une inscription n’ouvre jamais la fiche avec l’id de l’inscription',
+    (type) => {
+      const target: any = resolveNotificationTarget(notif({
+        notification_type: type,
+        related_object_id: 'reg-42',
+        related_object_type: 'registration',
+        extra_data: { event_id: 'evt-9' },
+      }));
+      expect(JSON.stringify(target)).not.toContain('"eventId":"reg-42"');
+      if (target?.screen === 'EventDetails') expect(target.params.eventId).toBe('evt-9');
+    },
+  );
+
+  it('event_reminder lié à une inscription sans event_id → le billet', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'event_reminder',
+      related_object_id: 'reg-42',
+      related_object_type: 'registration',
+      extra_data: {},
+    }))).toEqual({ screen: 'RegistrationDetails', params: { registrationId: 'reg-42' } });
+  });
+
+  it('event_cancelled lié à un paiement sans event_id → rien (liste des notifications)', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'event_cancelled',
+      related_object_id: 'pay-1',
+      related_object_type: 'payment',
+      extra_data: {},
+    }))).toBeNull();
+  });
+
+  it('préfère le slug fourni au tap (fiche publique)', () => {
+    expect(resolveNotificationTarget(notif({
+      notification_type: 'event_update',
+      related_object_id: 'evt-uuid',
+      related_object_type: 'event',
+      extra_data: { event_slug: 'nuit-du-makossa' },
+    }))).toEqual({ screen: 'EventDetails', params: { eventId: 'nuit-du-makossa' } });
   });
 });

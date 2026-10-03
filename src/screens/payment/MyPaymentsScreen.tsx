@@ -91,7 +91,9 @@ export default function MyPaymentsScreen() {
 
   const fetchPayments = async () => {
     try {
-      const response = await paymentsAPI.getPayments();
+      // mine=1 : un admin/organisateur ne voit ici QUE ses propres paiements
+      // (sans ça l'API renvoyait ceux de toute la plateforme / de ses acheteurs).
+      const response = await paymentsAPI.getPayments({ mine: 1 });
       const data = response.data?.results || response.data || [];
       setPayments(data);
     } catch (error) {

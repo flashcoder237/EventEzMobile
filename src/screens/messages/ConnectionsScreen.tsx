@@ -15,7 +15,7 @@
  * Modal "Scanner" : delegue au QRScannerScreen existant (cf. Phase B step 2)
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -35,6 +35,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import QRCode from 'react-native-qrcode-svg';
 import { connectionsAPI, type Connection, getMediaUrl } from '../../api';
+import { usePaginatedList } from '../../hooks/usePaginatedList';
 import { getUserInitials } from '../../lib/utils/messagingHelpers';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -69,9 +70,20 @@ export default function ConnectionsScreen() {
   const { width: winW } = useWindowDimensions();
   const listMaxWidth = winW >= 700 ? 620 : undefined;
 
-  const [connections, setConnections] = useState<Connection[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  // Paginé côté serveur (30 / page) : une liste de connexions peut devenir
+  // longue (salons, bump répétés) — avant, tout était chargé d'un coup.
+  const {
+    items: connections,
+    setItems: setConnections,
+    loading,
+    refreshing,
+    loadingMore,
+    refresh,
+    loadMore,
+  } = usePaginatedList<Connection>({
+    fetchPage: async (page) => (await connectionsAPI.list({ page, page_size: 30 })).data,
+    onError: (error) => { if (__DEV__) console.error('[Connections] fetch failed:', error); },
+  });
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
@@ -84,25 +96,13 @@ export default function ConnectionsScreen() {
       ? String(tonight.event.id)
       : null;
 
-  const fetchConnections = useCallback(async () => {
-    try {
-      const response = await connectionsAPI.list();
-      setConnections(response.data?.results || []);
-    } catch (error) {
-      if (__DEV__) console.error('[Connections] fetch failed:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
+  // Rafraîchit au RETOUR sur l'écran (ex. après un scan QR) — pas au premier
+  // focus : le hook charge déjà la page 1 au montage (avant : double requête).
+  const focusedOnceRef = useRef(false);
   useFocusEffect(useCallback(() => {
-    fetchConnections();
-  }, [fetchConnections]));
-
-  useEffect(() => {
-    fetchConnections();
-  }, [fetchConnections]);
+    if (focusedOnceRef.current) refresh();
+    focusedOnceRef.current = true;
+  }, [refresh]));
 
   const openQrModal = useCallback(async () => {
     setQrLoading(true);
@@ -265,10 +265,15 @@ export default function ConnectionsScreen() {
               ? styles.listEmpty
               : [styles.list, listMaxWidth ? centeredContent(listMaxWidth) : null]
           }
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={loadingMore ? (
+            <ActivityIndicator style={{ paddingVertical: Spacing.lg }} size="small" color={colors.primary} />
+          ) : null}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => { setRefreshing(true); fetchConnections(); }}
+              onRefresh={refresh}
               tintColor={colors.primary}
               colors={[colors.primary, colors.secondary, colors.accent]} progressBackgroundColor={colors.card}
             />

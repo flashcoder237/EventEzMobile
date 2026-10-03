@@ -26,11 +26,6 @@ describe('virtualRoomsAPI', () => {
     expect(api.get).toHaveBeenCalledWith('/virtual-rooms/rid/');
   });
 
-  it('join() POSTs /virtual-rooms/{id}/join/', async () => {
-    await virtualRoomsAPI.join('rid');
-    expect(api.post).toHaveBeenCalledWith('/virtual-rooms/rid/join/');
-  });
-
   it('leave() POSTs /virtual-rooms/{id}/leave/', async () => {
     await virtualRoomsAPI.leave('rid');
     expect(api.post).toHaveBeenCalledWith('/virtual-rooms/rid/leave/');

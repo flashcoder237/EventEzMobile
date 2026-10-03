@@ -15,6 +15,7 @@ const PUSH_REGISTERED_AT_KEY = '@eventez_push_registered_at';
 // Dernier token effectivement enregistré côté backend. Utilisé pour skip
 // l'API call si on tente de ré-enregistrer le même token (déduplication).
 const LAST_REGISTERED_TOKEN_KEY = '@eventez_last_registered_token';
+const registrationKey = (token: string) => `${token}|${Constants.expoConfig?.version || ''}`;
 // File d'attente des tokens dont l'unregister backend a échoué (réseau down
 // au logout). Au prochain boot, on retente — sinon le device continue de
 // recevoir les notifs de l'ex-user.
@@ -505,7 +506,10 @@ class PushNotificationService {
     if (!force) {
       try {
         const lastRegistered = await AsyncStorage.getItem(LAST_REGISTERED_TOKEN_KEY);
-        if (lastRegistered === token) {
+        // Clé = token + version : après une MISE À JOUR de l'app, le token
+        // reste le même mais le backend doit apprendre la nouvelle version
+        // (elle décide des canaux / sons de notification disponibles).
+        if (lastRegistered === registrationKey(token)) {
           if (__DEV__) console.log('[Push] Token already registered — skipping API call');
           return true;
         }
@@ -532,7 +536,7 @@ class PushNotificationService {
     if (ok) {
       try {
         await AsyncStorage.setItem(PUSH_REGISTERED_AT_KEY, String(Date.now()));
-        await AsyncStorage.setItem(LAST_REGISTERED_TOKEN_KEY, token);
+        await AsyncStorage.setItem(LAST_REGISTERED_TOKEN_KEY, registrationKey(token));
       } catch { /* ignore */ }
     }
     return ok;
