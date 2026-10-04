@@ -15,6 +15,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { gamificationAPI } from '../../api';
 import { RootStackParamList } from '../../types';
+// Les paliers gardent leurs glyphes Ionicons : ils ne s'affichent qu'en puces
+// de 10-11 px, où les médaillons 96 px du redesign ne sont pas lisibles.
+import { badgeArt, hasBadgeArt } from '../../components/badges';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { GamificationScreenSkeleton } from '../../components/ui/Skeleton';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -209,9 +212,21 @@ export default function GamificationScreen() {
                 <Ionicons name="checkmark" size={8} color="#FFFFFF" />
               </View>
             )}
-            {earned ? (
-              // Médaillon en dégradé : le badge obtenu se distingue au premier
-              // coup d'œil d'un badge encore verrouillé.
+            {hasBadgeArt(item.icon) ? (
+              // Médaillon dessiné (redesign SVG) : le badge porte son propre
+              // visuel, et la variante verrouillée est un dessin grisé — pas
+              // le même glyphe en gris.
+              (() => {
+                const Art = badgeArt(item.icon, earned);
+                return (
+                  <View style={styles.badgeIconBoxE}>
+                    <Art size={56} />
+                  </View>
+                );
+              })()
+            ) : earned ? (
+              // Repli pour un badge créé en admin dont on n'a pas le dessin :
+              // médaillon en dégradé + glyphe Ionicons, comme avant.
               <LinearGradient
                 colors={[accent, shadeColor(accent, -28)]}
                 start={{ x: 0, y: 0 }}
