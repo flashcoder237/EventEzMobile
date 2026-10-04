@@ -8219,7 +8219,7 @@
     "goingCard": {
       "title": "En attendant, préparez votre carte « J’y vais »",
       "subtitle": "Elle sera prête à partager dès que le paiement sera confirmé.",
-      "tintLabel": "Couleur",
+      "tintLabel": "Fond",
       "messageLabel": "Message",
       "messages": {
         "going": "J’Y VAIS",
@@ -8229,7 +8229,8 @@
       "tintA11y": "Couleur {{index}}",
       "printing": "Votre carte s’imprime pendant l’attente.",
       "ready": "Votre carte est prête",
-      "share": "Partager ma carte"
+      "share": "Partager ma carte",
+      "backdropA11y": "Fond dessiné {{index}}"
     }
   }
 }

@@ -10,6 +10,12 @@ export type GoingCardMessage = 'going' | 'meetThere' | 'seeYou';
 export interface GoingCardDraft {
   tint: string;
   message: GoingCardMessage;
+  /**
+   * Fond dessiné choisi (cf. components/payment/backdrops). Absent = teinte
+   * unie `tint`, le comportement d'origine — les brouillons déjà en mémoire
+   * restent donc valides.
+   */
+  backdrop?: string | null;
 }
 
 export const GOING_CARD_MESSAGES: GoingCardMessage[] = ['going', 'meetThere', 'seeYou'];

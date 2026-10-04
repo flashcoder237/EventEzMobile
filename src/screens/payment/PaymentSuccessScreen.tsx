@@ -767,6 +767,7 @@ export default function PaymentSuccessScreen() {
             <Animated.View style={[styles.goingDetached, detachStyle]} accessibilityLabel={t('delight.goingCard.ready')}>
               <GoingCardPreview
                 tint={goingDraft.tint}
+                backdrop={goingDraft.backdrop}
                 message={t(`delight.goingCard.messages.${goingDraft.message}`)}
                 title={eventTitle}
                 dateLabel={shareDateLabel}

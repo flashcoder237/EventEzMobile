@@ -20,6 +20,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
 import { Durations } from '../../constants/motion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { backdropById, GOING_CARD_BACKDROPS } from './backdrops';
 import {
   GOING_CARD_MESSAGES,
   GOING_CARD_TINTS,
@@ -40,12 +41,39 @@ export const GoingCardPreview = memo(function GoingCardPreview({
   message,
   title,
   dateLabel,
+  backdrop,
 }: {
   tint: string;
   message: string;
   title?: string | null;
   dateLabel?: string | null;
+  /** Identifiant d'un fond dessiné ; sans lui, on garde le dégradé de teinte. */
+  backdrop?: string | null;
 }) {
+  const content = (
+    <>
+      <View style={styles.previewBadge}>
+        <Text style={styles.previewBadgeText} numberOfLines={1}>{message}</Text>
+      </View>
+      {!!title && <Text style={styles.previewTitle} numberOfLines={2}>{title}</Text>}
+      {!!dateLabel && <Text style={styles.previewDate} numberOfLines={1}>{dateLabel}</Text>}
+    </>
+  );
+
+  const art = backdropById(backdrop);
+  if (art) {
+    // Le SVG est en fond absolu : il remplit la carte, le texte passe par-dessus.
+    const { Art } = art;
+    return (
+      <View style={styles.preview}>
+        <View style={StyleSheet.absoluteFill}>
+          <Art />
+        </View>
+        {content}
+      </View>
+    );
+  }
+
   return (
     <LinearGradient
       colors={[tint, '#FF6B6B']}
@@ -53,11 +81,7 @@ export const GoingCardPreview = memo(function GoingCardPreview({
       end={{ x: 1, y: 1 }}
       style={styles.preview}
     >
-      <View style={styles.previewBadge}>
-        <Text style={styles.previewBadgeText} numberOfLines={1}>{message}</Text>
-      </View>
-      {!!title && <Text style={styles.previewTitle} numberOfLines={2}>{title}</Text>}
-      {!!dateLabel && <Text style={styles.previewDate} numberOfLines={1}>{dateLabel}</Text>}
+      {content}
     </LinearGradient>
   );
 });
@@ -86,6 +110,8 @@ function GoingCardPrepComponent({ active, registrationId, eventTitle, dateLabel,
   const initial = getGoingCardDraft(registrationId);
   const [tint, setTint] = useState<string>(initial?.tint ?? tints[0]);
   const [message, setMessage] = useState<GoingCardMessage>(initial?.message ?? 'going');
+  // Fond dessiné, ou null pour la teinte unie (comportement d'origine).
+  const [backdrop, setBackdrop] = useState<string | null>(initial?.backdrop ?? null);
 
   // Horloge réelle de l'attente (remise à zéro à chaque nouvelle vérification).
   useEffect(() => {
@@ -113,8 +139,8 @@ function GoingCardPrepComponent({ active, registrationId, eventTitle, dateLabel,
 
   // Le choix est gardé pour l'écran de succès (jamais utilisé sans paiement confirmé).
   useEffect(() => {
-    setGoingCardDraft(registrationId, { tint, message });
-  }, [registrationId, tint, message]);
+    setGoingCardDraft(registrationId, { tint, message, backdrop });
+  }, [registrationId, tint, message, backdrop]);
 
   const visible = active && (elapsed >= SHOW_AFTER_S || returned);
   const progress = reduced ? 1 : Math.max(MIN_VISIBLE, printProgress(elapsed));
@@ -148,6 +174,7 @@ function GoingCardPrepComponent({ active, registrationId, eventTitle, dateLabel,
         <Animated.View style={printStyle}>
           <GoingCardPreview
             tint={tint}
+            backdrop={backdrop}
             message={t(`delight.goingCard.messages.${message}`)}
             title={eventTitle}
             dateLabel={dateLabel}
@@ -156,20 +183,53 @@ function GoingCardPrepComponent({ active, registrationId, eventTitle, dateLabel,
       </View>
 
       <Text style={[styles.label, { color: colors.gray600 }]}>{t('delight.goingCard.tintLabel')}</Text>
-      <View style={styles.row}>
-        {tints.map((c, i) => (
-          <TouchableOpacity
-            key={c}
-            onPress={() => setTint(c)}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: c === tint }}
-            accessibilityLabel={t('delight.goingCard.tintA11y', { index: i + 1 })}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            style={[styles.swatchRing, { borderColor: c === tint ? colors.gray800 : 'transparent' }]}
-          >
-            <View style={[styles.swatch, { backgroundColor: c }]} />
-          </TouchableOpacity>
-        ))}
+      <View style={[styles.row, { flexWrap: 'wrap' }]}>
+        {/* Teintes unies : le choix le plus rapide pour accorder la carte aux
+            couleurs d'un événement. Sélectionner une teinte retire le fond. */}
+        {tints.map((c, i) => {
+          const selected = !backdrop && c === tint;
+          return (
+            <TouchableOpacity
+              key={c}
+              onPress={() => {
+                setTint(c);
+                setBackdrop(null);
+              }}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              accessibilityLabel={t('delight.goingCard.tintA11y', { index: i + 1 })}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              style={[styles.swatchRing, { borderColor: selected ? colors.gray800 : 'transparent' }]}
+            >
+              <View style={[styles.swatch, { backgroundColor: c }]} />
+            </TouchableOpacity>
+          );
+        })}
+
+        {/* Fonds dessinés — une vignette montre le fond réel, pas une pastille
+            de couleur : c'est le motif qui distingue ces choix entre eux. */}
+        {GOING_CARD_BACKDROPS.map((b, i) => {
+          const selected = backdrop === b.id;
+          const { Art } = b;
+          return (
+            <TouchableOpacity
+              key={b.id}
+              onPress={() => setBackdrop(b.id)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              accessibilityLabel={t('delight.goingCard.backdropA11y', {
+                index: i + 1,
+                defaultValue: `Fond ${i + 1}`,
+              })}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              style={[styles.swatchRing, { borderColor: selected ? colors.gray800 : 'transparent' }]}
+            >
+              <View style={[styles.swatch, { overflow: 'hidden' }]}>
+                <Art />
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <Text style={[styles.label, { color: colors.gray600 }]}>{t('delight.goingCard.messageLabel')}</Text>

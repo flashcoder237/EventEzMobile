@@ -8219,7 +8219,7 @@
     "goingCard": {
       "title": "While you wait, prepare your “I’m going” card",
       "subtitle": "It will be ready to share as soon as the payment is confirmed.",
-      "tintLabel": "Color",
+      "tintLabel": "Background",
       "messageLabel": "Message",
       "messages": {
         "going": "I’M GOING",
@@ -8229,7 +8229,8 @@
       "tintA11y": "Color {{index}}",
       "printing": "Your card prints while you wait.",
       "ready": "Your card is ready",
-      "share": "Share my card"
+      "share": "Share my card",
+      "backdropA11y": "Illustrated background {{index}}"
     }
   }
 }
