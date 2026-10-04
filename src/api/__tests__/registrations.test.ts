@@ -198,4 +198,24 @@ describe('registrationsAPI', () => {
       reason: 'spam',
     });
   });
+
+  // Le backend répond 404 { detail: 'not_enough_events' } tant que l'utilisateur
+  // n'a pas assez d'événements : c'est un RÉSULTAT, pas une panne. Sans
+  // `expectedErrorStatuses`, l'intercepteur le journalisait en rouge à chaque
+  // ouverture de l'écran Souvenirs.
+  it('getYearInReview() déclare le 404 comme attendu (état vide, pas erreur)', async () => {
+    await registrationsAPI.getYearInReview();
+    expect(api.get).toHaveBeenCalledWith(
+      '/me/year-in-review/',
+      expect.objectContaining({ expectedErrorStatuses: [404] }),
+    );
+  });
+
+  it('getYearInReview(year) garde le paramètre ET le statut attendu', async () => {
+    await registrationsAPI.getYearInReview(2025);
+    expect(api.get).toHaveBeenCalledWith('/me/year-in-review/', {
+      params: { year: 2025 },
+      expectedErrorStatuses: [404],
+    });
+  });
 });

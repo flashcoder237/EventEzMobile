@@ -121,9 +121,16 @@ export const registrationsAPI = {
   getAttendanceProofs: (eventId?: string) =>
     api.get('/ticket-purchases/attendance-proofs/', eventId ? { params: { event_id: eventId } } : undefined),
 
-  /** S11 — L'année EventEz (404 sous 2 événements ou si l'utilisateur l'a désactivée). */
+  /**
+   * S11 — L'année EventEz (404 sous 2 événements ou si l'utilisateur l'a
+   * désactivée). Le 404 est un RÉSULTAT NORMAL, pas une panne : on le déclare
+   * attendu pour qu'il ne s'affiche pas en rouge dans la console.
+   */
   getYearInReview: (year?: number) =>
-    api.get('/me/year-in-review/', year ? { params: { year } } : undefined),
+    api.get('/me/year-in-review/', {
+      ...(year ? { params: { year } } : {}),
+      expectedErrorStatuses: [404],
+    } as any),
 
   // Networking « qui est là » : annuaire des participants opt-in d'un event
   // (réservé aux participants confirmés). + toggle de sa propre visibilité.
