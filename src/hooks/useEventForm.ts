@@ -174,7 +174,12 @@ export interface EventFormState {
 
   // Visibility
   visibility: 'public' | 'unlisted' | 'invite_only';
+  // Le code n'est JAMAIS relu depuis le serveur (stocké haché, write-only) :
+  // `accessCode` = NOUVEAU code saisi ; `hasExistingAccessCode` = un code est
+  // actif sur l'event édité ; `removeAccessCode` = l'organisateur veut le retirer.
   accessCode: string;
+  hasExistingAccessCode: boolean;
+  removeAccessCode: boolean;
 
   // Step 4 - Sessions (avec entites agenda : tracks et speakers)
   tracks: TrackForm[];
@@ -246,6 +251,7 @@ export interface UseEventFormReturn {
   removeGalleryImage: (index: number) => void;
   setVisibility: (value: 'public' | 'unlisted' | 'invite_only') => void;
   setAccessCode: (value: string) => void;
+  setRemoveAccessCode: (value: boolean) => void;
   setStartDate: (date: Date) => void;
   setEndDate: (date: Date) => void;
   setRegistrationDeadline: (date: Date | null) => void;
@@ -409,6 +415,8 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
     setVisibilityState(v);
   }, []);
   const [accessCode, setAccessCode] = useState('');
+  const [hasExistingAccessCode, setHasExistingAccessCode] = useState(false);
+  const [removeAccessCode, setRemoveAccessCode] = useState(false);
 
   // Step 4 - Sessions + agenda entities
   const [tracks, setTracks] = useState<TrackForm[]>([]);
@@ -456,7 +464,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
     locationLatitude, locationLongitude, showMapPicker,
     isFree, maxParticipants, autoApproveRegistrations, feeBearer,
     ticketTypes, formFields, showFormFieldsForBilletterie, attendeeFormScope,
-    visibility, accessCode, sessions, tracks, speakers, categories, availableTags,
+    visibility, accessCode, hasExistingAccessCode, removeAccessCode, sessions, tracks, speakers, categories, availableTags,
     aiEnabled, aiLoading, aiResult, aiError, aiUsage,
     aiTitleLoading, aiDescLoading, aiPricingLoading,
     stepErrors,
@@ -1045,6 +1053,8 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
     if (data.attendeeFormScope !== undefined) setAttendeeFormScope(data.attendeeFormScope);
     if (data.visibility !== undefined) setVisibility(data.visibility);
     if (data.accessCode !== undefined) setAccessCode(data.accessCode);
+    if (data.hasExistingAccessCode !== undefined) setHasExistingAccessCode(data.hasExistingAccessCode);
+    if (data.removeAccessCode !== undefined) setRemoveAccessCode(data.removeAccessCode);
     if (data.sessions !== undefined) {
       // Normalisation defensive : un draft AsyncStorage cree avant l'ajout
       // des champs track_index/speaker_indices/moderator_index/resources peut
@@ -1266,7 +1276,11 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
           autoApproveRegistrations: event.auto_approve_registrations ?? true,
           feeBearer: event.fee_bearer || 'participant',
           visibility: event.visibility || 'public',
-          accessCode: event.access_code || '',
+          // Jamais le hash stocké dans le champ : il s'affichait « codé
+          // bizarrement » et était renvoyé tel quel à la sauvegarde.
+          accessCode: '',
+          hasExistingAccessCode: !!(event.has_access_code || event.access_code),
+          removeAccessCode: false,
           // Statut serveur : sert a savoir s'il faut (re)soumettre a la
           // validation apres edition. Un evenement DUPLIQUE naît `draft` et
           // restait brouillon apres modification, sans rien signaler.
@@ -1330,7 +1344,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string, h
     setTitle, setDescription, setShortDescription, setEventType, setLanguage,
     setCategoryId, setSelectedTagIds, handleCustomTagAdd, handleCustomTagRemove,
     pickImage, setBannerImage, pickCoverVideo, setCoverVideo, setCoverVideoUrl, pickGalleryImages, removeGalleryImage,
-    setVisibility, setAccessCode,
+    setVisibility, setAccessCode, setRemoveAccessCode,
     setStartDate, setEndDate, setRegistrationDeadline, setHasRegistrationDeadline,
     setLocationType, setLocationName, setLocationCity, setLocationAddress, setLocationCountry,
     setOnlineUrl, setOnlinePlatform, setOnlineInstructions, setOnlineMeetingId, setOnlinePasscode,

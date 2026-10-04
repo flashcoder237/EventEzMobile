@@ -39,6 +39,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useHeroFlight } from '../../components/ui/motion/HeroFlight';
 import { isReducedMotionCached } from '../../hooks/useReducedMotion';
 import { Curves, Durations, springConfig } from '../../constants/motion';
@@ -565,7 +566,9 @@ export default function EventDetailsScreen() {
         // Reload — le backend voit maintenant le token via l'interceptor
         // et renvoie les infos completes.
         // Purge le détail caché (version sans accès) avant de recharger.
-        CacheService.invalidate(eventDetailCacheKey(eventId)).catch(() => {});
+        // ATTENDU avant replace : sinon le nouvel écran relit la version
+        // « porte » encore en cache.
+        await CacheService.invalidate(eventDetailCacheKey(eventId)).catch(() => {});
         navigation.replace('EventDetails', { eventId });
       } else {
         // Code refusé SANS exception (200 + { valid: false }) : sans ce else,
@@ -579,6 +582,27 @@ export default function EventDetailsScreen() {
       setVerifyingCode(false);
     }
   };
+
+  // Event details mini-tour. Skipped in preview mode (organizer previewing
+  // their own event doesn't need the tour). Gated on loaded event so the
+  // sticky CTA target exists.
+  // ⚠️ Ces hooks DOIVENT rester AVANT les retours anticipés (404, invitation,
+  // code d'accès) : déclarés après, l'écran rendait moins de hooks sur la
+  // porte « code d'accès » que sur la fiche complète → « Rendered more hooks
+  // than during the previous render » → écran « Oups » juste après un code
+  // valide (la fiche gardée en cache passait de la porte à la fiche).
+  const tour = useTour();
+  const isGated = !!event?.requires_access_code
+    || (event?.visibility === 'invite_only' && event?.user_has_access === false);
+  useFocusEffect(useCallback(() => {
+    if (isPreview || loading || !event || isGated) return;
+    const timer = setTimeout(() => {
+      if (tour.isActive) return;
+      tour.start(getEventDetailsTourSteps(t), { seenKey: EVENT_DETAILS_TOUR_STORAGE_KEY });
+    }, EVENT_DETAILS_TOUR_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPreview, loading, !!event, isGated]));
 
   if (!loading && !event) {
     return (
@@ -635,7 +659,15 @@ export default function EventDetailsScreen() {
     return (
       <EditorialCanvas edges={['top']}>
         <WatermarkNumeral>KEY</WatermarkNumeral>
-        <View style={[visibilityStyles.gateContainer, { zIndex: 1 }]}>
+        {/* Défilable + conscient du clavier : sans ça, le clavier recouvrait
+            le champ du code (vue fixe centrée). */}
+        <KeyboardAwareScrollView
+          style={{ flex: 1, zIndex: 1 }}
+          contentContainerStyle={[visibilityStyles.gateContainer, { flexGrow: 1, paddingVertical: Spacing.xl }]}
+          keyboardShouldPersistTaps="handled"
+          bottomOffset={24}
+          showsVerticalScrollIndicator={false}
+        >
           <TouchableOpacity style={visibilityStyles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color={colors.gray700} />
           </TouchableOpacity>
@@ -685,6 +717,10 @@ export default function EventDetailsScreen() {
               placeholder={t('eventDetails.accessCodePlaceholder')}
               placeholderTextColor={colors.gray400}
               autoFocus
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="go"
+              onSubmitEditing={handleVerifyAccessCode}
             />
             <View style={{ marginTop: 8, flexDirection: 'row' }}>
               <EditorialPillCTA
@@ -697,7 +733,7 @@ export default function EventDetailsScreen() {
               />
             </View>
           </View>
-        </View>
+        </KeyboardAwareScrollView>
       </EditorialCanvas>
     );
   }
@@ -752,20 +788,6 @@ export default function EventDetailsScreen() {
     const guarded = requireAuth(doSaveFromDoubleTap);
     if (typeof guarded === 'function') guarded();
   };
-
-  // Event details mini-tour. Skipped in preview mode (organizer previewing
-  // their own event doesn't need the tour). Gated on loaded event so the
-  // sticky CTA target exists.
-  const tour = useTour();
-  useFocusEffect(useCallback(() => {
-    if (isPreview || loading || !event) return;
-    const timer = setTimeout(() => {
-      if (tour.isActive) return;
-      tour.start(getEventDetailsTourSteps(t), { seenKey: EVENT_DETAILS_TOUR_STORAGE_KEY });
-    }, EVENT_DETAILS_TOUR_DELAY_MS);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPreview, loading, !!event]));
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

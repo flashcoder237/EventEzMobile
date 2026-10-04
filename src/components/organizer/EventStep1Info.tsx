@@ -104,6 +104,10 @@ interface EventStep1InfoProps {
   // Visibility
   visibility: 'public' | 'unlisted' | 'invite_only';
   accessCode: string;
+  /** Édition : un code est déjà actif (jamais relu, stocké haché). */
+  hasExistingAccessCode?: boolean;
+  removeAccessCode?: boolean;
+  onRemoveAccessCodeChange?: (value: boolean) => void;
   onVisibilityChange: (value: 'public' | 'unlisted' | 'invite_only') => void;
   onAccessCodeChange: (value: string) => void;
 
@@ -165,6 +169,9 @@ export default function EventStep1Info({
   onRemoveGalleryImage,
   visibility,
   accessCode,
+  hasExistingAccessCode = false,
+  removeAccessCode = false,
+  onRemoveAccessCodeChange,
   onVisibilityChange,
   onAccessCodeChange,
   onAIGenerate,
@@ -726,11 +733,45 @@ export default function EventStep1Info({
         <TextInput
           style={[styles.input, themed.input]}
           value={accessCode}
-          onChangeText={onAccessCodeChange}
-          placeholder={t('componentsOrganizer.step1.accessCodePlaceholder')}
+          onChangeText={(v) => {
+            onAccessCodeChange(v);
+            // Saisir un nouveau code annule une demande de retrait.
+            if (v && removeAccessCode) onRemoveAccessCodeChange?.(false);
+          }}
+          placeholder={hasExistingAccessCode && !removeAccessCode
+            ? t('componentsOrganizer.step1.accessCodeKeepPlaceholder')
+            : t('componentsOrganizer.step1.accessCodePlaceholder')}
           placeholderTextColor={colors.gray400}
           secureTextEntry={false}
+          autoCapitalize="none"
+          autoCorrect={false}
+          editable={!removeAccessCode}
         />
+        {hasExistingAccessCode && !accessCode ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 8 }}>
+            <Ionicons
+              name={removeAccessCode ? 'lock-open-outline' : 'lock-closed-outline'}
+              size={16}
+              color={removeAccessCode ? colors.error : colors.gray500}
+            />
+            <Text style={[styles.inputHint, themed.inputHint, { flex: 1, marginTop: 0 }]}>
+              {removeAccessCode
+                ? t('componentsOrganizer.step1.accessCodeWillBeRemoved')
+                : t('componentsOrganizer.step1.accessCodeActive')}
+            </Text>
+            <TouchableOpacity
+              onPress={() => onRemoveAccessCodeChange?.(!removeAccessCode)}
+              accessibilityRole="button"
+              hitSlop={8}
+            >
+              <Text style={{ color: removeAccessCode ? colors.primary : colors.error, fontWeight: '600' }}>
+                {removeAccessCode
+                  ? t('componentsOrganizer.step1.accessCodeUndoRemove')
+                  : t('componentsOrganizer.step1.accessCodeRemove')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
       </View>
 
       {/* Featured Event Info */}

@@ -170,7 +170,12 @@ export function buildFormData(form: EventFormState, isEdit = false): FormData {
   formData.append('attendee_form_scope', form.attendeeFormScope || 'order');
   formData.append('fee_bearer', form.feeBearer);
   formData.append('visibility', form.visibility);
-  if (form.accessCode) formData.append('access_code', form.accessCode);
+  if (form.accessCode) {
+    formData.append('access_code', form.accessCode);
+  } else if (isEdit && form.removeAccessCode) {
+    // Chaîne vide = retirer le code (le backend la stocke vide → plus de porte).
+    formData.append('access_code', '');
+  }
   // status='draft' UNIQUEMENT à la création. En édition, ne JAMAIS renvoyer le
   // statut : un event `validated` (publié) serait redéplublié/renvoyé en draft
   // à chaque sauvegarde. Les transitions d'état sont gérées côté backend.

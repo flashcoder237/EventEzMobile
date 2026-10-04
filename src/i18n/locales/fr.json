@@ -3471,6 +3471,11 @@
       "accessCodeLabel": "Code d'accès (optionnel)",
       "accessCodeHint": "Les visiteurs devront entrer ce code pour voir les détails",
       "accessCodePlaceholder": "Laisser vide pour pas de code",
+      "accessCodeKeepPlaceholder": "Nouveau code (laisser vide pour garder l'actuel)",
+      "accessCodeActive": "Un code d'accès est actif.",
+      "accessCodeWillBeRemoved": "Le code sera retiré à l'enregistrement.",
+      "accessCodeRemove": "Retirer le code",
+      "accessCodeUndoRemove": "Annuler",
       "featuredInfo": "Vous pourrez demander la mise en avant de votre événement après sa création depuis \"Mes événements\"."
     },
     "step2": {

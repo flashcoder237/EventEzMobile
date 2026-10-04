@@ -109,6 +109,7 @@ export default function EventCreateScreen() {
     removeGalleryImage,
     setVisibility,
     setAccessCode,
+    setRemoveAccessCode,
     setStartDate,
     setEndDate,
     setRegistrationDeadline,
@@ -652,6 +653,9 @@ export default function EventCreateScreen() {
                 onRemoveGalleryImage={removeGalleryImage}
                 visibility={form.visibility}
                 accessCode={form.accessCode}
+                hasExistingAccessCode={isEditing && form.hasExistingAccessCode}
+                removeAccessCode={form.removeAccessCode}
+                onRemoveAccessCodeChange={setRemoveAccessCode}
                 onVisibilityChange={setVisibility}
                 onAccessCodeChange={setAccessCode}
                 onAIGenerate={handleAIGenerate}

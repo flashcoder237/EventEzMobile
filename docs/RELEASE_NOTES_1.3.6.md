@@ -58,6 +58,23 @@ What's new in this version:
   de l'appelant, donc aussi sur une `height` fixe). Vaut pour toutes les
   feuilles avec champ (langue, pays, catégories…).
 
+#### Événement à code d'accès (2026-10-04)
+- **« Oups » après un code valide** : `useTour` + `useFocusEffect` étaient
+  déclarés APRÈS les retours anticipés (porte code / invitation / 404) de
+  `EventDetailsScreen` → nombre de hooks différent entre la porte et la fiche
+  → « Rendered more hooks » → ErrorBoundary. Hooks remontés avant les gates ;
+  invalidation du cache attendue avant `replace`.
+- **Clavier sur le champ du code** : porte enveloppée dans un
+  `KeyboardAwareScrollView` ; « Valider » du clavier soumet le code.
+- **Édition : code « codé bizarrement », impossible à retirer** : le backend
+  renvoyait le HASH à l'organisateur, rechargé dans le champ. `access_code` est
+  désormais write-only (backend), le champ d'édition reste vide avec « Un code
+  est actif · Retirer le code » ; vide = conserver, retrait = `access_code=''`.
+  Même correction côté web (le web aurait sinon effacé le code à chaque
+  sauvegarde en envoyant `null`).
+- Backend : `/tracks/` et `/speakers/` (+ leads, invitations, caisse)
+  acceptent `?event=<slug>` (500 « n'est pas un UUID valide » en prod).
+
 #### Contenu repris de la 1.3.5
 - Round 3 (sens, posture, gestes, mots et rituels), lot natif (widgets, Live
   Activities — iOS désactivé par défaut), retours testeur A→G du 2026-10-03 :

@@ -4159,6 +4159,11 @@
       "accessCodeLabel": "Access code (optional)",
       "accessCodeHint": "Visitors will need to enter this code to see the details",
       "accessCodePlaceholder": "Leave empty for no code",
+      "accessCodeKeepPlaceholder": "New code (leave empty to keep the current one)",
+      "accessCodeActive": "An access code is active.",
+      "accessCodeWillBeRemoved": "The code will be removed when you save.",
+      "accessCodeRemove": "Remove code",
+      "accessCodeUndoRemove": "Undo",
       "featuredInfo": "You can request to feature your event after creation from \"My events\"."
     },
     "step2": {
