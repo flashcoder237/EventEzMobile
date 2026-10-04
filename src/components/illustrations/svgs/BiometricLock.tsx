@@ -1,80 +1,44 @@
 import React from 'react';
-import Svg, { Path, Circle, G } from 'react-native-svg';
+import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 type Props = { color?: string; size?: number };
 
-const CORAL = '#FF6B6B';
-const INDIGO_DARK = '#4338CA';
-const CREAM = '#FDFBF7';
-
 /**
- * BiometricLock — "Shield + fingerprint + spark of access".
- *
- * Bouclier indigo en demi-arc, empreinte digitale stylisée à l'intérieur (les
- * 4 ridges concentriques sont la métaphore universelle de la biométrie),
- * étincelle corail en haut à droite (touch point — le moment où l'auth
- * réussit). Cohérent avec Authentication.tsx (même palette indigo + coral
- * singulier, même épaisseur de ligne 5).
- *
- * Utilisé sur LockGate (overlay biométrie) — taille recommandée 160-200.
+ * BiometricLock — redesign SVG (design-handoff/eventez-svg-redesign).
+ * L'accent #4F46E5 est piloté par la prop `color`.
  */
 export default function BiometricLock({ color = '#4F46E5', size = 200 }: Props) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 200 200" fill="none">
-      {/* Blob ambiant */}
-      <Path
-        d="M40 60C50 20 110 10 150 40C190 70 185 140 140 165C95 190 30 165 25 120C20 95 30 80 40 60Z"
-        fill={color}
-        fillOpacity={0.06}
-      />
-
-      {/* Petits accents décoratifs */}
-      <Circle cx={170} cy={50} r={3} fill={INDIGO_DARK} opacity={0.3} />
-      <Circle cx={30} cy={140} r={2.5} fill={color} opacity={0.4} />
-
-      {/* Bouclier — silhouette en U inversé arrondi */}
-      <Path
-        d="M 100 30
-           L 155 50
-           L 155 105
-           C 155 140 130 165 100 175
-           C 70 165 45 140 45 105
-           L 45 50
-           Z"
-        fill={CREAM}
-        stroke={color}
-        strokeWidth={5}
-        strokeLinejoin="round"
-      />
-
-      {/* Empreinte digitale : 4 arcs concentriques + ligne centrale */}
-      <G stroke={color} strokeLinecap="round" fill="none">
-        {/* Arc le plus large */}
-        <Path
-          d="M 70 110 C 70 80 85 65 100 65 C 115 65 130 80 130 110 C 130 122 128 132 124 140"
-          strokeWidth={4.5}
-        />
-        {/* Arc moyen */}
-        <Path
-          d="M 80 112 C 80 88 90 78 100 78 C 110 78 120 88 120 112 C 120 122 118 130 115 137"
-          strokeWidth={4}
-        />
-        {/* Arc intérieur */}
-        <Path
-          d="M 90 113 C 90 96 95 90 100 90 C 105 90 110 96 110 113 C 110 122 108 128 106 134"
-          strokeWidth={3.5}
-        />
-        {/* Point central */}
-        <Circle cx={100} cy={108} r={3} fill={color} />
-      </G>
-
-      {/* Étincelle corail (touch success) — à la pointe haut-droite du bouclier */}
-      <G stroke={CORAL} strokeWidth={4} strokeLinecap="round" fill="none">
-        <Path d="M 145 38 L 152 31" />
-        <Path d="M 158 42 L 165 38" />
-        <Path d="M 152 50 L 158 55" />
-      </G>
-      <Circle cx={154} cy={42} r={3.5} fill={CORAL} />
-    </Svg>
+      <Svg width={size} height={size} viewBox="0 0 200 200" fill="none">
+        <Defs>
+          <LinearGradient id="biometriclock-bl-c" x1={0} y1={0} x2={0} y2={1}>
+            <Stop offset={0} stopColor="#FDFBF7" />
+            <Stop offset={1} stopColor="#EFE9DF" />
+          </LinearGradient>
+        </Defs>
+        <Path d="M38 62C58 26 118 18 154 40C190 62 192 120 166 152C140 184 76 190 44 162C12 134 18 98 38 62Z" fill={color} fillOpacity={0.06} />
+        <Ellipse cx={100} cy={186} rx={46} ry={5} fill={color} fillOpacity={0.12} />
+        <Rect x={67} y={36} width={80} height={150} rx={16} fill="#4338CA" />
+        <Rect x={60} y={26} width={80} height={150} rx={16} fill="url(#biometriclock-bl-c)" stroke={color} strokeWidth={5} />
+        <Rect x={68} y={42} width={64} height={120} rx={8} fill={color} fillOpacity={0.07} />
+        <Rect x={91} y={33} width={18} height={4} rx={2} fill={color} fillOpacity={0.45} />
+        <Rect x={88} y={167} width={24} height={3.5} rx={1.8} fill={color} fillOpacity={0.45} />
+        <Circle cx={100} cy={98} r={30} fill={color} fillOpacity={0.12} />
+        <Path d="M92 101.2A8 8 0 0 1 108 101.2" stroke={color} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" />
+        <Path d="M86 103.6A14 14 0 0 1 114 103.6" stroke={color} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" />
+        <Path d="M80 106.0A20 20 0 0 1 120 106.0" stroke={color} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" />
+        <Path d="M74 108.4A26 26 0 0 1 126 108.4" stroke={color} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" />
+        <Path d="M100 92V112" stroke={color} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" />
+        <G id="anim-wave-scan">
+          <Path d="M70 98H130" stroke="#FF6B6B" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+        </G>
+        <Path d="M146 132V124A10 10 0 0 1 166 124V132" stroke="#4338CA" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
+        <Rect x={140} y={130} width={32} height={26} rx={7} fill="#A855F7" />
+        <Circle cx={156} cy={143} r={4} fill="#FDFBF7" />
+        <G id="anim-twinkle-sparkles">
+          <Path d="M36 48C37.8 54.2 37.8 54.2 44 56C37.8 57.8 37.8 57.8 36 64C34.2 57.8 34.2 57.8 28 56C34.2 54.2 34.2 54.2 36 48Z" fill="#A855F7" />
+          <Path d="M170 34C171.3 38.7 171.3 38.7 176 40C171.3 41.3 171.3 41.3 170 46C168.7 41.3 168.7 41.3 164 40C168.7 38.7 168.7 38.7 170 34Z" fill={color} />
+        </G>
+      </Svg>
   );
 }
