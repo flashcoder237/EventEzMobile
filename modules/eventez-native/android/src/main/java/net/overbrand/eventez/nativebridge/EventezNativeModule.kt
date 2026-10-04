@@ -35,6 +35,10 @@ class EventezNativeModule : Module() {
 
     Function("setWidgetData") { json: String? ->
       WidgetStore.write(context, json)
+      // Déconnexion (json null) : on efface aussi le visuel en cache. Une image
+      // d'événement ne doit JAMAIS survivre à la sortie du compte sur l'écran
+      // d'accueil, même sans texte à côté.
+      if (json == null) WidgetImageCache.clear(context)
       NextTicketWidgetProvider.refresh(context)
       NextTicketTileService.refresh(context)
       true

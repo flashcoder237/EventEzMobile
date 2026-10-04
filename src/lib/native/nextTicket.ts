@@ -6,6 +6,7 @@
  * __tests__/nextTicket.test.ts.
  */
 import { isRegistrationUnsettled } from '../../utils/paymentSettled';
+import { getEventImageUrl } from '../../utils/imageUtils';
 import { DEFAULT_DURATION_MS, DOORS_BEFORE_MS, DEFAULT_EVENT_TIMEZONE } from '../utils/ticketPhase';
 
 export interface NextTicket {
@@ -17,6 +18,16 @@ export interface NextTicket {
   endsAt: number;
   doorsAt: number;
   timezone: string;
+  /**
+   * Visuel de l'événement, en vignette (WebP 400 px) : le widget en fait un
+   * fond, comme les cartes de la liste. `null` si l'événement n'a aucune image
+   * — le widget retombe alors sur son fond uni.
+   *
+   * On prend volontairement `thumb` et pas l'original : le fichier est
+   * téléchargé puis stocké dans le conteneur partagé à chaque changement de
+   * billet, et un widget ne justifie jamais une image pleine résolution.
+   */
+  imageUrl: string | null;
 }
 
 const VALID_STATUSES = ['confirmed', 'checked_in', 'completed'];
@@ -63,6 +74,9 @@ export function pickNextTicket(regs: any[] | null | undefined, now: Date = new D
         endsAt,
         doorsAt: startsAt - DOORS_BEFORE_MS,
         timezone: typeof event.timezone === 'string' && event.timezone ? event.timezone : DEFAULT_EVENT_TIMEZONE,
+        // Même cascade que les cartes d'événement (display_image → banner_image
+        // → image de catégorie), pour que le widget montre le même visuel.
+        imageUrl: getEventImageUrl(event, 'thumb'),
       };
     }
   }
@@ -100,7 +114,10 @@ export interface WidgetLabels {
  */
 export function buildWidgetPayload(ticket: NextTicket | null, labels: WidgetLabels, locale: string) {
   if (!ticket) {
-    return { title: '', whenLabel: '', venue: null, startsAt: 0, endsAt: 0, deepLink: 'eventez://tickets', labels };
+    return {
+      title: '', whenLabel: '', venue: null, startsAt: 0, endsAt: 0,
+      deepLink: 'eventez://tickets', imageUrl: null, labels,
+    };
   }
   return {
     registrationId: ticket.registrationId,
@@ -110,6 +127,10 @@ export function buildWidgetPayload(ticket: NextTicket | null, labels: WidgetLabe
     startsAt: ticket.startsAt,
     endsAt: ticket.endsAt,
     deepLink: `eventez://registrations/${ticket.registrationId}`,
+    // URL d'origine. Le natif la télécharge dans le conteneur partagé (App
+    // Group iOS / filesDir Android) : un widget ne peut pas faire de réseau,
+    // il ne lit qu'un fichier local.
+    imageUrl: ticket.imageUrl,
     labels,
   };
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import WidgetKit
 
 /// X3 — Widget « Prochain billet ». Données écrites par l'app dans l'App Group
@@ -158,6 +159,48 @@ struct NextTicketWidgetView: View {
   }
 }
 
+/// Visuel de l'événement déposé par l'app dans le conteneur partagé.
+///
+/// Une extension widget n'a PAS le droit de faire du réseau : elle ne lit qu'un
+/// fichier local, écrit par `EventezNativeModule.syncWidgetImage`. Absent ou
+/// illisible → `nil`, et le widget garde son dégradé de marque.
+enum EventezWidgetImage {
+  static func load() -> UIImage? {
+    guard let group = Bundle.main.object(forInfoDictionaryKey: "EventezAppGroup") as? String,
+          !group.isEmpty,
+          let container = FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: group)
+    else { return nil }
+    let url = container.appendingPathComponent("next-ticket-image")
+    guard let data = try? Data(contentsOf: url) else { return nil }
+    return UIImage(data: data)
+  }
+}
+
+/// Fond du widget : visuel de l'événement s'il est disponible, dégradé sinon.
+///
+/// L'image est assombrie par un dégradé : le texte du widget est blanc, et une
+/// photo claire (scène, salle éclairée) le rendrait illisible. Le voile part du
+/// bas, là où se trouvent la date et le lieu.
+struct EventezWidgetBackdrop: View {
+  var body: some View {
+    if let image = EventezWidgetImage.load() {
+      ZStack {
+        Image(uiImage: image)
+          .resizable()
+          .scaledToFill()
+        LinearGradient(
+          colors: [.black.opacity(0.25), .black.opacity(0.78)],
+          startPoint: .top,
+          endPoint: .bottom
+        )
+      }
+    } else {
+      EventezBrand.gradient
+    }
+  }
+}
+
 /// iOS 17 exige `containerBackground` ; iOS 16 garde le fond classique.
 struct EventezWidgetBackground: ViewModifier {
   @Environment(\.widgetFamily) private var family
@@ -167,14 +210,16 @@ struct EventezWidgetBackground: ViewModifier {
     let isAccessory = family == .accessoryInline || family == .accessoryRectangular || family == .accessoryCircular
     if #available(iOS 17.0, *) {
       if isAccessory {
+        // Les familles « accessoire » (écran verrouillé) sont monochromes et
+        // rendues par le système : pas d'image, elle serait écrasée.
         content.containerBackground(for: .widget) { Color.clear }
       } else {
-        content.containerBackground(for: .widget) { EventezBrand.gradient }
+        content.containerBackground(for: .widget) { EventezWidgetBackdrop() }
       }
     } else if isAccessory {
       content
     } else {
-      content.padding().background(EventezBrand.gradient)
+      content.padding().background(EventezWidgetBackdrop())
     }
   }
 }

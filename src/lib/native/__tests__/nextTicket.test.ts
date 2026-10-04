@@ -23,6 +23,9 @@ function reg(id: string, start: string, extra: Record<string, any> = {}, status 
       location_name: extra.location_name ?? 'Palais des Sports',
       location_city: extra.location_city ?? 'Yaoundé',
       timezone: 'Africa/Douala',
+      // Les autres champs d'`extra` (images notamment) passent tels quels :
+      // sans ça, un test qui en ajoute un le verrait silencieusement ignoré.
+      ...extra,
     },
   };
 }
@@ -77,6 +80,48 @@ describe('buildWidgetPayload', () => {
     expect(p.deepLink).toBe('eventez://registrations/r1');
     expect(p.startsAt).toBe(Date.parse('2026-10-12T18:00:00Z'));
     expect(p.whenLabel).toContain('19:00'); // Douala = UTC+1
+  });
+
+  it("transporte l'image de l'événement", () => {
+    // Le widget doit montrer le même visuel que les cartes de la liste.
+    const t = pickNextTicket(
+      [reg('r1', '2026-10-12T18:00:00Z', { display_image_thumb: '/media/ev/thumb.webp' })],
+      NOW,
+    )!;
+    expect(t.imageUrl).toContain('/media/ev/thumb.webp');
+    expect(buildWidgetPayload(t, labels, 'fr-FR').imageUrl).toBe(t.imageUrl);
+  });
+
+  it("préfère la vignette à l'original (un widget n'a pas besoin du plein format)", () => {
+    const t = pickNextTicket(
+      [reg('r1', '2026-10-12T18:00:00Z', {
+        display_image_thumb: '/media/ev/thumb.webp',
+        display_image: '/media/ev/full.jpg',
+      })],
+      NOW,
+    )!;
+    expect(t.imageUrl).toContain('thumb.webp');
+    expect(t.imageUrl).not.toContain('full.jpg');
+  });
+
+  it("retombe sur l'image de bannière quand la vignette n'est pas générée", () => {
+    // Les variantes sont null tant que le backend ne les a pas produites.
+    const t = pickNextTicket(
+      [reg('r1', '2026-10-12T18:00:00Z', { banner_image: '/media/ev/banner.jpg' })],
+      NOW,
+    )!;
+    expect(t.imageUrl).toContain('banner.jpg');
+  });
+
+  it("vaut null quand l'événement n'a aucune image", () => {
+    // Le widget retombe alors sur son fond uni : pas de case vide.
+    const t = pickNextTicket([reg('r1', '2026-10-12T18:00:00Z')], NOW)!;
+    expect(t.imageUrl).toBeNull();
+    expect(buildWidgetPayload(t, labels, 'fr-FR').imageUrl).toBeNull();
+  });
+
+  it("l'état vide porte imageUrl: null (sinon l'ancienne image resterait)", () => {
+    expect(buildWidgetPayload(null, labels, 'fr-FR').imageUrl).toBeNull();
   });
 });
 

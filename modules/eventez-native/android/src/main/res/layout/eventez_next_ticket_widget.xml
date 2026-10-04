@@ -1,65 +1,109 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  Widget « Prochain billet ».
+
+  Trois couches empilées :
+    1. eventez_widget_image  — visuel de l'événement (masqué par défaut)
+    2. eventez_widget_scrim  — voile sombre, sans lequel le texte blanc devient
+                               illisible sur une photo claire
+    3. le contenu textuel
+
+  Sans image, les couches 1 et 2 restent GONE et le fond @drawable/eventez_widget_bg
+  (dégradé de marque) s'affiche seul — exactement le rendu d'avant.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
   android:id="@+id/eventez_widget_root"
   android:layout_width="match_parent"
   android:layout_height="match_parent"
-  android:background="@drawable/eventez_widget_bg"
-  android:orientation="vertical"
-  android:padding="14dp">
+  android:background="@drawable/eventez_widget_bg">
+
+  <ImageView
+    android:id="@+id/eventez_widget_image"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:contentDescription="@null"
+    android:scaleType="centerCrop"
+    android:visibility="gone" />
+
+  <View
+    android:id="@+id/eventez_widget_scrim"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/eventez_widget_scrim"
+    android:visibility="gone" />
 
   <LinearLayout
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:gravity="center_vertical"
-    android:orientation="horizontal">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="14dp">
 
-    <ImageView
-      android:layout_width="14dp"
-      android:layout_height="14dp"
-      android:contentDescription="@null"
-      android:src="@drawable/eventez_ic_ticket"
-      android:tint="#CCFFFFFF" />
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:gravity="center_vertical"
+      android:orientation="horizontal">
+
+      <ImageView
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        android:contentDescription="@null"
+        android:src="@drawable/eventez_ic_ticket"
+        android:tint="#CCFFFFFF" />
+
+      <TextView
+        android:id="@+id/eventez_widget_header"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:text="@string/eventez_widget_header"
+        android:textAllCaps="true"
+        android:textColor="#CCFFFFFF"
+        android:textSize="11sp"
+        android:letterSpacing="0.08" />
+    </LinearLayout>
 
     <TextView
-      android:id="@+id/eventez_widget_header"
-      android:layout_width="wrap_content"
+      android:id="@+id/eventez_widget_title"
+      android:layout_width="match_parent"
+      android:layout_height="0dp"
+      android:layout_marginTop="6dp"
+      android:layout_weight="1"
+      android:ellipsize="end"
+      android:maxLines="2"
+      android:shadowColor="#80000000"
+      android:shadowDx="0"
+      android:shadowDy="1"
+      android:shadowRadius="3"
+      android:text="@string/eventez_widget_empty"
+      android:textColor="#FFFFFFFF"
+      android:textSize="17sp"
+      android:textStyle="bold" />
+
+    <TextView
+      android:id="@+id/eventez_widget_when"
+      android:layout_width="match_parent"
       android:layout_height="wrap_content"
-      android:layout_marginStart="6dp"
-      android:text="@string/eventez_widget_header"
-      android:textAllCaps="true"
-      android:textColor="#CCFFFFFF"
-      android:textSize="11sp"
-      android:letterSpacing="0.08" />
+      android:ellipsize="end"
+      android:maxLines="1"
+      android:shadowColor="#80000000"
+      android:shadowDx="0"
+      android:shadowDy="1"
+      android:shadowRadius="3"
+      android:textColor="#FFFFFFFF"
+      android:textSize="13sp" />
+
+    <TextView
+      android:id="@+id/eventez_widget_venue"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:ellipsize="end"
+      android:maxLines="1"
+      android:shadowColor="#80000000"
+      android:shadowDx="0"
+      android:shadowDy="1"
+      android:shadowRadius="3"
+      android:textColor="#B3FFFFFF"
+      android:textSize="12sp" />
   </LinearLayout>
-
-  <TextView
-    android:id="@+id/eventez_widget_title"
-    android:layout_width="match_parent"
-    android:layout_height="0dp"
-    android:layout_marginTop="6dp"
-    android:layout_weight="1"
-    android:ellipsize="end"
-    android:maxLines="2"
-    android:text="@string/eventez_widget_empty"
-    android:textColor="#FFFFFFFF"
-    android:textSize="17sp"
-    android:textStyle="bold" />
-
-  <TextView
-    android:id="@+id/eventez_widget_when"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:ellipsize="end"
-    android:maxLines="1"
-    android:textColor="#FFFFFFFF"
-    android:textSize="13sp" />
-
-  <TextView
-    android:id="@+id/eventez_widget_venue"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:ellipsize="end"
-    android:maxLines="1"
-    android:textColor="#B3FFFFFF"
-    android:textSize="12sp" />
-</LinearLayout>
+</FrameLayout>

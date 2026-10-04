@@ -1,0 +1,17 @@
+<!--
+  Voile posé sur le visuel de l'événement.
+
+  Le texte du widget est blanc : sur une photo claire (scène éclairée, salle
+  blanche), il devient illisible sans cet assombrissement. Le dégradé est plus
+  dense en bas, là où se trouvent la date et le lieu.
+
+  Même rayon de coins que eventez_widget_bg, sinon le voile déborde du fond.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+  <gradient
+    android:angle="270"
+    android:startColor="#C7000000"
+    android:centerColor="#73000000"
+    android:endColor="#40000000" />
+  <corners android:radius="22dp" />
+</shape>

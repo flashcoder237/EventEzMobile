@@ -14,6 +14,12 @@ data class NextTicket(
   val startsAtMs: Long,
   val endsAtMs: Long,
   val deepLink: String,
+  /**
+   * URL du visuel de l'événement. Un AppWidget ne peut pas faire de réseau
+   * dans `onUpdate` : l'image est téléchargée en tâche de fond puis mise en
+   * cache (cf. WidgetImageCache). `null` = pas d'image, fond de marque seul.
+   */
+  val imageUrl: String?,
   val labels: Map<String, String>,
 ) {
   /**
@@ -50,6 +56,7 @@ object WidgetStore {
         startsAtMs = o.optLong("startsAt"),
         endsAtMs = o.optLong("endsAt"),
         deepLink = o.optString("deepLink", "eventez://tickets"),
+        imageUrl = o.optString("imageUrl").takeIf { it.isNotBlank() },
         labels = labels,
       )
     } catch (_: Exception) {

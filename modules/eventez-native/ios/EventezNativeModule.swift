@@ -17,6 +17,11 @@ public class EventezNativeModule: Module {
   private var hapticEngine: CHHapticEngine?
 
   private static let widgetKey = "nextTicket"
+  /// Visuel de l'événement déposé dans le conteneur partagé, lu par le widget.
+  /// Nom fixe : l'extension n'a pas à connaître l'URL d'origine.
+  private static let widgetImageName = "next-ticket-image"
+  /// URL déjà téléchargée, pour ne pas refaire le réseau à chaque synchro.
+  private static let widgetImageSourceKey = "nextTicketImageSource"
 
   public func definition() -> ModuleDefinition {
     Name("EventezNative")
@@ -39,12 +44,18 @@ public class EventezNativeModule: Module {
         defaults.set(json, forKey: Self.widgetKey)
       } else {
         defaults.removeObject(forKey: Self.widgetKey)
+        self.removeWidgetImage()
       }
       #if canImport(WidgetKit)
       if #available(iOS 14.0, *) {
         WidgetCenter.shared.reloadAllTimelines()
       }
       #endif
+      // L'extension widget n'a pas le droit de faire du réseau : c'est l'app
+      // qui dépose le visuel dans le conteneur partagé, puis redemande un
+      // rechargement. Asynchrone — `setWidgetData` ne doit jamais attendre le
+      // réseau, le texte du widget s'affiche immédiatement.
+      self.syncWidgetImage(from: json)
       return true
     }
 
@@ -147,6 +158,79 @@ public class EventezNativeModule: Module {
     guard let group = Bundle.main.object(forInfoDictionaryKey: "EventezAppGroup") as? String,
           !group.isEmpty else { return nil }
     return UserDefaults(suiteName: group)
+  }
+
+  /// Dossier partagé app ↔ extension widget.
+  private func sharedContainer() -> URL? {
+    guard let group = Bundle.main.object(forInfoDictionaryKey: "EventezAppGroup") as? String,
+          !group.isEmpty else { return nil }
+    return FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group)
+  }
+
+  /// Fichier lu par le widget (nom fixe : il n'a pas à deviner l'URL d'origine).
+  private func widgetImageURL() -> URL? {
+    sharedContainer()?.appendingPathComponent(Self.widgetImageName)
+  }
+
+  private func removeWidgetImage() {
+    guard let url = widgetImageURL() else { return }
+    try? FileManager.default.removeItem(at: url)
+    sharedDefaults()?.removeObject(forKey: Self.widgetImageSourceKey)
+  }
+
+  /// Télécharge le visuel de l'événement dans le conteneur partagé.
+  ///
+  /// Trois garde-fous qui comptent :
+  ///  · on mémorise l'URL source — un même billet ne retélécharge pas à chaque
+  ///    synchronisation (le widget est rafraîchi souvent) ;
+  ///  · pas d'image dans le payload → on efface, sinon le visuel du billet
+  ///    précédent resterait affiché sous le nouveau titre ;
+  ///  · tout échec est silencieux : le widget retombe sur son fond uni, ce qui
+  ///    est acceptable, alors qu'une erreur remontée ne l'est pas.
+  private func syncWidgetImage(from json: String?) {
+    guard let json = json,
+          let data = json.data(using: .utf8),
+          let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    else {
+      removeWidgetImage()
+      return
+    }
+
+    guard let source = object["imageUrl"] as? String,
+          !source.isEmpty,
+          let remote = URL(string: source),
+          let destination = widgetImageURL()
+    else {
+      removeWidgetImage()
+      return
+    }
+
+    let defaults = sharedDefaults()
+    let already = defaults?.string(forKey: Self.widgetImageSourceKey)
+    if already == source, FileManager.default.fileExists(atPath: destination.path) {
+      return // déjà en place
+    }
+
+    URLSession.shared.dataTask(with: remote) { data, response, error in
+      guard error == nil,
+            let data = data,
+            !data.isEmpty,
+            (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) ?? true
+      else { return }
+      do {
+        try data.write(to: destination, options: .atomic)
+        defaults?.set(source, forKey: Self.widgetImageSourceKey)
+        #if canImport(WidgetKit)
+        if #available(iOS 14.0, *) {
+          // Deuxième rechargement : le premier a affiché le texte, celui-ci
+          // ajoute le visuel dès qu'il est disponible.
+          WidgetCenter.shared.reloadAllTimelines()
+        }
+        #endif
+      } catch {
+        // Écriture impossible : le widget garde son fond uni.
+      }
+    }.resume()
   }
 
   // MARK: - Live Activities

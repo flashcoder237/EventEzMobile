@@ -43,8 +43,27 @@ class NextTicketWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(R.id.eventez_widget_title, stored?.label("empty", empty) ?: empty)
         views.setViewVisibility(R.id.eventez_widget_when, View.GONE)
         views.setViewVisibility(R.id.eventez_widget_venue, View.GONE)
+        // Pas de billet : pas de visuel non plus, sinon l'image du billet
+        // précédent resterait sous le libellé « Aucun billet à venir ».
+        views.setViewVisibility(R.id.eventez_widget_image, View.GONE)
+        views.setViewVisibility(R.id.eventez_widget_scrim, View.GONE)
         views.setOnClickPendingIntent(R.id.eventez_widget_root, openLink(context, "eventez://tickets"))
         return views
+      }
+
+      // Visuel de l'événement, comme sur les cartes de la liste. Le cache est
+      // alimenté hors du thread principal (cf. WidgetImageCache) : ici on ne
+      // fait qu'une lecture disque, et on retombe sur le fond de marque tant
+      // que l'image n'est pas encore descendue.
+      WidgetImageCache.sync(context, ticket.imageUrl)
+      val cover = if (ticket.imageUrl != null) WidgetImageCache.load(context) else null
+      if (cover != null) {
+        views.setImageViewBitmap(R.id.eventez_widget_image, cover)
+        views.setViewVisibility(R.id.eventez_widget_image, View.VISIBLE)
+        views.setViewVisibility(R.id.eventez_widget_scrim, View.VISIBLE)
+      } else {
+        views.setViewVisibility(R.id.eventez_widget_image, View.GONE)
+        views.setViewVisibility(R.id.eventez_widget_scrim, View.GONE)
       }
 
       views.setTextViewText(R.id.eventez_widget_title, ticket.title)
