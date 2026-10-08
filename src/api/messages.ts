@@ -118,6 +118,12 @@ export const messagesAPI = {
   starMessage: (id: string) =>
     api.post(`/messages/${id}/star/`),
 
+  /** Messages marqués par l'utilisateur courant.
+   *  Sans cet écran, marquer un message ne servait à rien : il n'existait
+   *  aucun endroit pour les retrouver. */
+  getStarredMessages: (params?: { page?: number }) =>
+    api.get('/messages/starred/', { params }),
+
   uploadAttachment: (formData: FormData) =>
     fetchUpload('POST', '/messages/upload_attachment/', formData),
 

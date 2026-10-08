@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { suggestCategory } from '../../lib/utils/suggestCategory';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, Spacing, FontFamily, BorderRadius, FontSizes } from '../../constants/theme';
@@ -187,6 +188,20 @@ export default function EventStep1Info({
   const hairline = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(17,17,16,0.08)';
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const selectedCategory = categories.find(c => c.id === categoryId) || null;
+  // Categorie de repli proposee quand la recherche ne donne rien. On la
+  // reconnait par son SLUG (`autres`) : un libelle traduit changerait selon la
+  // langue, et une position dans la liste changerait au prochain seed.
+  // Suggestion calculée depuis le titre (et le début de la description, qui
+  // précise souvent la nature de l'événement).
+  const suggestedCategory = useMemo(
+    () => suggestCategory(`${title || ''} ${(description || '').slice(0, 200)}`, categories),
+    [title, description, categories],
+  );
+
+  const otherCategory = useMemo(
+    () => categories.find(c => c.slug === 'autres') || null,
+    [categories],
+  );
 
   // Langues (langue de rédaction du contenu) — chargées depuis /api/languages/,
   // fallback fr/en. Picker recherchable (183 langues).
@@ -637,8 +652,38 @@ export default function EventStep1Info({
             {stepErrors.categoryId}
           </Text>
         )}
+
+        {/* SUGGESTION d'après le titre saisi.
+            DEMANDE (2026-10-07) : « comment, en fonction de ce que
+            l'utilisateur aura saisi en haut, une catégorie peut être choisie
+            pour aider l'utilisateur ».
+            On PROPOSE, on ne choisit pas : une sélection automatique et
+            silencieuse passerait inaperçue, et un classement erroné nuit au
+            référencement de l'événement sans que personne ne le remarque.
+            N'apparaît que tant qu'aucune catégorie n'est choisie. */}
+        {!categoryId && suggestedCategory && (
+          <TouchableOpacity
+            testID="category-suggestion"
+            onPress={() => onCategoryChange(suggestedCategory.id)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            style={[
+              categorySelectStyles.suggestion,
+              { borderColor: colors.primary, backgroundColor: `${colors.primary}0D` },
+            ]}
+          >
+            <Ionicons name="sparkles-outline" size={14} color={colors.primary} />
+            <Text style={[categorySelectStyles.suggestionText, { color: colors.primary }]}>
+              {t('componentsOrganizer.step1.categorySuggestion', {
+                name: suggestedCategory.name,
+              })}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
+      {/* Categorie de repli : proposee quand la recherche ne donne rien,
+          plutot que de laisser l'utilisateur devant une liste vide. */}
       <SearchableSelectModal<Category>
         visible={categoryModalOpen}
         onClose={() => setCategoryModalOpen(false)}
@@ -654,6 +699,7 @@ export default function EventStep1Info({
         onSelect={c => onCategoryChange(c.id)}
         onClear={() => onCategoryChange(null)}
         emptyText={t('componentsOrganizer.step1.categoryEmpty')}
+        fallbackItem={otherCategory}
       />
 
       <SearchableSelectModal<{ code: string; label: string }>
@@ -789,6 +835,21 @@ export default function EventStep1Info({
 // SearchableSelectModal). Pas dans eventCreateStyles parce que c'est très
 // localisé et ne sera réutilisé par aucun autre step.
 const categorySelectStyles = StyleSheet.create({
+  suggestion: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+  },
+  suggestionText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
   trigger: {
     flexDirection: 'row',
     alignItems: 'center',

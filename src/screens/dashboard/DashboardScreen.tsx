@@ -20,7 +20,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useUnreadCounts } from '../../contexts/NotificationContext';
 import { useTranslation } from 'react-i18next';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
-import { eventsAPI, ticketPurchasesAPI, walletAPI } from '../../api';
+import { eventsAPI, registrationsAPI, walletAPI } from '../../api';
 import CacheService from '../../services/CacheService';
 import { RootStackParamList, Event } from '../../types';
 import EventCard from '../../components/events/EventCard';
@@ -141,8 +141,21 @@ export default function DashboardScreen() {
 
       // Notifications : on lit depuis NotificationContext (déjà polled 30s).
       // Plus de fetch local → plus de requête concurrente.
+      // MEME SOURCE que l'ecran « Mes billets », vers lequel ce compteur
+      // navigue.
+      //
+      // BUG CORRIGE (2026-10-07) : « les chiffres sur les deux tableaux de bord
+      // sont differents » — 15 d'un cote, 8 de l'autre, au meme instant pour le
+      // meme utilisateur. Ce compteur lisait `getMyPurchases()` (des LIGNES
+      // D'ACHAT de billets), alors que l'ecran d'arrivee et le profil lisent
+      // `getMyRegistrations()` (des INSCRIPTIONS). Deux grandeurs distinctes
+      // sous un meme libelle « Billets » : on annoncait 8, on affichait 15.
+      //
+      // Les inscriptions font foi : elles couvrent AUSSI les evenements
+      // gratuits et les formulaires d'inscription, qui n'ont aucune ligne
+      // d'achat et disparaissaient donc du compte.
       const promises: Promise<any>[] = [
-        ticketPurchasesAPI.getMyPurchases().catch(() => ({ data: [] })),
+        registrationsAPI.getMyRegistrations().catch(() => ({ data: [] })),
       ];
 
       if (isOrganizer) {

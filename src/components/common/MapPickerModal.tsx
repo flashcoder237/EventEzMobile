@@ -112,10 +112,27 @@ export default function MapPickerModal({
   }, [visible]);
 
   // Reverse geocode to get address from coordinates
+  // Annule le geocodage precedent : sans cela, taper trois fois d'affilee
+  // lancait trois requetes concurrentes, et c'est la PREMIERE revenue — donc
+  // potentiellement la plus ancienne — qui ecrasait l'adresse affichee.
+  const geocodeAbortRef = useRef<AbortController | null>(null);
+
+  // Au demontage, on coupe la requete en vol : sans cela elle survit a la
+  // fermeture de la carte et tente un setState sur un composant disparu.
+  useEffect(() => () => geocodeAbortRef.current?.abort(), []);
+
   const reverseGeocode = async (lat: number, lng: number) => {
     // Limiter à 6 décimales
     const roundedLat = parseFloat(lat.toFixed(6));
     const roundedLng = parseFloat(lng.toFixed(6));
+
+    geocodeAbortRef.current?.abort();
+    const controller = new AbortController();
+    geocodeAbortRef.current = controller;
+    // Nominatim impose une limite d'un appel par seconde et peut repondre en
+    // plusieurs secondes : au-dela, mieux vaut garder les coordonnees que de
+    // laisser l'utilisateur attendre une adresse qui ne viendra pas.
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
     try {
       const response = await fetch(
@@ -124,6 +141,7 @@ export default function MapPickerModal({
           headers: {
             'User-Agent': 'EventEz Mobile App',
           },
+          signal: controller.signal,
         }
       );
       const data = await response.json();
@@ -139,8 +157,13 @@ export default function MapPickerModal({
 
       setSelectedLocation(location);
     } catch (error) {
+      // Une annulation volontaire n'est pas une erreur : on garde la selection
+      // en cours, c'est le geocodage suivant qui la completera.
+      if ((error as any)?.name === 'AbortError') return;
       if (__DEV__) console.error('Reverse geocoding error:', error);
       setSelectedLocation({ lat: roundedLat, lng: roundedLng });
+    } finally {
+      clearTimeout(timeout);
     }
   };
 
@@ -150,7 +173,19 @@ export default function MapPickerModal({
     const latitude = parseFloat(event.nativeEvent.coordinate.latitude.toFixed(6));
     const longitude = parseFloat(event.nativeEvent.coordinate.longitude.toFixed(6));
     setMarkerPosition({ latitude, longitude });
-    await reverseGeocode(latitude, longitude);
+    // On affiche TOUT DE SUITE les coordonnees : le bouton de validation
+    // devient utilisable sans attendre le reseau. L'adresse lisible arrive
+    // ensuite et enrichit la selection.
+    //
+    // BUG CORRIGE (2026-10-07) : « la carte est tres lente ». Chaque tap
+    // attendait Nominatim (limite a 1 appel/seconde, plusieurs secondes de
+    // latence), sans annulation ni repli — l'interface paraissait figee apres
+    // chaque tap.
+    setSelectedLocation((prev) =>
+      prev && prev.lat === latitude && prev.lng === longitude
+        ? prev
+        : { lat: latitude, lng: longitude });
+    reverseGeocode(latitude, longitude);
   };
 
   // Handle marker drag
@@ -393,6 +428,13 @@ export default function MapPickerModal({
             onPress={handleMapPress}
             showsUserLocation
             showsMyLocationButton={false}
+            // Sans indicateur, l'initialisation de la carte se presente comme
+            // un rectangle gris muet — percu comme « la carte ne marche pas ».
+            loadingEnabled
+            // Barre Google (itineraire/ouvrir dans Maps) inutile ici : on
+            // CHOISIT un point, on ne navigue pas vers lui.
+            toolbarEnabled={false}
+            moveOnMarkerPress={false}
           >
             {markerPosition && (
               <Marker
@@ -419,6 +461,7 @@ export default function MapPickerModal({
               )}
             </View>
             <TouchableOpacity
+              testID="map-confirm"
               style={[styles.confirmButton, { backgroundColor: colors.success }]}
               onPress={confirmSelection}
               activeOpacity={TOUCH_OPACITY}

@@ -1295,7 +1295,8 @@
     "finalizeBackToEvent": "Retour à l'événement",
     "paymentPushSentTitle": "Confirmez sur votre téléphone",
     "paymentPushSentMessage": "Une demande de paiement a été envoyée sur votre téléphone. Validez-la (code PIN Mobile Money) pour finaliser.",
-    "firstTicket": "Votre premier billet EventEz · {{date}}"
+    "firstTicket": "Votre premier billet EventEz · {{date}}",
+    "refundAlreadyRequested": "Remboursement demandé"
   },
   "memories": {
     "title": "Mes souvenirs",
@@ -3072,7 +3073,11 @@
     "agendaTitle": "Événements récents",
     "loadingEvents": "Chargement…",
     "noEvents": "Aucun événement publié",
-    "freeBadge": "GRATUIT"
+    "freeBadge": "GRATUIT",
+    "tabs": {
+      "upcoming": "À venir",
+      "past": "Passés"
+    }
   },
   "sessionDetails": {
     "title": "Session",
@@ -3476,7 +3481,8 @@
       "accessCodeWillBeRemoved": "Le code sera retiré à l'enregistrement.",
       "accessCodeRemove": "Retirer le code",
       "accessCodeUndoRemove": "Annuler",
-      "featuredInfo": "Vous pourrez demander la mise en avant de votre événement après sa création depuis \"Mes événements\"."
+      "featuredInfo": "Vous pourrez demander la mise en avant de votre événement après sa création depuis \"Mes événements\".",
+      "categorySuggestion": "Suggestion : {{name}}"
     },
     "step2": {
       "title": "Date et Lieu",
@@ -5214,7 +5220,7 @@
     "pushAccept": "Activer les notifications",
     "pushDecline": "Plus tard",
     "announcementClose": "Fermer",
-    "advertSponsored": "SPONSORISÉ",
+    "advertSponsored": "PUBLICITÉ",
     "advertCtaDefault": "En savoir plus",
     "advertA11y": "Publicité : {{title}}",
     "incidentDefaultMessage": "Nos équipes sont sur le coup.",

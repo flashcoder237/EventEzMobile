@@ -123,7 +123,7 @@ const formatPrice = (price: number, currency: string = 'XAF', t?: TFn, locale: s
 // IMPORTANT — Conformite Google Play & App Store
 // ----------------------------------------------------------------------
 // Les abonnements Essential/Premium sont des services SaaS B2B vendus
-// uniquement sur le web (https://eventez.online/dashboard/subscription).
+// uniquement sur le web (https://eventez.online/dashboard/billing).
 // L'app mobile NE GERE PAS le paiement in-app : ouvrir un flux paiement
 // pour ces plans dans l'app declencherait l'obligation Google Play
 // Billing (commission 15-30%, et incompatible avec Mobile Money).
@@ -145,7 +145,12 @@ const buildSubscriptionWebUrl = (planName?: string, billingCycle?: string): stri
   });
   if (planName) params.set('plan', planName);
   if (billingCycle) params.set('cycle', billingCycle);
-  return `${WEB_BASE_URL}/dashboard/subscription?${params.toString()}`;
+  // `/dashboard/billing` et NON `/dashboard/subscription`.
+  //
+  // BUG CORRIGE (2026-10-07) : `/dashboard/subscription` n'a jamais existe
+  // cote web. Le bouton « Souscrire » du mobile ouvrait donc une 404 — de quoi
+  // faire fuir un organisateur juste avant de payer.
+  return `${WEB_BASE_URL}/dashboard/billing?${params.toString()}`;
 };
 
 export default function SubscriptionScreen() {

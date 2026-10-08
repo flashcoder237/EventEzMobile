@@ -711,55 +711,72 @@ export default function PaymentSuccessScreen() {
             </TouchableOpacity>
           )}
 
-          {eventStartDate && eventTitle && (
-            <TouchableOpacity
-              style={[styles.calendarPill, { borderColor: colors.primary }]}
-              onPress={handleAddToCalendar}
-              activeOpacity={0.85}
-              accessibilityLabel={t('payment.successAddToCalendarAccessibility')}
-              accessibilityRole="button"
-            >
-              <Ionicons name="calendar-outline" size={14} color={colors.primary} />
-              <Text style={[styles.calendarPillText, { color: colors.primary }]}>
-                {t('payment.successAddToCalendarLabel')}
-              </Text>
-            </TouchableOpacity>
-          )}
+          {/* ACTIONS SECONDAIRES — en RANGÉE, pas empilées.
+              REFONTE (2026-10-07) : « l'écran qui me félicite est très chargé ».
+              Quatre pastilles pleine largeur se suivaient sous le bouton
+              principal, toutes de la même taille et de la même forme : rien ne
+              disait laquelle comptait. Une pile de boutons égaux n'est pas un
+              choix, c'est une liste à lire.
 
-          {invoiceId && (
-            <TouchableOpacity
-              style={[styles.calendarPill, { borderColor: colors.gray400 }, invoiceLoading && { opacity: 0.6 }]}
-              onPress={handleDownloadInvoice}
-              activeOpacity={0.85}
-              disabled={invoiceLoading}
-              accessibilityLabel={t('payment.successDownloadInvoiceAccessibility')}
-              accessibilityRole="button"
-            >
-              {invoiceLoading ? (
-                <ActivityIndicator size="small" color={colors.gray700} />
-              ) : (
-                <Ionicons name="document-text-outline" size={14} color={colors.gray700} />
+              On les met côte à côte, en retrait visuel du bouton principal :
+              elles redeviennent ce qu'elles sont — des options, pas des
+              étapes. */}
+          {(eventStartDate && eventTitle) || invoiceId || eventId ? (
+            <View style={styles.secondaryRow}>
+              {eventStartDate && eventTitle && (
+                <TouchableOpacity
+                  style={[styles.secondaryChip, { borderColor: colors.gray300 }]}
+                  onPress={handleAddToCalendar}
+                  activeOpacity={0.85}
+                  accessibilityLabel={t('payment.successAddToCalendarAccessibility')}
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="calendar-outline" size={16} color={colors.gray700} />
+                  <Text style={[styles.secondaryChipText, { color: colors.gray700 }]} numberOfLines={1}>
+                    {t('payment.successAddToCalendarLabel')}
+                  </Text>
+                </TouchableOpacity>
               )}
-              <Text style={[styles.calendarPillText, { color: colors.gray700 }]}>
-                {t('payment.successDownloadInvoiceLabel')}
-              </Text>
-            </TouchableOpacity>
-          )}
 
-          {eventId && (
-            <TouchableOpacity
-              style={[styles.invitePill, { backgroundColor: `${colors.accent}15`, borderColor: colors.accent }]}
-              onPress={handleInviteFriend}
-              activeOpacity={0.85}
-              accessibilityLabel={t('payment.successInviteAccessibility')}
-              accessibilityRole="button"
-            >
-              <Ionicons name="people-outline" size={14} color={colors.accent} />
-              <Text style={[styles.invitePillText, { color: colors.accent }]}>
-                {t('payment.successInviteLabel')}
-              </Text>
-            </TouchableOpacity>
-          )}
+              {eventId && (
+                <TouchableOpacity
+                  style={[styles.secondaryChip, { borderColor: colors.gray300 }]}
+                  onPress={handleInviteFriend}
+                  activeOpacity={0.85}
+                  accessibilityLabel={t('payment.successInviteAccessibility')}
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="people-outline" size={16} color={colors.gray700} />
+                  <Text style={[styles.secondaryChipText, { color: colors.gray700 }]} numberOfLines={1}>
+                    {t('payment.successInviteLabel')}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* La facture est une formalité administrative : elle n'a rien à
+                  faire au même niveau visuel que « voir mon billet ». Lien
+                  texte, et elle reste accessible depuis « Mes paiements ». */}
+              {invoiceId && (
+                <TouchableOpacity
+                  style={[styles.secondaryChip, { borderColor: colors.gray300 }, invoiceLoading && { opacity: 0.6 }]}
+                  onPress={handleDownloadInvoice}
+                  activeOpacity={0.85}
+                  disabled={invoiceLoading}
+                  accessibilityLabel={t('payment.successDownloadInvoiceAccessibility')}
+                  accessibilityRole="button"
+                >
+                  {invoiceLoading ? (
+                    <ActivityIndicator size="small" color={colors.gray700} />
+                  ) : (
+                    <Ionicons name="document-text-outline" size={16} color={colors.gray700} />
+                  )}
+                  <Text style={[styles.secondaryChipText, { color: colors.gray700 }]} numberOfLines={1}>
+                    {t('payment.successDownloadInvoiceLabel')}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : null}
 
           {/* Carte « J'y vais » partageable en story (boucle virale) — sur un
               vrai succès avec un titre d'event. */}
@@ -1115,6 +1132,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.18)',
     marginLeft: Spacing.sm,
+  },
+  // Rangée d'options : elles se partagent la largeur et s'enroulent si
+  // nécessaire, au lieu de s'empiler en colonne de boutons identiques.
+  secondaryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  secondaryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  secondaryChipText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
   },
   calendarPill: {
     flexDirection: 'row',

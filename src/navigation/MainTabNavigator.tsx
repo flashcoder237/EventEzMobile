@@ -33,6 +33,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useOrganizerRole } from '../hooks/useOrganizerRole';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUnreadCounts } from '../contexts/NotificationContext';
+import { useLiveRegistrations } from '../contexts/LiveRegistrationsContext';
 import { useTranslation } from 'react-i18next';
 import {
   useTour,
@@ -205,6 +206,9 @@ interface TabSlotProps {
   onPress: () => void;
   user: ReturnType<typeof useAuth>['user'];
   totalPendingCount: number;
+  /** Nombre d'événements de l'utilisateur EN COURS maintenant, pour le badge
+   *  sur l'onglet Billets. */
+  liveEventCount: number;
   /** Nombre de messages non lus, pour le badge sur le tab Messages. */
   unreadMessageCount: number;
   isDark: boolean;
@@ -225,6 +229,7 @@ const TabSlot = memo(function TabSlot({
   onPress,
   user,
   totalPendingCount,
+  liveEventCount,
   unreadMessageCount,
   isDark,
   cardColor,
@@ -349,8 +354,20 @@ const TabSlot = memo(function TabSlot({
   // et Profile).
   const showMessagesBadge = routeName === 'MessagesTab' && unreadMessageCount > 0;
   const showProfileBadge = routeName === 'Profile' && totalPendingCount > 0;
-  const badgeCount = showMessagesBadge ? unreadMessageCount : totalPendingCount;
-  const showAnyBadge = showMessagesBadge || showProfileBadge;
+  // DEMANDE (2026-10-07) : « sur le menu, il y'a les indicateurs sur message et
+  // profil. On peut mettre aussi pour billets nor, peut-être pour notifier
+  // qu'un événement est en cours ».
+  //
+  // C'est le signal le plus utile sur cet onglet : un événement EN COURS est
+  // une information périssable — passé l'horaire, elle ne vaut plus rien. Un
+  // simple décompte de billets, lui, ne demande aucune action.
+  const showTicketsBadge = routeName === 'MyTickets' && liveEventCount > 0;
+  const badgeCount = showMessagesBadge
+    ? unreadMessageCount
+    : showTicketsBadge
+      ? liveEventCount
+      : totalPendingCount;
+  const showAnyBadge = showMessagesBadge || showProfileBadge || showTicketsBadge;
 
   return (
     <AnimatedPressable
@@ -524,6 +541,10 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { totalPendingCount, unreadMessageCount } = useUnreadCounts();
+  // `live` : événements de l'utilisateur en cours MAINTENANT (contexte déjà
+  // rafraîchi ailleurs, on ne déclenche aucune requête supplémentaire ici).
+  const { live: liveRegistrations } = useLiveRegistrations();
+  const liveEventCount = liveRegistrations?.length ?? 0;
   // useWindowDimensions est réactif aux rotations / split-screen / iPad
   // multitasking, contrairement à Dimensions.get() qui ne se met pas à jour.
   const { width: screenWidth } = useWindowDimensions();
@@ -608,6 +629,7 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
               onPress={onPress}
               user={user}
               totalPendingCount={totalPendingCount}
+              liveEventCount={liveEventCount}
               unreadMessageCount={unreadMessageCount}
               isDark={isDark}
               cardColor={isDark ? '#0F172A' : '#FFFFFF'}

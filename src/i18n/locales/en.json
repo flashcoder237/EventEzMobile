@@ -1295,7 +1295,8 @@
     "finalizeBackToEvent": "Back to event",
     "paymentPushSentTitle": "Confirm on your phone",
     "paymentPushSentMessage": "A payment request was sent to your phone. Approve it (Mobile Money PIN) to complete.",
-    "firstTicket": "Your first EventEz ticket · {{date}}"
+    "firstTicket": "Your first EventEz ticket · {{date}}",
+    "refundAlreadyRequested": "Refund requested"
   },
   "memories": {
     "title": "My memories",
@@ -3072,7 +3073,11 @@
     "agendaTitle": "Recent events",
     "loadingEvents": "Loading…",
     "noEvents": "No events published",
-    "freeBadge": "FREE"
+    "freeBadge": "FREE",
+    "tabs": {
+      "upcoming": "Upcoming",
+      "past": "Past"
+    }
   },
   "sessionDetails": {
     "title": "Session",
@@ -4164,7 +4169,8 @@
       "accessCodeWillBeRemoved": "The code will be removed when you save.",
       "accessCodeRemove": "Remove code",
       "accessCodeUndoRemove": "Undo",
-      "featuredInfo": "You can request to feature your event after creation from \"My events\"."
+      "featuredInfo": "You can request to feature your event after creation from \"My events\".",
+      "categorySuggestion": "Suggestion: {{name}}"
     },
     "step2": {
       "title": "Date and Place",
@@ -5214,7 +5220,7 @@
     "pushAccept": "Enable notifications",
     "pushDecline": "Later",
     "announcementClose": "Close",
-    "advertSponsored": "SPONSORED",
+    "advertSponsored": "AD",
     "advertCtaDefault": "Learn more",
     "advertA11y": "Advertisement: {{title}}",
     "incidentDefaultMessage": "Our team is on it.",

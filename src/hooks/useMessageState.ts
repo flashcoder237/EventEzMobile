@@ -6,6 +6,54 @@
 import { useReducer, useCallback, useMemo } from 'react';
 import { Message, User } from '../types';
 
+/**
+ * Fusionne les pieces jointes du SERVEUR avec celles du message optimiste.
+ *
+ * On garde l'URI locale (`file://`) comme source affichee tant que l'image
+ * distante n'est pas en cache, et on range l'URL serveur dans `_server_file`.
+ *
+ * BUG CORRIGE (2026-10-07) : « j'ai envoye une image avec un vocal, mais
+ * l'image que j'ai envoye est blanche chez moi ».
+ *
+ * L'appariement se faisait PAR POSITION (`tempAttachments[idx]`). Or les deux
+ * listes ne sont pas dans le meme ordre :
+ *   - le client ajoute toujours le vocal EN DERNIER  -> [image, vocal]
+ *   - le serveur trie par `uploaded_at` (fin d'upload) et un vocal de 100 Ko
+ *     arrive avant une photo de plusieurs Mo          -> [vocal, image]
+ *
+ * On collait donc l'URI locale du .m4a sur la piece jointe IMAGE. `expo-image`
+ * ne sait pas decoder un fichier audio : rectangle vide. Et comme le resultat
+ * fusionne est ecrit en base locale, le cadre blanc survivait au redemarrage.
+ *
+ * On apparie desormais par IDENTITE (type + nom de fichier), et on refuse
+ * categoriquement de croiser deux types differents.
+ */
+export function mergeOptimisticAttachments(incoming: any[], temps: any[]): any[] {
+  const available = [...(temps || [])];
+
+  const takeMatch = (real: any): any | null => {
+    const sameType = (t: any) => t && t.attachment_type === real?.attachment_type;
+    // 1) meme type ET meme nom de fichier : appariement certain.
+    let idx = available.findIndex(
+      (t) => sameType(t) && t.file_name && t.file_name === real?.file_name,
+    );
+    // 2) a defaut, le premier non consomme du MEME type.
+    if (idx === -1) idx = available.findIndex(sameType);
+    if (idx === -1) return null;
+    return available.splice(idx, 1)[0];
+  };
+
+  return (incoming || []).map((real: any) => {
+    const temp = takeMatch(real);
+    const localUri = temp?.file;
+    if (typeof localUri === 'string' && localUri.startsWith('file://')) {
+      return { ...real, file: localUri, _server_file: real.file };
+    }
+    return real;
+  });
+}
+
+
 // Types pour l'état
 export interface AttachedFile {
   id?: string;
@@ -211,18 +259,8 @@ function messageReducer(state: MessageState, action: MessageAction): MessageStat
           const tempMessage = state.messages[matchIdx];
           const tempAttachments = tempMessage.attachments || [];
           const incomingAttachments = incoming.attachments || [];
-          const mergedAttachments = incomingAttachments.map((real: any, idx: number) => {
-            const temp: any = tempAttachments[idx];
-            const localUri = temp?.file;
-            if (typeof localUri === 'string' && localUri.startsWith('file://')) {
-              return {
-                ...real,
-                file: localUri,
-                _server_file: real.file,
-              };
-            }
-            return real;
-          });
+          const mergedAttachments = mergeOptimisticAttachments(
+            incomingAttachments, tempAttachments);
           next[matchIdx] = { ...incoming, attachments: mergedAttachments };
           return { ...state, messages: next };
         }
@@ -266,13 +304,7 @@ function messageReducer(state: MessageState, action: MessageAction): MessageStat
           const incomingAtts = updates?.attachments;
           if (Array.isArray(incomingAtts) && incomingAtts.length > 0) {
             const tempAtts: any[] = (m as any).attachments || [];
-            const merged = incomingAtts.map((real: any, idx: number) => {
-              const localUri = tempAtts[idx]?.file;
-              if (typeof localUri === 'string' && localUri.startsWith('file://')) {
-                return { ...real, file: localUri, _server_file: real.file };
-              }
-              return real;
-            });
+            const merged = mergeOptimisticAttachments(incomingAtts, tempAtts);
             return { ...m, ...updates, attachments: merged };
           }
           return { ...m, ...updates };

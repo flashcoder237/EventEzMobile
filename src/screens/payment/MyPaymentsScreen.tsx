@@ -10,12 +10,14 @@ import {
   SectionList,
   ScrollView,
 } from 'react-native';
+import { Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { paymentsAPI } from '../../api';
+import { paymentsAPI, invoicesAPI } from '../../api';
+import { getMediaUrl } from '../../api/config';
 import { Payment, RootStackParamList } from '../../types';
 import { SkeletonList, PaymentCardSkeleton, MyPaymentsScreenSkeleton } from '../../components/ui/Skeleton';
 import { useAlert } from '../../contexts/AlertContext';
@@ -224,11 +226,61 @@ export default function MyPaymentsScreen() {
     );
   };
 
+  // Telechargement de la facture.
+  //
+  // BUG CORRIGE (2026-10-07) : la tuile « Factures » du profil menait ICI,
+  // alors que cet ecran n'offrait AUCUN moyen de telecharger une facture —
+  // un cul-de-sac. On porte donc le handler deja eprouve de
+  // PaymentSuccessScreen.
+  //
+  // `download_pdf` renvoie du JSON `{ pdf_url }`, jamais le binaire : on
+  // recupere l'URL puis on la laisse ouvrir par le systeme.
+  const [invoiceLoadingId, setInvoiceLoadingId] = useState<string | null>(null);
+
+  const handleDownloadInvoice = async (payment: PaymentWithEvent) => {
+    const invoiceId = (payment as any)?.invoice?.id;
+    if (!invoiceId || invoiceLoadingId) return;
+    setInvoiceLoadingId(payment.id);
+    try {
+      const res = await invoicesAPI.downloadPdf(invoiceId);
+      const absoluteUrl = getMediaUrl(res.data?.pdf_url);
+      if (!absoluteUrl) {
+        showError(t('payment.invoice'), t('errors.loadingFailed'));
+        return;
+      }
+      if (!(await Linking.canOpenURL(absoluteUrl))) {
+        showError(t('common.error'), t('errors.actionFailed'));
+        return;
+      }
+      await Linking.openURL(absoluteUrl);
+    } catch {
+      // Jamais le detail brut du backend : message de repli traduit.
+      showError(t('payment.invoice'), t('errors.downloadFailed'));
+    } finally {
+      setInvoiceLoadingId(null);
+    }
+  };
+
   // === LEDGER PAYMENT CARD ===
   const renderPayment = ({ item, index }: { item: PaymentWithEvent; index: number }) => {
     const status = getStatusConfig(item.status || 'pending');
     const method = getMethodConfig(item.payment_method);
-    const canRefund = item.status === 'completed';
+    // On fait confiance au VERDICT DU SERVEUR.
+    //
+    // BUG CORRIGE (2026-10-07) : « j'ai deja fait une demande de
+    // remboursement, pourquoi le bouton reste actif ? ». Le client testait
+    // seulement `status === 'completed'` — il ne pouvait pas savoir qu'une
+    // demande etait deja en cours. L'utilisateur reappuyait donc, et se
+    // faisait refuser par le serveur apres coup.
+    //
+    // `can_refund` integre deja le proprietaire, l'etat du paiement ET une
+    // demande en cours (`already_requested`). Repli sur l'ancienne regle si le
+    // champ est absent (reponse en cache d'une version anterieure).
+    const alreadyRequested = item.refund_blocked_reason === 'already_requested';
+    const canRefund = item.can_refund !== undefined
+      ? item.can_refund
+      : item.status === 'completed';
+    const hasInvoice = !!(item as any)?.invoice?.id;
     const isOutgoing = item.status !== 'refunded';
 
     return (
@@ -287,6 +339,22 @@ export default function MyPaymentsScreen() {
               )}
             </View>
 
+            {hasInvoice && (
+              <TouchableOpacity
+                style={[styles.refundLink, { borderColor: hairline }]}
+                onPress={() => handleDownloadInvoice(item)}
+                activeOpacity={0.7}
+                disabled={invoiceLoadingId === item.id}
+              >
+                <Ionicons name="document-text-outline" size={11} color={colors.primary} />
+                <Text style={[styles.refundLinkText, { color: colors.primary }]}>
+                  {invoiceLoadingId === item.id
+                    ? t('common.loading')
+                    : t('payment.downloadInvoice')}
+                </Text>
+              </TouchableOpacity>
+            )}
+
             {canRefund && (
               <TouchableOpacity
                 style={[styles.refundLink, { borderColor: hairline }]}
@@ -295,9 +363,21 @@ export default function MyPaymentsScreen() {
               >
                 <Ionicons name="return-down-back" size={11} color={colors.primary} />
                 <Text style={[styles.refundLinkText, { color: colors.primary }]}>
-                  Demander remboursement
+                  {t('tickets.requestRefund')}
                 </Text>
               </TouchableOpacity>
+            )}
+
+            {/* Demande deja deposee : on l'indique au lieu de laisser croire
+                qu'il faut recommencer. Non cliquable — le suivi se fait dans
+                « Mes remboursements ». */}
+            {alreadyRequested && (
+              <View style={[styles.refundLink, { borderColor: hairline }]}>
+                <Ionicons name="time-outline" size={11} color={colors.gray500} />
+                <Text style={[styles.refundLinkText, { color: colors.gray500 }]}>
+                  {t('payment.refundAlreadyRequested')}
+                </Text>
+              </View>
             )}
           </View>
 

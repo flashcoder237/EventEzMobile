@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -67,6 +67,31 @@ export default function OrganizerProfileScreen() {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+  const [eventsTab, setEventsTab] = useState<'upcoming' | 'past'>('upcoming');
+
+  // Partition À VENIR / PASSÉS sur la date de FIN : un événement de trois
+  // jours commencé hier est toujours en cours, pas passé.
+  const { upcomingEvents, pastEvents } = useMemo(() => {
+    const now = Date.now();
+    const upcoming: Event[] = [];
+    const past: Event[] = [];
+    for (const ev of events) {
+      const ends = ev.end_date || ev.start_date;
+      const done = ends ? new Date(ends).getTime() < now : false;
+      (done ? past : upcoming).push(ev);
+    }
+    return { upcomingEvents: upcoming, pastEvents: past };
+  }, [events]);
+
+  // Bascule automatique si l'onglet par défaut est vide : un organisateur sans
+  // événement à venir affichait une page vide alors qu'il a un historique.
+  useEffect(() => {
+    if (!isLoadingEvents && upcomingEvents.length === 0 && pastEvents.length > 0) {
+      setEventsTab('past');
+    }
+  }, [isLoadingEvents, upcomingEvents.length, pastEvents.length]);
+
+  const visibleEvents = eventsTab === 'upcoming' ? upcomingEvents : pastEvents;
   const [isFollowingAction, setIsFollowingAction] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -504,14 +529,59 @@ export default function OrganizerProfileScreen() {
                 {t('organizerProfile.agendaTitle')}
               </Text>
             </View>
+            {/* ONGLETS À VENIR / PASSÉS.
+                DEMANDE (2026-10-07) : « sur le profil organisateur sur le web
+                on a les tabs, mais sur mobile non ». La liste mobile était
+                plate : un visiteur ne pouvait pas distinguer ce qu'il peut
+                encore réserver de ce qui est terminé — l'information la plus
+                utile de la page.
+                On n'importe PAS les cinq onglets du web : « Tous » fait
+                doublon avec la liste, et « Avis » / « Temps forts »
+                demanderaient des données que cet écran ne charge pas. */}
+            {!isLoadingEvents && events.length > 0 && (
+              <View style={styles.tabsRow}>
+                {(['upcoming', 'past'] as const).map((key) => {
+                  const active = eventsTab === key;
+                  const count = key === 'upcoming'
+                    ? upcomingEvents.length
+                    : pastEvents.length;
+                  return (
+                    <TouchableOpacity
+                      key={key}
+                      onPress={() => setEventsTab(key)}
+                      activeOpacity={0.8}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      style={[
+                        styles.tabChip,
+                        {
+                          backgroundColor: active ? colors.primary : 'transparent',
+                          borderColor: active ? colors.primary : colors.gray300,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.tabChipText,
+                          { color: active ? '#fff' : colors.gray600 },
+                        ]}
+                      >
+                        {t(`organizerProfile.tabs.${key}`)} ({count})
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+
             {isLoadingEvents ? (
               <View style={styles.eventsLoadingContainer}>
                 <ActivityIndicator size="small" color={colors.primary} />
                 <Text style={[styles.eventsLoadingText, { color: colors.gray500 }]}>{t('organizerProfile.loadingEvents')}</Text>
               </View>
-            ) : events.length > 0 ? (
+            ) : visibleEvents.length > 0 ? (
               <FlatList
-                data={events}
+                data={visibleEvents}
                 keyExtractor={(item) => String(item.id)}
                 scrollEnabled={false}
                 initialNumToRender={6}
@@ -969,6 +1039,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   // Loader des events (pendant fetch)
+  tabsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  tabChip: {
+    paddingVertical: 7,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  tabChipText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
+  },
   eventsLoadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',

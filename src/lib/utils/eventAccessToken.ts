@@ -69,6 +69,11 @@ export async function warmEventAccessTokenCache(): Promise<void> {
  * Retourne null si l'URL ne cible pas un sous-chemin d'event.
  */
 export function extractEventIdFromUrl(url: string): string | null {
-  const match = url.match(/\/events\/([0-9a-f-]{36}|\d+)(?:\/|$|\?)/i);
+  // UUID OU slug : un event ouvert par son slug (/events/mon-event-ab12/)
+  // ne recevait jamais le jeton → le serveur renvoyait la porte « code
+  // d'accès » en boucle, même après un code valide. Le jeton est stocké sous
+  // la même clé que celle de l'URL ; un segment comme « featured » ne trouve
+  // simplement aucun jeton.
+  const match = url.match(/\/events\/([A-Za-z0-9][A-Za-z0-9_-]*)(?:\/|$|\?)/);
   return match ? match[1] : null;
 }

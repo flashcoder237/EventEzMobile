@@ -17,6 +17,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useVisioCall } from '../../contexts/VisioCallContext';
 import QRCode from 'react-native-qrcode-svg';
 import * as Print from 'expo-print';
 import { BRAND_PDF_CSS, brandFooterHtml, brandHeaderHtml, getBrandLogoDataUri } from '../../lib/pdf/brandPdf';
@@ -65,6 +66,7 @@ type RegistrationDetailsRouteProp = RouteProp<RootStackParamList, 'RegistrationD
 
 export default function RegistrationDetailsScreen() {
   const { t } = useTranslation();
+  const { startCall } = useVisioCall();
   // Écran billet (QR) : luminosité max + écran éveillé + anti-capture
   // G4 — posé face contre table : luminosité rendue au système.
   const { sensorElement: postureElement } = useTicketDisplayGuard();
@@ -290,7 +292,22 @@ export default function RegistrationDetailsScreen() {
           ? withJwt(data.url, data.token)
           : data.url,
       );
-      navigation.navigate('Browser', { url: finalUrl, roomId: data.room_id });
+      // Visio PERSISTANTE (meme chemin que l'onglet « En ligne »).
+      //
+      // CORRECTION (2026-10-07) : cet ecran ouvrait la visio dans un ecran
+      // `Browser` classique, alors que le reste de l'app passe par l'overlay
+      // global. Deux consequences :
+      //   - l'appel se COUPAIT des qu'on naviguait ailleurs (l'ecran est
+      //     demonte), alors que l'overlay survit et se reduit en bulle ;
+      //   - les DEUX chemins armaient chacun le Picture-in-Picture Android,
+      //     donc deux appels concurrents au meme passage en arriere-plan.
+      // Une seule UX de visio desormais, quel que soit l'ecran d'entree.
+      startCall({
+        url: finalUrl,
+        roomId: data.room_id,
+        title: t('componentsCommon.webviewVisioTitle', { defaultValue: 'Visioconférence' }),
+        recordingNotice: data.recording_notice ?? null,
+      });
     } catch (error: any) {
       const code = error?.response?.status;
       const apiMsg = error?.response?.data?.error;
@@ -357,7 +374,18 @@ export default function RegistrationDetailsScreen() {
     const place = event?.location_name || event?.location_city;
     if (place) rows.push([t('registrationDetails.pdfPlace'), String(place)]);
     if (registration?.reference_code) rows.push([t('registrationDetails.pdfReference'), registration.reference_code]);
-    if (registration?.status) rows.push([t('registrationDetails.pdfStatus'), String(registration.status)]);
+    if (registration?.status) {
+      // LIBELLE TRADUIT, pas la valeur brute de la base.
+      //
+      // BUG CORRIGE (2026-10-07) : le PDF affichait « STATUT confirmed ».
+      // L'ECRAN, lui, affichait deja « Confirmee » — via `getStatusConfig`,
+      // defini dans ce meme fichier. Le PDF remis au participant etait donc
+      // le seul endroit a parler anglais technique.
+      rows.push([
+        t('registrationDetails.pdfStatus'),
+        getStatusConfig(registration.status, (registration as any)?.approval_status).label,
+      ]);
+    }
 
     const rowsHtml = rows
       .map(
@@ -511,9 +539,31 @@ export default function RegistrationDetailsScreen() {
             back
             onBack={closeScreen}
           />
+          {/* Meme traitement editorial que « evenement non trouve ».
+              DEMANDE (2026-10-07) : « le design d'ici quand un billet n'est pas
+              charge, doit aussi ressembler a celui de evenement non trouve ».
+              Il manquait le surtitre, le titre et surtout une ACTION : on
+              laissait l'utilisateur devant une phrase, sans rien a faire. */}
           <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
-            <Text style={[styles.errorText, { color: colors.gray500 }]}>{loadErrorMessage ?? t('registrationDetails.notFound')}</Text>
+            <Text style={[styles.errorEyebrow, { color: colors.primary }]}>
+              {t('eventDetails.loadingErrorEyebrow')}
+            </Text>
+            <Text style={[styles.errorTitle, { color: colors.gray900 }]}>
+              {t('registrationDetails.notFound')}
+            </Text>
+            {/* Le titre dit CE QUI s'est passe ; ce texte dit QUOI FAIRE.
+                Repeter la meme phrase aux deux endroits n'aide personne. */}
+            <Text style={[styles.errorText, { color: colors.gray500 }]}>
+              {loadErrorMessage ?? t('errors.tickets.notFound')}
+            </Text>
+            <View style={{ marginTop: 24, flexDirection: 'row', alignSelf: 'stretch' }}>
+              <EditorialPillCTA
+                eyebrow={t('eyebrow.back')}
+                label={t('common.back', { defaultValue: 'Retour' })}
+                icon="arrow-back"
+                onPress={closeScreen}
+              />
+            </View>
           </View>
         </View>
       </EditorialCanvas>
@@ -1325,8 +1375,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.md,
   },
+  errorEyebrow: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  errorTitle: {
+    fontSize: 30,
+    fontFamily: FontFamily.displayExtraBold,
+    letterSpacing: -0.9,
+    lineHeight: 34,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
   errorText: {
     fontSize: FontSizes.base,
+    textAlign: 'center',
   },
 
   // Header

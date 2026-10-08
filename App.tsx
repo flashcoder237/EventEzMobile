@@ -261,7 +261,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       WeddingGiftRegistry: 'events/:slug/gift-registry',
       // Deep link de retour après souscription web (Play Billing compliance —
       // cf. SubscriptionScreen.tsx). Le web appelle eventez://subscription
-      // ou https://eventez.online/dashboard/subscription a la fin du paiement,
+      // ou https://eventez.online/dashboard/billing a la fin du paiement,
       // ce qui ramene l'utilisateur ici. openAuthSessionAsync intercepte le
       // redirect et ferme automatiquement le navigateur in-app.
       Subscription: 'subscription',

@@ -2258,7 +2258,19 @@ export default function DiscoverScreen() {
   // === POUR VOUS — items virtualisés ===
   // T7 — état « sauvegardé » pour le balayage du flux Pour vous.
   const { isSaved, toggleSaved, isAuthenticated: savedAuth } = useSavedEvents();
-  const inlineAd = useMemo(() => ads.find((a) => a.placement === 'feed_inline') || null, [ads]);
+  // Une seule pub intégrée au fil, mais PAS toujours la même.
+  //
+  // ÉQUITÉ (2026-10-07) : avec `find()` sur une liste au tri déterministe,
+  // c'était éternellement la pub la mieux classée — elle captait 100 % des
+  // impressions de cet emplacement. Le serveur renvoie désormais les pubs dans
+  // un ordre mélangé-pondéré ; on tire en plus au sort ici, pour que deux
+  // ouvertures d'affilée ne montrent pas forcément la même annonce.
+  const inlineAd = useMemo(() => {
+    const candidates = ads.filter((a) => a.placement === 'feed_inline');
+    if (candidates.length === 0) return null;
+    return candidates[Math.floor(Math.random() * candidates.length)];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ads]);
   const renderForYouItem = useCallback(
     ({ item, index }: { item: Event; index: number }) => (
       <View style={{ paddingHorizontal: Spacing.lg }}>

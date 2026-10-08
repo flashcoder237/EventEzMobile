@@ -159,7 +159,16 @@ const styles = StyleSheet.create({
   },
   imageWrap: {
     width: '100%',
-    height: 140,
+    // 16:9 — le MEME ratio que celui annonce a l'annonceur et impose par le
+    // recadrage a l'import.
+    //
+    // BUG CORRIGE (2026-10-07) : une hauteur FIXE de 140 px sur une carte
+    // d'environ 335 px de large donnait un rendu en ~2.39:1. Avec
+    // `contentFit="cover"`, l'image 16:9 etait donc rognee d'environ un quart
+    // de sa hauteur, en haut ET en bas — le texte du visuel se retrouvait
+    // coupe. On demandait une image dans un format, on l'affichait dans un
+    // autre.
+    aspectRatio: 16 / 9,
     position: 'relative',
   },
   image: {

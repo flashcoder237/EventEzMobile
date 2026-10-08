@@ -897,7 +897,14 @@ export default function EventCreateScreen() {
         </View>
       </View>
 
-      {/* Map Picker Modal */}
+      {/* Carte : montee UNIQUEMENT quand elle est ouverte.
+          BUG CORRIGE (2026-10-07) : « la carte de selection d'emplacement est
+          tres lente », « la carte est meme visible que parfois ». Le composant
+          etait monte en permanence, a toutes les etapes du formulaire. Comme
+          ni lui ni cet ecran ne sont memoises, CHAQUE FRAPPE au clavier (titre,
+          description, prix...) re-rendait l'arbre contenant la vue native Google
+          Maps, dont la texture se reinitialisait par a-coups. */}
+      {form.showMapPicker && (
       <MapPickerModal
         visible={form.showMapPicker}
         onClose={() => setShowMapPicker(false)}
@@ -905,6 +912,7 @@ export default function EventCreateScreen() {
         initialLat={form.locationLatitude ? parseFloat(form.locationLatitude) : undefined}
         initialLng={form.locationLongitude ? parseFloat(form.locationLongitude) : undefined}
       />
+      )}
 
       {submittedSheet}
     </SafeAreaView>

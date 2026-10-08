@@ -15,7 +15,6 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList } from '../../types';
 import { FontFamily, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { usePictureInPicture } from '../../hooks/usePictureInPicture';
 import { virtualRoomsAPI } from '../../api/content';
 import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
 import { useVisioHush } from '../../hooks/useVisioHush';
@@ -33,11 +32,22 @@ export default function WebViewScreen() {
   const route = useRoute<BrowserRoute>();
   const { url, title, roomId } = route.params;
   const { colors } = useTheme();
-  // Picture-in-Picture (Android) : uniquement pour une visio en cours — si
-  // l'utilisateur quitte l'app pendant l'appel, la vidéo se réduit en fenêtre
-  // flottante au lieu de se figer. No-op ailleurs.
   const isVisio = isVisioUrl(url);
-  usePictureInPicture(isVisio);
+
+  // Picture-in-Picture RETIRÉ d'ici (2026-10-07).
+  //
+  // Deux chemins armaient le PiP Android sur le même passage en arrière-plan :
+  // cet écran ET `VisioCallOverlay`. Deux appels concurrents à
+  // `enterPictureInPictureMode()`, et surtout ce chemin-ci n'avait AUCUN des
+  // correctifs de l'overlay (notamment le passage en plein écran avant la
+  // capture, sans lequel la fenêtre PiP montrait l'interface de l'app au lieu
+  // de la vidéo).
+  //
+  // Les visios EventEz passent désormais toutes par l'overlay global
+  // (`startCall`), qui survit à la navigation et gère le PiP. Cet écran ne
+  // sert plus qu'aux liens EXTERNES (lien de session Zoom/Teams saisi par
+  // l'organisateur) : le PiP système n'y a pas de sens, on ne contrôle ni le
+  // contenu ni son cycle de vie.
 
   // Signale au serveur la sortie de salle. L'endpoint existait des deux côtés
   // mais n'était appelé par AUCUNE interface : le participant restait compté

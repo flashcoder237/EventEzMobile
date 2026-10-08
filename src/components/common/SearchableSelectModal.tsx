@@ -63,6 +63,16 @@ interface Props<T> {
   renderItemExtra?: (item: T) => React.ReactNode;
   /** Texte affiché quand items est vide ou search ne renvoie rien. */
   emptyText?: string;
+  /**
+   * Proposition de SECOURS quand la recherche ne donne rien.
+   *
+   * DEMANDE (2026-10-07) : « si la categorie recherchee n'existe pas, qu'on
+   * propose la categorie "autre" qui existe ». Une liste vide est un
+   * cul-de-sac : l'utilisateur ne sait pas quoi faire et doit deviner qu'il
+   * existe un repli.
+   */
+  fallbackItem?: T | null;
+  fallbackLabel?: string;
 }
 
 // Normalise pour un matching insensible aux accents/casse
@@ -85,6 +95,8 @@ export default function SearchableSelectModal<T>({
   searchPlaceholder,
   renderItemExtra,
   emptyText,
+  fallbackItem,
+  fallbackLabel,
 }: Props<T>) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
@@ -188,6 +200,23 @@ export default function SearchableSelectModal<T>({
             <View style={styles.emptyWrap}>
               <Ionicons name="search-outline" size={28} color={colors.gray400} />
               <Text style={[styles.emptyText, { color: colors.gray500 }]}>{resolvedEmptyText}</Text>
+              {fallbackItem ? (
+                <TouchableOpacity
+                  testID="searchable-fallback"
+                  style={[styles.fallbackBtn, { borderColor: colors.primary }]}
+                  onPress={() => {
+                    onSelect(fallbackItem);
+                    onClose();
+                  }}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="pricetag-outline" size={14} color={colors.primary} />
+                  <Text style={[styles.fallbackText, { color: colors.primary }]}>
+                    {fallbackLabel ?? getLabel(fallbackItem)}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           }
           contentContainerStyle={[
@@ -348,6 +377,20 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     alignItems: 'center',
     gap: Spacing.sm,
+  },
+  fallbackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderRadius: 999,
+  },
+  fallbackText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
   },
   emptyText: {
     fontFamily: FontFamily.medium,

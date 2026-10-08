@@ -1035,7 +1035,19 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   orgLogoHint: { fontSize: FontSizes.sm, fontFamily: FontFamily.semiBold },
-  orgDescriptionInput: { minHeight: 96, paddingTop: Spacing.sm },
+  // `height: undefined` ANNULE le `height: 50` fixe de `input` — exactement
+  // comme `textArea` le fait pour la biographie.
+  //
+  // BUG CORRIGE (2026-10-07) : « regarde comme l'input de la biographie est
+  // bien faite, par contre celle de description publique est coupee ». Sans ce
+  // reset, `minHeight` ne sert a rien : une hauteur FIXE l'emporte toujours, et
+  // le champ restait ecrase sur une seule ligne malgre `multiline` et
+  // `numberOfLines={4}`.
+  orgDescriptionInput: {
+    height: undefined,
+    minHeight: 96,
+    paddingTop: Spacing.sm,
+  },
   inputHalf: { flex: 1 },
   selectTrigger: {
     flexDirection: 'row',

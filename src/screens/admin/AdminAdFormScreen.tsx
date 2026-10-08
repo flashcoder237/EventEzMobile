@@ -590,7 +590,11 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl, borderWidth: 1.5, overflow: 'hidden',
     borderStyle: 'dashed', minHeight: 160,
   },
-  imagePreview: { width: '100%', height: 180 },
+  // Meme ratio que l'affichage reel dans le feed (AdvertisementCard) : l'apercu
+  // doit montrer EXACTEMENT ce qui sera diffuse. Avec une hauteur fixe, on
+  // validait son visuel dans un cadre plus haut que le cadre de diffusion, donc
+  // sans jamais voir le rognage a venir.
+  imagePreview: { width: '100%', aspectRatio: 16 / 9 },
   imagePickerEmpty: {
     height: 180, alignItems: 'center', justifyContent: 'center', gap: 8,
   },

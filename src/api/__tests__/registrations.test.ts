@@ -27,7 +27,20 @@ describe('registrationsAPI', () => {
   it('createRegistration() POSTs /registrations/', async () => {
     const data = { event: 'eid' };
     await registrationsAPI.createRegistration(data);
-    expect(api.post).toHaveBeenCalledWith('/registrations/', data);
+    // 3e argument `undefined` : la config axios n'est passee que pour les
+    // evenements proteges par code (header X-Event-Access-Token).
+    expect(api.post).toHaveBeenCalledWith('/registrations/', data, undefined);
+  });
+
+  it("createRegistration() rejoue le jeton d'acces quand il est fourni", async () => {
+    // Un evenement protege par code : l'intercepteur n'ajoute le jeton que sur
+    // les URLs /events/..., donc l'appelant doit le passer explicitement ici,
+    // sinon le serveur refuse « Code d'acces invalide ou manquant ».
+    const headers = { 'X-Event-Access-Token': 'tok123' };
+    await registrationsAPI.createRegistration({ event: 'eid' }, headers);
+    expect(api.post).toHaveBeenCalledWith(
+      '/registrations/', { event: 'eid' }, { headers },
+    );
   });
 
   it('updateRegistration() PUTs /registrations/{id}/', async () => {

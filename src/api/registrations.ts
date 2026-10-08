@@ -16,8 +16,10 @@ export const registrationsAPI = {
   getRegistration: (id: string) =>
     api.get(`/registrations/${id}/`),
 
-  createRegistration: (data: any) =>
-    api.post('/registrations/', data),
+  // `headers` sert à rejouer X-Event-Access-Token pour les événements
+  // protégés par code : l'intercepteur ne l'injecte que sur /events/...
+  createRegistration: (data: any, headers?: Record<string, string>) =>
+    api.post('/registrations/', data, headers ? { headers } : undefined),
 
   updateRegistration: (id: string, data: any) =>
     api.put(`/registrations/${id}/`, data),

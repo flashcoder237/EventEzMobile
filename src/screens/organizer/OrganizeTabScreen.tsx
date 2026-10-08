@@ -52,7 +52,7 @@ import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial
 import { ErrorState } from '../../components/ui/ErrorState';
 import { MyEventsScreenSkeleton } from '../../components/ui/Skeleton';
 import { formatPriceAmount, displayCurrency } from '../../lib/utils/priceFormatters';
-import { pickActiveEvent, isScannable } from '../../lib/utils/activeEvent';
+import { pickActiveEvent, isScannable, isSellableOnSite } from '../../lib/utils/activeEvent';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -162,6 +162,7 @@ export default function OrganizeTabScreen() {
     if (!active) return null;
     const { event, isLive } = active;
     const scannable = isScannable(event);
+    const sellable = isSellableOnSite(event);
 
     return (
       <View style={[styles.activeCard, { backgroundColor: colors.card, borderColor: colors.gray100 }, Shadows.card]}>
@@ -232,24 +233,26 @@ export default function OrganizeTabScreen() {
               <Text style={styles.primaryActionLabel}>{t('organize.scan')}</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity
-            style={[
-              styles.secondaryAction,
-              { backgroundColor: colors.primaryBg, borderColor: colors.primary },
-              // Seul bouton présent sur un événement en ligne : il prend
-              // toute la largeur plutôt que de laisser un vide.
-              !scannable && styles.actionFullWidth,
-            ]}
-            onPress={() => navigation.navigate('BoxOffice', { eventId: event.id })}
-            activeOpacity={0.9}
-            accessibilityRole="button"
-            accessibilityLabel={t('organize.boxOfficeA11y')}
-          >
-            <Ionicons name="cash-outline" size={22} color={colors.primary} />
-            <Text style={[styles.secondaryActionLabel, { color: colors.primary }]}>
-              {t('organize.boxOffice')}
-            </Text>
-          </TouchableOpacity>
+          {sellable && (
+            <TouchableOpacity
+              style={[
+                styles.secondaryAction,
+                { backgroundColor: colors.primaryBg, borderColor: colors.primary },
+                // Pleine largeur seulement si le scan est absent ET que la
+                // caisse a du sens — sinon on n'affiche tout simplement rien.
+                !scannable && styles.actionFullWidth,
+              ]}
+              onPress={() => navigation.navigate('BoxOffice', { eventId: event.id })}
+              activeOpacity={0.9}
+              accessibilityRole="button"
+              accessibilityLabel={t('organize.boxOfficeA11y')}
+            >
+              <Ionicons name="cash-outline" size={22} color={colors.primary} />
+              <Text style={[styles.secondaryActionLabel, { color: colors.primary }]}>
+                {t('organize.boxOffice')}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <TouchableOpacity

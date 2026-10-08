@@ -709,7 +709,27 @@ export default function TicketPurchaseScreen() {
           registrationData.tickets = tickets;
         }
 
-        const response = await registrationsAPI.createRegistration(registrationData);
+        // Événement protégé par code : rejouer le jeton obtenu à l'ouverture.
+        // L'intercepteur ne l'ajoute que sur les URLs /events/... — or on POSTe
+        // ici vers /registrations/. Sans ce rappel explicite, le serveur refuse
+        // « Code d'accès invalide ou manquant » alors que le code a bien été
+        // saisi : l'inscription était tout simplement impossible.
+        const accessHeaders = await (async () => {
+          try {
+            const { getEventAccessTokenSync } = require('../../lib/utils/eventAccessToken');
+            const tok =
+              getEventAccessTokenSync(String(event?.id || '')) ||
+              getEventAccessTokenSync(String(eventId || ''));
+            return tok ? { 'X-Event-Access-Token': tok } : undefined;
+          } catch {
+            return undefined;
+          }
+        })();
+
+        const response = await registrationsAPI.createRegistration(
+          registrationData,
+          accessHeaders,
+        );
         finalRegistrationId = response.data.id;
         paymentRequired = response.data.payment_required || getTotalPrice() > 0;
       }

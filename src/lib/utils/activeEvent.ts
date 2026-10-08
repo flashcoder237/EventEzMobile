@@ -64,3 +64,30 @@ export function pickActiveEvent(
 export function isScannable(event: Event | undefined | null): boolean {
   return !!event && event.location_type !== 'online';
 }
+
+/**
+ * Peut-on vendre un billet SUR PLACE pour cet événement ?
+ *
+ * BUG CORRIGÉ (2026-10-07) : « quand il y a un événement en cours ça me
+ * propose d'ouvrir la caisse, mais ça ne tient pas compte du fait que
+ * l'événement est un événement en ligne gratuit ». Le bouton caisse n'avait
+ * AUCUNE condition — pire, sur un événement en ligne il devenait le seul
+ * bouton et s'affichait en pleine largeur, donc mis en avant.
+ *
+ * Trois conditions, toutes nécessaires :
+ *   - un lieu physique (on n'encaisse pas à la porte d'une visio) ;
+ *   - une billetterie (un formulaire d'inscription ne se vend pas) ;
+ *   - au moins un tarif payant (sinon il n'y a rien à encaisser).
+ *
+ * `ticket_types` peut être absent d'une liste allégée : dans le doute on
+ * autorise, l'écran de caisse affichera alors ses propres tarifs. On préfère
+ * un écran vide à un bouton masqué à tort pour un vrai organisateur.
+ */
+export function isSellableOnSite(event: Event | undefined | null): boolean {
+  if (!event) return false;
+  if (event.location_type === 'online') return false;
+  if (event.event_type !== 'billetterie') return false;
+  const types = event.ticket_types;
+  if (!types || types.length === 0) return true;
+  return types.some((t) => Number((t as any)?.price) > 0);
+}

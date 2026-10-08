@@ -634,6 +634,8 @@ exports[`module messages messages.messagesAPI.getMutedList 1`] = `"GET /conversa
 
 exports[`module messages messages.messagesAPI.getPresence 1`] = `"GET /conversations/presence/ | erreur propage"`;
 
+exports[`module messages messages.messagesAPI.getStarredMessages 1`] = `"GET /messages/starred/ | erreur propage"`;
+
 exports[`module messages messages.messagesAPI.getUserMessagingSettings 1`] = `"GET /user-messaging-settings/ | erreur propage"`;
 
 exports[`module messages messages.messagesAPI.leaveConversation 1`] = `"POST /conversations/id1/leave/ | erreur propage"`;

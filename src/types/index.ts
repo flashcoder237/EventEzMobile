@@ -647,6 +647,11 @@ export interface Payment {
   invoice?: Invoice; // Backend renvoie un objet Invoice imbrique
   registration_id?: string;
   registration_details?: Registration;
+  // Verdict du SERVEUR sur l'eligibilite au remboursement. Il tient compte de
+  // l'etat du paiement ET d'une demande deja en cours — ce qu'un simple
+  // `status === 'completed'` cote client ne peut pas savoir.
+  can_refund?: boolean;
+  refund_blocked_reason?: 'not_owner' | 'not_completed' | 'already_requested' | null;
   // --- Client-side aliases (non renvoyes par le backend) ---
   method?: PaymentMethod; // Alias client pour payment_method
   payment_status?: PaymentStatus; // Alias client pour status
@@ -764,6 +769,9 @@ export interface Message {
   attachments?: MessageAttachment[];
   read_by: number[]; // Liste des IDs des utilisateurs qui ont lu
   reply_to?: string | number | Message; // SerializerMethodField
+  /** Marquage PERSONNEL du lecteur courant, calcule par le serveur.
+   *  (Avant 2026-10-07 c'etait un booleen GLOBAL partage par tous les
+   *  participants : marquer un message le marquait aussi chez l'autre.) */
   is_starred: boolean;
   is_edited: boolean;
   edited_at?: string;

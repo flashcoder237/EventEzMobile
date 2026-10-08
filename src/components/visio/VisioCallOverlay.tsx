@@ -5,7 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Dimensions,
+  useWindowDimensions,
   Animated,
   PanResponder,
   Platform,
@@ -19,7 +19,11 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useVisioCall } from '../../contexts/VisioCallContext';
 import { FontFamily, FontSizes, Spacing } from '../../constants/theme';
-import { enterPip, isPipSupported } from '../../../modules/eventez-pip/src';
+import {
+  addPipModeListener,
+  isInPipMode,
+  setPipAutoEnter,
+} from '../../../modules/eventez-pip/src';
 import { useVisioHush } from '../../hooks/useVisioHush';
 
 /**
@@ -61,7 +65,11 @@ export default function VisioCallOverlay() {
   const [showRecordingNotice, setShowRecordingNotice] = useState(true);
   const noticeOpacity = useRef(new Animated.Value(1)).current;
 
-  const screen = Dimensions.get('window');
+  // `useWindowDimensions` et NON `Dimensions.get()` : cette dernière fige la
+  // taille au premier rendu. À la rotation, en multi-fenêtre ou sur iPad, la
+  // bulle se retrouvait positionnée hors de l'écran — irrécupérable, puisque
+  // c'est elle qui permet de revenir en plein écran.
+  const screen = useWindowDimensions();
   const bubbleSize = bubbleLarge ? BUBBLE_LARGE : BUBBLE_SMALL;
   const pan = useRef(
     new Animated.ValueXY({
@@ -73,6 +81,25 @@ export default function VisioCallOverlay() {
   useEffect(() => {
     if (call?.url) setIsLoading(true);
   }, [call?.url]);
+
+  // L'ÉCRAN change (rotation, multi-fenêtre, iPad) : on ramène la bulle dans
+  // les limites. Sans cela, une bulle posée en bas à droite en portrait se
+  // retrouve hors-champ en paysage — et c'est elle qui ramène au plein écran.
+  useEffect(() => {
+    if (call?.mode !== 'bubble') return;
+    const maxX = Math.max(MARGIN, screen.width - bubbleSize.w - MARGIN);
+    const maxY = Math.max(
+      insets.top + MARGIN,
+      screen.height - bubbleSize.h - MARGIN - insets.bottom,
+    );
+    const x = Math.min(Math.max((pan.x as any)._value ?? 0, MARGIN), maxX);
+    const y = Math.min(
+      Math.max((pan.y as any)._value ?? 0, insets.top + MARGIN), maxY);
+    pan.setValue({ x, y });
+  }, [
+    call?.mode, screen.width, screen.height,
+    bubbleSize.w, bubbleSize.h, insets.top, insets.bottom, pan,
+  ]);
 
   useEffect(() => {
     if (!call || !isLoading) return;
@@ -109,27 +136,96 @@ export default function VisioCallOverlay() {
   // `inactive` (une frame d'avance) puis on entre en PiP sur `background`.
   useEffect(() => {
     if (!call) return;
+    // On ARME le PiP pour toute la durée de l'appel. L'entrée effective est
+    // déclenchée côté natif depuis `onUserLeaveHint`, c'est-à-dire juste AVANT
+    // la mise en pause, pendant que l'activité est encore visible.
+    //
+    // CORRECTION (2026-10-07) : on entrait en PiP depuis
+    // `AppState === 'background'`, qui n'arrive qu'APRÈS que l'activité a
+    // cessé d'être visible. Android refuse alors la demande — la
+    // documentation est explicite : « The system may disallow entering
+    // picture-in-picture [...] when the activity is not visible ». L'échec
+    // était en plus avalé sans trace. C'est la cause de fond du « PiP mal
+    // géré ».
+    setPipAutoEnter(true);
+
     const onChange = (state: string) => {
-      if (state === 'inactive') {
-        // Frame d'anticipation : la visio remplit l'écran avant la capture PiP.
+      // `inactive` arrive AVANT que l'activité ne soit masquée : on remet la
+      // visio en plein écran pour que la capture PiP montre la réunion, pas
+      // l'écran où l'utilisateur se trouvait.
+      if (state === 'inactive' || state === 'background') {
         maximize();
-      } else if (state === 'background' && isPipSupported()) {
-        maximize();
-        enterPip();
       }
     };
     const sub = AppState.addEventListener('change', onChange);
-    return () => sub.remove();
+    return () => {
+      sub.remove();
+      setPipAutoEnter(false);
+    };
   }, [call, maximize]);
+
+  // Masquage de l'interface pendant le PiP.
+  //
+  // Android réduit TOUTE la fenêtre de l'activité — il n'extrait pas la vidéo.
+  // L'en-tête (titre, réduire, raccrocher) et le bandeau d'enregistrement se
+  // retrouvaient donc dans une vignette d'environ 200 dp : ils couvraient la
+  // vidéo et étaient intouchables.
+  //
+  // « Remove other UI elements before your activity enters PiP and restore
+  //   them when your activity becomes full screen again. »
+  //   https://developer.android.com/develop/ui/views/picture-in-picture
+  const [isInPip, setIsInPip] = useState(false);
+  useEffect(() => {
+    if (!call) return;
+    setIsInPip(isInPipMode());
+    const sub = addPipModeListener(setIsInPip);
+    return () => sub.remove();
+  }, [call]);
 
   const panResponder = useMemo(
     () => PanResponder.create({
       onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 4 || Math.abs(g.dy) > 4,
       onPanResponderGrant: () => { pan.extractOffset(); },
       onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false }),
-      onPanResponderRelease: () => { pan.flattenOffset(); },
+      onPanResponderRelease: () => {
+        pan.flattenOffset();
+
+        // AIMANTATION SUR LE BORD LE PLUS PROCHE + maintien dans l'écran.
+        //
+        // Sur iOS, cette bulle EST le picture-in-picture : le PiP système est
+        // impossible pour une visio en WebView (Apple n'expose que des
+        // couches vidéo natives). Elle doit donc être irréprochable.
+        //
+        // Deux défauts corrigés ici :
+        //   - la bulle pouvait être lâchée À MOITIÉ HORS DE L'ÉCRAN, voire
+        //     complètement : c'est pourtant elle qui permet de revenir en
+        //     plein écran, donc on perdait l'accès à l'appel ;
+        //   - elle restait là où le doigt l'avait laissée, en plein milieu du
+        //     contenu. Toutes les fenêtres flottantes (FaceTime, WhatsApp)
+        //     reviennent se coller à un bord.
+        const maxX = Math.max(MARGIN, screen.width - bubbleSize.w - MARGIN);
+        const maxY = Math.max(
+          insets.top + MARGIN,
+          screen.height - bubbleSize.h - MARGIN - insets.bottom,
+        );
+        const currentX = (pan.x as any)._value ?? 0;
+        const currentY = (pan.y as any)._value ?? 0;
+
+        // Bord gauche ou droit selon le côté où se trouve le CENTRE.
+        const targetX = currentX + bubbleSize.w / 2 < screen.width / 2
+          ? MARGIN
+          : maxX;
+        const targetY = Math.min(Math.max(currentY, insets.top + MARGIN), maxY);
+
+        Animated.spring(pan, {
+          toValue: { x: targetX, y: targetY },
+          useNativeDriver: false,
+          friction: 8,
+          tension: 60,
+        }).start();
+      },
     }),
-    [pan],
+    [pan, screen.width, screen.height, bubbleSize.w, bubbleSize.h, insets.top, insets.bottom],
   );
 
   // Confirmation avant de raccrocher : les boutons hangup (plein écran + bulle)
@@ -176,7 +272,29 @@ export default function VisioCallOverlay() {
         onPress={isBubble ? maximize : undefined}
         style={styles.webviewZone}
       >
-        <View style={styles.webviewWrap} pointerEvents={isBubble ? 'none' : 'auto'}>
+        <View
+          style={[
+            styles.webviewWrap,
+            // SAFE AREA : en plein ecran, la WebView doit commencer SOUS la
+            // barre d'etat / l'encoche.
+            //
+            // BUG CORRIGE (2026-10-07) : « la webview de la visio ne gere pas
+            // de safearea, le contenu est superpose avec l'entete android ».
+            // Le conteneur est en `absoluteFillObject` (plein ecran, voulu pour
+            // le fond noir), et notre en-tete est superpose — mais Jitsi dessine
+            // SA PROPRE interface tout en haut de la page : son logo et son
+            // bouton de raccrochage passaient donc sous l'heure et les icones
+            // reseau, illisibles et en partie intouchables.
+            //
+            // En mode BULLE on ne decale rien : la bulle flotte au milieu de
+            // l'ecran, elle n'a aucun bord a eviter.
+            !isBubble && {
+              marginTop: insets.top,
+              marginBottom: insets.bottom,
+            },
+          ]}
+          pointerEvents={isBubble ? 'none' : 'auto'}
+        >
           <WebView
             ref={webViewRef}
             source={{ uri: call.url }}
@@ -204,8 +322,11 @@ export default function VisioCallOverlay() {
         </View>
       </TouchableOpacity>
 
-      {/* ── Contrôles PLEIN ÉCRAN (superposés, pas de re-render de la WebView) ── */}
-      {!isBubble && (
+      {/* ── Contrôles PLEIN ÉCRAN (superposés, pas de re-render de la WebView) ──
+             Masqués en fenêtre PiP : dans une vignette, ils couvriraient la
+             vidéo et seraient de toute façon intouchables (le système ne
+             transmet pas les évènements tactiles à une fenêtre PiP). */}
+      {!isBubble && !isInPip && (
         <>
           <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? insets.top : insets.top }]} pointerEvents="box-none">
             <TouchableOpacity

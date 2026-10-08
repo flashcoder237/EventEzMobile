@@ -71,6 +71,9 @@ describe('extractEventIdFromUrl', () => {
   it('retourne null si l\'URL ne cible pas un event', () => {
     expect(extractEventIdFromUrl('/users/me/')).toBeNull();
     expect(extractEventIdFromUrl('/events/')).toBeNull();
-    expect(extractEventIdFromUrl('/events/not-a-valid-id-format/')).toBeNull();
+  });
+  it('extrait un slug (event ouvert par son slug)', () => {
+    expect(extractEventIdFromUrl('/events/meeting-overbrand-dc891cfe/')).toBe('meeting-overbrand-dc891cfe');
+    expect(extractEventIdFromUrl('/events/meeting-overbrand-dc891cfe/verify_access_code/')).toBe('meeting-overbrand-dc891cfe');
   });
 });

@@ -6,6 +6,8 @@
  */
 
 import React, { memo } from 'react';
+
+import BrandLoader from './BrandLoader';
 import {
   View,
   Text,
@@ -93,14 +95,20 @@ export function LoadingSpinner({
   message,
   style,
 }: LoadingSpinnerProps) {
-  const { colors } = useTheme();
-  const indicatorColor = color || colors.primary;
-
+  // ANIMATION DE MARQUE au lieu de la roue du système.
+  //
+  // DEMANDE (2026-10-07) : « Animation de chargement d'écran ». Tous les
+  // écrans affichaient l'`ActivityIndicator` d'Android — la même roue grise
+  // que dans n'importe quelle application. On branche ici plutôt que de
+  // modifier la centaine d'appelants : chaque écran en bénéficie sans
+  // changement.
   return (
-    <View style={[styles.spinnerContainer, style]}>
-      <ActivityIndicator size={size} color={indicatorColor} />
-      {message && <Text style={[styles.spinnerMessage, { color: colors.gray500 }]}>{message}</Text>}
-    </View>
+    <BrandLoader
+      message={message}
+      dotSize={size === 'small' ? 7 : 10}
+      style={style}
+      color={color}
+    />
   );
 }
 

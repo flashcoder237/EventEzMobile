@@ -92,6 +92,11 @@ import { Badge } from '../../components/ui/Badge';
 import ConvertedPrice from '../../components/common/ConvertedPrice';
 import { EditorialCanvas, WatermarkNumeral, EditorialPillCTA, EditorialColors } from '../../components/ui/editorial';
 import {
+  AnimatedIllustration,
+  Offline as OfflineIllustration,
+  Searching as SearchingIllustration,
+} from '../../components/illustrations';
+import {
   TourTarget,
   useTour,
   getEventDetailsTourSteps,
@@ -562,6 +567,14 @@ export default function EventDetailsScreen() {
         if (token) {
           const { setEventAccessToken } = await import('../../lib/utils/eventAccessToken');
           await setEventAccessToken(eventId, token);
+          // Stocke AUSSI sous l'UUID réel. `eventId` est parfois le slug
+          // (ouverture depuis un lien partagé) ; l'inscription, elle, part
+          // toujours avec l'UUID. Sans cette seconde clé, le jeton existe mais
+          // reste introuvable au moment de s'inscrire.
+          const realId = event?.id ? String(event.id) : null;
+          if (realId && realId !== eventId) {
+            await setEventAccessToken(realId, token);
+          }
         }
         // Reload — le backend voit maintenant le token via l'interceptor
         // et renvoie les infos completes.
@@ -605,10 +618,30 @@ export default function EventDetailsScreen() {
   }, [isPreview, loading, !!event, isGated]));
 
   if (!loading && !event) {
+    // Un message de repli réseau est déjà produit par `getApiErrorMessage`
+    // (contexte 'event'). On s'appuie sur son contenu plutôt que de refaire
+    // une détection : une seule source de vérité pour « hors ligne ».
+    const offlineHint = (loadErrorMessage || '').toLowerCase();
+    const isLoadErrorOffline =
+      offlineHint.includes('réseau') || offlineHint.includes('network')
+      || offlineHint.includes('hors ligne') || offlineHint.includes('offline');
     return (
       <EditorialCanvas edges={['top', 'bottom']}>
         <WatermarkNumeral>404</WatermarkNumeral>
         <View style={[styles.errorContainer, { zIndex: 1 }]}>
+          {/* Illustration : DEMANDE (2026-10-07) « il faut un svg à ce niveau ».
+              L'écran n'avait qu'un grand vide entre le filigrane 404 et le
+              texte. On choisit le visuel selon la VRAIE cause : hors ligne
+              (le réseau revient, l'événement existe toujours) ou introuvable
+              (le lien a expiré). Dire la même chose dans les deux cas ferait
+              chercher au mauvais endroit. */}
+          <View style={{ alignItems: 'center', marginBottom: Spacing.lg }}>
+            <AnimatedIllustration entry="slideUp" idle="float">
+              {isLoadErrorOffline
+                ? <OfflineIllustration color={colors.primary} size={180} />
+                : <SearchingIllustration color={colors.primary} size={180} />}
+            </AnimatedIllustration>
+          </View>
           <Text style={[editorialStyles.eyebrow, { color: colors.primary }]}>{t('eventDetails.loadingErrorEyebrow')}</Text>
           <Text style={[editorialStyles.errorTitle, { color: colors.gray900 }]}>{t('eventDetails.loadingError')}</Text>
           <Text style={[styles.errorText, { color: colors.gray500 }]}>{loadErrorMessage ?? t('eventDetails.loadingErrorMessage')}</Text>

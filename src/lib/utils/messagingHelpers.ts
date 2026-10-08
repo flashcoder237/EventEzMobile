@@ -170,6 +170,18 @@ export function getMessageInitials(message: Message): string {
     if (sender.first_name && sender.last_name) {
       return `${sender.first_name[0]}${sender.last_name[0]}`.toUpperCase();
     }
+    // `full_name` est le SEUL champ nominatif present dans le message temps
+    // reel (l'e-mail en a ete retire pour des raisons de confidentialite).
+    // Sans cette lecture, toute bulle arrivee par WebSocket retombait sur la
+    // lettre « U ».
+    const fullName: string = sender.full_name || '';
+    if (fullName) {
+      const parts = fullName.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+      }
+      return parts[0][0].toUpperCase();
+    }
     return (sender.email?.[0] || 'U').toUpperCase();
   }
 

@@ -47,6 +47,12 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('../../../../modules/eventez-pip/src', () => ({
   enterPip: jest.fn(),
   isPipSupported: () => false,
+  // Le PiP s'arme desormais pour toute la duree de l'appel et l'entree est
+  // declenchee cote natif (`onUserLeaveHint`) : le composant appelle donc ces
+  // fonctions au montage.
+  setPipAutoEnter: jest.fn(),
+  isInPipMode: () => false,
+  addPipModeListener: () => ({ remove: jest.fn() }),
 }));
 
 import VisioCallOverlay from '../VisioCallOverlay';

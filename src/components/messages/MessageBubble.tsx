@@ -1274,7 +1274,16 @@ function MessageBubble({
         isGrouped ? (
           <View style={styles.avatarSpacer} />
         ) : avatar ? (
-          <Image source={avatar} style={styles.avatar} cachePolicy="memory-disk" transition={200} />
+          /* `getMediaUrl` : le serializer renvoie un chemin RELATIF quand il
+             n'a pas de `request` dans son contexte (tache Celery, WebSocket).
+             Sans cette normalisation, l'avatar ne se chargeait pas et on
+             retombait sur les initiales. */
+          <Image
+            source={getMediaUrl(avatar) || avatar}
+            style={styles.avatar}
+            cachePolicy="memory-disk"
+            transition={200}
+          />
         ) : (
           <View style={[styles.avatarPlaceholder, { backgroundColor: colors.gray200 }]}>
             <Text style={[styles.avatarInitials, { color: colors.gray600 }]}>{initials}</Text>
@@ -1357,6 +1366,25 @@ function MessageBubble({
                   imageOnlyBubble && styles.timeRowOverlay,
                 ]}
               >
+                {/* Marqueur personnel.
+                    BUG CORRIGE (2026-10-07) : « quand je clique sur marquer un
+                    message, je n'ai aucun retour visuel. Ca me dit juste
+                    message marque. Mais je fait comment pour savoir qu'il est
+                    marque ? ». L'etat etait bien enregistre — simplement
+                    jamais affiche. */}
+                {message.is_starred && (
+                  <Ionicons
+                    name="star"
+                    size={11}
+                    color={
+                      imageOnlyBubble
+                        ? 'rgba(255,255,255,0.9)'
+                        : (isMine ? 'rgba(255,255,255,0.85)' : colors.warning)
+                    }
+                    style={{ marginRight: 4 }}
+                    accessibilityLabel={t('componentsMessages.actionStar')}
+                  />
+                )}
                 {message.is_edited && (
                   <Text style={[
                     styles.editedLabel,
@@ -1498,6 +1526,9 @@ function arePropsEqual(prevProps: MessageBubbleProps, nextProps: MessageBubblePr
   return (
     prevProps.message.id === nextProps.message.id &&
     prevProps.message.content === nextProps.message.content &&
+    // `is_starred` DOIT figurer ici : sans lui, le memo bloque le re-rendu et
+    // l'etoile n'apparait pas malgre la mise a jour de l'etat.
+    prevProps.message.is_starred === nextProps.message.is_starred &&
     prevProps.message.is_edited === nextProps.message.is_edited &&
     prevProps.message.is_deleted === nextProps.message.is_deleted &&
     // is_failed : transition envoi→échec doit re-render (icône rouge + Réessayer).
