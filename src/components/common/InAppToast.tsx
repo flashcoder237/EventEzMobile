@@ -158,6 +158,45 @@ export const InAppToast: React.FC<InAppToastProps> = ({
       haptics.throttled('light', 3000, 'in-app-toast');
     }
 
+    // SON, en miroir EXACT de l'haptique ci-dessus.
+    //
+    // CARTOGRAPHIE (2026-10-08) : ce composant est le point de greffe le plus
+    // rentable de l'app. Le dosage y est déjà fait et éprouvé — un toast
+    // d'info ne vibre pas, une rafale de messages est plafonnée à 3 s — et il
+    // couvre d'un coup la quasi-totalité des moments qui n'avaient aucun
+    // retour : retrait demandé, compte bancaire enregistré, code promo
+    // appliqué, formulaires, message reçu, notification reçue.
+    //
+    // `uiSounds.ui` est coupé par défaut (réglage « Sons d'interface ») : rien
+    // ne devient bruyant sans que l'utilisateur l'ait demandé.
+    //
+    // Le plafond des messages est le MÊME que celui de l'haptique, et pour une
+    // raison plus forte encore : en conversation active on peut recevoir
+    // plusieurs bulles par seconde.
+    // Chargement PARESSEUX de `uiSounds` : il importe `expo-audio`, qui ne
+    // s'initialise pas hors application native. Un import statique ici
+    // remontait la chaîne jusqu'à ~18 suites de tests qui n'ont rien à voir
+    // avec le son (ce composant est tiré par le contexte de notifications).
+    // Même approche que `utils/feedback.ts`.
+    const playUi = (fn: (u: any) => void) => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        fn(require('../../lib/native/uiSounds').uiSounds);
+      } catch {
+        /* son indisponible — jamais bloquant */
+      }
+    };
+
+    if (icon === 'success') {
+      playUi((u) => u.ui('success'));
+    } else if (icon === 'error' || icon === 'warning') {
+      // Pas de son dédié à l'échec côté interface : on ne joue rien plutôt que
+      // de détourner un son de succès pour annoncer un problème.
+      // L'haptique, lui, distingue déjà les deux.
+    } else if (icon === 'message' || icon === 'notification') {
+      playUi((u) => u.throttledUi('toggle', 3000, 'in-app-toast'));
+    }
+
     // F3 — la lumière descend une fois le long du liseré, pendant l'entrée.
     if (!reducedMotion) {
       glow.value = withTiming(1, { duration: 450, easing: Easing.out(Easing.cubic) });

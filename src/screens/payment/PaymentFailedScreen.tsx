@@ -53,6 +53,17 @@ export default function PaymentFailedScreen() {
   useEffect(() => {
     const timer = setTimeout(() => {
       haptics.error();
+      // MIROIR MANQUANT de `payment-success` : le succès sonnait, l'échec
+      // était muet. Or c'est l'issue qu'il faut le plus clairement
+      // distinguer — un paiement refusé qu'on croit passé, on le relance.
+      //
+      // On réutilise `scan-fail`, qui existe déjà et dit « non » sans
+      // dramatiser. Suit le réglage « Sons aux moments clés », comme son
+      // homologue de succès.
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        void require('../../services/soundService').default.play('scan-fail');
+      } catch { /* son indisponible */ }
       if (reduced) return;
       shakeX.value = withSequence(
         withTiming(-6, { duration: 60 }),

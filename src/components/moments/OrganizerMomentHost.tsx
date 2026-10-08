@@ -78,7 +78,12 @@ export default function OrganizerMomentHost() {
           .then((first) => {
             show(m);
             if (first) {
-              feedback.celebrate();
+              // CARTOGRAPHIE (2026-10-08) : `celebrate()` était appelé SANS
+              // son. Le complet — le moment le plus fort de la vie d'un
+              // événement — était donc muet, alors qu'un paiement ordinaire
+              // sonnait. Il ne se produit qu'UNE fois : aucun risque de
+              // saturation.
+              feedback.celebrate('ticket-received');
               if (!reduced) {
                 setConfetti(Date.now());
                 setTimeout(() => setConfetti(0), 4000);

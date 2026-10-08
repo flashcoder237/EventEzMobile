@@ -82,6 +82,33 @@ export default function VisioCallOverlay() {
     if (call?.url) setIsLoading(true);
   }, [call?.url]);
 
+  // SILENCE PENDANT LA VISIO.
+  //
+  // Les sons de l'app (vente, arrivée, scan) sortent par le haut-parleur et
+  // repartent donc dans le MICRO de la réunion : tout le monde les entend.
+  // `setTransientMute` existait déjà mais n'était appelé que depuis l'écran
+  // Live — jamais pour une visio Jitsi, c'est-à-dire précisément le cas où
+  // l'on parle à d'autres gens.
+  //
+  // On coupe tant qu'un appel est en cours, en bulle comme en plein écran :
+  // réduire la fenêtre ne fait pas quitter la réunion.
+  useEffect(() => {
+    if (!call) return;
+    // Chargement PARESSEUX : `soundService` importe `expo-audio`, qui ne
+    // s'initialise pas hors application native et faisait tomber des suites
+    // de tests sans rapport avec le son.
+    const mute = (value: boolean) => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        require('../../services/soundService').default.setTransientMute(value);
+      } catch {
+        /* son indisponible — jamais bloquant */
+      }
+    };
+    mute(true);
+    return () => mute(false);
+  }, [call]);
+
   // L'ÉCRAN change (rotation, multi-fenêtre, iPad) : on ramène la bulle dans
   // les limites. Sans cela, une bulle posée en bas à droite en portrait se
   // retrouve hors-champ en paysage — et c'est elle qui ramène au plein écran.

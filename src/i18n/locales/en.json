@@ -1727,7 +1727,7 @@
     "madeInDouala": "Made in Douala, with care.",
     "madeInDoualaSub": "Thanks for bringing your events to life with us.",
     "rowUiSounds": "Interface sounds",
-    "rowUiSoundsSubtitle": "Very subtle sounds on a few gestures (sending a message, refreshing). Off by default.",
+    "rowUiSoundsSubtitle": "Very subtle sounds on confirmations and incoming notifications. Off by default.",
     "vibrationsEyebrow": "TOUCH",
     "rowVibrations": "Vibrations",
     "rowVibrationsSubtitle": "Haptic feedback on key actions: payment, scan, favorites.",

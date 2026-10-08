@@ -217,6 +217,19 @@ export default function BoxOfficeScreen() {
         clientSaleId: saleIdRef.current,
       });
       haptics.success();
+      // Son de CONCLUSION de vente (pas d'ajout au panier).
+      //
+      // CARTOGRAPHIE (2026-10-08) : une vente guichet prend 6 à 15 s, soit au
+      // plus ~10 sons/minute en pointe — tenable, et c'est le geste métier
+      // central du caissier, qui regarde son client et non son écran.
+      //
+      // ⚠️ Surtout PAS sur `addToCart`/`removeLine` : 6 à 10 taps par vente,
+      // soit 60 à 200 sons/minute. C'est exactement ce qui fait couper le son
+      // pour de bon.
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        void require('../../services/soundService').default.play('sale');
+      } catch { /* son indisponible */ }
       // Annonce en `assertive` : c'est l'information critique, elle doit
       // interrompre la lecture en cours.
       AccessibilityInfo.announceForAccessibility(

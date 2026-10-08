@@ -45,6 +45,10 @@ function chimeOrPlay(sound: SoundKey) {
   }
 }
 
+/** Dernier déclenchement par moment, pour le plafonnement. */
+const lastMoment: Partial<Record<LiveMoment, number>> = {};
+const MOMENT_MIN_INTERVAL_MS = 4000;
+
 /** H7 — son d'interface discret (coupé par défaut, cf. sensoryPrefs `uiSounds`). */
 function uiTick() {
   try {
@@ -91,6 +95,21 @@ export const feedback = {
   moment(name: LiveMoment) {
     const spec = LIVE_MOMENTS[name];
     if (!spec) return;
+
+    // PLAFOND par moment.
+    //
+    // CARTOGRAPHIE (2026-10-08) : `sale` se déclenche à CHAQUE vente de
+    // l'événement entier, chez l'organisateur qui le suit depuis son
+    // téléphone. À l'ouverture de la billetterie d'un concert, c'est
+    // plusieurs ventes par seconde — le carillon devenait une sirène, et
+    // l'organisateur coupait le son au moment précis où il voulait le suivre.
+    //
+    // 4 s : on entend que « ça vend », sans compter chaque billet. Même
+    // logique que le plafond haptique des toasts, pour la même raison.
+    const now = Date.now();
+    if (now - (lastMoment[name] ?? 0) < MOMENT_MIN_INTERVAL_MS) return;
+    lastMoment[name] = now;
+
     haptics[spec.haptic]();
     play(spec.sound);
   },

@@ -76,7 +76,11 @@ function EventCardMomentsComponent({ event }: { event: Event }) {
             onImpact={
               play
                 ? () => {
-                    feedback.celebrate();
+                    // Même moment « complet » que dans OrganizerMomentHost,
+                    // vu depuis la liste. Les deux partagent SOLD_OUT_SEEN_KEY
+                    // et `markFirstSeen` le consomme : un seul des deux sonne
+                    // par événement, jamais les deux.
+                    feedback.celebrate('ticket-received');
                     requestOrganizerConfetti();
                   }
                 : undefined

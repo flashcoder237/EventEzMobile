@@ -1727,7 +1727,7 @@
     "madeInDouala": "Fait à Douala, avec soin.",
     "madeInDoualaSub": "Merci de faire vivre vos événements avec nous.",
     "rowUiSounds": "Sons d’interface",
-    "rowUiSoundsSubtitle": "Petits sons très discrets sur quelques gestes (envoi d’un message, actualisation). Désactivés par défaut.",
+    "rowUiSoundsSubtitle": "Petits sons très discrets sur les confirmations et les notifications reçues. Désactivés par défaut.",
     "vibrationsEyebrow": "TOUCHER",
     "rowVibrations": "Vibrations",
     "rowVibrationsSubtitle": "Retours tactiles lors des actions importantes : paiement, scan, favoris.",

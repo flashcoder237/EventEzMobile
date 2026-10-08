@@ -74,10 +74,32 @@ async function play(kind: UiSound | ChimeSound): Promise<boolean> {
   }
 }
 
+/** Dernier déclenchement par clé, pour le plafonnement. */
+const lastPlayed: Record<string, number> = {};
+
 export const uiSounds = {
   /** Son d'interface : seulement si l'utilisateur les a activés. */
   ui(kind: UiSound): void {
     if (!getSensoryPref('uiSounds')) return;
+    void play(kind);
+  },
+
+  /**
+   * Son d'interface PLAFONNÉ : au plus un toutes les `minIntervalMs`.
+   *
+   * Indispensable pour tout ce qui peut arriver en rafale — messages reçus,
+   * notifications. Une conversation active produit plusieurs bulles par
+   * seconde : sans plafond, le son devient une mitraillette et l'utilisateur
+   * coupe le réglage pour de bon.
+   *
+   * `key` sépare les compteurs : deux sources différentes ne doivent pas se
+   * voler mutuellement leur tour.
+   */
+  throttledUi(kind: UiSound, minIntervalMs: number, key: string): void {
+    if (!getSensoryPref('uiSounds')) return;
+    const now = Date.now();
+    if (now - (lastPlayed[key] ?? 0) < minIntervalMs) return;
+    lastPlayed[key] = now;
     void play(kind);
   },
   /**
