@@ -14,7 +14,7 @@ Ton : sobre / professionnel. À coller tel quel dans le champ dédié, par langu
 
 Nouveautés de cette version :
 
-• Plus stable : correction d'une fermeture inattendue en faisant défiler certaines fenêtres (choix de la langue…), d'écrans qui restaient figés et de l'accueil qui ne se chargeait qu'après actualisation.
+• Plus stable : correction d'une fermeture inattendue en faisant défiler certaines fenêtres (choix de la langue…), d'écrans qui restaient figés, de l'accueil qui ne se chargeait qu'après actualisation et du widget « Prochain billet » qui pouvait ne plus s'afficher sur Android.
 • Notifications : un appui ouvre désormais toujours le bon écran, avec des sons dédiés aux moments importants.
 • Billets : titre et date toujours visibles hors ligne, ajout à l'agenda, reçus repensés et vérifiables par QR code.
 • Plus de petites attentions : gestes, rituels et messages adaptés à votre événement.
@@ -26,7 +26,7 @@ Nouveautés de cette version :
 
 What's new in this version:
 
-• More stable: fixed an unexpected close when scrolling some panels (language picker…), screens that could freeze, and a home feed that only loaded after a refresh.
+• More stable: fixed an unexpected close when scrolling some panels (language picker…), screens that could freeze, a home feed that only loaded after a refresh, and the “Next ticket” widget that could stop displaying on Android.
 • Notifications: tapping one now always opens the right screen, with dedicated sounds for key moments.
 • Tickets: title and date always shown offline, add to calendar, redesigned receipts you can verify with a QR code.
 • More thoughtful touches: gestures, rituals and messages tailored to your event.
@@ -74,6 +74,22 @@ What's new in this version:
   sauvegarde en envoyant `null`).
 - Backend : `/tracks/` et `/speakers/` (+ leads, invitations, caisse)
   acceptent `?event=<slug>` (500 « n'est pas un UUID valide » en prod).
+
+#### Widget Android « Prochain billet » — « Impossible de charger le widget » (2026-10-07)
+- **Cause réelle (lue dans le logcat du launcher le 2026-10-08)** :
+  `Class not allowed to be inflated android.view.View`. Le voile sombre
+  `eventez_widget_scrim` ajouté avec le visuel (commit `78870a6`) était un
+  `<View>` nu, classe interdite dans les RemoteViews → le widget échouait à
+  CHAQUE rendu, avec ou sans billet/image. Remplacé par un `ImageView`
+  (`src` = le dégradé, `fitXY`). Vérifié sur appareil : plus d'erreur
+  d'inflation après rebuild.
+- Durcissement annexe (pas la cause, première piste erronée) :
+  `WidgetImageCache.kt` borne le bitmap décodé (largeur 480 + nombre de
+  pixels, couvre les affiches portrait) sous le quota Binder ~1 Mo, et purge
+  un cache trop gros hérité.
+- **Nécessite un build natif** : injoignable par OTA.
+- Test appareil : poser le widget sans billet → « Aucun billet à venir » ;
+  billet avec affiche → image + voile ; affiche portrait → image réduite.
 
 #### Contenu repris de la 1.3.5
 - Round 3 (sens, posture, gestes, mots et rituels), lot natif (widgets, Live
