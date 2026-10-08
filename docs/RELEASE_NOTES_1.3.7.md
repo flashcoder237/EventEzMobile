@@ -53,6 +53,13 @@ Ne sont listés ici que ceux qui touchent l'app ou exigent un déploiement.
 - Les notes de la 1.3.6 mentionnent aussi ce correctif : elles ont été
   complétées après coup, il n'est PAS dans le build 1.3.6.
 
+#### Carte en mode sombre — après le build n° 35 (OTA possible)
+- Les fonds CARTO (`basemaps.cartocdn.com`) exigent désormais une clé API :
+  chaque tuile devenait une image « API KEY REQUIRED ». `WebViewMap` passe sur
+  OSM dans les deux thèmes, assombri par filtre CSS. Correctif JS seul
+  (commit `a496c81`), PAS dans le build 1.3.7 n° 35 → livrable par OTA.
+  Même correctif côté web (`NearestEventsMap`, carte de l'accueil).
+
 #### Inscription / accès
 - Inscription à un event protégé par code impossible : le serveur exige
   maintenant le jeton `X-Event-Access-Token` comme preuve équivalente ; le
