@@ -102,13 +102,18 @@ export function LoadingSpinner({
   // que dans n'importe quelle application. On branche ici plutôt que de
   // modifier la centaine d'appelants : chaque écran en bénéficie sans
   // changement.
+  //
+  // Le conteneur `flex: 1` centré doit rester : sans lui, l'animation ne
+  // prend que sa propre hauteur et se colle en haut de l'écran, sous la
+  // barre d'état.
   return (
-    <BrandLoader
-      message={message}
-      dotSize={size === 'small' ? 7 : 10}
-      style={style}
-      color={color}
-    />
+    <View style={[styles.spinnerContainer, style]}>
+      <BrandLoader
+        message={message}
+        dotSize={size === 'small' ? 7 : 10}
+        color={color}
+      />
+    </View>
   );
 }
 
