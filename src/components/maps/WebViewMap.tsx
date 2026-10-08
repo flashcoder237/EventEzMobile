@@ -100,10 +100,12 @@ export default function WebViewMap({
   // HTML generated once (or when isDark changes)
   const yourPositionLabel = t('componentsMaps.yourPosition');
   const htmlContent = useMemo(() => {
-    const tileUrl = isDark
-      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-    const tileAttrib = isDark ? '&copy; CartoDB' : '&copy; OpenStreetMap';
+    // Les fonds CARTO exigent désormais une clé API (sinon chaque tuile est
+    // une image « API KEY REQUIRED ») : OSM dans les deux thèmes, assombri en
+    // mode sombre par un filtre CSS sur la classe map-tiles-dark.
+    const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    const tileAttrib = '&copy; OpenStreetMap';
+    const tileClass = isDark ? 'map-tiles-dark' : '';
     const clusterBase = isDark ? '#818CF8' : '#4F46E5';
     const safeYourPosition = JSON.stringify(yourPositionLabel);
 
@@ -120,6 +122,7 @@ export default function WebViewMap({
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; }
     #map { width: 100%; height: 100%; }
+    .map-tiles-dark { filter: invert(1) hue-rotate(180deg) brightness(.95) contrast(.9); }
 
     .leaflet-tooltip {
       background: ${isDark ? '#111827' : 'white'};
@@ -260,7 +263,7 @@ export default function WebViewMap({
       zoomControl: true
     });
 
-    L.tileLayer('${tileUrl}', { attribution: '${tileAttrib}' }).addTo(map);
+    L.tileLayer('${tileUrl}', { attribution: '${tileAttrib}', className: '${tileClass}' }).addTo(map);
 
     var clusterGroup = L.markerClusterGroup({
       maxClusterRadius: 50,
