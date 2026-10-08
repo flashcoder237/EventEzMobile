@@ -10,6 +10,11 @@
 
   Sans image, les couches 1 et 2 restent GONE et le fond @drawable/eventez_widget_bg
   (dégradé de marque) s'affiche seul — exactement le rendu d'avant.
+
+  RemoteViews n'accepte qu'une liste fermée de classes (FrameLayout, LinearLayout,
+  ImageView, TextView…). Un <View> nu fait échouer TOUT le widget côté launcher
+  (« Class not allowed to be inflated android.view.View ») : le voile est donc
+  un ImageView.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
   android:id="@+id/eventez_widget_root"
@@ -25,11 +30,13 @@
     android:scaleType="centerCrop"
     android:visibility="gone" />
 
-  <View
+  <ImageView
     android:id="@+id/eventez_widget_scrim"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/eventez_widget_scrim"
+    android:contentDescription="@null"
+    android:scaleType="fitXY"
+    android:src="@drawable/eventez_widget_scrim"
     android:visibility="gone" />
 
   <LinearLayout

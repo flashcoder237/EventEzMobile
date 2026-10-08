@@ -26,9 +26,19 @@ object WidgetImageCache {
   private const val PREFS = "eventez_widget"
   private const val KEY_SOURCE = "next_ticket_image_source"
 
-  /** Au-delà, on redimensionne : une transaction Binder trop grosse tue le widget. */
-  private const val MAX_WIDTH = 720
+  /**
+   * Au-delà, on redimensionne : une transaction Binder trop grosse tue le widget.
+   *
+   * C'est le BITMAP décodé qui traverse le Binder, pas le JPEG : à 720 de
+   * large, 720 × 405 × 4 octets (ARGB_8888) ≈ 1,11 Mo, au-delà du quota
+   * d'environ 1 Mo partagé par TOUT le widget. 480 × 270 ≈ 506 Ko décodés :
+   * net sur un widget 3×2, avec de la marge pour le reste de la transaction.
+   */
+  private const val MAX_WIDTH = 480
   private const val MAX_BYTES = 600 * 1024
+
+  /** Garde-fou final : un bitmap au-delà de cette taille n'est pas envoyé. */
+  private const val MAX_BITMAP_BYTES = 700 * 1024
 
   private val io = Executors.newSingleThreadExecutor()
 
@@ -42,7 +52,20 @@ object WidgetImageCache {
     val f = file(context)
     if (!f.exists()) return null
     return try {
-      BitmapFactory.decodeFile(f.absolutePath)
+      val bitmap = BitmapFactory.decodeFile(f.absolutePath) ?: return null
+      // Un fichier écrit par une version antérieure peut encore être trop
+      // grand : on préfère le dégradé de marque à un widget qui ne s'affiche
+      // pas du tout. On efface aussi le fichier et l'URL mémorisée, sinon
+      // `sync` croirait le cache à jour et l'image ne reviendrait jamais
+      // pour ce billet ; le prochain passage retélécharge une version aux
+      // nouvelles dimensions (bornées, donc pas de boucle).
+      if (bitmap.byteCount > MAX_BITMAP_BYTES) {
+        bitmap.recycle()
+        clear(context)
+        null
+      } else {
+        bitmap
+      }
     } catch (_: Throwable) {
       null
     }
@@ -104,12 +127,23 @@ object WidgetImageCache {
     null
   }
 
-  /** Décode en limitant la largeur à MAX_WIDTH, sans charger le plein format en mémoire. */
+  /**
+   * Décode sans charger le plein format en mémoire, en bornant la largeur à
+   * MAX_WIDTH ET le nombre total de pixels. La largeur seule ne suffit pas :
+   * une affiche portrait (400 × 711) tient sous MAX_WIDTH mais décode à
+   * ~1,1 Mo — au-delà du garde-fou, donc jamais affichée. La borne en pixels
+   * garantit que tout ce qui sort d'ici passe sous MAX_BITMAP_BYTES.
+   */
   private fun decodeScaled(bytes: ByteArray): Bitmap? {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    val maxPixels = MAX_BITMAP_BYTES / 4 // ARGB_8888 : 4 octets par pixel
     var sample = 1
-    while (bounds.outWidth / sample > MAX_WIDTH) sample *= 2
+    while (
+      bounds.outWidth / sample > MAX_WIDTH ||
+      (bounds.outWidth / sample).toLong() * (bounds.outHeight / sample) > maxPixels
+    ) sample *= 2
     val opts = BitmapFactory.Options().apply { inSampleSize = sample }
     return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
   }
