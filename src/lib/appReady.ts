@@ -46,4 +46,33 @@ export function onAppReady(listener: Listener): () => void {
 export function __resetAppReadyForTests(): void {
   ready = false;
   listeners.clear();
+  crashed = false;
+}
+
+// ============================================
+// Signal « l'app a plante sous le splash »
+// ============================================
+//
+// POURQUOI : le splash anime est rendu PAR-DESSUS `<AppContent />`, en dehors
+// de l'ErrorBoundary. Si l'application plante au demarrage, l'ecran d'erreur
+// est bien rendu — mais SOUS le splash, donc invisible. L'utilisateur voit un
+// logo fige et croit a un blocage ; en realite l'app a plante et le dit, on ne
+// le laisse simplement pas voir.
+//
+// Ce signal permet au splash de s'effacer immediatement pour laisser
+// apparaitre l'ecran d'erreur (et, en interne, le detail du probleme).
+
+let crashed = false;
+
+/** Appele par l'ErrorBoundary quand il attrape une erreur de rendu. */
+export function markAppCrashed(): void {
+  if (crashed) return;
+  crashed = true;
+  // Un plantage rend l'app « prete » au sens du splash : il n'y a plus rien a
+  // attendre, il faut rendre la main tout de suite.
+  markAppReady();
+}
+
+export function hasAppCrashed(): boolean {
+  return crashed;
 }

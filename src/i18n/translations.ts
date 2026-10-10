@@ -19,6 +19,36 @@ import * as FileSystem from 'expo-file-system/legacy';
 const REMOTE_BASE = (process.env.EXPO_PUBLIC_TRANSLATIONS_URL || '').replace(/\/+$/, '');
 const CACHE_DIR = `${FileSystem.documentDirectory}i18n/`;
 
+/**
+ * Delai maximal d'un telechargement de traduction.
+ *
+ * POURQUOI C'EST CRITIQUE : `getRemoteTranslation` est attendu par `i18nReady`,
+ * qui GATE LE PREMIER RENDU de l'app (App.tsx). Un `fetch` sans timeout ne
+ * echoue pas sur un reseau qui accepte la connexion sans jamais repondre
+ * (portail captif d'hotel ou d'aeroport, wifi sature, 3G qui decroche) : il
+ * attend indefiniment. La promesse ne se resout jamais, et l'app reste figee
+ * sur son splash — sans erreur, sans crash, sans rien dans les logs.
+ *
+ * `fetch` de React Native n'honore aucun timeout par defaut : il FAUT un
+ * AbortController explicite.
+ */
+const FETCH_TIMEOUT_MS = 5000;
+
+/**
+ * `fetch` avec abandon garanti. Rejette passe le delai, au lieu d'attendre
+ * sans fin. Le `finally` libere le minuteur dans tous les cas, y compris
+ * lorsque la requete aboutit avant l'echeance.
+ */
+async function fetchWithTimeout(url: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function ensureCacheDir(): Promise<void> {
   try {
     const info = await FileSystem.getInfoAsync(CACHE_DIR);
@@ -79,7 +109,7 @@ async function downloadAndCache(lang: string): Promise<Record<string, any> | nul
     const url = version
       ? `${REMOTE_BASE}/${lang}.json?v=${version}`
       : `${REMOTE_BASE}/${lang}.json`;
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) return null;
     const json = await res.json();
     if (json && typeof json === 'object') {
@@ -114,7 +144,7 @@ export async function getTranslationManifest(): Promise<Record<string, number>> 
   if (_manifestCache) return _manifestCache;
   if (!REMOTE_BASE) return {};
   try {
-    const res = await fetch(`${REMOTE_BASE}/manifest.json`);
+    const res = await fetchWithTimeout(`${REMOTE_BASE}/manifest.json`);
     if (!res.ok) return {};
     const json = await res.json();
     if (json && typeof json === 'object') {

@@ -16,7 +16,7 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, DarkColors, FontFamily, FontSizes } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
-import { onAppReady } from '../../lib/appReady';
+import { onAppReady, hasAppCrashed } from '../../lib/appReady';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -335,15 +335,49 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
     if (minElapsed && appReady) setFinishing(true);
   }, [minElapsed, appReady]);
 
+  // Plantage sous le splash : on sort SANS attendre la duree minimale. Garder
+  // l'animation « jolie » par-dessus un ecran d'erreur reviendrait a cacher a
+  // l'utilisateur la seule information utile — et a faire passer un plantage
+  // pour un blocage.
+  useEffect(() => {
+    if (hasAppCrashed()) setFinishing(true);
+  }, [appReady]);
+
   useEffect(() => {
     if (!finishing) return;
+
+    // Garantit que `onFinish` ne part qu'UNE fois, qu'il vienne de l'animation
+    // ou du filet ci-dessous.
+    let done = false;
+    const finishOnce = () => {
+      if (done) return;
+      done = true;
+      onFinish();
+    };
+
     // Barre complétée (ProgressBar) puis fondu du conteneur et fin.
     containerOpacity.value = withDelay(
       PROGRESS_COMPLETE_DURATION,
       withTiming(0, { duration: FADE_OUT_DURATION, easing: Easing.out(Easing.ease) }, () => {
-        runOnJS(onFinish)();
+        runOnJS(finishOnce)();
       })
     );
+
+    // FILET — l'app ne doit JAMAIS rester coincee sur le splash anime.
+    //
+    // Jusqu'ici, `onFinish` n'etait appele QUE depuis le callback de fin
+    // d'animation Reanimated. Si ce callback ne part pas — animation jamais
+    // jouee parce que l'ecran est masque, worklet qui n'arrive pas a
+    // s'installer, thread UI occupe au lancement a froid — alors `showSplash`
+    // reste vrai et le splash recouvre l'app POUR TOUJOURS. Le plafond
+    // `MAX_DURATION` ne protege pas de ca : il declenche `finishing`, qui
+    // relance la meme animation faillible.
+    //
+    // On double donc la sortie par un minuteur JS ordinaire, qui ne depend ni
+    // du thread UI ni des worklets.
+    const safety = setTimeout(finishOnce, PROGRESS_COMPLETE_DURATION + FADE_OUT_DURATION + 400);
+
+    return () => clearTimeout(safety);
   }, [finishing]);
 
   const containerAnimStyle = useAnimatedStyle(() => ({

@@ -26,6 +26,8 @@ import {
 } from '../../constants/theme';
 import GradientButton from '../ui/GradientButton';
 import { captureException } from '../../services/crashReporting';
+import { markAppCrashed } from '../../lib/appReady';
+import { isShakeReportEnabled } from '../../lib/gestures/shakeRouter';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -48,6 +50,10 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    // Fait disparaitre le splash, qui est rendu PAR-DESSUS cette frontiere et
+    // masquerait sinon completement l'ecran d'erreur : l'utilisateur verrait
+    // un logo fige au lieu du message et du bouton « Reessayer ».
+    markAppCrashed();
     return {
       hasError: true,
       error,
@@ -127,12 +133,32 @@ function ErrorFallbackUI({
             {t('errorBoundary.subtitle')}
           </Text>
 
-          {/* Error details (dev only) */}
-          {__DEV__ && error && (
+          {/* Detail de l'erreur — dev ET builds internes (TestFlight, preview).
+              AVANT : `__DEV__` seul. Sur un build TestFlight, `__DEV__` est
+              faux : le testeur ne voyait qu'un message generique, sans aucun
+              moyen de dire CE QUI a plante. Sans Mac (donc sans Console.app ni
+              Xcode) et sans DSN Sentry provisionnee, c'etait la DERNIERE
+              source d'information disponible — et elle etait coupee.
+              `EXPO_PUBLIC_SHAKE_TO_REPORT` vaut 1 sur les profils EAS
+              `development` et `preview`, jamais sur `production` : le detail
+              technique ne fuite donc pas vers les utilisateurs de l'App Store. */}
+          {(__DEV__ || isShakeReportEnabled()) && error && (
             <View style={[styles.errorDetailsContainer, { backgroundColor: colors.errorLight, borderColor: colors.error + '30' }]}>
               <Text style={[styles.errorDetailsLabel, { color: colors.error }]}>{t('errorBoundary.errorDetails')}</Text>
-              <Text style={[styles.errorDetailsText, { color: colors.errorDark }]} numberOfLines={4}>
-                {error.message}
+              {/* `selectable` : sans Mac ni logs, le testeur doit pouvoir
+                  COPIER ce texte pour le transmettre. C'est la seule facon de
+                  faire sortir l'information de l'appareil.
+                  Le nom et le debut de la pile sont inclus : un message seul
+                  (« undefined is not a function ») ne designe pas le coupable. */}
+              <Text
+                style={[styles.errorDetailsText, { color: colors.errorDark }]}
+                numberOfLines={12}
+                selectable
+              >
+                {[
+                  error.name ? `${error.name}: ${error.message}` : error.message,
+                  error.stack?.split('\n').slice(1, 5).join('\n'),
+                ].filter(Boolean).join('\n')}
               </Text>
             </View>
           )}

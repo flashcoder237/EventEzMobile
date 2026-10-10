@@ -25,7 +25,10 @@ import {
 import { useBottomSheetAnim } from '../../hooks/useBottomSheetAnim';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const DEFAULT_QR_SIZE = SCREEN_WIDTH * 0.55;
+// Borne a 280 pt : sur iPad (>= 1024 pt de large), `0,55 x largeur` donnerait
+// un QR de ~563 pt. Un QR plus grand ne se scanne pas mieux — passe une
+// certaine taille, la camera doit au contraire reculer pour le cadrer.
+const DEFAULT_QR_SIZE = Math.min(SCREEN_WIDTH * 0.55, 280);
 
 interface QRCodeDisplayProps {
   data: string;

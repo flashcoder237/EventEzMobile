@@ -93,7 +93,12 @@ interface ScanResult {
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SCAN_AREA_SIZE = SCREEN_WIDTH * 0.7;
+// Plafonne a 320 comme ScanScreen : sans borne, `0,7 x largeur` donne une
+// mire de ~717 pt sur un iPad (1024 pt de large) — elle deborde de l'ecran en
+// portrait et n'aide en rien a viser. La valeur est volontairement figee au
+// chargement : la mire est un carre centre, un changement de largeur a la
+// rotation ne la casse pas tant qu'elle reste bornee.
+const SCAN_AREA_SIZE = Math.min(SCREEN_WIDTH * 0.7, 320);
 
 // Fenetre pendant laquelle un MEME code est ignore. Couvre le temps qu'une
 // personne s'ecarte du champ apres validation, sans jamais bloquer un billet

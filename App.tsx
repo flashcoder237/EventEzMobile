@@ -61,7 +61,14 @@ patchDefaultFont(RNText);
 patchDefaultFont(RNTextInput);
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as NavigationBar from 'expo-navigation-bar';
-import { NavigationContainer, LinkingOptions, NavigationState, getStateFromPath } from '@react-navigation/native';
+import {
+  NavigationContainer,
+  LinkingOptions,
+  NavigationState,
+  getStateFromPath,
+  DefaultTheme as NavDefaultTheme,
+  DarkTheme as NavDarkTheme,
+} from '@react-navigation/native';
 import { navigationRef } from './src/navigation/navigationRef';
 import { loadNavigationState, saveNavigationState } from './src/lib/navigationPersistence';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -186,6 +193,19 @@ const APP_FONTS = {
 };
 loadFontsAsync(APP_FONTS).catch(() => { /* useFonts remonte l'erreur */ });
 
+/**
+ * Delai maximal pendant lequel le splash natif peut rester affiche en attendant
+ * les polices et la preference de langue.
+ *
+ * Passe ce delai, on demarre l'app QUOI QU'IL ARRIVE : une app qui s'ouvre avec
+ * la police systeme ou la langue du device est utilisable ; une app figee sur
+ * son splash ne l'est pas. Les deux attentes gardees par ce delai sont
+ * cosmetiques, aucune n'est necessaire a l'affichage.
+ *
+ * 4 s : au-dela, un utilisateur considere que l'application est plantee.
+ */
+const BOOT_GATE_TIMEOUT_MS = 4000;
+
 const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [
     Linking.createURL('/'),
@@ -299,7 +319,33 @@ const linking: LinkingOptions<RootStackParamList> = {
 const NAV_STATE_SAVE_DEBOUNCE_MS = 500;
 
 function AppContent() {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
+
+  // Fond des scenes de navigation, aligne sur le theme de l'app.
+  //
+  // SANS CE THEME, React Navigation applique le sien : `rgb(242,242,242)` en
+  // clair, `rgb(1,1,1)` en sombre. Ce gris apparaissait en CARRE derriere la
+  // barre d'onglets flottante — partout ou la scene ne peint pas elle-meme son
+  // fond jusqu'en bas (la barre flotte au-dessus du contenu, et les ecrans
+  // s'arretent a leur SafeAreaView). On voyait donc le fond du NAVIGATEUR,
+  // pas celui de l'ecran.
+  //
+  // Memoise : passer un objet neuf a chaque rendu ferait re-rendre tout
+  // l'arbre de navigation.
+  const navTheme = React.useMemo(() => {
+    const base = isDark ? NavDarkTheme : NavDefaultTheme;
+    return {
+      ...base,
+      colors: {
+        ...base.colors,
+        background: colors.background,
+        card: colors.card,
+        text: colors.gray900,
+        border: colors.gray200,
+        primary: colors.primary,
+      },
+    };
+  }, [isDark, colors]);
   const routeNameRef = useRef<string | undefined>(undefined);
   // La route courante est publiée via setCurrentRoute (store de
   // CurrentRouteContext) — PAS un useState ici : sinon chaque navigation
@@ -463,6 +509,7 @@ function AppContent() {
     <ConnectionProvider>
       <NavigationContainer
         ref={navigationRef}
+        theme={navTheme}
         linking={linking}
         initialState={initialNavState}
         onReady={onNavigationReady}
@@ -553,7 +600,16 @@ function App() {
   const [fontsLoaded, fontError] = useFonts(APP_FONTS);
   // Une police qui échoue ne doit pas figer l'app sur le splash : on rend avec
   // la police système (dégradé visuel, pas un écran bloqué).
-  const fontsReady = fontsLoaded || fontError != null;
+  //
+  // `fontError` ne couvre que l'ECHEC. Si `useFonts` ne se resout JAMAIS
+  // (chargement natif qui pend), ni `fontsLoaded` ni `fontError` ne bougent et
+  // le splash reste a l'ecran. D'ou le meme filet temporel que pour i18n.
+  const [fontDeadlinePassed, setFontDeadlinePassed] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setFontDeadlinePassed(true), BOOT_GATE_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, []);
+  const fontsReady = fontsLoaded || fontError != null || fontDeadlinePassed;
 
   const [showSplash, setShowSplash] = useState(true);
   // Bloque le rendu jusqu'a ce que l'override AsyncStorage de la langue ait
@@ -565,10 +621,26 @@ function App() {
 
   useEffect(() => {
     let cancelled = false;
-    i18nReady
-      .then(() => { if (!cancelled) setI18nResolved(true); })
-      .catch(() => { if (!cancelled) setI18nResolved(true); });
-    return () => { cancelled = true; };
+    const release = () => { if (!cancelled) setI18nResolved(true); };
+    i18nReady.then(release).catch(release);
+
+    // FILET DE SECURITE — l'app ne doit JAMAIS rester bloquee sur le splash.
+    //
+    // `i18nReady` attend `changeLanguage(stored)`, qui peut partir chercher la
+    // traduction sur le reseau (EXPO_PUBLIC_TRANSLATIONS_URL est defini en
+    // production). Ces `fetch` n'ont NI timeout NI AbortController : sur un
+    // reseau qui accepte la connexion sans jamais repondre — portail captif
+    // d'hotel/aeroport, wifi sature, 3G qui decroche — la promesse ne se
+    // resout jamais. Ni `.then` ni `.catch` ne partent, donc `i18nResolved`
+    // reste faux, `App` retourne `null`, et le splash natif reste a l'ecran
+    // indefiniment : exactement le symptome observe sur iPhone.
+    //
+    // Au pire on affiche l'app dans la langue du device une fraction de
+    // seconde avant que la preference ne s'applique. C'est infiniment
+    // preferable a un ecran fige.
+    const deadline = setTimeout(release, BOOT_GATE_TIMEOUT_MS);
+
+    return () => { cancelled = true; clearTimeout(deadline); };
   }, []);
 
   // Once fonts AND i18n are loaded, hide the native splash and show our animated one

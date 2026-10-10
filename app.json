@@ -18,13 +18,18 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "net.overbrand.eventez",
       "usesAppleSignIn": true,
       "associatedDomains": [
         "applinks:eventez.online"
       ],
       "infoPlist": {
+        "UIRequiresFullScreen": true,
+        "UISupportedInterfaceOrientations~ipad": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown"
+        ],
         "NSPhotoLibraryUsageDescription": "Permet à EventEz d'ajouter vos photos à vos messages et à vos événements.",
         "NSPhotoLibraryAddUsageDescription": "Permet à EventEz d'enregistrer vos billets et les images reçues dans votre galerie.",
         "NSCameraUsageDescription": "Permet à EventEz d'activer votre caméra pour les événements en visioconférence et pour scanner les QR codes de vos billets.",
@@ -211,7 +216,7 @@
         "expo-calendar",
         {
           "calendarPermission": "Permet à EventEz d'ajouter vos événements à votre agenda.",
-          "remindersPermission": false
+          "remindersPermission": "Permet à EventEz d'ajouter vos événements à vos rappels."
         }
       ],
       "@react-native-community/datetimepicker",

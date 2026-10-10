@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
+  Dimensions,
   View,
   Text,
   StyleSheet,
@@ -7,7 +8,6 @@ import {
   FlatList,
   TouchableOpacity,
   Pressable,
-  Dimensions,
   StatusBar,
   Linking,
   Platform,
@@ -125,6 +125,9 @@ import {
 
 type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
 
+// Largeur figee au chargement : utilisee UNIQUEMENT dans un StyleSheet, et
+// toujours bornee par Math.min(width, 520). Une rotation iPad ne peut donc
+// pas la faire deborder — inutile de passer par useWindowDimensions ici.
 const { width } = Dimensions.get('window');
 
 export default function EventDetailsScreen() {
