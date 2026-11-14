@@ -1,0 +1,12 @@
+# Lint UNIQUEMENT les fichiers mis en scène (voir lint-staged dans
+# package.json). Le code existant porte ~759 avertissements sur ~513 fichiers,
+# dont 609 imports inutilisés : sur Hermes, Metro les embarque dans le bundle,
+# donc ils coûtent au démarrage. On empêche le problème de grandir sans
+# imposer un grand nettoyage.
+#
+# Volontairement PAS de `yarn test` ni de `tsc` ici : la suite mobile dure
+# ~30 s, un pre-commit aussi lent se contourne avec --no-verify. Les tests et
+# le typecheck restent le rôle de la CI.
+#
+# Pour passer outre ponctuellement : git commit --no-verify
+yarn lint-staged

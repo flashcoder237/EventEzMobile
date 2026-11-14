@@ -6111,6 +6111,7 @@
       "cancelReasonPlaceholder": "E.g. health conditions, venue unavailable…",
       "keepBtn": "Keep",
       "cancelEventBtn": "Cancel event",
+      "cancelHolding": "Hold…",
       "recurrenceEyebrow": "RECURRENCE",
       "recurrenceModalTitle": "Schedule \"{{title}}\"",
       "recurrenceModalBody": "Create multiple occurrences from this event. Each occurrence is an independent new event you can adjust.",
@@ -6445,7 +6446,17 @@
       "conflictDuplicate_other": "• {{count}} tickets already scanned elsewhere (double entry)",
       "conflictNotFound_one": "• {{count}} ticket unknown to the server",
       "conflictNotFound_other": "• {{count}} tickets unknown to the server",
-      "conflictHint": "Accepted offline by this phone, rejected on sync. If another agent was scanning at the same time, these people got in twice."
+      "conflictHint": "Accepted offline by this phone, rejected on sync. If another agent was scanning at the same time, these people got in twice.",
+      "voice": {
+        "valid": "Valid ticket",
+        "validWarning": "Valid, needs checking",
+        "alreadyCheckedIn": "Already checked in",
+        "refused": "Ticket refused",
+        "enabled": "Voice announcements on",
+        "toggleOn": "Voice announcements on",
+        "toggleOff": "Voice announcements off",
+        "toggleA11y": "Turn scan result voice announcements on or off"
+      }
     },
     "liveOps": {
       "live": "LIVE",

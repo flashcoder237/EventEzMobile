@@ -1,5 +1,5 @@
 import { ongoingEvent } from '../../services/ongoingEventNotification';
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -23,7 +23,6 @@ import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navig
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 
@@ -38,6 +37,7 @@ import {
   SCANNER_TOUR_DELAY_MS,
 } from '../../components/tour';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
+import { useCheckinVoice } from '../../hooks/useCheckinVoice';
 import { useCheckinQueue } from '../../hooks/useCheckinQueue';
 import { useCheckinManifest } from '../../hooks/useCheckinManifest';
 import { haptics } from '../../utils/haptics';
@@ -74,7 +74,6 @@ import {
   BorderRadius,
   Spacing,
   TextStyles,
-  Shadows,
 } from '../../constants/theme';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import TorchDoubleTap from '../../components/gestures/TorchDoubleTap';
@@ -123,6 +122,7 @@ export default function QRScannerScreen() {
   // G1 — chaque nouveau résultat relance le retour visuel des coins du viseur
   // (vert / ambre / rouge), même si le type est identique au précédent.
   const [scanFeedback, setScanFeedback] = useState<{ kind: ScanFeedbackKind; n: number }>({ kind: 'idle', n: 0 });
+  const { enabled: voiceEnabled, toggle: toggleVoice, announce: announceCheckin } = useCheckinVoice();
   useEffect(() => {
     if (!scanResult) return;
     const kind: ScanFeedbackKind = !scanResult.success
@@ -131,7 +131,23 @@ export default function QRScannerScreen() {
         ? 'warning'
         : 'success';
     setScanFeedback((prev) => ({ kind, n: prev.n + 1 }));
-  }, [scanResult]);
+    // Annonce vocale (opt-in) : le son de scan ne dit que validé/refusé, le
+    // NOM n'est lisible qu'en baissant les yeux sur l'écran — or le staff a
+    // une main sur le téléphone et l'autre sur le billet. L'annonce DOUBLE
+    // l'affichage, elle ne le remplace jamais.
+    const reg = scanResult.registration;
+    announceCheckin({
+      success: scanResult.success,
+      alreadyCheckedIn: scanResult.alreadyCheckedIn,
+      warning: scanResult.warning,
+      holderName: reg
+        ? reg.user_name
+          || `${reg.user?.first_name || ''} ${reg.user?.last_name || ''}`.trim()
+          || null
+        : null,
+      ticketLabel: reg?.registration_type || null,
+    });
+  }, [scanResult, announceCheckin]);
   const [showResult, setShowResult] = useState(false);
   const [stats, setStats] = useState({ scanned: 0, success: 0, failed: 0 });
   const [autoCheckIn, setAutoCheckIn] = useState(true);
@@ -901,18 +917,36 @@ export default function QRScannerScreen() {
               <Text style={styles.liveTagText}>{t('organizer.qrScanner.headerEyebrow')}</Text>
             </View>
 
-            <TouchableOpacity
-              style={styles.closeDisc}
-              onPress={() => setFlashOn(!flashOn)}
-              accessibilityRole="button"
-              accessibilityLabel={flashOn ? t('organizer.qrScanner.flashOffA11y') : t('organizer.qrScanner.flashOnA11y')}
-            >
-              <Ionicons
-                name={flashOn ? 'flash' : 'flash-outline'}
-                size={18}
-                color={flashOn ? '#FCD34D' : '#FFFFFF'}
-              />
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              {/* Annonce vocale du résultat : opt-in, car annoncer un nom à
+                  voix haute l'expose à l'entourage. */}
+              <TouchableOpacity
+                style={styles.closeDisc}
+                onPress={toggleVoice}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: voiceEnabled }}
+                accessibilityLabel={t('organizer.qrScanner.voice.toggleA11y')}
+              >
+                <Ionicons
+                  name={voiceEnabled ? 'volume-high' : 'volume-mute-outline'}
+                  size={18}
+                  color={voiceEnabled ? '#4F46E5' : '#FFFFFF'}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.closeDisc}
+                onPress={() => setFlashOn(!flashOn)}
+                accessibilityRole="button"
+                accessibilityLabel={flashOn ? t('organizer.qrScanner.flashOffA11y') : t('organizer.qrScanner.flashOnA11y')}
+              >
+                <Ionicons
+                  name={flashOn ? 'flash' : 'flash-outline'}
+                  size={18}
+                  color={flashOn ? '#FCD34D' : '#FFFFFF'}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.editorialHeader}>
@@ -1578,6 +1612,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: Spacing.md,
+  },
+  // Voix + lampe torche à droite de l'en-tête.
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   closeDisc: {
     width: 40,

@@ -12,7 +12,6 @@ import {
   Share,
   Platform,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -38,6 +37,7 @@ import {
 } from '../../constants/theme';
 import { MyEventsScreenSkeleton } from '../../components/ui/Skeleton';
 import { ErrorState } from '../../components/ui/ErrorState';
+import HoldToConfirm from '../../components/ui/HoldToConfirm';
 import { isWeddingEvent, isExhibitionEvent } from '../../lib/utils/eventKind';
 import { StaggeredItem } from '../../components/ui/Animations';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
@@ -1737,18 +1737,18 @@ export default function MyEventsScreen() {
               >
                 <Text style={[styles.cancelModalBtnText, { color: colors.gray700 }]}>{t('organizer.myEvents.keepBtn')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.cancelModalBtn, { backgroundColor: '#EF4444' }, cancelLoading && { opacity: 0.6 }]}
-                onPress={submitCancelEvent}
-                disabled={cancelLoading}
-                activeOpacity={0.85}
-              >
-                {cancelLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={[styles.cancelModalBtnText, { color: '#fff' }]}>{t('organizer.myEvents.cancelEventBtn')}</Text>
-                )}
-              </TouchableOpacity>
+              {/* Appui maintenu : l'annulation déclenche l'auto-remboursement
+                  des inscriptions ET une notification à tous les inscrits. Un
+                  simple tap sur un bouton rouge se fait par réflexe. */}
+              <HoldToConfirm
+                testID="cancel-event-hold"
+                onConfirm={submitCancelEvent}
+                label={t('organizer.myEvents.cancelEventBtn')}
+                holdingLabel={t('organizer.myEvents.cancelHolding')}
+                loading={cancelLoading}
+                style={styles.cancelModalBtn}
+                textStyle={styles.cancelModalBtnText}
+              />
             </View>
           </View>
         </View>

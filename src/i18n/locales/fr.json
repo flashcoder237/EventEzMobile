@@ -6111,6 +6111,7 @@
       "cancelReasonPlaceholder": "Ex : conditions sanitaires, indisponibilité du lieu…",
       "keepBtn": "Garder",
       "cancelEventBtn": "Annuler l'événement",
+      "cancelHolding": "Maintenez…",
       "recurrenceEyebrow": "RÉCURRENCE",
       "recurrenceModalTitle": "Programmer \"{{title}}\"",
       "recurrenceModalBody": "Créez plusieurs occurrences à partir de cet événement. Chaque occurrence est un nouvel event indépendant que vous pouvez ajuster.",
@@ -6445,7 +6446,17 @@
       "conflictDuplicate_other": "• {{count}} billets déjà scannés ailleurs (double entrée)",
       "conflictNotFound_one": "• {{count}} billet inconnu du serveur",
       "conflictNotFound_other": "• {{count}} billets inconnus du serveur",
-      "conflictHint": "Validés hors-ligne par ce téléphone, refusés à la synchronisation. Si un autre agent scannait en parallèle, ces personnes sont entrées deux fois."
+      "conflictHint": "Validés hors-ligne par ce téléphone, refusés à la synchronisation. Si un autre agent scannait en parallèle, ces personnes sont entrées deux fois.",
+      "voice": {
+        "valid": "Billet valide",
+        "validWarning": "Valide, à vérifier",
+        "alreadyCheckedIn": "Déjà entré",
+        "refused": "Billet refusé",
+        "enabled": "Annonce vocale activée",
+        "toggleOn": "Annonce vocale activée",
+        "toggleOff": "Annonce vocale désactivée",
+        "toggleA11y": "Activer ou désactiver l'annonce vocale du résultat de scan"
+      }
     },
     "liveOps": {
       "live": "EN DIRECT",

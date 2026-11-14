@@ -2,7 +2,7 @@
  * MessagesScreen - Soft Editorial Inbox
  */
 
-import React, { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import LoadingLine from '../../components/ui/LoadingLine';
 import EmptySuggestion from '../../components/ui/EmptySuggestion';
+import ScrollFade, { useScrollFade } from '../../components/ui/ScrollFade';
 import { useDailyLine } from '../../hooks/useEmptySuggestion';
 import { haptics } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
@@ -63,7 +64,6 @@ import {
 import { centeredContent, FORM_MAX } from '../../constants/layout';
 import { getApiErrorMessage } from '../../lib/utils/errorHandling';
 import {
-  MESSAGE_AVATAR_SIZE,
   getDisplayName,
   getUserInitials,
   formatRelativeTime,
@@ -624,10 +624,15 @@ export default function MessagesScreen() {
   const scrollListToTop = useCallback(() => {
     listRef.current?.scrollToOffset({ offset: 0, animated: true });
   }, []);
+  // Dégradés de débordement proportionnels : indiquent s'il RESTE du contenu
+  // (un dégradé permanent n'informe de rien). Composé avec le handler du FAB
+  // « remonter », qui garde son propre seuil.
+  const listFade = useScrollFade();
   const onListScroll = useCallback((e: any) => {
     const y = e.nativeEvent.contentOffset.y;
     setShowScrollTop((prev) => (y > 600 !== prev ? y > 600 : prev));
-  }, []);
+    listFade.scrollProps.onScroll(e);
+  }, [listFade]);
 
   // Recherche globale dans les messages (en plus du filtre conversations)
   const [messageSearchResults, setMessageSearchResults] = useState<Message[]>([]);
@@ -1919,6 +1924,8 @@ export default function MessagesScreen() {
         renderItem={renderConversation}
         keyExtractor={(item) => String(item.id)}
         onScroll={onListScroll}
+        onContentSizeChange={listFade.scrollProps.onContentSizeChange}
+        onLayout={listFade.scrollProps.onLayout}
         scrollEventThrottle={16}
         contentContainerStyle={[
           styles.listContent,
@@ -1948,6 +1955,7 @@ export default function MessagesScreen() {
         removeClippedSubviews
         getItemLayout={(_, i) => ({ length: CONVERSATION_ROW_HEIGHT, offset: CONVERSATION_ROW_HEIGHT * i, index: i })}
       />
+      <ScrollFade {...listFade.fadeProps} color={colors.background} />
 
       {/* Footer eyebrow */}
       <View style={styles.footerBlock}>
