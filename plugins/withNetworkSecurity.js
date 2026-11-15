@@ -5,7 +5,9 @@
  *
  *   - src/main/res/xml/   → release-strict : cleartextTrafficPermitted=false
  *     pour eventez.online (bloque les downgrade attacks en prod). Aucun
- *     domaine ne peut faire du HTTP en release build.
+ *     domaine ne peut faire du HTTP en release build, et seules les
+ *     autorités SYSTÈME sont acceptées — jamais celles installées par
+ *     l'utilisateur (cf. le commentaire de RELEASE_CONFIG).
  *
  *   - src/debug/res/xml/  → permissif : cleartext autorisé pour TOUS les
  *     domaines, pour pouvoir dialoguer avec un Metro bundler ou un Django
@@ -21,13 +23,31 @@ const { join } = require('path');
 
 const RELEASE_CONFIG = `<?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Production : HTTPS uniquement, bloque tout HTTP. Système + user CAs
-         pour permettre l'inspection MitM via certificat utilisateur si besoin. -->
+    <!-- Production : HTTPS uniquement, bloque tout HTTP, et CAs SYSTÈME
+         SEULEMENT.
+
+         SÉCURITÉ (audit 2026-11) : ce bloc listait aussi <certificates
+         src="user" />, et le commentaire présentait l'inspection MitM comme
+         un objectif de production. C'était l'inverse d'un objectif.
+
+         Depuis Android 7 (API 24), une application ne fait PLUS confiance
+         aux autorités installées par l'utilisateur, précisément pour que
+         l'interception du trafic demande un appareil rooté. Réintroduire
+         l'ancre « user » annulait cette protection sur le domaine qui porte
+         les JWT : il suffisait d'une autorité installée sur le téléphone —
+         profil d'entreprise, proxy d'un réseau Wi-Fi public, logiciel
+         indésirable — pour lire et modifier l'intégralité des échanges avec
+         l'API, jetons d'authentification compris.
+
+         Aucun épinglage de certificat n'existe ailleurs dans le dépôt pour
+         compenser.
+
+         L'inspection MitM reste possible où elle a sa place : la variante
+         DEBUG ci-dessous porte l'ancre « user ». -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">eventez.online</domain>
         <trust-anchors>
             <certificates src="system" />
-            <certificates src="user" />
         </trust-anchors>
     </domain-config>
 </network-security-config>`;
