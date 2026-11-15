@@ -1,9 +1,8 @@
-import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { View, StyleSheet } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useTranslation } from 'react-i18next';
-import { Colors } from '../../constants/theme';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 import { MapMarker } from '../../types';
 
@@ -296,6 +295,18 @@ export default function WebViewMap({
       return CATEGORY_COLORS[key] || DEFAULT_COLOR;
     }
 
+    function escapeHtml(value) {
+      // Rend une chaine litterale pour innerHTML. Leaflet traite les
+      // contenus de tooltip/popup comme du HTML des lors que ce ne sont
+      // pas des noeuds DOM : tout texte venant du serveur passe par ici.
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     function formatPrice(marker) {
       // Pas de label "Gratuit" sur la carte — les events gratuits sont
       // identifiés par l'absence de prix sur le marker (point coloré nu).
@@ -365,7 +376,11 @@ export default function WebViewMap({
           icon: createMarkerIcon(m, isSelected, enterIndex),
           zIndexOffset: isSelected ? 1000 : 0
         });
-        leafMarker.bindTooltip(m.title, { permanent: false, direction: 'top', offset: [0, -5] });
+        // SECURITE (audit 2026-11) : bindTooltip assigne la chaine a
+        // innerHTML (Leaflet 1.9.4) — c'est un puits de BALISAGE, pas de
+        // texte. Le titre vient de l'organisateur : sans echappement, un
+        // titre porteur de balises injectait du DOM dans la WebView carte.
+        leafMarker.bindTooltip(escapeHtml(m.title), { permanent: false, direction: 'top', offset: [0, -5] });
         leafMarker.on('click', function() {
           window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'markerPress', marker: m }));
         });
