@@ -15,20 +15,44 @@ Pour ajuster : réordonne/déplace les codes entre vagues. `all_langs()` aplatit
 tout dans l'ordre.
 """
 
+# ─── Langues à écriture DROITE-À-GAUCHE : en attente d'un audit RTL ──────
+#
+# Retirées des vagues (audit i18n 2026-11) : l'app n'a AUCUNE prise en charge
+# du RTL — aucun `I18nManager`, `allowRTL` ni `isRTL` dans tout `src/`, et
+# rien côté web non plus.
+#
+# Publier ces langues aujourd'hui donnerait une interface affichée de gauche
+# à droite : icônes du mauvais côté, flèches de retour inversées, textes
+# alignés à gauche, et tous les `paddingLeft`/`marginLeft` codés en dur
+# devenus faux. Le texte serait correct, la mise en page cassée — un
+# arabophone serait MOINS bien servi qu'en restant sur l'anglais, que
+# `fallbackLng` lui donne déjà.
+#
+# Ce n'est pas un abandon : c'est un ordre de passage. Pour les réintégrer
+# une fois `I18nManager.allowRTL(true)` en place et la mise en page vérifiée
+# (marges logiques `start`/`end`, pas `left`/`right`), il suffit de remettre
+# chaque code dans sa vague d'origine, indiquée ci-dessous.
+RTL_PENDING_AUDIT = {
+    'ar': 1,   # arabe   — était en vague 1
+    'fa': 2,   # persan  — était en vague 2
+    'ur': 4,   # ourdou  — était en vague 4
+    'he': 6,   # hébreu  — était en vague 6
+}
+
 # Chaque sous-liste = une vague. Ordre = priorité décroissante.
 WAVES = [
     # Vague 1 — top mondial (les plus parlés après en/fr), forte couverture Argos.
-    ['es', 'zh', 'hi', 'ar', 'pt', 'ru', 'de', 'ja', 'it'],
+    ['es', 'zh', 'hi', 'pt', 'ru', 'de', 'ja', 'it'],
     # Vague 2 — grands marchés + Europe/Asie majeurs.
-    ['ko', 'tr', 'vi', 'id', 'pl', 'uk', 'nl', 'th', 'fa'],
+    ['ko', 'tr', 'vi', 'id', 'pl', 'uk', 'nl', 'th'],
     # Vague 3 — Afrique (marché EventEz) + langues régionales importantes.
     ['sw', 'ha', 'yo', 'am', 'zu', 'so', 'ig', 'sn', 'ny'],
     # Vague 4 — Asie du Sud / Sud-Est.
-    ['bn', 'ta', 'te', 'ur', 'ms', 'ml', 'mr', 'gu', 'pa'],
+    ['bn', 'ta', 'te', 'ms', 'ml', 'mr', 'gu', 'pa'],
     # Vague 5 — Europe (petits pays) + divers.
     ['el', 'cs', 'sv', 'da', 'fi', 'no', 'hu', 'ro', 'sk'],
     # Vague 6 — longue traîne (si modèle Argos dispo).
-    ['he', 'bg', 'hr', 'sr', 'sl', 'lt', 'lv', 'et', 'ca'],
+    ['bg', 'hr', 'sr', 'sl', 'lt', 'lv', 'et', 'ca'],
 ]
 
 

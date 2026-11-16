@@ -59,9 +59,39 @@ DEFAULT_OUT = os.path.join(REPO_ROOT, 'translations-dist')
 
 # Sentinelles en zone privée Unicode : MT ne les altère pas.
 _OPEN, _CLOSE = '', ''
-# Capture : {{var}}, {{var, formatter}}, $t(ns:key), <tag>, </tag>
-_PROTECT_RE = re.compile(r'(\{\{.*?\}\}|\$t\([^)]*\)|</?[a-zA-Z][^>]*>)')
+# Noms propres a NE JAMAIS traduire (audit i18n 2026-11).
+#
+# Argos ne les connait pas : il les segmente en sous-mots et les retranscrit
+# phonetiquement, surtout vers les ecritures non latines — « EventEz » devient
+# « ИвентЕз », « イベンテズ », « إيفنتإز »… et SURTOUT de facon DIFFERENTE d'une
+# chaine a l'autre, puisque chaque chaine est traduite isolement. Un nom de
+# marque instable donne une impression d'application contrefaite.
+#
+# 60 chaines de en.json contiennent « EventEz » ou « OverBrand ».
+#
+# On reutilise le mecanisme de sentinelles existant : c'est une extension du
+# motif, pas une nouvelle machinerie. Trie par longueur decroissante pour que
+# « Orange Money » soit capture avant « Orange ».
+_BRANDS = sorted(
+    [
+        'EventEz', 'OverBrand', 'Overbrand',
+        'NotchPay', 'CinetPay', 'CamPay', 'pawaPay', 'Flutterwave',
+        'Stripe', 'PayPal', 'Orange Money', 'MTN Money', 'MTN',
+        'Apple', 'Google', 'Jitsi', 'Logto',
+    ],
+    key=len,
+    reverse=True,
+)
+
+# Capture : {{var}}, {{var, formatter}}, $t(ns:key), <tag>, </tag>, marques.
+# `\b` autour des marques pour ne pas couper un mot qui les contiendrait.
+_PROTECT_RE = re.compile(
+    r'(\{\{.*?\}\}|\$t\([^)]*\)|</?[a-zA-Z][^>]*>|'
+    + r'\b(?:' + '|'.join(re.escape(b) for b in _BRANDS) + r')\b)'
+)
 _RESTORE_RE = re.compile(_OPEN + r'\s*(\d+)\s*' + _CLOSE)
+# Toute sentinelle residuelle, meme malformee : sert au controle post-restore.
+_SENTINEL_RE = re.compile('[' + _OPEN + _CLOSE + ']')
 
 
 def protect(text):
@@ -84,20 +114,76 @@ def restore(text, tokens):
     return _RESTORE_RE.sub(repl, text)
 
 
+def restoration_failed(original, translated, tokens):
+    """La restauration a-t-elle perdu ou abime un token protege ?
+
+    SECURITE DE DONNEES (audit i18n 2026-11) : `restore()` etait appele et son
+    resultat ecrit TEL QUEL, sans jamais verifier qu'il avait abouti.
+
+    Si le moteur supprime les caracteres de la zone privee Unicode — ce que
+    font certains tokenizers SentencePiece, qui mappent l'inconnu vers
+    `<unk>` puis l'elident — `_RESTORE_RE` ne matche plus rien et le CHIFFRE
+    NU reste dans la chaine publiee :
+
+        "Hello {{name}}, you have {{count}} tickets"
+          -> protege : "Hello <0>, you have <1> tickets"
+          -> PUA perdu : "Hello 0, you have 1 tickets"   <- publie tel quel
+
+    L'utilisateur lit « Bonjour 0, vous avez 1 billets ». Sur un ecran de
+    paiement, c'est une perte de confiance immediate.
+
+    Et `fallbackLng:'en'` ne sauve pas : il se declenche sur une cle ABSENTE,
+    pas sur une cle CORROMPUE. Pire, `--only-missing` considere la chaine
+    comme « presente et non vide » et ne la retraduira JAMAIS : l'erreur est
+    figee definitivement.
+
+    On compare donc le multiset des tokens avant/apres, et on refuse toute
+    sentinelle residuelle (qui s'afficherait en carre tofu).
+    """
+    if _SENTINEL_RE.search(translated):
+        return True  # sentinelle non restauree -> carres dans l'app
+    for token in tokens:
+        if original.count(token) != translated.count(token):
+            return True
+    return False
+
+
 def make_translator(target, memo):
-    """Retourne une fonction text->traduction (mémoïsée), ou None si modèle absent."""
+    """Retourne une fonction (text, key) -> traduction, ou None si modèle absent."""
     import argostranslate.translate as tr
 
-    def fn(text):
-        if text in memo:
-            return memo[text]
+    def fn(text, key=''):
+        # MEMOISATION PAR CLE (audit i18n 2026-11) : le cache etait indexe sur
+        # le TEXTE SOURCE seul. Deux cles portant le meme mot anglais
+        # recevaient donc FORCEMENT la meme traduction, meme quand le sens
+        # differe — et 29 % des chaines font un seul mot.
+        #
+        # « Close » apparait 13 fois (fermer un modal / proche), « Free » 16
+        # fois (gratuit / libre), « Share » 12 fois (partager / part).
+        # `settings.themeLight` = « Light » devenait « leger » au lieu de
+        # « clair ». On indexe sur le NAMESPACE + le texte : les chaines d'un
+        # meme domaine partagent leur traduction (gain de temps conserve),
+        # celles de domaines differents ne se contaminent plus.
+        namespace = key.split('.')[0] if key else ''
+        cache_key = (namespace, text)
+        if cache_key in memo:
+            return memo[cache_key]
+
         protected, tokens = protect(text)
         try:
             out = tr.translate(protected, 'en', target)
         except Exception:
             out = protected  # échec ponctuel → garde le texte (sera restauré)
         out = restore(out, tokens)
-        memo[text] = out
+
+        # Filet : plutot qu'une chaine corrompue, on rend la SOURCE anglaise.
+        # `fallbackLng` fait alors son travail et l'utilisateur lit un anglais
+        # correct au lieu d'un « Bonjour 0 » ou d'un carre vide.
+        if restoration_failed(text, out, tokens):
+            print(f'  ! placeholder perdu sur {key or text[:40]!r} -> source conservee')
+            out = text
+
+        memo[cache_key] = out
         return out
 
     return fn
@@ -180,21 +266,32 @@ def release_language(target, uninstall_disk=False):
             print(f'  ! désinstallation en->{target} impossible : {exc}')
 
 
-def translate_tree(node, fn, existing=None, only_missing=False):
+def translate_tree(node, fn, existing=None, only_missing=False, key=''):
+    """Descend l'arbre JSON en transmettant le CHEMIN DE CLE au traducteur.
+
+    AUDIT i18n 2026-11 : le chemin etait parcouru (`for k, v in node.items()`)
+    mais jamais transmis — un contexte gratuit, deja disponible, qu'on jetait.
+    `fn` l'utilise desormais pour cloisonner sa memoisation par namespace,
+    afin que `common.close` et un « Close » au sens « proche » ne partagent
+    plus de force la meme traduction.
+    """
     if isinstance(node, dict):
         out = {}
         for k, v in node.items():
             ev = existing.get(k) if isinstance(existing, dict) else None
-            out[k] = translate_tree(v, fn, ev, only_missing)
+            out[k] = translate_tree(v, fn, ev, only_missing, f'{key}.{k}' if key else k)
         return out
     if isinstance(node, list):
-        return [translate_tree(x, fn, None, only_missing) for x in node]
+        return [
+            translate_tree(x, fn, None, only_missing, f'{key}[{i}]')
+            for i, x in enumerate(node)
+        ]
     if isinstance(node, str):
         if only_missing and isinstance(existing, str) and existing.strip():
             return existing
         if not node.strip():
             return node
-        return fn(node)
+        return fn(node, key)
     return node
 
 
