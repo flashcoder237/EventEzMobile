@@ -76,15 +76,45 @@ jobs:
           path: i18n-out
 
       - name: Générer les traductions
+        # SÉCURITÉ (audit 2026-11) : les entrées `workflow_dispatch` sont
+        # du TEXTE LIBRE, et `${{ }}` est substitué par GitHub AVANT que
+        # le shell ne s'exécute — la valeur devient donc du CODE, pas une
+        # donnée. Une entrée construite pour cela s'exécutait telle quelle
+        # et pouvait exfiltrer le PAT disponible dans ce job.
+        #
+        # On passe par `env:` : le shell lit alors une variable, dont le
+        # contenu n'est jamais interprété comme du code. C'est le
+        # correctif canonique de l'injection de script dans les Actions.
+        env:
+          INPUT_LANGS: ${{ github.event.inputs.langs }}
+          INPUT_WAVE: ${{ github.event.inputs.wave }}
+          INPUT_ONLY_MISSING: ${{ github.event.inputs.only_missing }}
         run: |
           set -e
           # Sélection des cibles :
           #  - langs explicites (manuel) → --langs
           #  - sinon wave (manuel ou défaut 1) → --wave N
           #  - push auto (pas d'input) → vague 1
-          LANGS="${{ github.event.inputs.langs }}"
-          WAVE="${{ github.event.inputs.wave }}"
-          ONLY="${{ github.event.inputs.only_missing }}"
+          LANGS="$INPUT_LANGS"
+          WAVE="$INPUT_WAVE"
+          ONLY="$INPUT_ONLY_MISSING"
+
+          # `env:` empêche l'exécution de code ; ces contrôles empêchent
+          # en plus qu'une valeur inattendue devienne un argument que le
+          # script interpréterait (les deux finissent sur une ligne de
+          # commande, non quotée pour permettre le découpage en mots).
+          case "$LANGS" in
+            "") ;;
+            *[!a-zA-Z,_-]*)
+              echo "Entrée 'langs' invalide : lettres, virgules, tirets et _ uniquement." >&2
+              exit 1 ;;
+          esac
+          case "$WAVE" in
+            "") ;;
+            *[!0-9]*)
+              echo "Entrée 'wave' invalide : un entier est attendu." >&2
+              exit 1 ;;
+          esac
 
           if [ -n "$LANGS" ]; then
             SELECT="--langs $LANGS"
