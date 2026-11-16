@@ -457,6 +457,17 @@ export default function SettingsScreen() {
   // Préférences
   const [language, setLanguage] = useState('fr');
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
+  // Changement de langue EN COURS. Les langues autres que fr/en se
+  // telechargent depuis le CDN (jusqu'a 5 s de timeout reseau) puis purgent
+  // tout le cache : sans ce drapeau, l'utilisateur tapait une langue, voyait
+  // le selecteur se refermer, et plus RIEN pendant plusieurs secondes.
+  const [changingLanguage, setChangingLanguage] = useState<string | null>(null);
+  // Doublon en `ref` : `SearchableSelectModal.handleSelect` appelle `onSelect`
+  // PUIS `handleClose` dans le meme tour synchrone. A ce moment, `onClose` lit
+  // encore la valeur de `changingLanguage` du rendu COURANT (null) par sa
+  // cloture lexicale — l'etat React n'est pas encore re-rendu. Une ref est
+  // mise a jour immediatement, elle est donc la seule garde fiable ici.
+  const changingLanguageRef = useRef<string | null>(null);
   const [languageList, setLanguageList] = useState<{ code: string; label: string }[]>([
     { code: 'fr', label: 'Français (French)' },
     { code: 'en', label: 'English' },
@@ -778,6 +789,14 @@ export default function SettingsScreen() {
   };
 
   const persistAndApplyLanguage = async (lang: string) => {
+    // fr/en sont BUNDLEES : aucun telechargement, le basculement est
+    // instantane et afficher un indicateur ne ferait que clignoter. Les
+    // autres passent par le CDN — c'est la qu'il faut montrer l'attente.
+    const isBundled = lang === 'fr' || lang === 'en';
+    if (!isBundled) {
+      changingLanguageRef.current = lang;
+      setChangingLanguage(lang);
+    }
     setLanguage(lang);
     try {
       await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
@@ -804,6 +823,11 @@ export default function SettingsScreen() {
       }
       handleUpdateSetting('language', lang);
     }
+    // `finally` implicite : on relache le drapeau AVANT le toast, pour que
+    // l'interface soit deja reactive quand le message de succes apparait.
+    changingLanguageRef.current = null;
+    setChangingLanguage(null);
+    setLanguageModalOpen(false);
     showSuccess(t('settings.languageActivated'));
   };
 
@@ -1240,6 +1264,8 @@ export default function SettingsScreen() {
             <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>{t('settings.preferencesSectionEyebrow')}</Text>
             <View style={[styles.dashLine, { backgroundColor: sectionHairline }]} />
           </View>
+          {/* `disabled` pendant le chargement : un second tap relancerait un
+              téléchargement concurrent et un second `clearAll()`. */}
           {matchesQuery(searchQuery, [t('settings.preferencesSectionEyebrow'), t('settings.languageEyebrow'), getLanguageLabel()]) && (
           <OptionCard
             icon="language-outline"
@@ -1247,7 +1273,14 @@ export default function SettingsScreen() {
             title={getLanguageLabel()}
             onPress={showLanguagePicker}
             tone="primary"
-            right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
+            disabled={!!changingLanguage}
+            right={
+              changingLanguage ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
+              )
+            }
           />
           )}
           {matchesQuery(searchQuery, [t('settings.preferencesSectionEyebrow'), t('eyebrow.theme'), getThemeLabel()]) && (
@@ -2010,10 +2043,14 @@ export default function SettingsScreen() {
       </Modal>
 
       {/* Sélecteur de langue de l'interface — toutes les langues. fr/en sont
-          bundlées ; les autres se téléchargent à la demande (OTA). */}
+          bundlées ; les autres se téléchargent à la demande (OTA).
+          Il ne se ferme PAS pendant le chargement : `persistAndApplyLanguage`
+          le referme lui-même une fois la langue réellement active. Sans cela,
+          l'utilisateur voyait le sélecteur disparaître puis un écran inchangé
+          pendant plusieurs secondes, sans savoir si son choix avait pris. */}
       <SearchableSelectModal<{ code: string; label: string }>
         visible={languageModalOpen}
-        onClose={() => setLanguageModalOpen(false)}
+        onClose={() => { if (!changingLanguageRef.current) setLanguageModalOpen(false); }}
         eyebrow={t('settings.languageEyebrow')}
         title={t('settings.languageDialogTitle')}
         searchPlaceholder={t('common.search', { defaultValue: 'Rechercher…' })}
