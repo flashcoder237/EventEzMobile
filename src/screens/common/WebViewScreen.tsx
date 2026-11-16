@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -204,18 +204,46 @@ export default function WebViewScreen() {
         allowsBackForwardNavigationGestures
         sharedCookiesEnabled
         mediaPlaybackRequiresUserAction={false}
-        // VISIO en WebView : la caméra/micro doivent être accordés à la page
-        // (Jitsi WebRTC). Sans ça → écran noir / pas de son.
         allowsInlineMediaPlayback
-        // iOS : accorde automatiquement caméra/micro à la page.
-        mediaCapturePermissionGrantType="grant"
-        // Android : le WebChromeClient de react-native-webview 13.15 accorde
-        // lui-même getUserMedia à la page SI l'app a les permissions RUNTIME
-        // CAMERA + RECORD_AUDIO (déclarées app.json ET accordées par l'OS). La
-        // demande de permission runtime doit avoir eu lieu AVANT d'ouvrir la
-        // visio (sinon Jitsi reste bloqué à l'init WebRTC).
-        // Jitsi (SPA) utilise abondamment localStorage : sans domStorageEnabled,
-        // l'app Jitsi échoue à s'initialiser sur Android → écran blanc.
+        // SÉCURITÉ (audit 2026-11) : capture média REFUSÉE sur ce navigateur
+        // in-app générique.
+        //
+        // Cet écran charge exclusivement des liens TIERS fournis par un
+        // organisateur : `session.virtual_link`, site d'un sponsor, d'un
+        // intervenant, ressource de session. Aucun de ses 5 appelants ne passe
+        // `roomId`, et tous les chemins visio EventEz passent par `startCall`
+        // → `VisioCallOverlay`, dont l'URL est construite par le SERVEUR (voir
+        // EventDetailsScreen). Il n'y a donc plus aucune raison d'accorder
+        // caméra et micro ici — et le faire donnait la capture à n'importe
+        // quelle page choisie par un organisateur.
+        //
+        // On NE conditionne PAS sur `isVisio` : c'est un test de sous-chaîne
+        // (/jitsi|8x8\.vc|jaas|\bjwt=/) qu'une URL attaquante satisfait
+        // trivialement — il suffit d'un `?jwt=` ou du mot « jitsi » dans le
+        // chemin. Ce n'est pas un test de confiance.
+        //
+        // Si un grant redevenait nécessaire ici, utiliser
+        // 'grantIfSameHostElsePrompt', le seul mode qui compare l'origine
+        // demandeuse à l'hôte réellement chargé — 'grant' ne compare rien.
+        mediaCapturePermissionGrantType="deny"
+        // La page chargée peut rediriger : on borne le schéma à CHAQUE
+        // navigation, pas seulement au premier chargement.
+        //
+        // On autorise http ET https : les appelants normalisent avec
+        // `startsWith('http')`, donc un lien saisi en http par un organisateur
+        // arrive tel quel — le refuser casserait ces liens en silence. Ce qu'on
+        // bloque, ce sont les schémas qui sortent du web et atteignent l'OS
+        // (intent://, file://, tel://, javascript:…), qu'une page tierce
+        // pouvait déclencher par simple redirection.
+        onShouldStartLoadWithRequest={(req) => {
+          const allowed = /^https?:\/\//i.test(req.url);
+          if (!allowed && __DEV__) {
+            console.warn('[WebView] navigation bloquée (schéma non web)');
+          }
+          return allowed;
+        }}
+        // Beaucoup de pages tierces utilisent localStorage : sans
+        // domStorageEnabled, elles échouent à s'initialiser sur Android.
         domStorageEnabled
         javaScriptEnabled
         originWhitelist={['*']}
